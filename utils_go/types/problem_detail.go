@@ -21,12 +21,10 @@ type ProblemDetail struct {
 	Status    int    `json:"status,omitempty"`
 	Detail    string `json:"detail,omitempty"`
 	Instance  string `json:"instance,omitempty"`
-	Errors    []any  `json:"errors,omitempty"`
 	Extension any    `json:"extension,omitempty"`
 }
 
 func (problemDetail *ProblemDetail) String() (string, error) {
-
 	var outputMap map[string]interface{}
 
 	problemDetailData, err := json.Marshal(problemDetail)
