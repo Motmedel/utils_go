@@ -4,29 +4,29 @@ import (
 	"fmt"
 	utils_go "github.com/Motmedel/utils_go/utils_go/types"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
+	"log/slog"
 	"net/http"
 )
 
 func RequestWrapper(
 	responseWriter http.ResponseWriter,
 	request *http.Request,
-	f func(*[]zap.Field) (error, *utils_go.ProblemDetail),
-	logger *zap.Logger,
+	f func(*slog.Logger) (error, *utils_go.ProblemDetail),
+	logger *slog.Logger,
 ) error {
 	var wrapperFuncErr error
 	var problemDetail *utils_go.ProblemDetail
-
-	logFields := make([]zap.Field, 0, 32)
 
 	clientIpAddress, clientPort, err := SplitAddress(request.RemoteAddr)
 	if err != nil {
 		problemDetail = utils_go.MakeInternalServerErrorProblemDetail()
 	} else {
-		logFields = append(
-			logFields,
-			zap.String("client.ip", clientIpAddress),
-			zap.Int("client.port", clientPort),
+		logger = logger.With(
+			slog.Group(
+				"client",
+				slog.String("ip", clientIpAddress),
+				slog.Int("port", clientPort),
+			),
 		)
 
 		if request.Header.Get("Content-Type") != "application/json" {
@@ -38,7 +38,7 @@ func RequestWrapper(
 				Instance: uuid.New().String(),
 			}
 		} else {
-			wrapperFuncErr, problemDetail = f(&logFields)
+			wrapperFuncErr, problemDetail = f(logger)
 			if wrapperFuncErr != nil && problemDetail == nil {
 				problemDetail = utils_go.MakeInternalServerErrorProblemDetail()
 			}
@@ -47,29 +47,33 @@ func RequestWrapper(
 
 	if problemDetail != nil {
 		if err != nil {
-			logFields = append(
-				logFields,
-				zap.Error(err),
-				zap.Stack("error.stack_trace"),
-				zap.String("error.id", problemDetail.Instance),
+			logger.Error(
+				"A server error occurred in the wrapper prelude.",
+				slog.Group(
+					"error",
+					slog.String("message", err.Error()),
+					slog.String("id", problemDetail.Instance),
+				),
 			)
-			logger.Error("A server error occurred in the wrapper prelude.", logFields...)
 		} else if wrapperFuncErr != nil {
-			logFields = append(
-				logFields,
-				zap.Error(wrapperFuncErr),
-				zap.Stack("error.stack_trace"),
-				zap.String("error.id", problemDetail.Instance),
+			logger.Error(
+				"A server error occurred in a wrapped function.",
+				slog.Group(
+					"error",
+					slog.String("message", wrapperFuncErr.Error()),
+					slog.String("id", problemDetail.Instance),
+				),
 			)
-			logger.Error("A server error occurred in a wrapped function", logFields...)
 		} else {
-			logFields = append(
-				logFields,
-				zap.String("error.id", problemDetail.Instance),
-				zap.String("error.message", problemDetail.Title+": "+problemDetail.Detail),
-				zap.Any("problem_detail", problemDetail),
+			logger.Error(
+				"A client error occurred.",
+				slog.Group(
+					"error",
+					slog.String("message", wrapperFuncErr.Error()),
+					slog.String("id", problemDetail.Instance),
+					"problem_detail", problemDetail,
+				),
 			)
-			logger.Error("A client error occurred", logFields...)
 		}
 
 		responseWriter.Header().Set("Content-Type", "application/problem+json")
