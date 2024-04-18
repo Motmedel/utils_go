@@ -8,6 +8,16 @@ func Map[T any, U any](s []T, f func(T) U) []U {
 	return r
 }
 
+func Filter[T any](s []T, f func(T) bool) []T {
+	var r []T
+	for _, v := range s {
+		if f(v) {
+			r = append(r, v)
+		}
+	}
+	return r
+}
+
 func Set[T comparable](input []T) []T {
 	uniqueMap := make(map[T]bool)
 	var result []T
