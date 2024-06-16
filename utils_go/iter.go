@@ -1,11 +1,19 @@
 package utils_go
 
-func Map[T any, U any](s []T, f func(T) U) []U {
-	r := make([]U, len(s), len(s))
-	for i, v := range s {
-		r[i] = f(v)
+func _map[InputType any, OutputType any](
+	inputSlice []InputType,
+	outputSlice []OutputType,
+	f func(InputType) OutputType,
+) []OutputType {
+	for i, inputValue := range inputSlice {
+		outputSlice[i] = f(inputValue)
 	}
-	return r
+	return outputSlice
+}
+
+func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
+	outputSlice := make([]OutputType, len(inputSlice), len(inputSlice))
+	return _map[InputType, OutputType](inputSlice, outputSlice, f)
 }
 
 func Filter[T any](s []T, f func(T) bool) []T {
@@ -16,6 +24,11 @@ func Filter[T any](s []T, f func(T) bool) []T {
 		}
 	}
 	return r
+}
+
+func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
+	var outputSlice []OutputType
+	return _map[InputType, OutputType](inputSlice, outputSlice, f)
 }
 
 func Set[T comparable](input []T) []T {
