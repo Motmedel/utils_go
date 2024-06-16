@@ -1,34 +1,31 @@
 package utils_go
 
-func _map[InputType any, OutputType any](
-	inputSlice []InputType,
-	outputSlice []OutputType,
-	f func(InputType) OutputType,
-) []OutputType {
+func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
+	outputSlice := make([]OutputType, len(inputSlice), len(inputSlice))
 	for i, inputValue := range inputSlice {
 		outputSlice[i] = f(inputValue)
 	}
 	return outputSlice
 }
 
-func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
-	outputSlice := make([]OutputType, len(inputSlice), len(inputSlice))
-	return _map[InputType, OutputType](inputSlice, outputSlice, f)
-}
-
-func Filter[T any](s []T, f func(T) bool) []T {
-	var r []T
-	for _, v := range s {
-		if f(v) {
-			r = append(r, v)
+func Filter[T any](inputSlice []T, f func(T) bool) []T {
+	var outputSlice []T
+	for _, inputValue := range inputSlice {
+		if f(inputValue) {
+			outputSlice = append(outputSlice, inputValue)
 		}
 	}
-	return r
+	return outputSlice
 }
 
-func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
+func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(InputType) *OutputType) []OutputType {
 	var outputSlice []OutputType
-	return _map[InputType, OutputType](inputSlice, outputSlice, f)
+	for i, inputValue := range inputSlice {
+		if outputValue := f(inputValue); outputValue != nil {
+			outputSlice[i] = *outputValue
+		}
+	}
+	return outputSlice
 }
 
 func Set[T comparable](input []T) []T {
