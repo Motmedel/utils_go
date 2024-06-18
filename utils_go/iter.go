@@ -20,9 +20,9 @@ func Filter[T any](inputSlice []T, f func(T) bool) []T {
 
 func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(InputType) *OutputType) []OutputType {
 	var outputSlice []OutputType
-	for i, inputValue := range inputSlice {
+	for _, inputValue := range inputSlice {
 		if outputValue := f(inputValue); outputValue != nil {
-			outputSlice[i] = *outputValue
+			outputSlice = append(outputSlice, *outputValue)
 		}
 	}
 	return outputSlice
