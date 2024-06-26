@@ -1,5 +1,7 @@
 package utils_go
 
+import "reflect"
+
 func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
 	outputSlice := make([]OutputType, len(inputSlice), len(inputSlice))
 	for i, inputValue := range inputSlice {
@@ -18,11 +20,11 @@ func Filter[T any](inputSlice []T, f func(T) bool) []T {
 	return outputSlice
 }
 
-func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(InputType) *OutputType) []OutputType {
+func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
 	var outputSlice []OutputType
 	for _, inputValue := range inputSlice {
-		if outputValue := f(inputValue); outputValue != nil {
-			outputSlice = append(outputSlice, *outputValue)
+		if outputValue := f(inputValue); !reflect.ValueOf(outputValue).IsZero() {
+			outputSlice = append(outputSlice, outputValue)
 		}
 	}
 	return outputSlice
