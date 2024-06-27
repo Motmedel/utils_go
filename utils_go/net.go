@@ -91,3 +91,13 @@ func Ipv4RangeToCidrRange(ipStart string, ipEnd string) ([]string, error) {
 
 	return cidrs, nil
 }
+
+func GetIpVersion(ip *net.IP) int {
+	if ip.To4() != nil {
+		return 4
+	} else if ip.To16() != nil {
+		return 6
+	} else {
+		return 0
+	}
+}
