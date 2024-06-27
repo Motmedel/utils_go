@@ -8,13 +8,21 @@ import (
 	"reflect"
 )
 
-func MakeInternalServerErrorProblemDetail() *ProblemDetail {
+func MakeStatusCodeProblemDetail(code int) *ProblemDetail {
 	return &ProblemDetail{
 		Type:     "about:blank",
-		Title:    "Internal Server Error",
-		Status:   http.StatusInternalServerError,
+		Title:    http.StatusText(code),
+		Status:   code,
 		Instance: uuid.New().String(),
 	}
+}
+
+func MakeInternalServerErrorProblemDetail() *ProblemDetail {
+	return MakeStatusCodeProblemDetail(http.StatusInternalServerError)
+}
+
+func MakeBadRequestProblemDetail() *ProblemDetail {
+	return MakeStatusCodeProblemDetail(http.StatusBadRequest)
 }
 
 type ProblemDetail struct {
