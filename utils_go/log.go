@@ -29,10 +29,18 @@ func AttrsFromMap(m map[string]any) []any {
 }
 
 func MakeErrorGroup(err error) *slog.Attr {
-	group := slog.Group(
-		"error",
+	args := []any{
 		slog.String("message", err.Error()),
 		slog.String("type", reflect.TypeOf(err).String()),
+	}
+
+	if inputError, ok := err.(InputErrorI); ok {
+		args = append(args, slog.String("input", string(inputError.GetInput())))
+	}
+
+	group := slog.Group(
+		"error",
+		args...,
 	)
 	return &group
 }
