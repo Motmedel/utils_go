@@ -20,3 +20,17 @@ type JsonSyntaxError struct {
 	*json.SyntaxError
 	*InputError
 }
+
+type CauseErrorI interface {
+	Error() string
+	GetCause() error
+}
+
+type CauseError struct {
+	error
+	Cause error
+}
+
+func (causeError *CauseError) GetCause() error {
+	return causeError.Cause
+}

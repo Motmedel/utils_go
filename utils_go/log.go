@@ -38,6 +38,10 @@ func MakeErrorGroup(err error) *slog.Attr {
 		args = append(args, slog.String("input", string(inputError.GetInput())))
 	}
 
+	if causeError, ok := err.(CauseErrorI); ok {
+		args = append(args, slog.Group("cause", MakeErrorGroup(causeError)))
+	}
+
 	group := slog.Group(
 		"error",
 		args...,
