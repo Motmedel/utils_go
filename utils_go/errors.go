@@ -27,8 +27,12 @@ type CauseErrorI interface {
 }
 
 type CauseError struct {
-	error
-	Cause error
+	Message string
+	Cause   error
+}
+
+func (causeError *CauseError) Error() string {
+	return causeError.Message
 }
 
 func (causeError *CauseError) GetCause() error {
