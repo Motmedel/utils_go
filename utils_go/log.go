@@ -39,7 +39,7 @@ func MakeErrorGroup(err error) *slog.Attr {
 	}
 
 	if causeError, ok := err.(CauseErrorI); ok {
-		args = append(args, slog.Group("cause", MakeErrorGroup(causeError)))
+		args = append(args, slog.Group("cause", MakeErrorGroup(causeError.GetCause())))
 	}
 
 	group := slog.Group(
