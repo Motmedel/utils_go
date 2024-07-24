@@ -4,15 +4,15 @@ import "encoding/json"
 
 type InputErrorI interface {
 	Error() string
-	GetInput() []byte
+	GetInput() any
 }
 
 type InputError struct {
 	error
-	Input []byte
+	Input any
 }
 
-func (inputError *InputError) GetInput() []byte {
+func (inputError *InputError) GetInput() any {
 	return inputError.Input
 }
 

@@ -2,6 +2,7 @@ package utils_go
 
 import (
 	"log/slog"
+	"os"
 	"reflect"
 )
 
@@ -35,7 +36,18 @@ func MakeErrorGroup(err error) *slog.Attr {
 	}
 
 	if inputError, ok := err.(InputErrorI); ok {
-		args = append(args, slog.String("input", string(inputError.GetInput())))
+		textualRepresentation, err := MakeTextualRepresentation(inputError.GetInput())
+		if err != nil {
+			go func() {
+				LogError(
+					"An error occurred when making a textual representation of error input.",
+					err,
+					LOG,
+				)
+			}()
+		} else {
+			args = append(args, slog.String("input", textualRepresentation))
+		}
 	}
 
 	if causeError, ok := err.(CauseErrorI); ok {
@@ -55,4 +67,9 @@ func LogError(message string, err error, logger *slog.Logger) {
 
 func LogWarning(message string, err error, logger *slog.Logger) {
 	logger.Warn(message, *MakeErrorGroup(err))
+}
+
+func LogFatal(message string, err error, logger *slog.Logger, exitCode int) {
+	logger.Error(message, *MakeErrorGroup(err))
+	os.Exit(exitCode)
 }
