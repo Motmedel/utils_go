@@ -1,23 +1,5 @@
 package utils_go
 
-type InputErrorI interface {
-	Error() string
-	GetInput() any
-}
-
-type InputError struct {
-	Err   error
-	Input any
-}
-
-func (inputError *InputError) Error() string {
-	return inputError.Err.Error()
-}
-
-func (inputError *InputError) GetInput() any {
-	return inputError.Input
-}
-
 type CauseErrorI interface {
 	Error() string
 	GetCause() error
@@ -34,4 +16,27 @@ func (causeError *CauseError) Error() string {
 
 func (causeError *CauseError) GetCause() error {
 	return causeError.Cause
+}
+
+type InputErrorI interface {
+	Error() string
+	GetInput() any
+}
+
+type InputError struct {
+	Message string
+	Cause   error
+	Input   any
+}
+
+func (inputError *InputError) Error() string {
+	return inputError.Message
+}
+
+func (inputError *InputError) GetCause() error {
+	return inputError.Cause
+}
+
+func (inputError *InputError) GetInput() any {
+	return inputError.Input
 }
