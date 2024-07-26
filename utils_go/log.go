@@ -30,6 +30,10 @@ func AttrsFromMap(m map[string]any) []any {
 }
 
 func MakeErrorGroup(err error) *slog.Attr {
+	if err == nil {
+		return nil
+	}
+
 	args := []any{
 		slog.String("message", err.Error()),
 		slog.String("type", reflect.TypeOf(err).String()),
@@ -62,14 +66,34 @@ func MakeErrorGroup(err error) *slog.Attr {
 }
 
 func LogError(message string, err error, logger *slog.Logger) {
-	logger.Error(message, *MakeErrorGroup(err))
+	if err != nil {
+		logger.Error(message, *MakeErrorGroup(err))
+	} else {
+		logger.Error(message)
+	}
 }
 
 func LogWarning(message string, err error, logger *slog.Logger) {
-	logger.Warn(message, *MakeErrorGroup(err))
+	if err != nil {
+		logger.Warn(message, *MakeErrorGroup(err))
+	} else {
+		logger.Warn(message)
+	}
+}
+
+func LogDebug(message string, err error, logger *slog.Logger) {
+	if err != nil {
+		logger.Debug(message, *MakeErrorGroup(err))
+	} else {
+		logger.Debug(message)
+	}
 }
 
 func LogFatal(message string, err error, logger *slog.Logger, exitCode int) {
-	logger.Error(message, *MakeErrorGroup(err))
+	if err != nil {
+		logger.Error(message, *MakeErrorGroup(err))
+	} else {
+		logger.Error(message)
+	}
 	os.Exit(exitCode)
 }
