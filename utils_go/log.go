@@ -40,7 +40,8 @@ func MakeErrorGroup(err error) *slog.Attr {
 	}
 
 	if inputError, ok := err.(InputErrorI); ok {
-		textualRepresentation, err := MakeTextualRepresentation(inputError.GetInput())
+		input := inputError.GetInput()
+		inputTextualRepresentation, err := MakeTextualRepresentation(input)
 		if err != nil {
 			go func() {
 				LogError(
@@ -50,7 +51,14 @@ func MakeErrorGroup(err error) *slog.Attr {
 				)
 			}()
 		} else {
-			args = append(args, slog.String("input", textualRepresentation))
+			args = append(
+				args,
+				slog.Group(
+					"input",
+					slog.String("value", inputTextualRepresentation),
+					slog.String("type", reflect.TypeOf(input).String()),
+				),
+			)
 		}
 	}
 
@@ -66,32 +74,32 @@ func MakeErrorGroup(err error) *slog.Attr {
 }
 
 func LogError(message string, err error, logger *slog.Logger) {
-	if err != nil {
-		logger.Error(message, *MakeErrorGroup(err))
+	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
+		logger.Error(message, *errorGroup)
 	} else {
 		logger.Error(message)
 	}
 }
 
 func LogWarning(message string, err error, logger *slog.Logger) {
-	if err != nil {
-		logger.Warn(message, *MakeErrorGroup(err))
+	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
+		logger.Warn(message, *errorGroup)
 	} else {
 		logger.Warn(message)
 	}
 }
 
 func LogDebug(message string, err error, logger *slog.Logger) {
-	if err != nil {
-		logger.Debug(message, *MakeErrorGroup(err))
+	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
+		logger.Debug(message, *errorGroup)
 	} else {
 		logger.Debug(message)
 	}
 }
 
 func LogFatal(message string, err error, logger *slog.Logger, exitCode int) {
-	if err != nil {
-		logger.Error(message, *MakeErrorGroup(err))
+	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
+		logger.Error(message, *errorGroup)
 	} else {
 		logger.Error(message)
 	}

@@ -7,7 +7,20 @@ import (
 
 func DecodeJson[T any](reader io.Reader) (T, error) {
 	var obj T
-	err := json.NewDecoder(reader).Decode(&obj)
+
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return obj, &CauseError{Message: "An error occurred when reading the data.", Cause: err}
+	}
+
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return obj, &InputError{
+			Message: "An error occurred when unmarshalling the data.",
+			Cause:   err,
+			Input:   data,
+		}
+	}
+
 	return obj, err
 }
 
