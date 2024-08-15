@@ -29,12 +29,12 @@ func AttrsFromMap(m map[string]any) []any {
 	return attrs
 }
 
-func MakeErrorGroup(err error) *slog.Attr {
+func makeErrorAttrs(err error) []any {
 	if err == nil {
 		return nil
 	}
 
-	args := []any{
+	attrs := []any{
 		slog.String("message", err.Error()),
 		slog.String("type", reflect.TypeOf(err).String()),
 	}
@@ -51,8 +51,8 @@ func MakeErrorGroup(err error) *slog.Attr {
 				)
 			}()
 		} else {
-			args = append(
-				args,
+			attrs = append(
+				attrs,
 				slog.Group(
 					"input",
 					slog.String("value", inputTextualRepresentation),
@@ -63,13 +63,14 @@ func MakeErrorGroup(err error) *slog.Attr {
 	}
 
 	if causeError, ok := err.(CauseErrorI); ok {
-		args = append(args, slog.Group("cause", *MakeErrorGroup(causeError.GetCause())))
+		attrs = append(attrs, slog.Group("cause", makeErrorAttrs(causeError.GetCause())...))
 	}
 
-	group := slog.Group(
-		"error",
-		args...,
-	)
+	return attrs
+}
+
+func MakeErrorGroup(err error) *slog.Attr {
+	group := slog.Group("error", makeErrorAttrs(err)...)
 	return &group
 }
 
