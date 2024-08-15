@@ -3,6 +3,7 @@ package utils_go
 type CauseErrorI interface {
 	Error() string
 	GetCause() error
+	Unwrap() error
 }
 
 type CauseError struct {
@@ -18,9 +19,14 @@ func (causeError *CauseError) GetCause() error {
 	return causeError.Cause
 }
 
+func (causeError *CauseError) Unwrap() error {
+	return causeError.Cause
+}
+
 type InputErrorI interface {
 	Error() string
 	GetInput() any
+	Unwrap() error
 }
 
 type InputError struct {
@@ -39,4 +45,8 @@ func (inputError *InputError) GetCause() error {
 
 func (inputError *InputError) GetInput() any {
 	return inputError.Input
+}
+
+func (inputError *InputError) Unwrap() error {
+	return inputError.Cause
 }
