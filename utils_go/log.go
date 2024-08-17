@@ -1,10 +1,33 @@
 package utils_go
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"reflect"
 )
+
+// NOTE: Apparently, according to convention, you should not use string keys, and you should not use context as a kind
+// storage for optional parameters. But it seems to me a logger is a special case, and I see no better, idiomatic way.
+
+const LoggerCtxKey = "logger"
+
+func GetLoggerFromCtx(ctx context.Context) *slog.Logger {
+	logger, _ := ctx.Value(LoggerCtxKey).(*slog.Logger)
+	return logger
+}
+
+func GetLoggerFromCtxWithDefault(ctx context.Context, defaultLogger *slog.Logger) *slog.Logger {
+	logger := GetLoggerFromCtx(ctx)
+	if logger == nil {
+		if defaultLogger != nil {
+			logger = defaultLogger
+		} else {
+			logger = slog.Default()
+		}
+	}
+	return logger
+}
 
 func AttrsFromMap(m map[string]any) []any {
 	var attrs []any

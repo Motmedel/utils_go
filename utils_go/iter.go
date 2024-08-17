@@ -3,7 +3,7 @@ package utils_go
 import "reflect"
 
 func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
-	outputSlice := make([]OutputType, len(inputSlice), len(inputSlice))
+	outputSlice := make([]OutputType, len(inputSlice))
 	for i, inputValue := range inputSlice {
 		outputSlice[i] = f(inputValue)
 	}
