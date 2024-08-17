@@ -29,6 +29,10 @@ func GetLoggerFromCtxWithDefault(ctx context.Context, defaultLogger *slog.Logger
 	return logger
 }
 
+func CtxWithLogger(ctx context.Context, logger *slog.Logger) context.Context {
+	return context.WithValue(ctx, LoggerCtxKey, logger)
+}
+
 func AttrsFromMap(m map[string]any) []any {
 	var attrs []any
 
