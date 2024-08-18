@@ -1,7 +1,8 @@
-package utils_go
+package json
 
 import (
 	"encoding/json"
+	"github.com/Motmedel/utils_go/pkg/errors"
 	"io"
 )
 
@@ -10,11 +11,11 @@ func DecodeJson[T any](reader io.Reader) (T, error) {
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
-		return obj, &CauseError{Message: "An error occurred when reading the data.", Cause: err}
+		return obj, &errors.CauseError{Message: "An error occurred when reading the data.", Cause: err}
 	}
 
 	if err := json.Unmarshal(data, &obj); err != nil {
-		return obj, &InputError{
+		return obj, &errors.InputError{
 			Message: "An error occurred when unmarshalling the data.",
 			Cause:   err,
 			Input:   data,

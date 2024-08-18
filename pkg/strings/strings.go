@@ -1,8 +1,9 @@
-package utils_go
+package strings
 
 import (
 	"encoding"
 	"fmt"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"reflect"
 	"time"
 )
@@ -32,7 +33,7 @@ func MakeTextualRepresentation(value any) (string, error) {
 		if tm, ok := value.(encoding.TextMarshaler); ok {
 			data, err := tm.MarshalText()
 			if err != nil {
-				return "", &CauseError{
+				return "", &motmedelErrors.CauseError{
 					Message: "An error occurred when making a textual representation using TextMarshaler.",
 					Cause:   err,
 				}

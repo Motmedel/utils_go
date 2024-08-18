@@ -1,7 +1,9 @@
-package utils_go
+package log
 
 import (
 	"context"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/strings"
 	"log/slog"
 	"os"
 	"reflect"
@@ -66,15 +68,15 @@ func makeErrorAttrs(err error) []any {
 		slog.String("type", reflect.TypeOf(err).String()),
 	}
 
-	if inputError, ok := err.(InputErrorI); ok {
+	if inputError, ok := err.(motmedelErrors.InputErrorI); ok {
 		input := inputError.GetInput()
-		inputTextualRepresentation, err := MakeTextualRepresentation(input)
+		inputTextualRepresentation, err := strings.MakeTextualRepresentation(input)
 		if err != nil {
 			go func() {
 				LogError(
 					"An error occurred when making a textual representation of error input.",
 					err,
-					LOG,
+					slog.Default(),
 				)
 			}()
 		} else {
@@ -89,7 +91,7 @@ func makeErrorAttrs(err error) []any {
 		}
 	}
 
-	if causeError, ok := err.(CauseErrorI); ok {
+	if causeError, ok := err.(motmedelErrors.CauseErrorI); ok {
 		attrs = append(attrs, slog.Group("cause", makeErrorAttrs(causeError.GetCause())...))
 	}
 

@@ -1,6 +1,8 @@
-package utils_go
+package iter
 
-import "reflect"
+import (
+	"reflect"
+)
 
 func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
 	outputSlice := make([]OutputType, len(inputSlice))

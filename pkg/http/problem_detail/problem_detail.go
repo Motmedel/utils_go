@@ -1,4 +1,4 @@
-package utils_go
+package problem_detail
 
 import (
 	"encoding/json"

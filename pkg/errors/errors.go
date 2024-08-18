@@ -1,4 +1,4 @@
-package utils_go
+package errors
 
 type CauseErrorI interface {
 	Error() string

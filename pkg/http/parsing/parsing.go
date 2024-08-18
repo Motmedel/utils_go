@@ -1,8 +1,9 @@
-package utils_go
+package parsing
 
 import (
 	"bufio"
 	"bytes"
+	"github.com/Motmedel/utils_go/pkg/errors"
 	"net/http"
 )
 
@@ -13,7 +14,7 @@ func ParseHttpRequestData(requestBytes []byte) (*http.Request, error) {
 
 	request, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(requestBytes)))
 	if err != nil {
-		return nil, &InputError{
+		return nil, &errors.InputError{
 			Message: "An error occurred when reading and parsing data as an HTTP request.",
 			Cause:   err,
 			Input:   requestBytes,
@@ -29,7 +30,7 @@ func ParseHttpResponseData(responseBytes []byte) (*http.Response, error) {
 
 	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(responseBytes)), nil)
 	if err != nil {
-		return nil, &InputError{
+		return nil, &errors.InputError{
 			Message: "An error occurred when reading and parsing data as an HTTP response.",
 			Cause:   err,
 			Input:   responseBytes,
