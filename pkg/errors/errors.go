@@ -26,7 +26,6 @@ func (causeError *CauseError) Unwrap() error {
 type InputErrorI interface {
 	Error() string
 	GetInput() any
-	Unwrap() error
 }
 
 type InputError struct {
