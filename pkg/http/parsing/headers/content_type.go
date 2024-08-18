@@ -2,6 +2,7 @@ package headers
 
 import (
 	"github.com/Motmedel/parsing_utils/parsing_utils"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	goabnf "github.com/pandatix/go-abnf"
 	"strconv"
 	"strings"
@@ -22,7 +23,11 @@ type ContentType struct {
 func ParseContentType(data []byte) (*ContentType, error) {
 	paths, err := goabnf.Parse(data, ContentTypeGrammar, "root")
 	if err != nil {
-		return nil, err
+		return nil, &motmedelErrors.InputError{
+			Message: "An error occurred when parsing data as a content type.",
+			Cause:   err,
+			Input:   data,
+		}
 	}
 
 	var contentType ContentType
