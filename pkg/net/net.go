@@ -2,6 +2,7 @@ package net
 
 import (
 	"fmt"
+	"golang.org/x/net/publicsuffix"
 	"math"
 	"net"
 	"strconv"
@@ -100,4 +101,37 @@ func GetIpVersion(ip *net.IP) int {
 	} else {
 		return 0
 	}
+}
+
+type DomainBreakdown struct {
+	RegisteredDomain string `json:"registered_domain,omitempty"`
+	Subdomain        string `json:"subdomain,omitempty"`
+	TopLevelDomain   string `json:"top_level_domain,omitempty"`
+}
+
+func GetDomainBreakdown(domainString string) *DomainBreakdown {
+	if domainString == "" {
+		return nil
+	}
+
+	etld, icann := publicsuffix.PublicSuffix(domainString)
+	if !icann && strings.IndexByte(etld, '.') == -1 {
+		return nil
+	}
+
+	registeredDomain, err := publicsuffix.EffectiveTLDPlusOne(domainString)
+	if err != nil {
+		return nil
+	}
+
+	domainBreakdown := DomainBreakdown{
+		TopLevelDomain:   etld,
+		RegisteredDomain: registeredDomain,
+	}
+
+	if subdomain := strings.TrimSuffix(domainString, "."+registeredDomain); subdomain != domainString {
+		domainBreakdown.Subdomain = subdomain
+	}
+
+	return &domainBreakdown
 }
