@@ -19,6 +19,14 @@ func (causeError *CauseError) GetCause() error {
 	return causeError.Cause
 }
 
+func (causeError *CauseError) Is(target error) bool {
+	_, ok := target.(*CauseError)
+	if !ok {
+		return false
+	}
+	return true
+}
+
 func (causeError *CauseError) Unwrap() error {
 	return causeError.Cause
 }
@@ -48,4 +56,12 @@ func (inputError *InputError) GetInput() any {
 
 func (inputError *InputError) Unwrap() error {
 	return inputError.Cause
+}
+
+func (inputError *InputError) Is(target error) bool {
+	_, ok := target.(*InputError)
+	if !ok {
+		return false
+	}
+	return true
 }
