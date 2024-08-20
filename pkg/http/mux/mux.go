@@ -151,7 +151,7 @@ type Mux struct {
 	)
 }
 
-func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Request) {
+func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
 	if request == nil {
 		return
 	}
