@@ -328,6 +328,8 @@ func (mux *Mux) Add(specifications ...*HandlerSpecification) {
 
 		methodToHandlerSpecification[strings.ToUpper(specification.Method)] = specification
 	}
+
+	mux.HandlerSpecificationMap = handlerSpecificationMap
 }
 
 func (mux *Mux) Delete(specifications ...*HandlerSpecification) {
