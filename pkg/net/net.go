@@ -2,6 +2,7 @@ package net
 
 import (
 	"fmt"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"golang.org/x/net/publicsuffix"
 	"math"
 	"net"
@@ -24,17 +25,25 @@ var cidr2mask = []uint32{
 }
 
 func SplitAddress(address string) (string, int, error) {
-	ip, port, err := net.SplitHostPort(address)
+	ip, portString, err := net.SplitHostPort(address)
 	if err != nil {
-		return "", 0, err
+		return "", 0, &motmedelErrors.InputError{
+			Message: "An error occurred when splitting an address into host and port.",
+			Cause:   err,
+			Input:   address,
+		}
 	}
 
-	portNumber, err := strconv.Atoi(port)
+	port, err := strconv.Atoi(portString)
 	if err != nil {
-		return ip, 0, err
+		return ip, 0, &motmedelErrors.InputError{
+			Message: "An error occurred when parsing an address port string as an integer.",
+			Cause:   err,
+			Input:   portString,
+		}
 	}
 
-	return ip, portNumber, nil
+	return ip, port, nil
 }
 
 func ipv4ToUint32(iPv4 string) uint32 {
