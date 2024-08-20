@@ -8,6 +8,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
 	"io"
+	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -130,6 +131,7 @@ func DefaultServerErrorHandler(
 
 type Mux struct {
 	HandlerSpecificationMap map[string]map[string]*HandlerSpecification
+	Logger                  *slog.Logger
 	DefaultContentType      string
 	ClientErrorHandler      func(
 		http.ResponseWriter,
@@ -150,6 +152,12 @@ type Mux struct {
 }
 
 func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Request) {
+	if request == nil {
+		return
+	}
+
+	request = request.WithContext(motmedelLog.CtxWithLogger(request.Context(), mux.Logger))
+
 	clientErrorHandler := mux.ClientErrorHandler
 	if clientErrorHandler == nil {
 		clientErrorHandler = DefaultClientErrorHandler
@@ -263,6 +271,7 @@ func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Requ
 			return
 		}
 
+		// TODO: The specification could require a certain charset too?
 		fullNormalizeContentTypeString := contentType.GetFullType(true)
 		if fullNormalizeContentTypeString != expectedContentType {
 			clientErrorHandler(
