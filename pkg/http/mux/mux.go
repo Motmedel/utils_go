@@ -2,6 +2,7 @@ package mux
 
 import (
 	"fmt"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	parseHeaders "github.com/Motmedel/utils_go/pkg/http/parsing/headers"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
@@ -85,77 +86,90 @@ func PerformErrorResponse(
 	}
 }
 
-func DefaultBadRequestHandler(
+func DefaultClientErrorHandler(
 	responseWriter http.ResponseWriter,
 	request *http.Request,
 	requestBody []byte,
 	problemDetail *problem_detail.ProblemDetail,
 	headers [][2]string,
+	err error,
 ) {
-	if problemDetail != nil {
+	if err != nil {
+		motmedelLog.LogWarning(
+			"A client error occurred.",
+			err,
+			motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil),
+		)
+	}
+	if problemDetail == nil {
 		problemDetail = problem_detail.MakeBadRequestProblemDetail("", nil)
 	}
 	PerformErrorResponse(responseWriter, request, problemDetail, headers)
 }
 
-func DefaultInternalServerErrorHandler(
+func DefaultServerErrorHandler(
 	responseWriter http.ResponseWriter,
 	request *http.Request,
 	requestBody []byte,
+	problemDetail *problem_detail.ProblemDetail,
+	headers [][2]string,
 	err error,
 ) {
-	motmedelLog.LogError(
-		"A server error occurred.",
-		err,
-		motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil),
-	)
-
-	PerformErrorResponse(
-		responseWriter,
-		request,
-		problem_detail.MakeInternalServerErrorProblemDetail("", nil),
-		nil,
-	)
+	if err != nil {
+		motmedelLog.LogError(
+			"A server error occurred.",
+			err,
+			motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil),
+		)
+	}
+	if problemDetail == nil {
+		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
+	}
+	PerformErrorResponse(responseWriter, request, problemDetail, headers)
 }
 
 type Mux struct {
 	HandlerSpecificationMap map[string]map[string]*HandlerSpecification
 	DefaultContentType      string
-	BadRequestHandler       func(
+	ClientErrorHandler      func(
 		http.ResponseWriter,
 		*http.Request,
 		[]byte,
 		*problem_detail.ProblemDetail,
 		[][2]string,
+		error,
 	)
-	InternalServerErrorHandler func(
+	ServerErrorHandler func(
 		http.ResponseWriter,
 		*http.Request,
 		[]byte,
+		*problem_detail.ProblemDetail,
+		[][2]string,
 		error,
 	)
 }
 
 func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Request) {
-	badRequestHandler := mux.BadRequestHandler
-	if badRequestHandler == nil {
-		badRequestHandler = DefaultBadRequestHandler
+	clientErrorHandler := mux.ClientErrorHandler
+	if clientErrorHandler == nil {
+		clientErrorHandler = DefaultClientErrorHandler
 	}
 
-	internalServerErrorHandler := mux.InternalServerErrorHandler
-	if internalServerErrorHandler == nil {
-		internalServerErrorHandler = DefaultInternalServerErrorHandler
+	serverErrorHandler := mux.ServerErrorHandler
+	if serverErrorHandler == nil {
+		serverErrorHandler = DefaultServerErrorHandler
 	}
 
 	wroteHeaderResponseWriter := &WroteHeaderResponseWriter{ResponseWriter: responseWriter}
 
 	methodToHandlerSpecification, ok := mux.HandlerSpecificationMap[request.URL.Path]
 	if !ok {
-		badRequestHandler(
+		clientErrorHandler(
 			wroteHeaderResponseWriter,
 			request,
 			nil,
 			problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
+			nil,
 			nil,
 		)
 		return
@@ -171,7 +185,7 @@ func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Requ
 	if !ok {
 		expectedMethodsString := strings.Join(slices.Collect(maps.Keys(methodToHandlerSpecification)), ", ")
 
-		badRequestHandler(
+		clientErrorHandler(
 			wroteHeaderResponseWriter,
 			request,
 			nil,
@@ -181,24 +195,26 @@ func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Requ
 				nil,
 			),
 			[][2]string{{"Accept", expectedMethodsString}},
+			nil,
 		)
 		return
 	}
 
 	handler := handlerSpecification.Handler
 	if handler == nil {
-		internalServerErrorHandler(wroteHeaderResponseWriter, request, nil, muxErrors.ErrNilHandler)
+		serverErrorHandler(wroteHeaderResponseWriter, request, nil, nil, nil, muxErrors.ErrNilHandler)
 		return
 	}
 
 	contentLengthString := request.Header.Get("Content-Length")
 	contentLength, err := strconv.Atoi(contentLengthString)
 	if err != nil {
-		badRequestHandler(
+		clientErrorHandler(
 			wroteHeaderResponseWriter,
 			request,
 			nil,
 			problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Length", nil),
+			nil,
 			nil,
 		)
 		return
@@ -215,7 +231,7 @@ func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Requ
 
 		contentTypeString := request.Header.Get("Content-Type")
 		if contentTypeString == "" {
-			badRequestHandler(
+			clientErrorHandler(
 				wroteHeaderResponseWriter,
 				request,
 				nil,
@@ -225,26 +241,31 @@ func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Requ
 					nil,
 				),
 				headers,
+				nil,
 			)
 			return
 		}
 
-		contentType, err := parseHeaders.ParseContentType([]byte(contentTypeString))
+		contentTypeBytes := []byte(contentTypeString)
+		contentType, err := parseHeaders.ParseContentType(contentTypeBytes)
 		if err != nil {
-			// TODO: Do something with the error.
-			badRequestHandler(
+			clientErrorHandler(
 				wroteHeaderResponseWriter,
 				request,
 				nil,
 				problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Type", nil),
 				nil,
+				&motmedelErrors.CauseError{
+					Message: "An error occurred when attempting to parse the Content-Type header data.",
+					Cause:   err,
+				},
 			)
 			return
 		}
 
 		fullNormalizeContentTypeString := contentType.GetFullType(true)
 		if fullNormalizeContentTypeString != expectedContentType {
-			badRequestHandler(
+			clientErrorHandler(
 				wroteHeaderResponseWriter,
 				request,
 				nil,
@@ -258,25 +279,33 @@ func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Requ
 					nil,
 				),
 				headers,
+				nil,
 			)
 			return
 		}
 
 		body, err := io.ReadAll(request.Body)
 		if err != nil {
-			internalServerErrorHandler(wroteHeaderResponseWriter, request, nil, err)
+			serverErrorHandler(wroteHeaderResponseWriter, request, nil, nil, nil, err)
 			return
 		}
 		defer request.Body.Close()
 
 		problemDetail, clientError, serverError := handler(wroteHeaderResponseWriter, request, body)
 		if serverError != nil {
-			internalServerErrorHandler(wroteHeaderResponseWriter, request, body, serverError)
+			serverErrorHandler(wroteHeaderResponseWriter, request, body, nil, nil, serverError)
 		} else if clientError != nil {
-			badRequestHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil)
+			clientErrorHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil, clientError)
 		} else {
 			if !wroteHeaderResponseWriter.wroteHeader {
-				internalServerErrorHandler(wroteHeaderResponseWriter, request, body, muxErrors.ErrNoResponseWritten)
+				serverErrorHandler(
+					wroteHeaderResponseWriter,
+					request,
+					body,
+					nil,
+					nil,
+					muxErrors.ErrNoResponseWritten,
+				)
 			}
 		}
 	}
