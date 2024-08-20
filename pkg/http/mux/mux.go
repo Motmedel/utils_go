@@ -47,8 +47,8 @@ func PerformErrorResponse(
 			muxErrors.ErrNilErrorResponseProblemDetail,
 			logger,
 		)
-		responseWriter.WriteHeader(http.StatusInternalServerError)
-		return
+		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
+		headers = nil
 	}
 
 	if problemDetail.Status == 0 {
@@ -57,8 +57,8 @@ func PerformErrorResponse(
 			muxErrors.ErrUnsetErrorResponseProblemDetailStatus,
 			logger,
 		)
-		responseWriter.WriteHeader(http.StatusInternalServerError)
-		return
+		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
+		headers = nil
 	}
 
 	problemDetailString, err := problemDetail.String()
@@ -351,7 +351,7 @@ func (mux *Mux) Delete(specifications ...*HandlerSpecification) {
 
 		delete(methodToHandlerSpecification, strings.ToUpper(specification.Method))
 
-		if len(methodToHandlerSpecification) == 9 {
+		if len(methodToHandlerSpecification) == 0 {
 			delete(handlerSpecificationMap, specification.Path)
 		}
 	}
