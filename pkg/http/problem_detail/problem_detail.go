@@ -63,19 +63,21 @@ func (problemDetail *ProblemDetail) String() (string, error) {
 	}
 }
 
-func MakeStatusCodeProblemDetail(code int) *ProblemDetail {
+func MakeStatusCodeProblemDetail(code int, detail string, extension any) *ProblemDetail {
 	return &ProblemDetail{
-		Type:     "about:blank",
-		Title:    http.StatusText(code),
-		Status:   code,
-		Instance: uuid.New().String(),
+		Type:      "about:blank",
+		Title:     http.StatusText(code),
+		Status:    code,
+		Detail:    detail,
+		Instance:  uuid.New().String(),
+		Extension: extension,
 	}
 }
 
-func MakeInternalServerErrorProblemDetail() *ProblemDetail {
-	return MakeStatusCodeProblemDetail(http.StatusInternalServerError)
+func MakeInternalServerErrorProblemDetail(detail string, extension any) *ProblemDetail {
+	return MakeStatusCodeProblemDetail(http.StatusInternalServerError, detail, extension)
 }
 
-func MakeBadRequestProblemDetail() *ProblemDetail {
-	return MakeStatusCodeProblemDetail(http.StatusBadRequest)
+func MakeBadRequestProblemDetail(detail string, extension any) *ProblemDetail {
+	return MakeStatusCodeProblemDetail(http.StatusBadRequest, detail, extension)
 }
