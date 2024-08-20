@@ -322,7 +322,7 @@ func (mux *Mux) Add(specifications ...*HandlerSpecification) {
 	for _, specification := range specifications {
 		methodToHandlerSpecification, ok := handlerSpecificationMap[specification.Path]
 		if !ok {
-			methodToHandlerSpecification = handlerSpecificationMap[specification.Path]
+			methodToHandlerSpecification = make(map[string]*HandlerSpecification)
 			handlerSpecificationMap[specification.Path] = methodToHandlerSpecification
 		}
 
