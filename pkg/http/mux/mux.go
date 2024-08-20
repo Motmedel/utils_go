@@ -302,19 +302,12 @@ func (mux *Mux) ServeHttp(responseWriter http.ResponseWriter, request *http.Requ
 
 		problemDetail, clientError, serverError := handler(wroteHeaderResponseWriter, request, body)
 		if serverError != nil {
-			serverErrorHandler(wroteHeaderResponseWriter, request, body, nil, nil, serverError)
+			serverErrorHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil, serverError)
 		} else if clientError != nil {
 			clientErrorHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil, clientError)
 		} else {
 			if !wroteHeaderResponseWriter.wroteHeader {
-				serverErrorHandler(
-					wroteHeaderResponseWriter,
-					request,
-					body,
-					nil,
-					nil,
-					muxErrors.ErrNoResponseWritten,
-				)
+				serverErrorHandler(wroteHeaderResponseWriter, request, body, nil, nil, muxErrors.ErrNoResponseWritten)
 			}
 		}
 	}
