@@ -1,9 +1,9 @@
-package headers
+package content_type
 
 import (
-	"fmt"
 	"github.com/Motmedel/parsing_utils/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	goabnf "github.com/pandatix/go-abnf"
 	"strconv"
 	"strings"
@@ -11,56 +11,7 @@ import (
 
 var ContentTypeGrammar *goabnf.Grammar
 
-type MediaType struct {
-	Type       string
-	Subtype    string
-	Parameters [][2]string
-}
-
-func (mediaType *MediaType) GetFullType(normalize bool) string {
-	typeValue := mediaType.Type
-	if typeValue == "" {
-		typeValue = "*"
-	}
-	subtypeValue := mediaType.Subtype
-	if subtypeValue == "*" {
-		subtypeValue = "*"
-	}
-
-	fullType := fmt.Sprintf("%s/%s", typeValue, subtypeValue)
-	if normalize {
-		return strings.ToLower(fullType)
-	}
-	return fullType
-}
-
-func (mediaType *MediaType) GetParametersMap(normalize bool) map[string]string {
-	if len(mediaType.Parameters) == 0 {
-		return nil
-	}
-
-	m := make(map[string]string)
-
-	for _, parameter := range mediaType.Parameters {
-		key := parameter[0]
-		if normalize {
-			key = strings.ToLower(key)
-		}
-		value := parameter[1]
-
-		if _, ok := m[key]; !ok {
-			m[key] = value
-		}
-	}
-
-	return m
-}
-
-type ContentType struct {
-	MediaType
-}
-
-func ParseContentType(data []byte) (*ContentType, error) {
+func ParseContentType(data []byte) (*motmedelHttpTypes.ContentType, error) {
 	paths, err := goabnf.Parse(data, ContentTypeGrammar, "root")
 	if err != nil {
 		return nil, &motmedelErrors.InputError{
@@ -70,7 +21,7 @@ func ParseContentType(data []byte) (*ContentType, error) {
 		}
 	}
 
-	var contentType ContentType
+	var contentType motmedelHttpTypes.ContentType
 
 	interestingPaths := parsing_utils.SearchPath(
 		paths[0],

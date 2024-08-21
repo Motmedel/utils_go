@@ -300,12 +300,16 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		}
 		defer request.Body.Close()
 
+		// TODO: Handler cannot currently control the header values in the error response, but should be able to?
+
 		problemDetail, clientError, serverError := handler(wroteHeaderResponseWriter, request, body)
 		if serverError != nil {
 			serverErrorHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil, serverError)
 		} else if clientError != nil {
 			clientErrorHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil, clientError)
 		} else {
+			// TODO: If problemDetail is not nil but no client or server error, the problem detail should be inspected
+			//	and the corresponding error handler function should be called.
 			if !wroteHeaderResponseWriter.wroteHeader {
 				serverErrorHandler(wroteHeaderResponseWriter, request, body, nil, nil, muxErrors.ErrNoResponseWritten)
 			}
