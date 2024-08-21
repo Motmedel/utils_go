@@ -3,8 +3,8 @@ module github.com/Motmedel/utils_go/pkg/http/mux
 go 1.23.0
 
 require (
-	github.com/Motmedel/utils_go v0.0.34
-	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.2
+	github.com/Motmedel/utils_go v0.0.36
+	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.3
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.1
 )
 

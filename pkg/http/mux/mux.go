@@ -4,7 +4,7 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	parseHeaders "github.com/Motmedel/utils_go/pkg/http/parsing/headers"
+	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
 	"io"
@@ -16,21 +16,48 @@ import (
 	"strings"
 )
 
-type WroteHeaderResponseWriter struct {
+type CustomResponseWriter struct {
 	http.ResponseWriter
-	wroteHeader bool
+	IsHeadRequest     bool
+	WriteHeaderCaller bool
+	WriteCalled       bool
 }
 
-func (wroteHeaderResponseWriter *WroteHeaderResponseWriter) WriteHeader(statusCode int) {
-	wroteHeaderResponseWriter.wroteHeader = true
-	wroteHeaderResponseWriter.ResponseWriter.WriteHeader(statusCode)
+func (customResponseWriter *CustomResponseWriter) WriteHeader(statusCode int) {
+	customResponseWriter.WriteHeaderCaller = true
+	customResponseWriter.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (customResponseWriter *CustomResponseWriter) Write(data []byte) (int, error) {
+	customResponseWriter.WriteCalled = true
+
+	if !customResponseWriter.WriteHeaderCaller {
+		statusCode := http.StatusOK
+		if len(data) == 0 {
+			statusCode = http.StatusNoContent
+		}
+		customResponseWriter.WriteHeader(statusCode)
+	}
+
+	if customResponseWriter.IsHeadRequest {
+		return 0, nil
+	}
+
+	return customResponseWriter.ResponseWriter.Write(data)
+}
+
+type HandlerErrorResponse struct {
+	ClientError     error
+	ServerError     error
+	ProblemDetail   *problem_detail.ProblemDetail
+	ResponseHeaders [][2]string
 }
 
 type HandlerSpecification struct {
 	Path                string
 	Method              string
 	ExpectedContentType string
-	Handler             func(http.ResponseWriter, *http.Request, []byte) (*problem_detail.ProblemDetail, error, error)
+	Handler             func(http.ResponseWriter, *http.Request, []byte) *HandlerErrorResponse
 }
 
 func PerformErrorResponse(
@@ -168,12 +195,24 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		serverErrorHandler = DefaultServerErrorHandler
 	}
 
-	wroteHeaderResponseWriter := &WroteHeaderResponseWriter{ResponseWriter: responseWriter}
+	customResponseWriter := &CustomResponseWriter{ResponseWriter: responseWriter}
+
+	requestMethod := strings.ToUpper(request.Method)
+	// "For client requests, an empty string means GET."
+	if requestMethod == "" {
+		requestMethod = "GET"
+	}
+
+	lookupMethod := requestMethod
+	if requestMethod == "HEAD" {
+		lookupMethod = "GET"
+		customResponseWriter.IsHeadRequest = true
+	}
 
 	methodToHandlerSpecification, ok := mux.HandlerSpecificationMap[request.URL.Path]
 	if !ok {
 		clientErrorHandler(
-			wroteHeaderResponseWriter,
+			customResponseWriter,
 			request,
 			nil,
 			problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
@@ -183,18 +222,12 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	requestMethod := strings.ToUpper(request.Method)
-	// "For client requests, an empty string means GET."
-	if requestMethod == "" {
-		requestMethod = "GET"
-	}
-
-	handlerSpecification, ok := methodToHandlerSpecification[requestMethod]
+	handlerSpecification, ok := methodToHandlerSpecification[lookupMethod]
 	if !ok {
 		expectedMethodsString := strings.Join(slices.Collect(maps.Keys(methodToHandlerSpecification)), ", ")
 
 		clientErrorHandler(
-			wroteHeaderResponseWriter,
+			customResponseWriter,
 			request,
 			nil,
 			problem_detail.MakeStatusCodeProblemDetail(
@@ -210,7 +243,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 
 	handler := handlerSpecification.Handler
 	if handler == nil {
-		serverErrorHandler(wroteHeaderResponseWriter, request, nil, nil, nil, muxErrors.ErrNilHandler)
+		serverErrorHandler(customResponseWriter, request, nil, nil, nil, muxErrors.ErrNilHandler)
 		return
 	}
 
@@ -218,7 +251,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 	contentLength, err := strconv.Atoi(contentLengthString)
 	if err != nil {
 		clientErrorHandler(
-			wroteHeaderResponseWriter,
+			customResponseWriter,
 			request,
 			nil,
 			problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Length", nil),
@@ -227,6 +260,8 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		)
 		return
 	}
+
+	var body []byte
 
 	if contentLength != 0 {
 		expectedContentType := func() string {
@@ -240,7 +275,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		contentTypeString := request.Header.Get("Content-Type")
 		if contentTypeString == "" {
 			clientErrorHandler(
-				wroteHeaderResponseWriter,
+				customResponseWriter,
 				request,
 				nil,
 				problem_detail.MakeStatusCodeProblemDetail(
@@ -255,10 +290,10 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		}
 
 		contentTypeBytes := []byte(contentTypeString)
-		contentType, err := parseHeaders.ParseContentType(contentTypeBytes)
+		contentType, err := content_type.ParseContentType(contentTypeBytes)
 		if err != nil {
 			clientErrorHandler(
-				wroteHeaderResponseWriter,
+				customResponseWriter,
 				request,
 				nil,
 				problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Type", nil),
@@ -275,7 +310,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		fullNormalizeContentTypeString := contentType.GetFullType(true)
 		if fullNormalizeContentTypeString != expectedContentType {
 			clientErrorHandler(
-				wroteHeaderResponseWriter,
+				customResponseWriter,
 				request,
 				nil,
 				problem_detail.MakeStatusCodeProblemDetail(
@@ -293,27 +328,40 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 			return
 		}
 
-		body, err := io.ReadAll(request.Body)
+		body, err = io.ReadAll(request.Body)
 		if err != nil {
-			serverErrorHandler(wroteHeaderResponseWriter, request, nil, nil, nil, err)
+			serverErrorHandler(customResponseWriter, request, nil, nil, nil, err)
 			return
 		}
 		defer request.Body.Close()
+	}
 
-		// TODO: Handler cannot currently control the header values in the error response, but should be able to?
+	handlerErrorResponse := handler(customResponseWriter, request, body)
 
-		problemDetail, clientError, serverError := handler(wroteHeaderResponseWriter, request, body)
+	if handlerErrorResponse != nil {
+		serverError := handlerErrorResponse.ServerError
+		clientError := handlerErrorResponse.ClientError
+		problemDetail := handlerErrorResponse.ProblemDetail
+		headers := handlerErrorResponse.ResponseHeaders
+
 		if serverError != nil {
-			serverErrorHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil, serverError)
+			serverErrorHandler(customResponseWriter, request, body, problemDetail, headers, serverError)
 		} else if clientError != nil {
-			clientErrorHandler(wroteHeaderResponseWriter, request, body, problemDetail, nil, clientError)
-		} else {
-			// TODO: If problemDetail is not nil but no client or server error, the problem detail should be inspected
-			//	and the corresponding error handler function should be called.
-			if !wroteHeaderResponseWriter.wroteHeader {
-				serverErrorHandler(wroteHeaderResponseWriter, request, body, nil, nil, muxErrors.ErrNoResponseWritten)
+			clientErrorHandler(customResponseWriter, request, body, problemDetail, headers, clientError)
+		} else if problemDetail != nil {
+			statusCode := problemDetail.Status
+			if statusCode >= 400 && statusCode < 500 {
+				serverErrorHandler(customResponseWriter, request, body, problemDetail, headers, nil)
+			} else if statusCode >= 500 && statusCode < 600 {
+				clientErrorHandler(customResponseWriter, request, body, problemDetail, headers, nil)
+			} else {
+				// The "no response written" error will occur.
 			}
 		}
+	}
+
+	if !customResponseWriter.WriteHeaderCaller {
+		serverErrorHandler(customResponseWriter, request, body, nil, nil, muxErrors.ErrNoResponseWritten)
 	}
 }
 
