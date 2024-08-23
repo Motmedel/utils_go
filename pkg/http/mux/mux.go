@@ -1,6 +1,7 @@
 package mux
 
 import (
+	"context"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -160,6 +161,7 @@ type Mux struct {
 	HandlerSpecificationMap map[string]map[string]*HandlerSpecification
 	Logger                  *slog.Logger
 	DefaultContentType      string
+	SetContextKeyValuePairs [][2]any
 	ClientErrorHandler      func(
 		http.ResponseWriter,
 		*http.Request,
@@ -336,6 +338,14 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		defer request.Body.Close()
 	}
 
+	if len(mux.SetContextKeyValuePairs) != 0 {
+		ctx := request.Context()
+		for _, pair := range mux.SetContextKeyValuePairs {
+			ctx = context.WithValue(ctx, pair[0], pair[1])
+		}
+		request = request.WithContext(ctx)
+	}
+
 	handlerErrorResponse := handler(customResponseWriter, request, body)
 
 	if handlerErrorResponse != nil {
@@ -355,7 +365,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 			} else if statusCode >= 500 && statusCode < 600 {
 				clientErrorHandler(customResponseWriter, request, body, problemDetail, headers, nil)
 			} else {
-				// The "no response written" error will occur.
+				// The "no response written" error should occur.
 			}
 		}
 	}
