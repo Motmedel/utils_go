@@ -55,3 +55,9 @@ func (mediaType *MediaType) GetParametersMap(normalize bool) map[string]string {
 type ContentType struct {
 	MediaType
 }
+
+type StrictTransportSecurityPolicy struct {
+	MaxAga            int
+	IncludeSubdomains bool
+	Raw               string
+}

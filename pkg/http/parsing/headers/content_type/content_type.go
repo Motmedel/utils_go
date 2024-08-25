@@ -45,9 +45,14 @@ func ParseContentType(data []byte) (*motmedelHttpTypes.ContentType, error) {
 			)
 			if quotedStringPath != nil {
 				var err error
-				parameterValue, err = strconv.Unquote(string(parsing_utils.ExtractPathValue(data, quotedStringPath)))
+				quotedString := string(parsing_utils.ExtractPathValue(data, quotedStringPath))
+				parameterValue, err = strconv.Unquote(quotedString)
 				if err != nil {
-					panic(err)
+					return nil, &motmedelErrors.InputError{
+						Message: "An error occurred when unquoting a quoted-string.",
+						Cause:   err,
+						Input:   quotedString,
+					}
 				}
 			}
 
