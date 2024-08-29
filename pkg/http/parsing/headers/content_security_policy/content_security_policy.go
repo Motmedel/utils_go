@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/Motmedel/parsing_utils/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	contentSecurityPolicyTypes "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 	"github.com/Motmedel/utils_go/pkg/log"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
 	goabnf "github.com/pandatix/go-abnf"
@@ -39,31 +40,31 @@ func makeSourcesFromPaths(
 	data []byte,
 	paths []*goabnf.Path,
 	ruleName string,
-) []SourceI {
+) []contentSecurityPolicyTypes.SourceI {
 	sourceExpressionPaths := parsing_utils.SearchPath(paths[0], []string{ruleName}, 2, false)
 	if len(sourceExpressionPaths) == 0 {
 		return nil
 	}
 
-	var sources []SourceI
+	var sources []contentSecurityPolicyTypes.SourceI
 
 	for _, sourceExpressionPath := range sourceExpressionPaths {
 		concreteSourcePath := sourceExpressionPath.Subpaths[0]
 
-		innerSource := Source{Raw: string(parsing_utils.ExtractPathValue(data, concreteSourcePath))}
+		innerSource := contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, concreteSourcePath))}
 
 		matchRuleName := concreteSourcePath.MatchRule
 		switch matchRuleName {
 		case "scheme-source":
 			sources = append(
 				sources,
-				&SchemeSource{
+				&contentSecurityPolicyTypes.SchemeSource{
 					Source: innerSource,
 					Scheme: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[0])),
 				},
 			)
 		case "host-source":
-			hostSource := &HostSource{Source: innerSource}
+			hostSource := &contentSecurityPolicyTypes.HostSource{Source: innerSource}
 
 			schemePartPath := parsing_utils.SearchPathSingleName(
 				concreteSourcePath,
@@ -111,7 +112,7 @@ func makeSourcesFromPaths(
 		case "keyword-source":
 			sources = append(
 				sources,
-				&KeywordSource{
+				&contentSecurityPolicyTypes.KeywordSource{
 					Source:  innerSource,
 					Keyword: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[0])),
 				},
@@ -119,7 +120,7 @@ func makeSourcesFromPaths(
 		case "nonce-source":
 			sources = append(
 				sources,
-				&NonceSource{
+				&contentSecurityPolicyTypes.NonceSource{
 					Source:      innerSource,
 					Base64Value: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[1])),
 				},
@@ -127,7 +128,7 @@ func makeSourcesFromPaths(
 		case "hash-source":
 			sources = append(
 				sources,
-				&HashSource{
+				&contentSecurityPolicyTypes.HashSource{
 					Source:        innerSource,
 					HashAlgorithm: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[1])),
 					Base64Value:   string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[3])),
@@ -148,7 +149,7 @@ func makeSourcesFromPaths(
 	return sources
 }
 
-func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecurityPolicy, error) {
+func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecurityPolicyTypes.ContentSecurityPolicy, error) {
 	paths, err := goabnf.Parse(data, ContentSecurityPolicyGrammar, "root")
 	if err != nil {
 		return nil, &motmedelErrors.InputError{
@@ -163,7 +164,7 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecur
 
 	directiveNameSet := make(map[string]struct{})
 
-	contentSecurityPolicy := &ContentSecurityPolicy{}
+	contentSecurityPolicy := &contentSecurityPolicyTypes.ContentSecurityPolicy{}
 	contentSecurityPolicy.Raw = string(data)
 
 	interestingPaths := parsing_utils.SearchPath(paths[0], []string{"serialized-directive"}, 2, false)
@@ -201,14 +202,14 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecur
 		}
 		directiveNameSet[lowercaseDirectiveName] = struct{}{}
 
-		var directive DirectiveI
-		var sources []SourceI
+		var directive contentSecurityPolicyTypes.DirectiveI
+		var sources []contentSecurityPolicyTypes.SourceI
 
 		if _, ok := sourceListDirectiveNames[lowercaseDirectiveName]; ok {
 			if bytes.Equal(directiveValue, []byte("'none'")) {
-				sources = []SourceI{
-					&NoneSource{
-						Source: Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
+				sources = []contentSecurityPolicyTypes.SourceI{
+					&contentSecurityPolicyTypes.NoneSource{
+						Source: contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
 					},
 				}
 			} else {
@@ -237,7 +238,7 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecur
 			}
 		}
 
-		innerDirective := Directive{
+		innerDirective := contentSecurityPolicyTypes.Directive{
 			Name:     lowercaseDirectiveName,
 			RawName:  directiveName,
 			RawValue: string(directiveValue),
@@ -245,45 +246,49 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecur
 
 		switch lowercaseDirectiveName {
 		case "base-uri":
-			directive = &BaseUriDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.BaseUriDirective{Directive: innerDirective, Sources: sources}
 		case "child-src":
-			directive = &ChildSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ChildSrcDirective{Directive: innerDirective, Sources: sources}
 		case "connect-src":
-			directive = &ConnectSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ConnectSrcDirective{Directive: innerDirective, Sources: sources}
 		case "default-src":
-			directive = &DefaultSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.DefaultSrcDirective{Directive: innerDirective, Sources: sources}
 		case "font-src":
-			directive = &FontSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.FontSrcDirective{Directive: innerDirective, Sources: sources}
 		case "form-action":
-			directive = &FormActionDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.FormActionDirective{Directive: innerDirective, Sources: sources}
 		case "frame-src":
-			directive = &FrameSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.FrameSrcDirective{Directive: innerDirective, Sources: sources}
 		case "img-src":
-			directive = &ImgSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ImgSrcDirective{Directive: innerDirective, Sources: sources}
 		case "manifest-src":
-			directive = &ManifestSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ManifestSrcDirective{Directive: innerDirective, Sources: sources}
 		case "media-src":
-			directive = &MediaSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.MediaSrcDirective{Directive: innerDirective, Sources: sources}
 		case "object-src":
-			directive = &ObjectSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ObjectSrcDirective{Directive: innerDirective, Sources: sources}
 		case "script-src":
-			directive = &ScriptSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ScriptSrcDirective{Directive: innerDirective, Sources: sources}
 		case "script-src-attr":
-			directive = &ScriptSrcAttrDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ScriptSrcAttrDirective{Directive: innerDirective, Sources: sources}
 		case "script-src-elem":
-			directive = &ScriptSrcElemDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ScriptSrcElemDirective{Directive: innerDirective, Sources: sources}
 		case "style-src":
-			directive = &StyleSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.StyleSrcDirective{Directive: innerDirective, Sources: sources}
 		case "style-src-attr":
-			directive = &StyleSrcAttrDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.StyleSrcAttrDirective{Directive: innerDirective, Sources: sources}
 		case "style-src-elem":
-			directive = &StyleSrcElemDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.StyleSrcElemDirective{Directive: innerDirective, Sources: sources}
 		case "worker-src":
-			directive = &WorkerSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.WorkerSrcDirective{Directive: innerDirective, Sources: sources}
 		case "sandbox":
-			sandboxDirective := &SandboxDirective{Directive: innerDirective}
+			sandboxDirective := &contentSecurityPolicyTypes.SandboxDirective{Directive: innerDirective}
 
-			sandboxDirectiveValuePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "sandbox-directive-value-root")
+			sandboxDirectiveValuePaths, err := goabnf.Parse(
+				directiveValue,
+				ContentSecurityPolicyGrammar,
+				"sandbox-directive-value-root",
+			)
 			if err != nil {
 				return nil, &motmedelErrors.InputError{
 					Message: "An error occurred when parsing data as a sandbox directive value.",
@@ -307,10 +312,10 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecur
 			if innerDirective.RawValue != "allow" && innerDirective.RawValue != "block" {
 				return nil, nil
 			}
-			webrtcDirective := &WebrtcDirective{Directive: innerDirective}
+			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{Directive: innerDirective}
 			directive = webrtcDirective
 		case "report-uri":
-			reportUriDirective := &ReportUriDirective{Directive: innerDirective}
+			reportUriDirective := &contentSecurityPolicyTypes.ReportUriDirective{Directive: innerDirective}
 
 			reportUriDirectivePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "report-uri-directive-value-root")
 			if err != nil {
@@ -343,17 +348,17 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecur
 			}
 			directive = reportUriDirective
 		case "frame-ancestors":
-			frameAncestorsDirective := &FrameAncestorsDirective{Directive: innerDirective}
+			frameAncestorsDirective := &contentSecurityPolicyTypes.FrameAncestorsDirective{Directive: innerDirective}
 			if bytes.Equal(directiveValue, []byte("'none'")) {
-				sources = []SourceI{
-					&NoneSource{
-						Source: Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
+				sources = []contentSecurityPolicyTypes.SourceI{
+					&contentSecurityPolicyTypes.NoneSource{
+						Source: contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
 					},
 				}
 			} else if bytes.Equal(directiveValue, []byte("'self'")) {
-				sources = []SourceI{
-					&KeywordSource{
-						Source:  Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
+				sources = []contentSecurityPolicyTypes.SourceI{
+					&contentSecurityPolicyTypes.KeywordSource{
+						Source:  contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
 						Keyword: "self",
 					},
 				}
@@ -379,7 +384,7 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*ContentSecur
 			frameAncestorsDirective.Sources = sources
 			directive = frameAncestorsDirective
 		case "report-to":
-			reportToDirective := &ReportToDirective{Directive: innerDirective, Token: innerDirective.RawValue}
+			reportToDirective := &contentSecurityPolicyTypes.ReportToDirective{Directive: innerDirective, Token: innerDirective.RawValue}
 			directive = reportToDirective
 		default:
 			directive = &innerDirective
