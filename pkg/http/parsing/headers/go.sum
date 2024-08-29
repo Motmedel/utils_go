@@ -1,7 +1,7 @@
 github.com/Motmedel/parsing_utils v0.0.1 h1:IRsuDfrBPgGoEB/MWoQ4owVIFxUUlCJuZwifiJMXDjs=
 github.com/Motmedel/parsing_utils v0.0.1/go.mod h1:RPhpf/7jyAOhHkjyIMUwbszxfjXFxdw/GqBk69d7eyA=
-github.com/Motmedel/utils_go v0.0.37 h1:26wQ1uS+yn2gg9ymujWCkBZfb0WxhTVWLH0unniv45o=
-github.com/Motmedel/utils_go v0.0.37/go.mod h1:CigNVk6VMVsPjfkPp/a7xFZqEOC+QXqPhMGux58rpyc=
+github.com/Motmedel/utils_go v0.0.38 h1:vaReJI3iV02U3Gsx15+ME1w1U0OwNGbfd92UgktRhuU=
+github.com/Motmedel/utils_go v0.0.38/go.mod h1:CigNVk6VMVsPjfkPp/a7xFZqEOC+QXqPhMGux58rpyc=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/gammazero/deque v0.2.1 h1:qSdsbG6pgp6nL7A0+K/B7s12mcCY/5l5SIUpMOl+dC0=
