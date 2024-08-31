@@ -366,7 +366,7 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecur
 				ancestorSourceListPaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "ancestor-source-list-root")
 				if err != nil {
 					return nil, &motmedelErrors.InputError{
-						Message: "",
+						Message: "An error occurred when parsing a ancestor-source-list root.",
 						Cause:   err,
 						Input:   directiveValue,
 					}
