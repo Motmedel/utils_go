@@ -22,10 +22,14 @@ type CustomResponseWriter struct {
 	IsHeadRequest     bool
 	WriteHeaderCaller bool
 	WriteCalled       bool
+
+	WrittenStatusCode   int
+	WrittenResponseBody []byte
 }
 
 func (customResponseWriter *CustomResponseWriter) WriteHeader(statusCode int) {
 	customResponseWriter.WriteHeaderCaller = true
+	customResponseWriter.WrittenStatusCode = statusCode
 	customResponseWriter.ResponseWriter.WriteHeader(statusCode)
 }
 
@@ -44,6 +48,7 @@ func (customResponseWriter *CustomResponseWriter) Write(data []byte) (int, error
 		return 0, nil
 	}
 
+	customResponseWriter.WrittenResponseBody = data
 	return customResponseWriter.ResponseWriter.Write(data)
 }
 
