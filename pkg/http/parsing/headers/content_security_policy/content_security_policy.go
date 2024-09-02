@@ -359,7 +359,7 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecur
 				sources = []contentSecurityPolicyTypes.SourceI{
 					&contentSecurityPolicyTypes.KeywordSource{
 						Source:  contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
-						Keyword: "self",
+						Keyword: "'self'",
 					},
 				}
 			} else {
