@@ -184,7 +184,8 @@ type FrameAncestorsDirective struct {
 }
 
 type ContentSecurityPolicy struct {
-	Directives      []DirectiveI `json:"directives"`
-	OtherDirectives []DirectiveI `json:"other_directives"`
-	Raw             string       `json:"raw,omitempty"`
+	Directives            []DirectiveI `json:"directives"`
+	OtherDirectives       []DirectiveI `json:"other_directives"`
+	IneffectiveDirectives []DirectiveI `json:"ineffective_directives"`
+	Raw                   string       `json:"raw,omitempty"`
 }
