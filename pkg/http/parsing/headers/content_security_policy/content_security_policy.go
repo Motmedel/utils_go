@@ -195,10 +195,11 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecur
 		}
 
 		isOtherDirective := false
+		isIneffectiveDirective := false
 
 		lowercaseDirectiveName := strings.ToLower(directiveName)
 		if _, ok := directiveNameSet[lowercaseDirectiveName]; ok {
-			isOtherDirective = true
+			isIneffectiveDirective = true
 		}
 		directiveNameSet[lowercaseDirectiveName] = struct{}{}
 
@@ -391,7 +392,9 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecur
 			isOtherDirective = true
 		}
 
-		if isOtherDirective {
+		if isIneffectiveDirective {
+			contentSecurityPolicy.IneffectiveDirectives = append(contentSecurityPolicy.IneffectiveDirectives, directive)
+		} else if isOtherDirective {
 			contentSecurityPolicy.OtherDirectives = append(contentSecurityPolicy.OtherDirectives, directive)
 		} else {
 			contentSecurityPolicy.Directives = append(contentSecurityPolicy.Directives, directive)
