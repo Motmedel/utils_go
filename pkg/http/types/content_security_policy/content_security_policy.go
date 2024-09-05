@@ -57,6 +57,19 @@ type Directive struct {
 	RawValue string `json:"raw_value,omitempty"`
 }
 
+type SourceDirectiveI interface {
+	GetSources() []SourceI
+}
+
+type SourceDirective struct {
+	Directive
+	Sources []SourceI `json:"sources,omitempty"`
+}
+
+func (sourceDirective *SourceDirective) GetSources() []SourceI {
+	return sourceDirective.Sources
+}
+
 func (directive *Directive) GetName() string {
 	return directive.Name
 }
@@ -70,93 +83,75 @@ func (directive *Directive) GetRawValue() string {
 }
 
 type BaseUriDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ChildSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ConnectSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type DefaultSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type FontSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type FormActionDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type FrameSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ImgSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ManifestSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type MediaSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ObjectSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ScriptSrcAttrDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ScriptSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ScriptSrcElemDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type StyleSrcAttrDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type StyleSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type StyleSrcElemDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type WorkerSrcDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type SandboxDirective struct {
@@ -179,8 +174,7 @@ type ReportToDirective struct {
 }
 
 type FrameAncestorsDirective struct {
-	Directive
-	Sources []SourceI `json:"sources,omitempty"`
+	SourceDirective
 }
 
 type ContentSecurityPolicy struct {
