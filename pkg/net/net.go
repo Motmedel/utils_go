@@ -1,28 +1,14 @@
 package net
 
 import (
-	"fmt"
+	"bytes"
+	"errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"golang.org/x/net/publicsuffix"
-	"math"
 	"net"
 	"strconv"
 	"strings"
 )
-
-var cidr2mask = []uint32{
-	0x00000000, 0x80000000, 0xC0000000,
-	0xE0000000, 0xF0000000, 0xF8000000,
-	0xFC000000, 0xFE000000, 0xFF000000,
-	0xFF800000, 0xFFC00000, 0xFFE00000,
-	0xFFF00000, 0xFFF80000, 0xFFFC0000,
-	0xFFFE0000, 0xFFFF0000, 0xFFFF8000,
-	0xFFFFC000, 0xFFFFE000, 0xFFFFF000,
-	0xFFFFF800, 0xFFFFFC00, 0xFFFFFE00,
-	0xFFFFFF00, 0xFFFFFF80, 0xFFFFFFC0,
-	0xFFFFFFE0, 0xFFFFFFF0, 0xFFFFFFF8,
-	0xFFFFFFFC, 0xFFFFFFFE, 0xFFFFFFFF,
-}
 
 func SplitAddress(address string) (string, int, error) {
 	ip, portString, err := net.SplitHostPort(address)
@@ -46,62 +32,6 @@ func SplitAddress(address string) (string, int, error) {
 	return ip, port, nil
 }
 
-func ipv4ToUint32(iPv4 string) uint32 {
-	ipOctets := [4]uint64{}
-	for i, v := range strings.SplitN(iPv4, ".", 4) {
-		ipOctets[i], _ = strconv.ParseUint(v, 10, 32)
-	}
-	result := (ipOctets[0] << 24) | (ipOctets[1] << 16) | (ipOctets[2] << 8) | ipOctets[3]
-
-	return uint32(result)
-}
-
-func uint32ToIpv4(iPuInt32 uint32) (iP string) {
-	return fmt.Sprintf(
-		"%d.%d.%d.%d",
-		iPuInt32>>24,
-		(iPuInt32&0x00FFFFFF)>>16,
-		(iPuInt32&0x0000FFFF)>>8,
-		iPuInt32&0x000000FF,
-	)
-}
-
-func Ipv4RangeToCidrRange(ipStart string, ipEnd string) ([]string, error) {
-	ipStartUint32 := ipv4ToUint32(ipStart)
-	ipEndUint32 := ipv4ToUint32(ipEnd)
-
-	if ipStartUint32 > ipEndUint32 {
-		return nil, fmt.Errorf("start IP:%s must be less than end IP:%s", ipStart, ipEnd)
-	}
-
-	var cidrs []string
-
-	for ipEndUint32 >= ipStartUint32 {
-		maxSize := 32
-		for maxSize > 0 {
-
-			maskedBase := ipStartUint32 & cidr2mask[maxSize-1]
-
-			if maskedBase != ipStartUint32 {
-				break
-			}
-			maxSize--
-		}
-
-		x := math.Log(float64(ipEndUint32-ipStartUint32+1)) / math.Log(2)
-		maxDiff := 32 - int(math.Floor(x))
-		if maxSize < maxDiff {
-			maxSize = maxDiff
-		}
-
-		cidrs = append(cidrs, uint32ToIpv4(ipStartUint32)+"/"+strconv.Itoa(maxSize))
-
-		ipStartUint32 += uint32(math.Exp2(float64(32 - maxSize)))
-	}
-
-	return cidrs, nil
-}
-
 func GetIpVersion(ip *net.IP) int {
 	if ip.To4() != nil {
 		return 4
@@ -111,6 +41,89 @@ func GetIpVersion(ip *net.IP) int {
 		return 0
 	}
 }
+
+var (
+	ErrIpVersionMismatch     = errors.New("IP address version mismatch")
+	ErrNotOnSubnetBoundaries = errors.New("the start and end IP addresses are not on the exact subnet boundaries")
+	ErrStartAfterEnd         = errors.New("the start IP address does not come before the end IP address")
+)
+
+// Calculate the last address in the network
+func lastAddress(network net.IPNet) net.IP {
+	var last net.IP
+	ip := network.IP.To16()
+	mask := network.Mask
+
+	last = make(net.IP, len(ip))
+	for i := range last {
+		last[i] = ip[i] | ^mask[i]
+	}
+	return last
+}
+
+func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary bool) (string, error) {
+	if startIpAddress == nil || endIpAddress == nil {
+		return "", nil
+	}
+
+	if (startIpAddress.To4() == nil) != (endIpAddress.To4() == nil) {
+		return "", ErrIpVersionMismatch
+	}
+
+	startBytes := startIpAddress.To16()
+	endBytes := endIpAddress.To16()
+
+	if bytes.Compare(startBytes, endBytes) > 0 {
+		return "", ErrStartAfterEnd
+	}
+
+	// Find the first byte where the two IP addresses differ
+	maskLength := 0
+	found := false
+	for i := 0; i < len(startBytes); i++ {
+		if startBytes[i] != endBytes[i] {
+			// Calculate the mask length up to this point
+			maskLength = i * 8
+			diff := startBytes[i] ^ endBytes[i]
+			// Count the number of leading zeros in the differing byte
+			for j := 7; j >= 0; j-- {
+				if diff&(1<<j) != 0 {
+					maskLength += 8 - j - 1
+					found = true
+					break
+				}
+			}
+			if found {
+				break
+			}
+		}
+	}
+
+	if !found {
+		if startIpAddress.To4() != nil {
+			maskLength = 32
+		} else {
+			maskLength = 128
+		}
+	}
+
+	mask := net.CIDRMask(maskLength, len(startBytes)*8)
+	network := net.IPNet{IP: startIpAddress.Mask(mask), Mask: mask}
+
+	if checkBoundary {
+		// Ensure start IP is network's base address and end IP is the last address in the network
+		networkBase := network.IP
+		networkLast := lastAddress(network)
+
+		if !networkBase.Equal(*startIpAddress) || !networkLast.Equal(*endIpAddress) {
+			return "", ErrNotOnSubnetBoundaries
+		}
+	}
+
+	return network.String(), nil
+}
+
+// TODO: Put in submodule because of dependency
 
 type DomainBreakdown struct {
 	RegisteredDomain string `json:"registered_domain,omitempty"`

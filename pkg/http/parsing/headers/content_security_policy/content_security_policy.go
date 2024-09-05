@@ -234,7 +234,6 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecur
 				)
 				if sources == nil {
 					return nil, nil
-
 				}
 			}
 		}
