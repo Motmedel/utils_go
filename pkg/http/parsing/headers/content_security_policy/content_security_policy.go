@@ -244,44 +244,45 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecur
 			RawName:  directiveName,
 			RawValue: string(directiveValue),
 		}
+		sourceDirective := contentSecurityPolicyTypes.SourceDirective{Directive: innerDirective, Sources: sources}
 
 		switch lowercaseDirectiveName {
 		case "base-uri":
-			directive = &contentSecurityPolicyTypes.BaseUriDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.BaseUriDirective{SourceDirective: sourceDirective}
 		case "child-src":
-			directive = &contentSecurityPolicyTypes.ChildSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ChildSrcDirective{SourceDirective: sourceDirective}
 		case "connect-src":
-			directive = &contentSecurityPolicyTypes.ConnectSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ConnectSrcDirective{SourceDirective: sourceDirective}
 		case "default-src":
-			directive = &contentSecurityPolicyTypes.DefaultSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.DefaultSrcDirective{SourceDirective: sourceDirective}
 		case "font-src":
-			directive = &contentSecurityPolicyTypes.FontSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.FontSrcDirective{SourceDirective: sourceDirective}
 		case "form-action":
-			directive = &contentSecurityPolicyTypes.FormActionDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.FormActionDirective{SourceDirective: sourceDirective}
 		case "frame-src":
-			directive = &contentSecurityPolicyTypes.FrameSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.FrameSrcDirective{SourceDirective: sourceDirective}
 		case "img-src":
-			directive = &contentSecurityPolicyTypes.ImgSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ImgSrcDirective{SourceDirective: sourceDirective}
 		case "manifest-src":
-			directive = &contentSecurityPolicyTypes.ManifestSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ManifestSrcDirective{SourceDirective: sourceDirective}
 		case "media-src":
-			directive = &contentSecurityPolicyTypes.MediaSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.MediaSrcDirective{SourceDirective: sourceDirective}
 		case "object-src":
-			directive = &contentSecurityPolicyTypes.ObjectSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ObjectSrcDirective{SourceDirective: sourceDirective}
 		case "script-src":
-			directive = &contentSecurityPolicyTypes.ScriptSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ScriptSrcDirective{SourceDirective: sourceDirective}
 		case "script-src-attr":
-			directive = &contentSecurityPolicyTypes.ScriptSrcAttrDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ScriptSrcAttrDirective{SourceDirective: sourceDirective}
 		case "script-src-elem":
-			directive = &contentSecurityPolicyTypes.ScriptSrcElemDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.ScriptSrcElemDirective{SourceDirective: sourceDirective}
 		case "style-src":
-			directive = &contentSecurityPolicyTypes.StyleSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.StyleSrcDirective{SourceDirective: sourceDirective}
 		case "style-src-attr":
-			directive = &contentSecurityPolicyTypes.StyleSrcAttrDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.StyleSrcAttrDirective{SourceDirective: sourceDirective}
 		case "style-src-elem":
-			directive = &contentSecurityPolicyTypes.StyleSrcElemDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.StyleSrcElemDirective{SourceDirective: sourceDirective}
 		case "worker-src":
-			directive = &contentSecurityPolicyTypes.WorkerSrcDirective{Directive: innerDirective, Sources: sources}
+			directive = &contentSecurityPolicyTypes.WorkerSrcDirective{SourceDirective: sourceDirective}
 		case "sandbox":
 			sandboxDirective := &contentSecurityPolicyTypes.SandboxDirective{Directive: innerDirective}
 
@@ -349,7 +350,7 @@ func ParseContentSecurityPolicy(ctx context.Context, data []byte) (*contentSecur
 			}
 			directive = reportUriDirective
 		case "frame-ancestors":
-			frameAncestorsDirective := &contentSecurityPolicyTypes.FrameAncestorsDirective{Directive: innerDirective}
+			frameAncestorsDirective := &contentSecurityPolicyTypes.FrameAncestorsDirective{SourceDirective: sourceDirective}
 			if bytes.Equal(directiveValue, []byte("'none'")) {
 				sources = []contentSecurityPolicyTypes.SourceI{
 					&contentSecurityPolicyTypes.NoneSource{
