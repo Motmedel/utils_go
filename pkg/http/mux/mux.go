@@ -59,11 +59,29 @@ type HandlerErrorResponse struct {
 	ResponseHeaders [][2]string
 }
 
+type HeaderEntry struct {
+	Name      string
+	Value     string
+	Overwrite bool
+}
+
+type StaticContentData struct {
+	Data    []byte
+	Etag    string
+	Headers []*HeaderEntry
+}
+
+type StaticContent struct {
+	StaticContentData
+	ContentEncodingToData map[string]*StaticContentData
+}
+
 type HandlerSpecification struct {
 	Path                string
 	Method              string
 	ExpectedContentType string
 	Handler             func(http.ResponseWriter, *http.Request, []byte) *HandlerErrorResponse
+	StaticContent       *StaticContent
 }
 
 func PerformErrorResponse(
