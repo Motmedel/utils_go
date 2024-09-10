@@ -272,18 +272,21 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	contentLengthString := request.Header.Get("Content-Length")
-	contentLength, err := strconv.Atoi(contentLengthString)
-	if err != nil {
-		clientErrorHandler(
-			customResponseWriter,
-			request,
-			nil,
-			problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Length", nil),
-			nil,
-			nil,
-		)
-		return
+	var contentLength int
+	if _, ok := request.Header["Content-Length"]; ok {
+		var err error
+		contentLength, err = strconv.Atoi(request.Header.Get("Content-Length"))
+		if err != nil {
+			clientErrorHandler(
+				customResponseWriter,
+				request,
+				nil,
+				problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Length", nil),
+				nil,
+				nil,
+			)
+			return
+		}
 	}
 
 	var body []byte
@@ -314,8 +317,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 			return
 		}
 
-		contentTypeBytes := []byte(contentTypeString)
-		contentType, err := content_type.ParseContentType(contentTypeBytes)
+		contentType, err := content_type.ParseContentType([]byte(contentTypeString))
 		if err != nil {
 			clientErrorHandler(
 				customResponseWriter,
