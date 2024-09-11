@@ -50,17 +50,24 @@ func (problemDetail *ProblemDetail) makeOutputMap() (map[string]any, error) {
 	return outputMap, nil
 }
 
-func (problemDetail *ProblemDetail) String() (string, error) {
+func (problemDetail *ProblemDetail) Bytes() ([]byte, error) {
 	outputMap, err := problemDetail.makeOutputMap()
+	if err != nil {
+		return nil, err
+	}
+	if outputData, err := json.Marshal(outputMap); err != nil {
+		return nil, err
+	} else {
+		return outputData, nil
+	}
+}
+
+func (problemDetail *ProblemDetail) String() (string, error) {
+	data, err := problemDetail.Bytes()
 	if err != nil {
 		return "", err
 	}
-
-	if outputData, err := json.Marshal(outputMap); err != nil {
-		return "", err
-	} else {
-		return string(outputData), nil
-	}
+	return string(data), nil
 }
 
 func MakeStatusCodeProblemDetail(code int, detail string, extension any) *ProblemDetail {
