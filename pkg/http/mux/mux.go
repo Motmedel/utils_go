@@ -5,6 +5,7 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
+	muxTypes "github.com/Motmedel/utils_go/pkg/http/mux/types"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
@@ -12,83 +13,75 @@ import (
 	"log/slog"
 	"maps"
 	"net/http"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 )
 
-type CustomResponseWriter struct {
-	http.ResponseWriter
-	IsHeadRequest     bool
-	WriteHeaderCaller bool
-	WriteCalled       bool
-
-	WrittenStatusCode   int
-	WrittenResponseBody []byte
+var DefaultHeaders = map[string]string{
+	"Cross-Origin-Opener-Policy":   "same-origin",
+	"Cross-Origin-Embedder-Policy": "require-cors",
+	"Cross-Origin-Resource-Policy": "same-origin",
+	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none', form-action 'none'",
+	"X-Content-Type-Options":       "nosniff",
+	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
 }
 
-func (customResponseWriter *CustomResponseWriter) WriteHeader(statusCode int) {
-	customResponseWriter.WriteHeaderCaller = true
-	customResponseWriter.WrittenStatusCode = statusCode
-	customResponseWriter.ResponseWriter.WriteHeader(statusCode)
-}
+func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.ResponseWriter) error {
+	if responseInfo == nil {
+		return nil
+	}
 
-func (customResponseWriter *CustomResponseWriter) Write(data []byte) (int, error) {
-	customResponseWriter.WriteCalled = true
+	if reflect.ValueOf(responseWriter).IsNil() {
+		// TODO: ErrNilResponseWriter?
+		return nil
+	}
 
-	if !customResponseWriter.WriteHeaderCaller {
-		statusCode := http.StatusOK
-		if len(data) == 0 {
-			statusCode = http.StatusNoContent
+	var defaultHeaders map[string]string
+	muxResponseWriter, ok := responseWriter.(*muxTypes.ResponseWriter)
+	if ok {
+		defaultHeaders = muxResponseWriter.DefaultHeaders
+	} else {
+		defaultHeaders = make(map[string]string)
+	}
+	var skippedDefaultHeadersSet map[string]struct{}
+
+	responseWriterHeader := responseWriter.Header()
+	responseWriterHeader.Set("Content-Type", "application/problem+json")
+	for _, header := range responseInfo.Headers {
+		if _, ok := defaultHeaders[header.Name]; ok {
+			if header.Overwrite {
+				skippedDefaultHeadersSet[header.Name] = struct{}{}
+			} else {
+				continue
+			}
 		}
-		customResponseWriter.WriteHeader(statusCode)
+		responseWriterHeader.Set(header.Name, header.Value)
+	}
+	for headerName, headerValue := range defaultHeaders {
+		if _, ok := skippedDefaultHeadersSet[headerName]; ok {
+			continue
+		}
+		responseWriterHeader.Set(headerName, headerValue)
 	}
 
-	if customResponseWriter.IsHeadRequest {
-		return 0, nil
+	responseWriter.WriteHeader(responseInfo.StatusCode)
+	if _, err := responseWriter.Write(responseInfo.Body); err != nil {
+		return &motmedelErrors.CauseError{
+			Message: "An error occurred when writing a response body.",
+			Cause:   err,
+		}
 	}
-
-	customResponseWriter.WrittenResponseBody = data
-	return customResponseWriter.ResponseWriter.Write(data)
-}
-
-type HandlerErrorResponse struct {
-	ClientError     error
-	ServerError     error
-	ProblemDetail   *problem_detail.ProblemDetail
-	ResponseHeaders [][2]string
-}
-
-type HeaderEntry struct {
-	Name      string
-	Value     string
-	Overwrite bool
-}
-
-type StaticContentData struct {
-	Data    []byte
-	Etag    string
-	Headers []*HeaderEntry
-}
-
-type StaticContent struct {
-	StaticContentData
-	ContentEncodingToData map[string]*StaticContentData
-}
-
-type HandlerSpecification struct {
-	Path                string
-	Method              string
-	ExpectedContentType string
-	Handler             func(http.ResponseWriter, *http.Request, []byte) *HandlerErrorResponse
-	StaticContent       *StaticContent
+	
+	return nil
 }
 
 func PerformErrorResponse(
 	responseWriter http.ResponseWriter,
 	request *http.Request,
 	problemDetail *problem_detail.ProblemDetail,
-	headers [][2]string,
+	headers []*muxTypes.HeaderEntry,
 ) {
 	logger := motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil)
 
@@ -123,10 +116,34 @@ func PerformErrorResponse(
 		return
 	}
 
-	responseWriter.Header().Set("Content-Type", "application/problem+json")
-	for _, header := range headers {
-		responseWriter.Header().Set(header[0], header[1])
+	var defaultHeaders map[string]string
+	muxResponseWriter, ok := responseWriter.(*muxTypes.ResponseWriter)
+	if ok {
+		defaultHeaders = muxResponseWriter.DefaultHeaders
+	} else {
+		defaultHeaders = make(map[string]string)
 	}
+	var skippedDefaultHeadersSet map[string]struct{}
+
+	responseWriterHeader := responseWriter.Header()
+	responseWriterHeader.Set("Content-Type", "application/problem+json")
+	for _, header := range headers {
+		if _, ok := defaultHeaders[header.Name]; ok {
+			if header.Overwrite {
+				skippedDefaultHeadersSet[header.Name] = struct{}{}
+			} else {
+				continue
+			}
+		}
+		responseWriterHeader.Set(header.Name, header.Value)
+	}
+	for headerName, headerValue := range defaultHeaders {
+		if _, ok := skippedDefaultHeadersSet[headerName]; ok {
+			continue
+		}
+		responseWriterHeader.Set(headerName, headerValue)
+	}
+
 	responseWriter.WriteHeader(problemDetail.Status)
 
 	if _, err = io.WriteString(responseWriter, problemDetailString); err != nil {
@@ -143,7 +160,7 @@ func DefaultClientErrorHandler(
 	request *http.Request,
 	requestBody []byte,
 	problemDetail *problem_detail.ProblemDetail,
-	headers [][2]string,
+	headers []*muxTypes.HeaderEntry,
 	err error,
 ) {
 	if err != nil {
@@ -164,7 +181,7 @@ func DefaultServerErrorHandler(
 	request *http.Request,
 	requestBody []byte,
 	problemDetail *problem_detail.ProblemDetail,
-	headers [][2]string,
+	headers []*muxTypes.HeaderEntry,
 	err error,
 ) {
 	if err != nil {
@@ -181,7 +198,7 @@ func DefaultServerErrorHandler(
 }
 
 type Mux struct {
-	HandlerSpecificationMap map[string]map[string]*HandlerSpecification
+	HandlerSpecificationMap map[string]map[string]*muxTypes.HandlerSpecification
 	Logger                  *slog.Logger
 	DefaultContentType      string
 	SetContextKeyValuePairs [][2]any
@@ -190,7 +207,7 @@ type Mux struct {
 		*http.Request,
 		[]byte,
 		*problem_detail.ProblemDetail,
-		[][2]string,
+		[]*muxTypes.HeaderEntry,
 		error,
 	)
 	ServerErrorHandler func(
@@ -198,12 +215,13 @@ type Mux struct {
 		*http.Request,
 		[]byte,
 		*problem_detail.ProblemDetail,
-		[][2]string,
+		[]*muxTypes.HeaderEntry,
 		error,
 	)
+	DefaultHeaders map[string]string
 }
 
-func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
+func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *http.Request) {
 	if request == nil {
 		return
 	}
@@ -220,7 +238,13 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		serverErrorHandler = DefaultServerErrorHandler
 	}
 
-	customResponseWriter := &CustomResponseWriter{ResponseWriter: responseWriter}
+	customResponseWriter := &muxTypes.ResponseWriter{ResponseWriter: originalResponseWriter}
+
+	defaultHeaders := mux.DefaultHeaders
+	if defaultHeaders == nil {
+		defaultHeaders = DefaultHeaders
+	}
+	customResponseWriter.DefaultHeaders = defaultHeaders
 
 	requestMethod := strings.ToUpper(request.Method)
 	// "For client requests, an empty string means GET."
@@ -260,15 +284,11 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 				fmt.Sprintf("Expected \"%s\", observed \"%s\"", expectedMethodsString, requestMethod),
 				nil,
 			),
-			[][2]string{{"Accept", expectedMethodsString}},
+			[]*muxTypes.HeaderEntry{
+				{Name: "Accept", Value: expectedMethodsString},
+			},
 			nil,
 		)
-		return
-	}
-
-	handler := handlerSpecification.Handler
-	if handler == nil {
-		serverErrorHandler(customResponseWriter, request, nil, nil, nil, muxErrors.ErrNilHandler)
 		return
 	}
 
@@ -289,7 +309,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		}
 	}
 
-	var body []byte
+	var requestBody []byte
 
 	if contentLength != 0 {
 		expectedContentType := func() string {
@@ -298,7 +318,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 			}
 			return mux.DefaultContentType
 		}()
-		headers := [][2]string{{"Accept", expectedContentType}}
+		headers := []*muxTypes.HeaderEntry{{Name: "Accept", Value: expectedContentType}}
 
 		contentTypeString := request.Header.Get("Content-Type")
 		if contentTypeString == "" {
@@ -355,7 +375,7 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 			return
 		}
 
-		body, err = io.ReadAll(request.Body)
+		requestBody, err = io.ReadAll(request.Body)
 		if err != nil {
 			serverErrorHandler(customResponseWriter, request, nil, nil, nil, err)
 			return
@@ -371,45 +391,82 @@ func (mux *Mux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Requ
 		request = request.WithContext(ctx)
 	}
 
-	handlerErrorResponse := handler(customResponseWriter, request, body)
-
-	if handlerErrorResponse != nil {
-		serverError := handlerErrorResponse.ServerError
-		clientError := handlerErrorResponse.ClientError
-		problemDetail := handlerErrorResponse.ProblemDetail
-		headers := handlerErrorResponse.ResponseHeaders
-
-		if serverError != nil {
-			serverErrorHandler(customResponseWriter, request, body, problemDetail, headers, serverError)
-		} else if clientError != nil {
-			clientErrorHandler(customResponseWriter, request, body, problemDetail, headers, clientError)
-		} else if problemDetail != nil {
-			statusCode := problemDetail.Status
-			if statusCode >= 400 && statusCode < 500 {
-				serverErrorHandler(customResponseWriter, request, body, problemDetail, headers, nil)
-			} else if statusCode >= 500 && statusCode < 600 {
-				clientErrorHandler(customResponseWriter, request, body, problemDetail, headers, nil)
-			} else {
-				// The "no response written" error should occur.
+	if staticContent := handlerSpecification.StaticContent; staticContent != nil {
+		isCached := func() bool {
+			if ifNoneMatch := request.Header.Get("If-None-Match"); ifNoneMatch != "" && staticContent.Etag != "" {
+				return ifNoneMatch == staticContent.Etag
 			}
+
+			if ifModifiedSince := request.Header.Get("If-Modified-Since"); ifModifiedSince != "" && staticContent.LastModified != "" {
+				// TODO: Perform timestamp check.
+				return false
+			}
+
+			return false
+		}()
+
+		for _, header := range staticContent.Headers {
+			customResponseWriter.Header().Set(header.Name, header.Value)
+		}
+
+		if isCached {
+			customResponseWriter.WriteHeader(http.StatusNotModified)
+		} else {
+			if _, err := customResponseWriter.Write(staticContent.Data); err != nil {
+				serverErrorHandler(customResponseWriter, request, nil, nil, nil, err)
+			}
+		}
+	} else {
+		handler := handlerSpecification.Handler
+		if handler == nil {
+			serverErrorHandler(customResponseWriter, request, nil, nil, nil, muxErrors.ErrNilHandler)
+			return
+		}
+
+		muxResponse, handlerErrorResponse := handler(request, requestBody)
+
+		if handlerErrorResponse != nil {
+			serverError := handlerErrorResponse.ServerError
+			clientError := handlerErrorResponse.ClientError
+			problemDetail := handlerErrorResponse.ProblemDetail
+			headers := handlerErrorResponse.ResponseHeaders
+
+			if serverError != nil {
+				serverErrorHandler(customResponseWriter, request, requestBody, problemDetail, headers, serverError)
+			} else if clientError != nil {
+				clientErrorHandler(customResponseWriter, request, requestBody, problemDetail, headers, clientError)
+			} else if problemDetail != nil {
+				statusCode := problemDetail.Status
+				if statusCode >= 400 && statusCode < 500 {
+					serverErrorHandler(customResponseWriter, request, requestBody, problemDetail, headers, nil)
+				} else if statusCode >= 500 && statusCode < 600 {
+					clientErrorHandler(customResponseWriter, request, requestBody, problemDetail, headers, nil)
+				} else {
+					// The "no response written" error should occur.
+				}
+			}
+		} else if muxResponse != nil {
+
+		} else {
+			// The "no response written" error should occur.
 		}
 	}
 
 	if !customResponseWriter.WriteHeaderCaller {
-		serverErrorHandler(customResponseWriter, request, body, nil, nil, muxErrors.ErrNoResponseWritten)
+		serverErrorHandler(customResponseWriter, request, requestBody, nil, nil, muxErrors.ErrNoResponseWritten)
 	}
 }
 
-func (mux *Mux) Add(specifications ...*HandlerSpecification) {
+func (mux *Mux) Add(specifications ...*muxTypes.HandlerSpecification) {
 	handlerSpecificationMap := mux.HandlerSpecificationMap
 	if handlerSpecificationMap == nil {
-		handlerSpecificationMap = make(map[string]map[string]*HandlerSpecification)
+		handlerSpecificationMap = make(map[string]map[string]*muxTypes.HandlerSpecification)
 	}
 
 	for _, specification := range specifications {
 		methodToHandlerSpecification, ok := handlerSpecificationMap[specification.Path]
 		if !ok {
-			methodToHandlerSpecification = make(map[string]*HandlerSpecification)
+			methodToHandlerSpecification = make(map[string]*muxTypes.HandlerSpecification)
 			handlerSpecificationMap[specification.Path] = methodToHandlerSpecification
 		}
 
@@ -419,7 +476,7 @@ func (mux *Mux) Add(specifications ...*HandlerSpecification) {
 	mux.HandlerSpecificationMap = handlerSpecificationMap
 }
 
-func (mux *Mux) Delete(specifications ...*HandlerSpecification) {
+func (mux *Mux) Delete(specifications ...*muxTypes.HandlerSpecification) {
 	handlerSpecificationMap := mux.HandlerSpecificationMap
 	if handlerSpecificationMap == nil {
 		return
