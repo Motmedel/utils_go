@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -54,6 +55,26 @@ func (mediaType *MediaType) GetParametersMap(normalize bool) map[string]string {
 
 type ContentType struct {
 	MediaType
+}
+
+type Encoding struct {
+	Coding       string
+	QualityValue float32
+}
+
+type AcceptEncoding struct {
+	Encodings []*Encoding
+}
+
+func (acceptEncoding *AcceptEncoding) GetPriorityOrderedEncodings() []*Encoding {
+	encodings := make([]*Encoding, len(acceptEncoding.Encodings))
+	copy(encodings, acceptEncoding.Encodings)
+
+	sort.SliceStable(encodings, func(i, j int) bool {
+		return encodings[i].QualityValue > encodings[j].QualityValue
+	})
+
+	return encodings
 }
 
 type StrictTransportSecurityPolicy struct {
