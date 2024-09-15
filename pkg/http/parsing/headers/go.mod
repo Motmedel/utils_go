@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/Motmedel/parsing_utils v0.0.1
-	github.com/Motmedel/utils_go v0.0.44
+	github.com/Motmedel/utils_go v0.0.45
 	github.com/pandatix/go-abnf v0.0.0-20240514063615-2b2629cca20a
 )
 
