@@ -64,6 +64,7 @@ type Encoding struct {
 
 type AcceptEncoding struct {
 	Encodings []*Encoding
+	Raw       string
 }
 
 func (acceptEncoding *AcceptEncoding) GetPriorityOrderedEncodings() []*Encoding {
