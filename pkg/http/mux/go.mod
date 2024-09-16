@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/Motmedel/utils_go v0.0.45
-	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.10
+	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.11
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.2
 )
 
