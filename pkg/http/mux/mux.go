@@ -24,9 +24,9 @@ import (
 var DefaultHeaders = map[string]string{
 	"Cache-Control":                "no-store",
 	"Cross-Origin-Opener-Policy":   "same-origin",
-	"Cross-Origin-Embedder-Policy": "require-cors",
+	"Cross-Origin-Embedder-Policy": "require-corp",
 	"Cross-Origin-Resource-Policy": "same-origin",
-	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none', form-action 'none'",
+	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
 	"X-Content-Type-Options":       "nosniff",
 	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
 }
