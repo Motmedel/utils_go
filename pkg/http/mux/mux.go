@@ -451,6 +451,13 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 				if encoding == muxUtils.AcceptContentIdentityIdentifier {
 					responseInfo.Body = staticContent.Data
 				} else {
+					responseInfo.Headers = append(
+						responseInfo.Headers,
+						&muxTypes.HeaderEntry{
+							Name:  "Content-Encoding",
+							Value: encoding,
+						},
+					)
 					responseInfo.Body = staticContent.ContentEncodingToData[encoding].Data
 				}
 			}
