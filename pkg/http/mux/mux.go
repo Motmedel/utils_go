@@ -8,6 +8,7 @@ import (
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypes "github.com/Motmedel/utils_go/pkg/http/mux/types"
 	muxUtils "github.com/Motmedel/utils_go/pkg/http/mux/utils"
+	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
@@ -393,9 +394,66 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		if isCached {
 			responseInfo.StatusCode = http.StatusNotModified
 		} else {
-			responseInfo.StatusCode = http.StatusOK
-			// TODO: Check `Accept-Encoding`.
-			responseInfo.Body = staticContent.Data
+			encoding := muxUtils.AcceptContentIdentityIdentifier
+
+			var supportedEncodings []string
+
+			if _, ok := request.Header["Accept-Encoding"]; ok {
+				acceptEncoding, err := accept_encoding.ParseAcceptEncoding([]byte(request.Header.Get("Accept-Encoding")))
+				if err != nil {
+					serverErrorHandler(responseWriter, request, nil, nil, nil, err)
+					return
+				}
+				if acceptEncoding == nil {
+					clientErrorHandler(
+						responseWriter,
+						request,
+						nil,
+						problem_detail.MakeBadRequestProblemDetail("Bad Accept-Encoding value", nil),
+						nil,
+						nil,
+					)
+				}
+
+				supportedEncodings = slices.Collect(maps.Keys(staticContent.ContentEncodingToData))
+				contentEncodingToData := staticContent.ContentEncodingToData
+
+				slices.SortFunc(supportedEncodings, func(a, b string) int {
+					aData := contentEncodingToData[a].Data
+					bData := contentEncodingToData[b].Data
+					if len(aData) < len(bData) {
+						return -1
+					} else if len(aData) > len(bData) {
+						return 1
+					}
+					return 0
+				})
+
+				encoding = muxUtils.GetMatchingContentEncoding(
+					acceptEncoding.GetPriorityOrderedEncodings(),
+					supportedEncodings,
+				)
+			}
+
+			if encoding == "" {
+				clientErrorHandler(
+					responseWriter,
+					request,
+					nil,
+					problem_detail.MakeStatusCodeProblemDetail(http.StatusUnsupportedMediaType, "No content encoding could be negotiated", nil),
+					[]*muxTypes.HeaderEntry{
+						{Name: "Accept-Encoding", Value: strings.Join(supportedEncodings, ", ")},
+					},
+					nil,
+				)
+			} else {
+				responseInfo.StatusCode = http.StatusOK
+				if encoding == muxUtils.AcceptContentIdentityIdentifier {
+					responseInfo.Body = staticContent.Data
+				} else {
+					responseInfo.Body = staticContent.ContentEncodingToData[encoding].Data
+				}
+			}
 		}
 
 		_ = WriteResponse(responseInfo, responseWriter)

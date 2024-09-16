@@ -3,8 +3,12 @@ package utils
 import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"strings"
 	"time"
 )
+
+const AcceptContentIdentityIdentifier = "identity"
 
 func parseLastModifiedTimestamp(timestamp string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC1123, timestamp); err != nil {
@@ -48,4 +52,58 @@ func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue stri
 	}
 
 	return ifModifiedSinceTimestamp.Equal(lastModifiedTimestamp) || lastModifiedTimestamp.Before(ifModifiedSinceTimestamp), nil
+}
+
+func GetMatchingContentEncoding(
+	acceptableEncodings []*motmedelHttpTypes.Encoding,
+	supportedEncodings []string,
+) string {
+	if len(acceptableEncodings) == 0 {
+		return AcceptContentIdentityIdentifier
+	}
+
+	disallowIdentity := false
+
+	for _, acceptableEncoding := range acceptableEncodings {
+		coding := strings.ToLower(acceptableEncoding.Coding)
+		qualityValue := acceptableEncoding.QualityValue
+
+		if coding == "*" {
+			if qualityValue == 0 {
+				disallowIdentity = true
+			} else {
+				if len(supportedEncodings) != 0 {
+					return supportedEncodings[0]
+				} else {
+					if !disallowIdentity {
+						return AcceptContentIdentityIdentifier
+					}
+				}
+			}
+		}
+
+		if coding == AcceptContentIdentityIdentifier {
+			if qualityValue == 0 {
+				disallowIdentity = true
+			} else {
+				return AcceptContentIdentityIdentifier
+			}
+		}
+
+		if qualityValue == 0 {
+			continue
+		}
+
+		for _, supportedEncoding := range supportedEncodings {
+			if acceptableEncoding.Coding == supportedEncoding {
+				return supportedEncoding
+			}
+		}
+	}
+
+	if !disallowIdentity {
+		return AcceptContentIdentityIdentifier
+	} else {
+		return ""
+	}
 }

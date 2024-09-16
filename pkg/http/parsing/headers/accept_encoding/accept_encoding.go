@@ -33,7 +33,7 @@ func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error)
 			Input:   data,
 		}
 	}
-	if paths == nil {
+	if len(paths) == 0 {
 		return nil, nil
 	}
 
