@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var DefaultHeaders = map[string]string{
@@ -196,6 +197,8 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		return
 	}
 
+	// Populate the request context.
+
 	if len(mux.SetContextKeyValuePairs) != 0 {
 		ctx := request.Context()
 		for _, pair := range mux.SetContextKeyValuePairs {
@@ -203,6 +206,8 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		}
 		request = request.WithContext(ctx)
 	}
+
+	// Set the client and server error handlers if not specified.
 
 	clientErrorHandler := mux.ClientErrorHandler
 	if clientErrorHandler == nil {
@@ -214,6 +219,8 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		serverErrorHandler = DefaultServerErrorHandler
 	}
 
+	// Use a custom response writer.
+
 	responseWriter := &muxTypes.ResponseWriter{
 		ResponseWriter: originalResponseWriter,
 		DefaultHeaders: func() map[string]string {
@@ -223,6 +230,8 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			return DefaultHeaders
 		}(),
 	}
+
+	// Locate the handler.
 
 	requestMethod := strings.ToUpper(request.Method)
 	// "For client requests, an empty string means GET."
@@ -269,6 +278,86 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		)
 		return
 	}
+
+	// Perform rate limiting, if specified.
+
+	if rateLimitingConfiguration := handlerSpecification.RateLimitingConfiguration; rateLimitingConfiguration != nil {
+		getKeyFunc := rateLimitingConfiguration.GetKey
+		if getKeyFunc == nil {
+			getKeyFunc = muxTypes.DefaultGetRateLimitingKey
+		}
+
+		key, err := getKeyFunc(request)
+		if err != nil {
+			serverErrorHandler(
+				responseWriter,
+				request,
+				nil,
+				nil,
+				nil,
+				&motmedelErrors.CauseError{
+					Message: "An error occurred when extracting a rate limiting key from a request.",
+					Cause:   err,
+				},
+			)
+			return
+		}
+
+		rateLimitingConfiguration.Lookup.Mutex.Lock()
+		if rateLimitingConfiguration.Lookup.Map == nil {
+			rateLimitingConfiguration.Lookup.Map = make(map[string]*muxTypes.TimerRateLimiter)
+		}
+		rateLimitingConfiguration.Lookup.Mutex.Unlock()
+
+		timerRateLimiter, ok := rateLimitingConfiguration.Lookup.Map[key]
+		if !ok {
+			timerRateLimiter = &muxTypes.TimerRateLimiter{
+				RateLimiter: muxTypes.RateLimiter{
+					Bucket:           make([]*time.Time, rateLimitingConfiguration.NumRequests),
+					NumSecondsExpiry: rateLimitingConfiguration.NumSecondsExpiration,
+				},
+			}
+			rateLimitingConfiguration.Lookup.Map[key] = timerRateLimiter
+		}
+
+		if timerRateLimiter.Timer != nil {
+			timerRateLimiter.Timer.Stop()
+		}
+		timerRateLimiter.Timer = time.AfterFunc(
+			time.Duration(2*timerRateLimiter.NumSecondsExpiry)*time.Second,
+			func() {
+				rateLimitingConfiguration.Lookup.Mutex.Lock()
+				defer rateLimitingConfiguration.Lookup.Mutex.Unlock()
+				if timerRateLimiter.NumOccupied == 0 {
+					delete(rateLimitingConfiguration.Lookup.Map, key)
+				}
+			},
+		)
+
+		expirationTime, full := timerRateLimiter.Claim()
+		if full {
+			clientErrorHandler(
+				responseWriter,
+				request,
+				nil,
+				problem_detail.MakeStatusCodeProblemDetail(
+					http.StatusTooManyRequests,
+					"",
+					nil,
+				),
+				[]*muxTypes.HeaderEntry{
+					{
+						Name:  "Retry-After",
+						Value: expirationTime.UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT",
+					},
+				},
+				nil,
+			)
+			return
+		}
+	}
+
+	// Obtain the request body.
 
 	var contentLength int
 	if _, ok := request.Header["Content-Length"]; ok {
@@ -355,11 +444,23 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 
 		requestBody, err = io.ReadAll(request.Body)
 		if err != nil {
-			serverErrorHandler(responseWriter, request, nil, nil, nil, err)
+			serverErrorHandler(
+				responseWriter,
+				request,
+				nil,
+				nil,
+				nil,
+				&motmedelErrors.CauseError{
+					Message: "An error occurred when reading the request body.",
+					Cause:   err,
+				},
+			)
 			return
 		}
 		defer request.Body.Close()
 	}
+
+	// Decide whether the response is static content, or requires handling.
 
 	if staticContent := handlerSpecification.StaticContent; staticContent != nil {
 		isCached := muxUtils.IfNoneMatchCacheHit(
@@ -384,7 +485,17 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					)
 					return
 				} else {
-					serverErrorHandler(responseWriter, request, nil, nil, nil, err)
+					serverErrorHandler(
+						responseWriter,
+						request,
+						nil,
+						nil,
+						nil,
+						&motmedelErrors.CauseError{
+							Message: "An error occurred when checking If-Modified-Since.",
+							Cause:   err,
+						},
+					)
 					return
 				}
 			}
@@ -401,7 +512,17 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			if _, ok := request.Header["Accept-Encoding"]; ok {
 				acceptEncoding, err := accept_encoding.ParseAcceptEncoding([]byte(request.Header.Get("Accept-Encoding")))
 				if err != nil {
-					serverErrorHandler(responseWriter, request, nil, nil, nil, err)
+					serverErrorHandler(
+						responseWriter,
+						request,
+						nil,
+						nil,
+						nil,
+						&motmedelErrors.CauseError{
+							Message: "An error occurred when parsing the Accept-Encoding header.",
+							Cause:   err,
+						},
+					)
 					return
 				}
 				if acceptEncoding == nil {

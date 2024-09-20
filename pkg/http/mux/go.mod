@@ -13,4 +13,5 @@ require (
 	github.com/gammazero/deque v0.2.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/pandatix/go-abnf v0.0.0-20240514063615-2b2629cca20a // indirect
+	golang.org/x/net v0.28.0 // indirect
 )
