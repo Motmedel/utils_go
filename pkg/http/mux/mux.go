@@ -52,8 +52,15 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 	skippedDefaultHeadersSet := make(map[string]struct{})
 
 	responseWriterHeader := responseWriter.Header()
-	responseWriterHeader.Set("Content-Type", "application/problem+json")
 	for _, header := range responseInfo.Headers {
+		if header == nil {
+			continue
+		}
+
+		if strings.ToLower(header.Name) == "content-type" && len(responseInfo.Body) == 0 {
+			continue
+		}
+
 		if _, ok := defaultHeaders[header.Name]; ok {
 			if header.Overwrite {
 				skippedDefaultHeadersSet[header.Name] = struct{}{}
@@ -61,6 +68,7 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 				continue
 			}
 		}
+
 		responseWriterHeader.Set(header.Name, header.Value)
 	}
 	for headerName, headerValue := range defaultHeaders {
@@ -119,6 +127,20 @@ func PerformErrorResponse(
 
 		statusCode = http.StatusInternalServerError
 		responseHeaders = nil
+	}
+
+	if responseHeaders == nil {
+		responseHeaders = []*muxTypes.HeaderEntry{{Name: "Content-Type", Value: "application/problem+json"}}
+	} else {
+		for i, header := range responseHeaders {
+			if strings.ToLower(header.Name) == "content-type" {
+				responseHeaders[i] = nil
+			}
+		}
+		responseHeaders = append(
+			responseHeaders,
+			&muxTypes.HeaderEntry{Name: "Content-Type", Value: "application/problem+json"},
+		)
 	}
 
 	responseInfo := &muxTypes.ResponseInfo{StatusCode: statusCode, Body: responseBody, Headers: responseHeaders}
