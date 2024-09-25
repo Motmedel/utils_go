@@ -2,9 +2,17 @@ package types
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 )
+
+type HttpContext struct {
+	Request      *http.Request
+	RequestBody  []byte
+	Response     *http.Response
+	ResponseBody []byte
+}
 
 // TODO: I should parse those `a/b+c` types somehow too. Is that some official format?
 
