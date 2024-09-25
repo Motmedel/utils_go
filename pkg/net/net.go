@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"golang.org/x/net/publicsuffix"
 	"net"
 	"strconv"
-	"strings"
 )
 
 func SplitAddress(address string) (string, int, error) {
@@ -123,37 +121,8 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 	return network.String(), nil
 }
 
-// TODO: Put in submodule because of dependency
-
 type DomainBreakdown struct {
 	RegisteredDomain string `json:"registered_domain,omitempty"`
 	Subdomain        string `json:"subdomain,omitempty"`
 	TopLevelDomain   string `json:"top_level_domain,omitempty"`
-}
-
-func GetDomainBreakdown(domainString string) *DomainBreakdown {
-	if domainString == "" {
-		return nil
-	}
-
-	etld, icann := publicsuffix.PublicSuffix(domainString)
-	if !icann && strings.IndexByte(etld, '.') == -1 {
-		return nil
-	}
-
-	registeredDomain, err := publicsuffix.EffectiveTLDPlusOne(domainString)
-	if err != nil {
-		return nil
-	}
-
-	domainBreakdown := DomainBreakdown{
-		TopLevelDomain:   etld,
-		RegisteredDomain: registeredDomain,
-	}
-
-	if subdomain := strings.TrimSuffix(domainString, "."+registeredDomain); subdomain != domainString {
-		domainBreakdown.Subdomain = subdomain
-	}
-
-	return &domainBreakdown
 }
