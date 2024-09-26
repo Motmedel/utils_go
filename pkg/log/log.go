@@ -37,24 +37,9 @@ func CtxWithLogger(ctx context.Context, logger *slog.Logger) context.Context {
 
 func AttrsFromMap(m map[string]any) []any {
 	var attrs []any
-
 	for key, value := range m {
-		switch typedValue := value.(type) {
-		case string:
-			attrs = append(attrs, slog.String(key, typedValue))
-		case int:
-			attrs = append(attrs, slog.Int(key, typedValue))
-		case float64:
-			attrs = append(attrs, slog.Float64(key, typedValue))
-		case bool:
-			attrs = append(attrs, slog.Bool(key, typedValue))
-		case map[string]any:
-			attrs = append(attrs, slog.Group(key, AttrsFromMap(typedValue)...))
-		default:
-			attrs = append(attrs, slog.Any(key, value))
-		}
+		attrs = append(attrs, slog.Any(key, value))
 	}
-
 	return attrs
 }
 
