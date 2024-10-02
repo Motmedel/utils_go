@@ -211,7 +211,8 @@ type Mux struct {
 		[]*muxTypes.HeaderEntry,
 		error,
 	)
-	DefaultHeaders map[string]string
+	SuccessCallback func(*http.Request, []byte, *http.Response, []byte)
+	DefaultHeaders  map[string]string
 }
 
 func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *http.Request) {
@@ -649,6 +650,15 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 
 	if !responseWriter.WriteHeaderCalled {
 		serverErrorHandler(responseWriter, request, requestBody, nil, nil, muxErrors.ErrNoResponseWritten)
+	} else {
+		if callback := mux.SuccessCallback; callback != nil {
+			callback(
+				request,
+				requestBody,
+				&http.Response{StatusCode: responseWriter.WrittenStatusCode, Header: responseWriter.Header()},
+				responseWriter.WrittenResponseBody,
+			)
+		}
 	}
 }
 
