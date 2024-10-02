@@ -256,14 +256,11 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 	// Locate the handler.
 
 	requestMethod := strings.ToUpper(request.Method)
-	// "For client requests, an empty string means GET."
-	if requestMethod == "" {
-		requestMethod = "GET"
-	}
 
 	lookupMethod := requestMethod
-	if requestMethod == "HEAD" {
-		lookupMethod = "GET"
+	if requestMethod == http.MethodHead {
+		// A HEAD request is to be processed as if it were a GET request. But signal not write a body.
+		lookupMethod = http.MethodGet
 		responseWriter.IsHeadRequest = true
 	}
 
@@ -293,9 +290,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 				fmt.Sprintf("Expected \"%s\", observed \"%s\"", expectedMethodsString, requestMethod),
 				nil,
 			),
-			[]*muxTypes.HeaderEntry{
-				{Name: "Accept", Value: expectedMethodsString},
-			},
+			[]*muxTypes.HeaderEntry{{Name: "Accept", Value: expectedMethodsString}},
 			nil,
 		)
 		return
@@ -362,11 +357,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 				responseWriter,
 				request,
 				nil,
-				problem_detail.MakeStatusCodeProblemDetail(
-					http.StatusTooManyRequests,
-					"",
-					nil,
-				),
+				problem_detail.MakeStatusCodeProblemDetail(http.StatusTooManyRequests, "", nil),
 				[]*muxTypes.HeaderEntry{
 					{
 						Name:  "Retry-After",
@@ -426,18 +417,31 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			return
 		}
 
-		contentType, err := content_type.ParseContentType([]byte(contentTypeString))
+		contentTypeBytes := []byte(contentTypeString)
+		contentType, err := content_type.ParseContentType(contentTypeBytes)
 		if err != nil {
+			serverErrorHandler(
+				responseWriter,
+				request,
+				nil,
+				nil,
+				nil,
+				&motmedelErrors.InputError{
+					Message: "An error occurred when attempting to parse the Content-Type header data.",
+					Cause:   err,
+					Input:   contentTypeBytes,
+				},
+			)
+			return
+		}
+		if contentType == nil {
 			clientErrorHandler(
 				responseWriter,
 				request,
 				nil,
 				problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Type", nil),
 				nil,
-				&motmedelErrors.CauseError{
-					Message: "An error occurred when attempting to parse the Content-Type header data.",
-					Cause:   err,
-				},
+				nil,
 			)
 			return
 		}
@@ -643,7 +647,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		}
 	}
 
-	if !responseWriter.WriteHeaderCaller {
+	if !responseWriter.WriteHeaderCalled {
 		serverErrorHandler(responseWriter, request, requestBody, nil, nil, muxErrors.ErrNoResponseWritten)
 	}
 }

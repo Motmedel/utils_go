@@ -1,7 +1,7 @@
 github.com/Motmedel/parsing_utils v0.0.1 h1:IRsuDfrBPgGoEB/MWoQ4owVIFxUUlCJuZwifiJMXDjs=
 github.com/Motmedel/parsing_utils v0.0.1/go.mod h1:RPhpf/7jyAOhHkjyIMUwbszxfjXFxdw/GqBk69d7eyA=
-github.com/Motmedel/utils_go v0.0.45 h1:of16lI75DS5MydVDiH+qyEvPC+V37NdnNqf+MNcckZc=
-github.com/Motmedel/utils_go v0.0.45/go.mod h1:CigNVk6VMVsPjfkPp/a7xFZqEOC+QXqPhMGux58rpyc=
+github.com/Motmedel/utils_go v0.0.48 h1:nx9aSw/KmeaOus1xn3GROu2VNQJc1BZjGhoYtnmV1qg=
+github.com/Motmedel/utils_go v0.0.48/go.mod h1:3Wry5+hEGzgzLRcBdpU8uhUUSAVJB7NzILiM7i1t7g4=
 github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.11 h1:c2a9xH6ZIVN7Lz/7flKICcEKXgkT68KV+d1xlo+SZ6A=
 github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.11/go.mod h1:CrCAQCfWg+yXZ9Iaec4SYokvQmDovET4b48RU1Ltea4=
 github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.2 h1:5lCtKcCT0ntZYTXILERc4AwkwDb/W50yFp57eK9uvHs=
@@ -18,7 +18,5 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-golang.org/x/net v0.28.0 h1:a9JDOJc5GMUJ0+UDqmLT86WiEy7iWyIhz8gz8E4e5hE=
-golang.org/x/net v0.28.0/go.mod h1:yqtgsTWOOnlGLG9GFRrK3++bGOUEkNBoHZc8MEDWPNg=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

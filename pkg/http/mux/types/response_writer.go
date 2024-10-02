@@ -5,7 +5,7 @@ import "net/http"
 type ResponseWriter struct {
 	http.ResponseWriter
 	IsHeadRequest     bool
-	WriteHeaderCaller bool
+	WriteHeaderCalled bool
 	WriteCalled       bool
 
 	WrittenStatusCode   int
@@ -15,7 +15,7 @@ type ResponseWriter struct {
 }
 
 func (responseWriter *ResponseWriter) WriteHeader(statusCode int) {
-	responseWriter.WriteHeaderCaller = true
+	responseWriter.WriteHeaderCalled = true
 	responseWriter.WrittenStatusCode = statusCode
 	responseWriter.ResponseWriter.WriteHeader(statusCode)
 }
@@ -23,7 +23,7 @@ func (responseWriter *ResponseWriter) WriteHeader(statusCode int) {
 func (responseWriter *ResponseWriter) Write(data []byte) (int, error) {
 	responseWriter.WriteCalled = true
 
-	if !responseWriter.WriteHeaderCaller {
+	if !responseWriter.WriteHeaderCalled {
 		statusCode := http.StatusOK
 		if len(data) == 0 {
 			statusCode = http.StatusNoContent
