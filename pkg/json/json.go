@@ -68,8 +68,8 @@ func Jsonify(input any) any {
 				}
 			} else {
 				key := field.Name
-				if nameIndex := slices.IndexFunc(tagSplit, func(s string) bool { return s != "omitempty" }); nameIndex >= 0 {
-					key = tagSplit[nameIndex]
+				if tagName := tagSplit[0]; tagName != "" {
+					key = tagName
 				}
 
 				structMap[key] = Jsonify(value.Interface())
