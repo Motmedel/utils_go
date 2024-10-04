@@ -35,7 +35,7 @@ func Jsonify(input any) any {
 	switch inputValue.Kind() {
 	case reflect.Ptr:
 		elem := inputValue.Elem()
-		if elem.IsNil() {
+		if elem.Kind() == reflect.Invalid {
 			return nil
 		}
 		return Jsonify(elem.Interface())
@@ -94,7 +94,7 @@ func Jsonify(input any) any {
 		}
 		return m
 	default:
-		if inputValue.IsNil() {
+		if inputValue.Kind() == reflect.Invalid {
 			return nil
 		}
 		return inputValue.Interface()
