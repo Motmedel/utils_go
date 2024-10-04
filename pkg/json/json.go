@@ -34,7 +34,11 @@ func Jsonify(input any) any {
 
 	switch inputValue.Kind() {
 	case reflect.Ptr:
-		return Jsonify(inputValue.Elem().Interface())
+		elem := inputValue.Elem()
+		if elem.IsNil() {
+			return nil
+		}
+		return Jsonify(elem.Interface())
 	case reflect.Struct:
 		structMap := make(map[string]any)
 		inputValueType := inputValue.Type()
@@ -90,6 +94,9 @@ func Jsonify(input any) any {
 		}
 		return m
 	default:
+		if inputValue.IsNil() {
+			return nil
+		}
 		return inputValue.Interface()
 	}
 }
