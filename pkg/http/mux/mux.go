@@ -2,6 +2,7 @@ package mux
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -31,6 +32,10 @@ var DefaultHeaders = map[string]string{
 	"X-Content-Type-Options":       "nosniff",
 	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
 }
+
+type parsedRequestBodyContextType struct{}
+
+var ParsedRequestBodyContextKey parsedRequestBodyContextType
 
 func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.ResponseWriter) error {
 	if responseInfo == nil {
@@ -371,104 +376,149 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		}
 	}
 
-	// Obtain the request body.
+	// Obtain the body parser configuration.
 
-	var contentLength int
-	if _, ok := request.Header["Content-Length"]; ok {
-		var err error
-		contentLength, err = strconv.Atoi(request.Header.Get("Content-Length"))
-		if err != nil {
-			clientErrorHandler(
-				responseWriter,
-				request,
-				nil,
-				problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Length", nil),
-				nil,
-				nil,
-			)
-			return
+	bodyParserConfiguration := handlerSpecification.BodyParserConfiguration
+
+	var fullNormalizeContentTypeString string
+
+	// Validate Content-Type
+
+	if bodyParserConfiguration != nil {
+		if expectedContentType := bodyParserConfiguration.ContentType; expectedContentType != "" {
+			acceptedContentTypeHeaders := []*muxTypes.HeaderEntry{{Name: "Accept", Value: expectedContentType}}
+
+			contentTypeString := request.Header.Get("Content-Type")
+			if contentTypeString == "" {
+				clientErrorHandler(
+					responseWriter,
+					request,
+					nil,
+					problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusUnsupportedMediaType,
+						"Missing Content-Type",
+						nil,
+					),
+					acceptedContentTypeHeaders,
+					nil,
+				)
+				return
+			}
+
+			contentTypeBytes := []byte(contentTypeString)
+			contentType, err := content_type.ParseContentType(contentTypeBytes)
+			if err != nil {
+				serverErrorHandler(
+					responseWriter,
+					request,
+					nil,
+					nil,
+					nil,
+					&motmedelErrors.InputError{
+						Message: "An error occurred when attempting to parse the Content-Type header data.",
+						Cause:   err,
+						Input:   contentTypeBytes,
+					},
+				)
+				return
+			}
+			if contentType == nil {
+				clientErrorHandler(
+					responseWriter,
+					request,
+					nil,
+					problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusBadRequest,
+						"Malformed Content-Type",
+						nil,
+					),
+					nil,
+					nil,
+				)
+				return
+			}
+
+			// TODO: The specification could require a certain charset too?
+			fullNormalizeContentTypeString = contentType.GetFullType(true)
+			if fullNormalizeContentTypeString != expectedContentType {
+				clientErrorHandler(
+					responseWriter,
+					request,
+					nil,
+					problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusUnsupportedMediaType,
+						fmt.Sprintf(
+							"Expected Content-Type to be \"%s\", observed \"%s\"",
+							expectedContentType,
+							fullNormalizeContentTypeString,
+						),
+						nil,
+					),
+					acceptedContentTypeHeaders,
+					nil,
+				)
+				return
+			}
 		}
 	}
 
-	var requestBody []byte
+	// Validate Content-Length
 
-	if contentLength != 0 {
-		expectedContentType := func() string {
-			if handlerSpecification.ExpectedContentType != "" {
-				return handlerSpecification.ExpectedContentType
-			}
-			return ""
-		}()
-		headers := []*muxTypes.HeaderEntry{{Name: "Accept", Value: expectedContentType}}
+	zeroContentLengthStatusCode := http.StatusLengthRequired
+	zeroContentLengthMessage := "A body is expected; Content-Length must be set"
 
-		contentTypeString := request.Header.Get("Content-Type")
-		if contentTypeString == "" {
+	var contentLength uint64
+	if _, ok := request.Header["Content-Length"]; ok {
+		var err error
+		headerValue := request.Header.Get("Content-Length")
+		contentLength, err = strconv.ParseUint(headerValue, 10, 64)
+		if err != nil {
 			clientErrorHandler(
 				responseWriter,
 				request,
 				nil,
 				problem_detail.MakeStatusCodeProblemDetail(
-					http.StatusUnsupportedMediaType,
-					"Content-Type is not set",
+					http.StatusBadRequest,
+					"Malformed Content-Length",
 					nil,
 				),
-				headers,
-				nil,
-			)
-			return
-		}
-
-		contentTypeBytes := []byte(contentTypeString)
-		contentType, err := content_type.ParseContentType(contentTypeBytes)
-		if err != nil {
-			serverErrorHandler(
-				responseWriter,
-				request,
-				nil,
-				nil,
 				nil,
 				&motmedelErrors.InputError{
-					Message: "An error occurred when attempting to parse the Content-Type header data.",
+					Message: "An error occurred when attempting to parse the Content-Length as an unsigned integer.",
 					Cause:   err,
-					Input:   contentTypeBytes,
+					Input:   headerValue,
 				},
 			)
 			return
 		}
-		if contentType == nil {
-			clientErrorHandler(
-				responseWriter,
-				request,
-				nil,
-				problem_detail.MakeStatusCodeProblemDetail(http.StatusBadRequest, "Bad Content-Type", nil),
-				nil,
-				nil,
-			)
-			return
+		if contentLength == 0 {
+			zeroContentLengthStatusCode = http.StatusBadRequest
+			zeroContentLengthMessage = "A body is expected; Content-Length cannot be 0"
 		}
+	}
 
-		// TODO: The specification could require a certain charset too?
-		fullNormalizeContentTypeString := contentType.GetFullType(true)
-		if fullNormalizeContentTypeString != expectedContentType {
-			clientErrorHandler(
-				responseWriter,
-				request,
+	if bodyParserConfiguration != nil && !bodyParserConfiguration.AllowEmpty && contentLength == 0 {
+		clientErrorHandler(
+			responseWriter,
+			request,
+			nil,
+			problem_detail.MakeStatusCodeProblemDetail(
+				zeroContentLengthStatusCode,
+				zeroContentLengthMessage,
 				nil,
-				problem_detail.MakeStatusCodeProblemDetail(
-					http.StatusUnsupportedMediaType,
-					fmt.Sprintf(
-						"Expected Content-Type to be \"%s\", observed \"%s\"",
-						expectedContentType,
-						fullNormalizeContentTypeString,
-					),
-					nil,
-				),
-				headers,
-				nil,
-			)
-			return
-		}
+			),
+			nil,
+			nil,
+		)
+		return
+	}
 
+	// Obtain the request body
+
+	var requestBody []byte
+
+	if contentLength != 0 {
+		var err error
 		requestBody, err = io.ReadAll(request.Body)
 		if err != nil {
 			serverErrorHandler(
@@ -485,6 +535,77 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			return
 		}
 		defer request.Body.Close()
+
+		if bodyParserConfiguration != nil {
+			// NOTE: This should never happen? The Content-Length check should pick this up?
+			if !bodyParserConfiguration.AllowEmpty && len(requestBody) == 0 {
+				clientErrorHandler(
+					responseWriter,
+					request,
+					nil,
+					problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusBadRequest,
+						"A body is expected",
+						nil,
+					),
+					nil,
+					nil,
+				)
+				return
+			}
+
+			switch fullNormalizeContentTypeString {
+			case "application/json":
+				if !json.Valid(requestBody) {
+					clientErrorHandler(
+						responseWriter,
+						request,
+						nil,
+						problem_detail.MakeStatusCodeProblemDetail(
+							http.StatusBadRequest,
+							"Malformed JSON body",
+							nil,
+						),
+						nil,
+						nil,
+					)
+					return
+				}
+			}
+
+			if parser := bodyParserConfiguration.Parser; parser != nil {
+				parsedBody, handlerErrorResponse := parser(request, requestBody)
+				if handlerErrorResponse != nil {
+					serverError := handlerErrorResponse.ServerError
+					clientError := handlerErrorResponse.ClientError
+					problemDetail := handlerErrorResponse.ProblemDetail
+					headers := handlerErrorResponse.ResponseHeaders
+
+					if serverError != nil {
+						serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, serverError)
+						return
+					} else if clientError != nil {
+						clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, clientError)
+						return
+					} else if problemDetail != nil {
+						statusCode := problemDetail.Status
+						if statusCode >= 400 && statusCode < 500 {
+							serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
+							return
+						} else if statusCode >= 500 && statusCode < 600 {
+							clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
+							return
+						} else {
+							// Assume there were in fact no error?
+						}
+					}
+				}
+
+				request = request.WithContext(
+					context.WithValue(request.Context(), ParsedRequestBodyContextKey, parsedBody),
+				)
+			}
+		}
 	}
 
 	// Decide whether the response is static content, or requires handling.

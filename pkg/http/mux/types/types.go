@@ -27,8 +27,14 @@ type HandlerErrorResponse struct {
 type HandlerSpecification struct {
 	Path                      string
 	Method                    string
-	ExpectedContentType       string
 	Handler                   func(*http.Request, []byte) (*ResponseInfo, *HandlerErrorResponse)
 	StaticContent             *StaticContent
 	RateLimitingConfiguration *RateLimitingConfiguration
+	BodyParserConfiguration   *BodyParserConfiguration
+}
+
+type BodyParserConfiguration struct {
+	ContentType string
+	AllowEmpty  bool
+	Parser      func(*http.Request, []byte) (any, *HandlerErrorResponse)
 }
