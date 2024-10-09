@@ -2,8 +2,8 @@ package net
 
 import (
 	"bytes"
-	"errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"net"
 	"strconv"
 )
@@ -40,12 +40,6 @@ func GetIpVersion(ip *net.IP) int {
 	}
 }
 
-var (
-	ErrIpVersionMismatch     = errors.New("IP address version mismatch")
-	ErrNotOnSubnetBoundaries = errors.New("the start and end IP addresses are not on the exact subnet boundaries")
-	ErrStartAfterEnd         = errors.New("the start IP address does not come before the end IP address")
-)
-
 // Calculate the last address in the network
 func lastAddress(network net.IPNet) net.IP {
 	var last net.IP
@@ -65,14 +59,16 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 	}
 
 	if (startIpAddress.To4() == nil) != (endIpAddress.To4() == nil) {
-		return "", ErrIpVersionMismatch
+		return "", motmedelNetErrors.ErrIpVersionMismatch
 	}
 
 	startBytes := startIpAddress.To16()
 	endBytes := endIpAddress.To16()
 
-	if bytes.Compare(startBytes, endBytes) > 0 {
-		return "", ErrStartAfterEnd
+	byteComparison := bytes.Compare(startBytes, endBytes)
+
+	if byteComparison > 0 {
+		return "", motmedelNetErrors.ErrStartAfterEnd
 	}
 
 	// Find the first byte where the two IP addresses differ
@@ -108,13 +104,13 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 	mask := net.CIDRMask(maskLength, len(startBytes)*8)
 	network := net.IPNet{IP: startIpAddress.Mask(mask), Mask: mask}
 
-	if checkBoundary {
+	if checkBoundary && byteComparison != 0 {
 		// Ensure start IP is network's base address and end IP is the last address in the network
 		networkBase := network.IP
 		networkLast := lastAddress(network)
 
 		if !networkBase.Equal(*startIpAddress) || !networkLast.Equal(*endIpAddress) {
-			return "", ErrNotOnSubnetBoundaries
+			return "", motmedelNetErrors.ErrNotOnSubnetBoundaries
 		}
 	}
 
