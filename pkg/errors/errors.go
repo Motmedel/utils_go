@@ -1,5 +1,11 @@
 package errors
 
+import "errors"
+
+var (
+	ErrCouldNotBreakDownDomain = errors.New("the domain could not be broken down")
+)
+
 type CauseErrorI interface {
 	Error() string
 	GetCause() error
@@ -64,4 +70,20 @@ func (inputError *InputError) Is(target error) bool {
 		return false
 	}
 	return true
+}
+
+type CouldNotBreakDownDomainError struct {
+	Domain string
+}
+
+func (couldNotBreakDownDomainError *CouldNotBreakDownDomainError) Is(target error) bool {
+	return target == ErrCouldNotBreakDownDomain
+}
+
+func (couldNotBreakDownDomainError *CouldNotBreakDownDomainError) Error() string {
+	return ErrCouldNotBreakDownDomain.Error()
+}
+
+func (couldNotBreakDownDomainError *CouldNotBreakDownDomainError) GetInput() any {
+	return couldNotBreakDownDomainError.Domain
 }
