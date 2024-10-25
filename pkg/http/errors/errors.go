@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrNilHttpClient    = errors.New("nil http client")
+	ErrNilHttpRequest   = errors.New("nil http request")
 	ErrNilHttpResponse  = errors.New("nil http response")
 	ErrNon2xxStatusCode = errors.New("non-2xx status code")
 )
