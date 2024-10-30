@@ -45,6 +45,6 @@ func MakeTextualRepresentation(value any) (string, error) {
 			return string(bs), nil
 		}
 
-		return fmt.Sprintf("%+v", value), nil
+		return fmt.Sprintf("%#v", value), nil
 	}
 }
