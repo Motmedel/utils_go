@@ -7,6 +7,8 @@ var (
 	ErrNilHttpRequest   = errors.New("nil http request")
 	ErrNilHttpResponse  = errors.New("nil http response")
 	ErrNon2xxStatusCode = errors.New("non-2xx status code")
+	ErrEmptyMethod      = errors.New("empty http method")
+	ErrEmptyUrl         = errors.New("empty url")
 )
 
 type Non2xxStatusCodeError struct {
