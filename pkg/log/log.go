@@ -65,12 +65,17 @@ func makeErrorAttrs(err error) []any {
 				)
 			}()
 		} else {
+			var typeName string
+			if t := reflect.TypeOf(input); t != nil {
+				typeName = t.String()
+			}
+
 			attrs = append(
 				attrs,
 				slog.Group(
 					"input",
 					slog.String("value", inputTextualRepresentation),
-					slog.String("type", reflect.TypeOf(input).String()),
+					slog.String("type", typeName),
 				),
 			)
 		}
