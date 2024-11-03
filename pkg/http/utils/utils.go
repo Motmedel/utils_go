@@ -86,7 +86,7 @@ func SendJsonRequestResponse[T any, U any](
 	httpClient *http.Client,
 	method string,
 	url string,
-	bodyValue T,
+	bodyValue *T,
 	addToRequest func(*http.Request) error,
 ) (*U, *motmedelHttpTypes.HttpContext, error) {
 	if httpClient == nil {
