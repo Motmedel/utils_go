@@ -517,7 +517,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 
 	var requestBody []byte
 
-	if contentLength != 0 {
+	if request.ContentLength != 0 {
 		var err error
 		requestBody, err = io.ReadAll(request.Body)
 		if err != nil {
