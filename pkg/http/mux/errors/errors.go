@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	ErrNilHandler                            = errors.New("handler is nil")
+	ErrNilHandler                            = errors.New("nil handler")
 	ErrNoResponseWritten                     = errors.New("no response was written")
-	ErrNilErrorResponseProblemDetail         = errors.New("the error response problem detail is nil")
+	ErrNilErrorResponseProblemDetail         = errors.New("nil error response problem detail")
 	ErrUnsetErrorResponseProblemDetailStatus = errors.New("the error response problem detail status is unset")
 	ErrBadIfModifiedSinceTimestamp           = errors.New("bad If-Modified-Since timestamp")
 	ErrNoResponseWriterFlusher               = errors.New("no response writer flusher")
