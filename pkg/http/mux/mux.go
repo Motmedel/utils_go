@@ -110,7 +110,14 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 		// TODO: Figure out how to support HTTP/2?
 		responseWriterHeader.Set("Transfer-Encoding", "chunked")
 
-		for budyChunk := range bodyStreamer {
+		for budyChunk, err := range bodyStreamer {
+			if err != nil {
+				return &motmedelErrors.CauseError{
+					Message: "An error occurred when streaming chunks.",
+					Cause:   err,
+				}
+			}
+
 			if _, err := responseWriter.Write(budyChunk); err != nil {
 				return &motmedelErrors.CauseError{
 					Message: "An error occurred when writing a response body.",
@@ -795,6 +802,8 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			_ = WriteResponse(&muxTypes.ResponseInfo{}, responseWriter)
 		}
 	}
+
+	// TODO: Handle `WriteResponse` errors?
 
 	if !responseWriter.WriteHeaderCalled {
 		serverErrorHandler(responseWriter, request, requestBody, nil, nil, muxErrors.ErrNoResponseWritten)

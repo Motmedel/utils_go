@@ -15,7 +15,7 @@ type HeaderEntry struct {
 type ResponseInfo struct {
 	StatusCode   int
 	Body         []byte
-	BodyStreamer iter.Seq[[]byte]
+	BodyStreamer iter.Seq2[[]byte, error]
 	Headers      []*HeaderEntry
 }
 
