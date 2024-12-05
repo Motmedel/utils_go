@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"iter"
 	"net/http"
 )
 
@@ -12,9 +13,10 @@ type HeaderEntry struct {
 }
 
 type ResponseInfo struct {
-	StatusCode int
-	Body       []byte
-	Headers    []*HeaderEntry
+	StatusCode   int
+	Body         []byte
+	BodyStreamer iter.Seq[[]byte]
+	Headers      []*HeaderEntry
 }
 
 type HandlerErrorResponse struct {

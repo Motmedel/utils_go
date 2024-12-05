@@ -4,12 +4,13 @@ import "net/http"
 
 type ResponseWriter struct {
 	http.ResponseWriter
-	IsHeadRequest     bool
-	WriteHeaderCalled bool
-	WriteCalled       bool
+	IsHeadRequest      bool
+	WriteHeaderCalled  bool
+	WriteCalled        bool
+	NoStoreWrittenBody bool
 
-	WrittenStatusCode   int
-	WrittenResponseBody []byte
+	WrittenStatusCode int
+	WrittenBody       []byte
 
 	DefaultHeaders map[string]string
 }
@@ -35,6 +36,9 @@ func (responseWriter *ResponseWriter) Write(data []byte) (int, error) {
 		return 0, nil
 	}
 
-	responseWriter.WrittenResponseBody = data
+	if !responseWriter.NoStoreWrittenBody {
+		responseWriter.WrittenBody = append(responseWriter.WrittenBody, data...)
+	}
+
 	return responseWriter.ResponseWriter.Write(data)
 }

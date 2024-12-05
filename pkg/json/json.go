@@ -34,6 +34,10 @@ func Jsonify(input any) any {
 
 	switch inputValue.Kind() {
 	case reflect.Ptr:
+		if inputValue.IsNil() {
+			return nil
+		}
+
 		elem := inputValue.Elem()
 		if elem.Kind() == reflect.Invalid {
 			return nil

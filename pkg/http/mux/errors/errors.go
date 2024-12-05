@@ -11,6 +11,8 @@ var (
 	ErrNilErrorResponseProblemDetail         = errors.New("the error response problem detail is nil")
 	ErrUnsetErrorResponseProblemDetailStatus = errors.New("the error response problem detail status is unset")
 	ErrBadIfModifiedSinceTimestamp           = errors.New("bad If-Modified-Since timestamp")
+	ErrNoResponseWriterFlusher               = errors.New("no response writer flusher")
+	ErrTransferEncodingAlreadySet            = errors.New("transfer encoding already set")
 )
 
 type BadIfModifiedSinceTimestamp struct {

@@ -56,13 +56,16 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 	}
 	skippedDefaultHeadersSet := make(map[string]struct{})
 
+	body := responseInfo.Body
+	bodyStreamer := responseInfo.BodyStreamer
+
 	responseWriterHeader := responseWriter.Header()
 	for _, header := range responseInfo.Headers {
 		if header == nil {
 			continue
 		}
 
-		if strings.ToLower(header.Name) == "content-type" && len(responseInfo.Body) == 0 {
+		if strings.ToLower(header.Name) == "content-type" && len(body) == 0 && bodyStreamer == nil {
 			continue
 		}
 
@@ -87,10 +90,34 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 		responseWriter.WriteHeader(responseInfo.StatusCode)
 	}
 
-	if _, err := responseWriter.Write(responseInfo.Body); err != nil {
-		return &motmedelErrors.CauseError{
-			Message: "An error occurred when writing a response body.",
-			Cause:   err,
+	if len(body) != 0 {
+		if _, err := responseWriter.Write(body); err != nil {
+			return &motmedelErrors.CauseError{
+				Message: "An error occurred when writing a response body.",
+				Cause:   err,
+			}
+		}
+	} else if bodyStreamer != nil {
+		flusher, ok := muxResponseWriter.ResponseWriter.(http.Flusher)
+		if !ok {
+			return muxErrors.ErrNoResponseWriterFlusher
+		}
+
+		if _, ok := responseWriterHeader["transfer-encoding"]; ok {
+			return muxErrors.ErrTransferEncodingAlreadySet
+		}
+
+		// TODO: Figure out how to support HTTP/2?
+		responseWriterHeader.Set("Transfer-Encoding", "chunked")
+
+		for budyChunk := range bodyStreamer {
+			if _, err := responseWriter.Write(budyChunk); err != nil {
+				return &motmedelErrors.CauseError{
+					Message: "An error occurred when writing a response body.",
+					Cause:   err,
+				}
+			}
+			flusher.Flush()
 		}
 	}
 
@@ -777,7 +804,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 				request,
 				requestBody,
 				&http.Response{StatusCode: responseWriter.WrittenStatusCode, Header: responseWriter.Header()},
-				responseWriter.WrittenResponseBody,
+				responseWriter.WrittenBody,
 			)
 		}
 	}
