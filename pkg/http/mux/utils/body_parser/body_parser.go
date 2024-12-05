@@ -18,9 +18,9 @@ var (
 	ErrNilEvaluationResultList = errors.New("nil evaluation result list")
 )
 
-func MakeMuxJsonTypeValidator[T any](
+func MakeJsonBodyParser[T any, U any](
 	schema *jsonschema.Schema,
-	extraCheck func(result T) *muxTypes.HandlerErrorResponse,
+	processor func(T) (U, *muxTypes.HandlerErrorResponse),
 ) (func(*http.Request, []byte) (any, *muxTypes.HandlerErrorResponse), error) {
 	if schema == nil {
 		return nil, ErrNilSchema
@@ -82,10 +82,14 @@ func MakeMuxJsonTypeValidator[T any](
 				}
 			}
 
-			if extraCheck != nil {
-				if handlerErrorResponse := extraCheck(result); handlerErrorResponse != nil {
+			if processor != nil {
+				var handlerErrorResponse *muxTypes.HandlerErrorResponse
+				processedResult, handlerErrorResponse := processor(result)
+				if handlerErrorResponse != nil {
 					return nil, handlerErrorResponse
 				}
+
+				return processedResult, nil
 			}
 
 			return result, nil
