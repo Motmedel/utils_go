@@ -5,7 +5,9 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"reflect"
+	"strings"
 	"time"
+	"unicode"
 )
 
 // NOTE: Copied from Go source code: log/slog/text_handler.go: byteSlice
@@ -47,4 +49,37 @@ func MakeTextualRepresentation(value any) (string, error) {
 
 		return fmt.Sprintf("%#v", value), nil
 	}
+}
+
+// quote returns a shell-escaped version of the string s
+func quote(s string) string {
+	if s == "" {
+		return "''"
+	}
+	// Check if the string contains unsafe characters
+	if isSafe(s) {
+		return s
+	}
+	// Use single quotes, and put single quotes into double quotes
+	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
+}
+
+// isSafe checks if all characters in the string are safe
+func isSafe(s string) bool {
+	for _, r := range s {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) &&
+			!strings.ContainsRune("@%+=:,./-", r) {
+			return false
+		}
+	}
+	return true
+}
+
+// ShellJoin constructs a shell-quoted string from a list of tokens (ported from Python)
+func ShellJoin(args []string) string {
+	var quotedArgs []string
+	for _, arg := range args {
+		quotedArgs = append(quotedArgs, quote(arg))
+	}
+	return strings.Join(quotedArgs, " ")
 }

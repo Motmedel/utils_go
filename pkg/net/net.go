@@ -2,6 +2,7 @@ package net
 
 import (
 	"bytes"
+	"encoding/binary"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"net"
@@ -115,6 +116,13 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 	}
 
 	return network.String(), nil
+}
+
+// IntToIpv4 converts IPv4 number to net.IP
+func IntToIpv4(ipNum uint32) net.IP {
+	ip := make(net.IP, 4)
+	binary.BigEndian.PutUint32(ip, ipNum)
+	return ip
 }
 
 type DomainBreakdown struct {
