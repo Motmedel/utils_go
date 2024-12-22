@@ -90,14 +90,7 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 		responseWriter.WriteHeader(responseInfo.StatusCode)
 	}
 
-	if len(body) != 0 {
-		if _, err := responseWriter.Write(body); err != nil {
-			return &motmedelErrors.CauseError{
-				Message: "An error occurred when writing a response body.",
-				Cause:   err,
-			}
-		}
-	} else if bodyStreamer != nil {
+	if bodyStreamer != nil {
 		flusher, ok := muxResponseWriter.ResponseWriter.(http.Flusher)
 		if !ok {
 			return muxErrors.ErrNoResponseWriterFlusher
@@ -110,7 +103,7 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 		// TODO: Figure out how to support HTTP/2?
 		responseWriterHeader.Set("Transfer-Encoding", "chunked")
 
-		for budyChunk, err := range bodyStreamer {
+		for bodyChunk, err := range bodyStreamer {
 			if err != nil {
 				return &motmedelErrors.CauseError{
 					Message: "An error occurred when streaming chunks.",
@@ -118,13 +111,20 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 				}
 			}
 
-			if _, err := responseWriter.Write(budyChunk); err != nil {
+			if _, err := responseWriter.Write(bodyChunk); err != nil {
 				return &motmedelErrors.CauseError{
 					Message: "An error occurred when writing a response body.",
 					Cause:   err,
 				}
 			}
 			flusher.Flush()
+		}
+	} else {
+		if _, err := responseWriter.Write(body); err != nil {
+			return &motmedelErrors.CauseError{
+				Message: "An error occurred when writing a response body.",
+				Cause:   err,
+			}
 		}
 	}
 
