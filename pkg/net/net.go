@@ -9,6 +9,13 @@ import (
 	"strconv"
 )
 
+const (
+	ProtocolIcmp  = 1
+	ProtocolTcp   = 6
+	ProtocolUdp   = 17
+	ProtocolIcmp6 = 132
+)
+
 func SplitAddress(address string) (string, int, error) {
 	ip, portString, err := net.SplitHostPort(address)
 	if err != nil {
