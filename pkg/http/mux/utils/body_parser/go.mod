@@ -4,8 +4,8 @@ go 1.23.1
 
 require (
 	github.com/Motmedel/jsonschema v0.0.1
-	github.com/Motmedel/utils_go v0.0.62
-	github.com/Motmedel/utils_go/pkg/http/mux v0.0.25
+	github.com/Motmedel/utils_go v0.0.64
+	github.com/Motmedel/utils_go/pkg/http/mux v0.0.26
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.2
 )
 

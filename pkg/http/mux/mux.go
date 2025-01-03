@@ -119,6 +119,13 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 			}
 			flusher.Flush()
 		}
+
+		if _, err := responseWriter.Write([]byte{}); err != nil {
+			return &motmedelErrors.CauseError{
+				Message: "An error occurred when writing an empty chunk.",
+				Cause:   err,
+			}
+		}
 	} else {
 		if _, err := responseWriter.Write(body); err != nil {
 			return &motmedelErrors.CauseError{
