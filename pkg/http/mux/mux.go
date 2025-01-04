@@ -356,7 +356,7 @@ func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.Respo
 				fmt.Sprintf("Expected \"%s\", observed \"%s\"", expectedMethodsString, requestMethod),
 				nil,
 			),
-			[]*muxTypes.HeaderEntry{{Name: "Accept", Value: expectedMethodsString}},
+			[]*muxTypes.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}},
 			nil,
 		)
 		return nil, nil
