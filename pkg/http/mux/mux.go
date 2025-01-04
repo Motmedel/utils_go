@@ -16,7 +16,6 @@ import (
 	"io"
 	"maps"
 	"net/http"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -42,8 +41,7 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 		return nil
 	}
 
-	if reflect.ValueOf(responseWriter).IsNil() {
-		// TODO: ErrNilResponseWriter?
+	if responseWriter == nil {
 		return nil
 	}
 
@@ -111,23 +109,23 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 				}
 			}
 
-			if _, err := responseWriter.Write(bodyChunk); err != nil {
+			if _, err := muxResponseWriter.Write(bodyChunk); err != nil {
 				return &motmedelErrors.CauseError{
-					Message: "An error occurred when writing a response body.",
+					Message: "An error occurred when writing a chunk.",
 					Cause:   err,
 				}
 			}
 			flusher.Flush()
 		}
 
-		if _, err := responseWriter.Write([]byte{}); err != nil {
+		if _, err := muxResponseWriter.Write([]byte{}); err != nil {
 			return &motmedelErrors.CauseError{
 				Message: "An error occurred when writing an empty chunk.",
 				Cause:   err,
 			}
 		}
 	} else {
-		if _, err := responseWriter.Write(body); err != nil {
+		if _, err := muxResponseWriter.Write(body); err != nil {
 			return &motmedelErrors.CauseError{
 				Message: "An error occurred when writing a response body.",
 				Cause:   err,
@@ -192,7 +190,7 @@ func PerformErrorResponse(
 	responseInfo := &muxTypes.ResponseInfo{StatusCode: statusCode, Body: responseBody, Headers: responseHeaders}
 
 	if err := WriteResponse(responseInfo, responseWriter); err != nil {
-		motmedelLog.LogError("An error occurred when writing a response.", err, logger)
+		motmedelLog.LogError("An error occurred when writing an error response.", err, logger)
 	}
 }
 
@@ -211,9 +209,15 @@ func DefaultClientErrorHandler(
 			motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil),
 		)
 	}
+
+	if responseWriter == nil {
+		return
+	}
+
 	if problemDetail == nil {
 		problemDetail = problem_detail.MakeBadRequestProblemDetail("", nil)
 	}
+
 	PerformErrorResponse(responseWriter, request, problemDetail, headers)
 }
 
@@ -232,9 +236,15 @@ func DefaultServerErrorHandler(
 			motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil),
 		)
 	}
+
+	if responseWriter == nil {
+		return
+	}
+
 	if problemDetail == nil {
 		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
 	}
+
 	PerformErrorResponse(responseWriter, request, problemDetail, responseHeaders)
 }
 
@@ -261,19 +271,13 @@ type Mux struct {
 	DefaultHeaders  map[string]string
 }
 
-func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *http.Request) {
-	if request == nil {
-		return
+func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.ResponseWriter, request *http.Request) ([]byte, error) {
+	if responseWriter == nil {
+		return nil, nil
 	}
 
-	// Populate the request context.
-
-	if len(mux.SetContextKeyValuePairs) != 0 {
-		ctx := request.Context()
-		for _, pair := range mux.SetContextKeyValuePairs {
-			ctx = context.WithValue(ctx, pair[0], pair[1])
-		}
-		request = request.WithContext(ctx)
+	if request == nil {
+		return nil, nil
 	}
 
 	// Set the client and server error handlers if not specified.
@@ -288,25 +292,13 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		serverErrorHandler = DefaultServerErrorHandler
 	}
 
-	// Use a custom response writer.
-
-	responseWriter := &muxTypes.ResponseWriter{
-		ResponseWriter: originalResponseWriter,
-		DefaultHeaders: func() map[string]string {
-			if defaultHeaders := mux.DefaultHeaders; defaultHeaders != nil {
-				return defaultHeaders
-			}
-			return DefaultHeaders
-		}(),
-	}
-
 	// Locate the handler.
 
 	requestMethod := strings.ToUpper(request.Method)
 
 	lookupMethod := requestMethod
 	if requestMethod == http.MethodHead {
-		// A HEAD request is to be processed as if it were a GET request. But signal not write a body.
+		// A HEAD request is to be processed as if it were a GET request. But signal not to write a body.
 		lookupMethod = http.MethodGet
 		responseWriter.IsHeadRequest = true
 	}
@@ -321,12 +313,39 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			nil,
 			nil,
 		)
-		return
+		return nil, nil
 	}
 
 	handlerSpecification, ok := methodToHandlerSpecification[lookupMethod]
 	if !ok {
-		expectedMethodsString := strings.Join(slices.Collect(maps.Keys(methodToHandlerSpecification)), ", ")
+		allowedMethods := slices.Collect(maps.Keys(methodToHandlerSpecification))
+
+		if _, ok := methodToHandlerSpecification[http.MethodOptions]; !ok {
+			allowedMethods = append(allowedMethods, http.MethodOptions)
+		}
+
+		if _, ok := methodToHandlerSpecification[http.MethodHead]; !ok {
+			if _, ok := methodToHandlerSpecification[http.MethodGet]; ok {
+				allowedMethods = append(allowedMethods, http.MethodHead)
+			}
+		}
+
+		expectedMethodsString := strings.Join(allowedMethods, ", ")
+
+		if lookupMethod == http.MethodOptions {
+			err := WriteResponse(
+				&muxTypes.ResponseInfo{Headers: []*muxTypes.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}},
+				responseWriter,
+			)
+			if err != nil {
+				return nil, &motmedelErrors.CauseError{
+					Message: "An error occurred when writing a default OPTIONS response.",
+					Cause:   err,
+				}
+			}
+
+			return nil, nil
+		}
 
 		clientErrorHandler(
 			responseWriter,
@@ -340,7 +359,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			[]*muxTypes.HeaderEntry{{Name: "Accept", Value: expectedMethodsString}},
 			nil,
 		)
-		return
+		return nil, nil
 	}
 
 	// Perform rate limiting, if specified.
@@ -364,7 +383,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					Cause:   err,
 				},
 			)
-			return
+			return nil, nil
 		}
 
 		rateLimitingConfiguration.Lookup.Mutex.Lock()
@@ -413,7 +432,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 				},
 				nil,
 			)
-			return
+			return nil, nil
 		}
 	}
 
@@ -443,7 +462,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					acceptedContentTypeHeaders,
 					nil,
 				)
-				return
+				return nil, nil
 			}
 
 			contentTypeBytes := []byte(contentTypeString)
@@ -461,7 +480,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 						Input:   contentTypeBytes,
 					},
 				)
-				return
+				return nil, nil
 			}
 			if contentType == nil {
 				clientErrorHandler(
@@ -476,7 +495,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					nil,
 					nil,
 				)
-				return
+				return nil, nil
 			}
 
 			// TODO: The specification could require a certain charset too?
@@ -498,7 +517,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					acceptedContentTypeHeaders,
 					nil,
 				)
-				return
+				return nil, nil
 			}
 		}
 	}
@@ -530,7 +549,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					Input:   headerValue,
 				},
 			)
-			return
+			return nil, nil
 		}
 		if contentLength == 0 {
 			zeroContentLengthStatusCode = http.StatusBadRequest
@@ -551,7 +570,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			nil,
 			nil,
 		)
-		return
+		return nil, nil
 	}
 
 	// Obtain the request body
@@ -573,7 +592,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					Cause:   err,
 				},
 			)
-			return
+			return nil, nil
 		}
 		defer request.Body.Close()
 
@@ -592,7 +611,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					nil,
 					nil,
 				)
-				return
+				return requestBody, nil
 			}
 
 			switch fullNormalizeContentTypeString {
@@ -610,7 +629,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 						nil,
 						nil,
 					)
-					return
+					return requestBody, nil
 				}
 			}
 
@@ -624,20 +643,20 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 
 					if serverError != nil {
 						serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, serverError)
-						return
+						return requestBody, nil
 					} else if clientError != nil {
 						clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, clientError)
-						return
+						return requestBody, nil
 					} else if problemDetail != nil {
 						statusCode := problemDetail.Status
 						if statusCode >= 400 && statusCode < 500 {
 							serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
-							return
+							return requestBody, nil
 						} else if statusCode >= 500 && statusCode < 600 {
 							clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
-							return
+							return requestBody, nil
 						} else {
-							// Assume there were in fact no error?
+							return requestBody, nil
 						}
 					}
 				}
@@ -672,7 +691,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 						nil,
 						err,
 					)
-					return
+					return requestBody, nil
 				} else {
 					serverErrorHandler(
 						responseWriter,
@@ -685,7 +704,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 							Cause:   err,
 						},
 					)
-					return
+					return requestBody, nil
 				}
 			}
 		}
@@ -712,7 +731,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 							Cause:   err,
 						},
 					)
-					return
+					return requestBody, nil
 				}
 				if acceptEncoding == nil {
 					clientErrorHandler(
@@ -773,12 +792,29 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			}
 		}
 
-		_ = WriteResponse(responseInfo, responseWriter)
+		if err := WriteResponse(responseInfo, responseWriter); err != nil {
+			serverErrorResponseWriter := responseWriter
+			if responseWriter.WriteHeaderCalled {
+				serverErrorResponseWriter = nil
+			}
+
+			serverErrorHandler(
+				serverErrorResponseWriter,
+				request,
+				requestBody,
+				nil,
+				nil,
+				&motmedelErrors.CauseError{
+					Message: "An error occurred when writing a response for a static resource.",
+					Cause:   err,
+				},
+			)
+		}
 	} else {
 		handler := handlerSpecification.Handler
 		if handler == nil {
 			serverErrorHandler(responseWriter, request, nil, nil, nil, muxErrors.ErrNilHandler)
-			return
+			return requestBody, nil
 		}
 
 		responseInfo, handlerErrorResponse := handler(request, requestBody)
@@ -801,28 +837,114 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
 				} else {
 					// The "no response written" error should occur.
+					return nil, nil
 				}
 			}
-		} else if responseInfo != nil {
-			_ = WriteResponse(responseInfo, responseWriter)
 		} else {
-			_ = WriteResponse(&muxTypes.ResponseInfo{}, responseWriter)
+			if responseInfo == nil {
+				responseInfo = &muxTypes.ResponseInfo{}
+			}
+
+			if err := WriteResponse(responseInfo, responseWriter); err != nil {
+				serverErrorResponseWriter := responseWriter
+				if responseWriter.WriteHeaderCalled {
+					serverErrorResponseWriter = nil
+				}
+
+				serverErrorHandler(
+					serverErrorResponseWriter,
+					request,
+					requestBody,
+					nil,
+					nil,
+					&motmedelErrors.CauseError{
+						Message: "An error occurred when writing a response for a handler.",
+						Cause:   err,
+					},
+				)
+			}
 		}
 	}
 
-	// TODO: Handle `WriteResponse` errors?
+	return nil, nil
+}
+
+func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *http.Request) {
+	if originalResponseWriter == nil {
+		return
+	}
+
+	if request == nil {
+		return
+	}
+
+	// Obtain a server error handler.
+
+	serverErrorHandler := mux.ServerErrorHandler
+	if serverErrorHandler == nil {
+		serverErrorHandler = DefaultServerErrorHandler
+	}
+
+	// Populate the request context.
+
+	if len(mux.SetContextKeyValuePairs) != 0 {
+		ctx := request.Context()
+		for _, pair := range mux.SetContextKeyValuePairs {
+			ctx = context.WithValue(ctx, pair[0], pair[1])
+		}
+		request = request.WithContext(ctx)
+	}
+
+	// Use a custom response writer.
+
+	responseWriter := &muxTypes.ResponseWriter{
+		ResponseWriter: originalResponseWriter,
+		DefaultHeaders: func() map[string]string {
+			if defaultHeaders := mux.DefaultHeaders; defaultHeaders != nil {
+				return defaultHeaders
+			}
+			return DefaultHeaders
+		}(),
+	}
+
+	// Respond to the request.
+
+	requestBody, writeErr := mux.serveHttpWithCustomResponseWriter(responseWriter, request)
+	if writeErr != nil {
+		// Using a nil response writer signals that no status code or server error body should be written. This is
+		// the right approach when having written chunks and some chunks have already been successfully written, meaning
+		// both a status code and body has been responded with already.
+		serverErrorResponseWriter := responseWriter
+		if responseWriter.WriteHeaderCalled {
+			serverErrorResponseWriter = nil
+		}
+
+		serverErrorHandler(
+			serverErrorResponseWriter,
+			request,
+			requestBody,
+			nil,
+			nil,
+			&motmedelErrors.CauseError{
+				Message: "An error occurred when writing a response with the custom response writer.",
+				Cause:   writeErr,
+			},
+		)
+	}
+
+	// Handle the case when no response was produced.
 
 	if !responseWriter.WriteHeaderCalled {
 		serverErrorHandler(responseWriter, request, requestBody, nil, nil, muxErrors.ErrNoResponseWritten)
-	} else {
-		if callback := mux.SuccessCallback; callback != nil {
-			callback(
-				request,
-				requestBody,
-				&http.Response{StatusCode: responseWriter.WrittenStatusCode, Header: responseWriter.Header()},
-				responseWriter.WrittenBody,
-			)
-		}
+	}
+
+	if callback := mux.SuccessCallback; callback != nil {
+		callback(
+			request,
+			requestBody,
+			&http.Response{StatusCode: responseWriter.WrittenStatusCode, Header: responseWriter.Header()},
+			responseWriter.WrittenBody,
+		)
 	}
 }
 
