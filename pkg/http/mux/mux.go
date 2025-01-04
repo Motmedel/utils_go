@@ -331,12 +331,10 @@ func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.Respo
 		}
 
 		expectedMethodsString := strings.Join(allowedMethods, ", ")
+		headerEntries := []*muxTypes.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}
 
 		if lookupMethod == http.MethodOptions {
-			err := WriteResponse(
-				&muxTypes.ResponseInfo{Headers: []*muxTypes.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}},
-				responseWriter,
-			)
+			err := WriteResponse(&muxTypes.ResponseInfo{Headers: headerEntries}, responseWriter)
 			if err != nil {
 				return nil, &motmedelErrors.CauseError{
 					Message: "An error occurred when writing a default OPTIONS response.",
@@ -356,7 +354,7 @@ func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.Respo
 				fmt.Sprintf("Expected \"%s\", observed \"%s\"", expectedMethodsString, requestMethod),
 				nil,
 			),
-			[]*muxTypes.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}},
+			headerEntries,
 			nil,
 		)
 		return nil, nil
