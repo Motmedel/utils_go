@@ -791,22 +791,10 @@ func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.Respo
 		}
 
 		if err := WriteResponse(responseInfo, responseWriter); err != nil {
-			serverErrorResponseWriter := responseWriter
-			if responseWriter.WriteHeaderCalled {
-				serverErrorResponseWriter = nil
+			return requestBody, &motmedelErrors.CauseError{
+				Message: "An error occurred when writing a response for a static resource.",
+				Cause:   err,
 			}
-
-			serverErrorHandler(
-				serverErrorResponseWriter,
-				request,
-				requestBody,
-				nil,
-				nil,
-				&motmedelErrors.CauseError{
-					Message: "An error occurred when writing a response for a static resource.",
-					Cause:   err,
-				},
-			)
 		}
 	} else {
 		handler := handlerSpecification.Handler
@@ -844,22 +832,10 @@ func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.Respo
 			}
 
 			if err := WriteResponse(responseInfo, responseWriter); err != nil {
-				serverErrorResponseWriter := responseWriter
-				if responseWriter.WriteHeaderCalled {
-					serverErrorResponseWriter = nil
+				return requestBody, &motmedelErrors.CauseError{
+					Message: "An error occurred when writing a response for a handler.",
+					Cause:   err,
 				}
-
-				serverErrorHandler(
-					serverErrorResponseWriter,
-					request,
-					requestBody,
-					nil,
-					nil,
-					&motmedelErrors.CauseError{
-						Message: "An error occurred when writing a response for a handler.",
-						Cause:   err,
-					},
-				)
 			}
 		}
 	}
