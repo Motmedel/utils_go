@@ -1,0 +1,10 @@
+root=Accept-Encoding
+Accept-Encoding = [ element ] *( OWS "," OWS [ element ] )
+element = codings [ weight ]
+codings = content-coding / "identity" / "*"
+content-coding=token
+token=1*tchar
+tchar="!"/"#"/"$"/"%"/"&"/"'"/"*"/"+"/"-"/"."/"^"/"_"/"`"/"|"/"~"/DIGIT/ALPHA
+weight = OWS ";" OWS "q=" qvalue
+OWS=*(SP/HTAB)
+qvalue = ( "0" [ "." 0*3DIGIT ] ) / ( "1" [ "." 0*3("0") ] )

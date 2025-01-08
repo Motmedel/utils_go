@@ -1,0 +1,12 @@
+root=Content-Type
+Content-Type=media-type
+media-type=type "/" subtype *(OWS ";" OWS parameter)
+OWS=*(SP/HTAB)
+type=token
+subtype=token
+parameter=token "=" (token/quoted-string)
+token=1*tchar
+tchar="!"/"#"/"$"/"%"/"&"/"'"/"*"/"+"/"-"/"."/"^"/"_"/"`"/"|"/"~"/DIGIT/ALPHA
+quoted-string=DQUOTE *(qdtext/quoted-pair) DQUOTE
+qdtext=HTAB/SP/%x21/%x23-5B/%x5D-7E
+quoted-pair="\" (HTAB/SP/VCHAR)
