@@ -1,0 +1,18 @@
+root=Accept
+Accept = media-range *( OWS "," OWS media-range )
+media-range    = ( "*/*" / ( type "/" "*" ) / ( type "/" subtype ) ) parameters
+type = token
+subtype = token
+parameters = *( OWS ";" OWS [ weight / parameter ] )
+parameter = parameter-name "=" parameter-value
+parameter-name = token
+parameter-value = ( token / quoted-string )
+token=1*tchar
+tchar="!"/"#"/"$"/"%"/"&"/"'"/"*"/"+"/"-"/"."/"^"/"_"/"`"/"|"/"~"/DIGIT/ALPHA
+quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+qdtext = HTAB / SP / "!" / %x23-5B / %x5D-7E / obs-text
+quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
+obs-text = %x80-FF
+weight = "q=" qvalue
+qvalue = ( "0" [ "." *3DIGIT ] ) / ( "1" [ "." *3"0" ] )
+OWS=*(SP/HTAB)

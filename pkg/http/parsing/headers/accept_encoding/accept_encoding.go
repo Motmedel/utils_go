@@ -17,7 +17,7 @@ var AcceptEncodingGrammar *goabnf.Grammar
 
 var (
 	ErrBadQvalue      = errors.New("qvalue could not be parsed as a float")
-	ErrNilCodingsPath = errors.New("the codings path is nil")
+	ErrNilCodingsPath = errors.New("nil codings path")
 )
 
 type BadQvalueError struct {

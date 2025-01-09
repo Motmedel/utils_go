@@ -14,6 +14,29 @@ type HttpContext struct {
 	ResponseBody []byte
 }
 
+type MediaRange struct {
+	Type       string
+	Subtype    string
+	Parameters [][2]string
+	Weight     float32
+}
+
+type Accept struct {
+	MediaRanges []*MediaRange
+	Raw         string
+}
+
+func (accept *Accept) GetPriorityOrderedEncodings() []*MediaRange {
+	mediaRanges := make([]*MediaRange, len(accept.MediaRanges))
+	copy(mediaRanges, accept.MediaRanges)
+
+	sort.SliceStable(mediaRanges, func(i, j int) bool {
+		return mediaRanges[i].Weight > mediaRanges[j].Weight
+	})
+
+	return mediaRanges
+}
+
 // TODO: I should parse those `a/b+c` types somehow too. Is that some official format?
 
 type MediaType struct {
