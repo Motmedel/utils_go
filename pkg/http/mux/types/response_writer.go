@@ -32,7 +32,7 @@ func (responseWriter *ResponseWriter) Write(data []byte) (int, error) {
 		responseWriter.WriteHeader(statusCode)
 	}
 
-	if responseWriter.IsHeadRequest {
+	if responseWriter.IsHeadRequest || len(data) == 0 {
 		return 0, nil
 	}
 
