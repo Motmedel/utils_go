@@ -927,14 +927,9 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			}
 			return
 		} else {
-			slog.Default().Warn(
-				"Could not hijack a connection in association with a drop verdict.",
-			)
+			panic(http.ErrAbortHandler)
 		}
-	}
-
-	// Handling reject verdict, and also drop if hijacking was unsuccessful.
-	if verdict == muxTypes.VerdictReject || verdict == muxTypes.VerdictDrop {
+	} else if verdict == muxTypes.VerdictReject {
 		clientErrorHandler(
 			responseWriter,
 			request,
