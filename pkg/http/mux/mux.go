@@ -14,6 +14,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
 	"io"
+	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -267,8 +268,9 @@ type Mux struct {
 		[]*muxTypes.HeaderEntry,
 		error,
 	)
-	SuccessCallback func(*http.Request, []byte, *http.Response, []byte)
-	DefaultHeaders  map[string]string
+	SuccessCallback       func(*http.Request, []byte, *http.Response, []byte)
+	FirewallConfiguration *muxTypes.FirewallConfiguration
+	DefaultHeaders        map[string]string
 }
 
 func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.ResponseWriter, request *http.Request) ([]byte, error) {
@@ -852,7 +854,12 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		return
 	}
 
-	// Obtain a server error handler.
+	// Set the client and server error handlers if not specified.
+
+	clientErrorHandler := mux.ClientErrorHandler
+	if clientErrorHandler == nil {
+		clientErrorHandler = DefaultClientErrorHandler
+	}
 
 	serverErrorHandler := mux.ServerErrorHandler
 	if serverErrorHandler == nil {
@@ -881,29 +888,88 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		}(),
 	}
 
-	// Respond to the request.
+	// Check the request with the firewall.
 
-	requestBody, writeErr := mux.serveHttpWithCustomResponseWriter(responseWriter, request)
-	if writeErr != nil {
-		// Using a nil response writer signals that no status code or server error body should be written. This is
-		// the right approach when having written chunks and some chunks have already been successfully written, meaning
-		// both a status code and body has been responded with already.
-		serverErrorResponseWriter := responseWriter
-		if responseWriter.WriteHeaderCalled {
-			serverErrorResponseWriter = nil
+	verdict := muxTypes.VerdictAccept
+
+	if firewallConfiguration := mux.FirewallConfiguration; firewallConfiguration != nil {
+		if firewallHandler := firewallConfiguration.Handler; firewallHandler != nil {
+			verdict = firewallHandler(request)
 		}
+	}
 
-		serverErrorHandler(
-			serverErrorResponseWriter,
+	var requestBody []byte
+
+	if verdict == muxTypes.VerdictDrop {
+		hijacker, ok := originalResponseWriter.(http.Hijacker)
+		if ok {
+			connection, _, err := hijacker.Hijack()
+			if err != nil {
+				serverErrorHandler(
+					responseWriter,
+					request,
+					nil,
+					nil,
+					nil,
+					&motmedelErrors.CauseError{
+						Message: "An error occurred when hijacking the connection, in association with a drop verdict.",
+						Cause:   err,
+					},
+				)
+			}
+			if err := connection.Close(); err != nil {
+				// Nothing else to do here but to log and return?
+				motmedelLog.LogWarning(
+					"An error occurred when closing a connection.",
+					err,
+					slog.Default(),
+				)
+			}
+			return
+		} else {
+			slog.Default().Warn(
+				"Could not hijack a connection in association with a drop verdict.",
+			)
+		}
+	}
+
+	// Handling reject verdict, and also drop if hijacking was unsuccessful.
+	if verdict == muxTypes.VerdictReject || verdict == muxTypes.VerdictDrop {
+		clientErrorHandler(
+			responseWriter,
 			request,
-			requestBody,
+			nil,
+			problem_detail.MakeStatusCodeProblemDetail(http.StatusForbidden, "", nil),
 			nil,
 			nil,
-			&motmedelErrors.CauseError{
-				Message: "An error occurred when writing a response with the custom response writer.",
-				Cause:   writeErr,
-			},
 		)
+	} else {
+		// Respond to the request.
+
+		var writeErr error
+
+		requestBody, writeErr = mux.serveHttpWithCustomResponseWriter(responseWriter, request)
+		if writeErr != nil {
+			// Using a nil response writer signals that no status code or server error body should be written. This is
+			// the right approach when having written chunks and some chunks have already been successfully written, meaning
+			// both a status code and body has been responded with already.
+			serverErrorResponseWriter := responseWriter
+			if responseWriter.WriteHeaderCalled {
+				serverErrorResponseWriter = nil
+			}
+
+			serverErrorHandler(
+				serverErrorResponseWriter,
+				request,
+				requestBody,
+				nil,
+				nil,
+				&motmedelErrors.CauseError{
+					Message: "An error occurred when writing a response with the custom response writer.",
+					Cause:   writeErr,
+				},
+			)
+		}
 	}
 
 	// Handle the case when no response was produced.

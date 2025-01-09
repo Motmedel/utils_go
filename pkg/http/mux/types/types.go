@@ -6,6 +6,18 @@ import (
 	"net/http"
 )
 
+type Verdict int
+
+const (
+	VerdictAccept Verdict = iota
+	VerdictDrop
+	VerdictReject
+)
+
+type FirewallConfiguration struct {
+	Handler func(*http.Request) Verdict
+}
+
 type HeaderEntry struct {
 	Name      string
 	Value     string
