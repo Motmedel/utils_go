@@ -14,11 +14,61 @@ type HttpContext struct {
 	ResponseBody []byte
 }
 
+func getFullType(typeValue string, subtypeValue string, normalize bool) string {
+	if typeValue == "" {
+		typeValue = "*"
+	}
+	if subtypeValue == "*" {
+		subtypeValue = "*"
+	}
+
+	fullType := fmt.Sprintf("%s/%s", typeValue, subtypeValue)
+	if normalize {
+		return strings.ToLower(fullType)
+	}
+
+	return fullType
+}
+
+func getParameterMap(parameters [][2]string, normalize bool) map[string]string {
+	if len(parameters) == 0 {
+		return nil
+	}
+
+	parameterMap := make(map[string]string)
+
+	for _, parameter := range parameters {
+		key := parameter[0]
+		if normalize {
+			key = strings.ToLower(key)
+		}
+		value := parameter[1]
+
+		if _, ok := parameterMap[key]; !ok {
+			parameterMap[key] = value
+		}
+	}
+
+	return parameterMap
+}
+
 type MediaRange struct {
 	Type       string
 	Subtype    string
 	Parameters [][2]string
 	Weight     float32
+}
+
+func (mediaRange *MediaRange) GetFullType(normalize bool) string {
+	return getFullType(mediaRange.Type, mediaRange.Subtype, normalize)
+}
+
+func (mediaRange *MediaRange) GetParameterMap(normalize bool) map[string]string {
+	if len(mediaRange.Parameters) == 0 {
+		return nil
+	}
+
+	return getParameterMap(mediaRange.Parameters, normalize)
 }
 
 type Accept struct {
@@ -46,20 +96,7 @@ type MediaType struct {
 }
 
 func (mediaType *MediaType) GetFullType(normalize bool) string {
-	typeValue := mediaType.Type
-	if typeValue == "" {
-		typeValue = "*"
-	}
-	subtypeValue := mediaType.Subtype
-	if subtypeValue == "*" {
-		subtypeValue = "*"
-	}
-
-	fullType := fmt.Sprintf("%s/%s", typeValue, subtypeValue)
-	if normalize {
-		return strings.ToLower(fullType)
-	}
-	return fullType
+	return getFullType(mediaType.Type, mediaType.Subtype, normalize)
 }
 
 func (mediaType *MediaType) GetParametersMap(normalize bool) map[string]string {
@@ -67,21 +104,7 @@ func (mediaType *MediaType) GetParametersMap(normalize bool) map[string]string {
 		return nil
 	}
 
-	m := make(map[string]string)
-
-	for _, parameter := range mediaType.Parameters {
-		key := parameter[0]
-		if normalize {
-			key = strings.ToLower(key)
-		}
-		value := parameter[1]
-
-		if _, ok := m[key]; !ok {
-			m[key] = value
-		}
-	}
-
-	return m
+	return getParameterMap(mediaType.Parameters, normalize)
 }
 
 type ContentType struct {
