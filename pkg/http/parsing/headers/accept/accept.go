@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	goabnf "github.com/pandatix/go-abnf"
 	"strconv"
 	"strings"
@@ -16,15 +17,13 @@ var grammar []byte
 
 var AcceptGrammar *goabnf.Grammar
 
-// TODO: Temprorary; move to types
-
 var (
 	ErrCouldNotSplitParameter = errors.New("could not split parameter")
 	ErrNilQValuePath          = errors.New("nil qvalue path")
 	ErrParameterNamedQ        = errors.New("parameter named q")
 )
 
-func ParseAccept(data []byte) (*Accept, error) {
+func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 	paths, err := goabnf.Parse(data, AcceptGrammar, "root")
 	if err != nil {
 		return nil, &motmedelErrors.InputError{
@@ -38,7 +37,7 @@ func ParseAccept(data []byte) (*Accept, error) {
 		return nil, nil
 	}
 
-	accept := &Accept{Raw: string(data)}
+	accept := &motmedelHttpTypes.Accept{Raw: string(data)}
 
 	interestingPaths := parsing_utils.SearchPath(
 		paths[0],
@@ -52,7 +51,7 @@ func ParseAccept(data []byte) (*Accept, error) {
 			continue
 		}
 
-		mediaRange := &MediaRange{Weight: 1.0}
+		mediaRange := &motmedelHttpTypes.MediaRange{Weight: 1.0}
 
 		mediaRangeType := "*"
 		mediaRangeSubtype := "*"
