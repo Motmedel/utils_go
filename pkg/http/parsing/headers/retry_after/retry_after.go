@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	goabnf "github.com/pandatix/go-abnf"
 	"strconv"
 	"time"
@@ -22,7 +23,7 @@ var (
 	ErrNoPathMatch       = errors.New("neither HTTP-date or delay-seconds matched")
 )
 
-func ParseRetryAfter(data []byte) (*RetryAfter, error) {
+func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	paths, err := goabnf.Parse(data, RetryAfterGrammar, "root")
 	if err != nil {
 		return nil, &motmedelErrors.InputError{
@@ -35,7 +36,7 @@ func ParseRetryAfter(data []byte) (*RetryAfter, error) {
 		return nil, nil
 	}
 
-	retryAfter := &RetryAfter{Raw: string(data)}
+	retryAfter := &motmedelHttpTypes.RetryAfter{Raw: string(data)}
 
 	path := paths[0]
 
@@ -76,7 +77,7 @@ func ParseRetryAfter(data []byte) (*RetryAfter, error) {
 			}
 		}
 
-		retryAfter.WaitTime = delaySeconds
+		retryAfter.WaitTime = time.Duration(delaySeconds) * time.Second
 
 		return retryAfter, nil
 	}
