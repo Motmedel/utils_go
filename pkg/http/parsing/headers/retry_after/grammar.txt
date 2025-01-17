@@ -1,0 +1,15 @@
+root=Retry-After
+Retry-After = HTTP-date / delay-seconds
+delay-seconds  = 1*DIGIT
+HTTP-date = IMF-fixdate
+IMF-fixdate = day-name "," SP date1 SP time-of-day SP GMT
+day-name = %x4D.6F.6E / %x54.75.65 / %x57.65.64 / %x54.68.75 / %x46.72.69 / %x53.61.74 / %x53.75.6E
+date1 = day SP month SP year
+day = 2DIGIT
+month = %x4A.61.6E / %x46.65.62 / %x4D.61.72 / %x41.70.72 / %x4D.61.79 / %x4A.75.6E / %x4A.75.6C / %x41.75.67 / %x53.65.70 / %x4F.63.74 / %x4E.6F.76 / %x44.65.63
+year = 4DIGIT
+time-of-day = hour ":" minute ":" second
+hour = 2DIGIT
+minute = 2DIGIT
+second = 2DIGIT
+GMT = %x47.4D.54

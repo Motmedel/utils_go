@@ -38,6 +38,16 @@ type HandlerErrorResponse struct {
 	ResponseHeaders []*HeaderEntry
 }
 
+type BodyParserConfiguration struct {
+	ContentType string
+	AllowEmpty  bool
+	Parser      func(*http.Request, []byte) (any, *HandlerErrorResponse)
+}
+
+type UrlParserConfiguration struct {
+	Parser func(*http.Request) (any, *HandlerErrorResponse)
+}
+
 type HandlerSpecification struct {
 	Path                      string
 	Method                    string
@@ -45,10 +55,5 @@ type HandlerSpecification struct {
 	StaticContent             *StaticContent
 	RateLimitingConfiguration *RateLimitingConfiguration
 	BodyParserConfiguration   *BodyParserConfiguration
-}
-
-type BodyParserConfiguration struct {
-	ContentType string
-	AllowEmpty  bool
-	Parser      func(*http.Request, []byte) (any, *HandlerErrorResponse)
+	UrlParserConfiguration    *UrlParserConfiguration
 }

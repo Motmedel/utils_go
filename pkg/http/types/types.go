@@ -137,3 +137,9 @@ type StrictTransportSecurityPolicy struct {
 	IncludeSubdomains bool
 	Raw               string
 }
+
+type RetryAfter struct {
+	// The time can be either a timestamp or a duration.
+	WaitTime any
+	Raw      string
+}
