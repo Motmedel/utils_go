@@ -10,10 +10,95 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
+type HttpClient interface {
+	Do(*http.Request) (*http.Response, error)
+}
+
+func DefaultRetryResponseChecker(response *http.Response, err error) bool {
+	if response != nil {
+		return response.StatusCode == 429 || response.StatusCode >= 500
+	}
+
+	if err != nil {
+		return true
+	}
+
+	return false
+}
+
+type RetryConfiguration struct {
+	Count           int
+	BaseDelay       time.Duration
+	MaximumWaitTime time.Duration
+	CheckResponse   func(*http.Response, error) bool
+}
+
+type HttpRetryClient struct {
+	http.Client
+	RetryConfiguration *RetryConfiguration
+}
+
+func getRetryAfterTime(retryAfterValue string, referenceTime *time.Time) *time.Time {
+	if retryAfterValue == "" {
+		return nil
+	}
+
+	if retryAfterTimestamp, err := time.Parse(time.RFC1123, retryAfterValue); err != nil {
+		return &retryAfterTimestamp
+	}
+
+	if retryAfterDelay, err := strconv.Atoi(retryAfterValue); err == nil {
+		if referenceTime == nil {
+			t := time.Now()
+			referenceTime = &t
+		}
+
+		// Add one more second for rounding.
+		waitTime := referenceTime.Add(time.Duration(retryAfterDelay+1) * time.Second)
+		return &waitTime
+	}
+
+	return nil
+}
+
+func handleRequest(request *http.Request, httpClient HttpClient) (*http.Response, []byte, error) {
+	if request == nil {
+		return nil, nil, nil
+	}
+
+	if httpClient == nil {
+		return nil, nil, motmedelHttpErrors.ErrNilHttpClient
+	}
+
+	response, err := httpClient.Do(request)
+	if err != nil {
+		return nil, nil, &motmedelErrors.CauseError{
+			Message: "An error occurred when performing the request.",
+			Cause:   err,
+		}
+	}
+	if response == nil {
+		return nil, nil, motmedelHttpErrors.ErrNilHttpResponse
+	}
+	responseBody := response.Body
+	defer responseBody.Close()
+
+	responseBodyData, err := io.ReadAll(responseBody)
+	if err != nil {
+		return response, nil, &motmedelErrors.CauseError{
+			Message: "An error occurred when reading the response body.",
+			Cause:   err,
+		}
+	}
+
+	return response, responseBodyData, nil
+}
+
 func SendRequest(
-	httpClient *http.Client,
+	httpClient HttpClient,
 	method string,
 	url string,
 	requestBody []byte,
@@ -51,26 +136,93 @@ func SendRequest(
 		}
 	}
 
-	httpContext := &motmedelHttpTypes.HttpContext{Request: request, RequestBody: requestBody}
+	var retryCount int
+	var baseDelay time.Duration
+	var maximumWaitTime time.Duration
+	var checkRetryResponse func(*http.Response, error) bool
 
-	response, err := httpClient.Do(request)
-	if err != nil {
-		return httpContext, &motmedelErrors.CauseError{
-			Message: "An error occurred when performing the request.",
-			Cause:   err,
+	httpRetryClient, ok := httpClient.(*HttpRetryClient)
+	if ok && httpRetryClient != nil {
+		if retryConfiguration := httpRetryClient.RetryConfiguration; retryConfiguration != nil {
+			retryCount = max(retryCount, retryConfiguration.Count)
+			baseDelay = retryConfiguration.BaseDelay
+			maximumWaitTime = retryConfiguration.MaximumWaitTime
+			checkRetryResponse = retryConfiguration.CheckResponse
 		}
 	}
-	if response == nil {
-		return httpContext, motmedelHttpErrors.ErrNilHttpResponse
+
+	httpContext := &motmedelHttpTypes.HttpContext{Request: request, RequestBody: requestBody}
+	var response *http.Response
+	var responseBody []byte
+
+	for i := 0; i < (1 + retryCount); i++ {
+		if i != 0 {
+			// Wait before the next response.
+
+			var waitUntil *time.Time
+
+			// Use information from the previous response to ascertain a waiting time.
+			if response != nil {
+				responseHeader := response.Header
+
+				if responseHeader != nil {
+					// Use the response header Date as the reference time for Retry-After delay values if available,
+					//otherwise the current time.
+					referenceTime := time.Now()
+					if responseDate, err := time.Parse(time.RFC1123, responseHeader.Get("Date")); err != nil {
+						referenceTime = responseDate
+					}
+					waitUntil = getRetryAfterTime(responseHeader.Get("Retry-After"), &referenceTime)
+					if waitUntil != nil && maximumWaitTime != 0 {
+						if time.Until(*waitUntil) > maximumWaitTime {
+							break
+						}
+					}
+				}
+			}
+
+			// If the response provided no information about waiting time, use exponential back-off.
+			if waitUntil == nil {
+				if baseDelay == 0 {
+					// If no base delay was provided, the default is 500 ms.
+					baseDelay = time.Duration(500) * time.Millisecond
+				}
+				// baseDelay * 2^(i-1)
+				waitDuration := baseDelay * (1 << (i - 1))
+				if maximumWaitTime != 0 {
+					// Don't let the calculated wait time exceed the maximum wait time.
+					waitDuration = min(waitDuration, maximumWaitTime)
+				}
+
+				t := time.Now().Add(*waitDuration)
+				waitUntil = &t
+			}
+
+			// TODO: Add jitter?
+
+			duration := time.Until(*waitUntil)
+			if duration > 0 {
+				time.Sleep(duration)
+			}
+		}
+
+		response, responseBody, err = handleRequest(request, httpClient)
+
+		if checkRetryResponse == nil {
+			checkRetryResponse = DefaultRetryResponseChecker
+		}
+		if !checkRetryResponse(response, err) {
+			break
+		}
 	}
-	defer response.Body.Close()
+
 	httpContext.Response = response
 
-	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		return httpContext, &motmedelErrors.CauseError{
-			Message: "An error occurred when reading the response body.",
+		return httpContext, &motmedelErrors.InputError{
+			Message: "An error occurred when handling an http request.",
 			Cause:   err,
+			Input:   request,
 		}
 	}
 	httpContext.ResponseBody = responseBody
@@ -83,7 +235,7 @@ func SendRequest(
 }
 
 func SendJsonRequestResponse[T any, U any](
-	httpClient *http.Client,
+	httpClient HttpClient,
 	method string,
 	url string,
 	bodyValue *T,
