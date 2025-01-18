@@ -194,7 +194,7 @@ func SendRequest(
 					waitDuration = min(waitDuration, maximumWaitTime)
 				}
 
-				t := time.Now().Add(*waitDuration)
+				t := time.Now().Add(waitDuration)
 				waitUntil = &t
 			}
 
