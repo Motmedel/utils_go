@@ -13,6 +13,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
+	"github.com/google/uuid"
 	"io"
 	"log/slog"
 	"maps"
@@ -34,8 +35,10 @@ var DefaultHeaders = map[string]string{
 }
 
 type parsedRequestBodyContextType struct{}
+type requestIdContextType struct{}
 
 var ParsedRequestBodyContextKey parsedRequestBodyContextType
+var RequestIdContextKey requestIdContextType
 
 func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.ResponseWriter) error {
 	if responseInfo == nil {
@@ -271,6 +274,7 @@ type Mux struct {
 	SuccessCallback       func(*http.Request, []byte, *http.Response, []byte)
 	FirewallConfiguration *muxTypes.FirewallConfiguration
 	DefaultHeaders        map[string]string
+	Middleware            []func(*http.Request) *http.Request
 }
 
 func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.ResponseWriter, request *http.Request) ([]byte, error) {
@@ -868,6 +872,11 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 
 	// Populate the request context.
 
+	// NOTE: The error is ignored.
+	if requestId, err := uuid.NewV7(); err != nil {
+		request = request.WithContext(context.WithValue(request.Context(), RequestIdContextKey, requestId.String()))
+	}
+
 	if len(mux.SetContextKeyValuePairs) != 0 {
 		ctx := request.Context()
 		for _, pair := range mux.SetContextKeyValuePairs {
@@ -939,6 +948,12 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 			nil,
 		)
 	} else {
+		for _, middleware := range mux.Middleware {
+			if middleware != nil {
+				request = middleware(request)
+			}
+		}
+
 		// Respond to the request.
 
 		var writeErr error
