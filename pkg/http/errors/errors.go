@@ -1,14 +1,17 @@
 package errors
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
-	ErrNilHttpClient    = errors.New("nil http client")
-	ErrNilHttpRequest   = errors.New("nil http request")
-	ErrNilHttpResponse  = errors.New("nil http response")
-	ErrNon2xxStatusCode = errors.New("non-2xx status code")
-	ErrEmptyMethod      = errors.New("empty http method")
-	ErrEmptyUrl         = errors.New("empty url")
+	ErrNilHttpClient        = errors.New("nil http client")
+	ErrNilHttpRequest       = errors.New("nil http request")
+	ErrNilHttpResponse      = errors.New("nil http response")
+	ErrNon2xxStatusCode     = errors.New("non-2xx status code")
+	ErrEmptyMethod          = errors.New("empty http method")
+	ErrEmptyUrl             = errors.New("empty url")
+	ErrReattemptFailedError = errors.New("reattempt failed")
 )
 
 type Non2xxStatusCodeError struct {
@@ -25,4 +28,25 @@ func (non2xxStatusCodeError *Non2xxStatusCodeError) Error() string {
 
 func (non2xxStatusCodeError *Non2xxStatusCodeError) GetInput() any {
 	return non2xxStatusCodeError.StatusCode
+}
+
+type ReattemptFailedError struct {
+	Attempt int
+	Cause   error
+}
+
+func (reattemptFailedError *ReattemptFailedError) Is(target error) bool {
+	return target == ErrReattemptFailedError
+}
+
+func (reattemptFailedError *ReattemptFailedError) Error() string {
+	return ErrReattemptFailedError.Error()
+}
+
+func (reattemptFailedError *ReattemptFailedError) GetCause() error {
+	return reattemptFailedError.Cause
+}
+
+func (reattemptFailedError *ReattemptFailedError) Unwrap() error {
+	return reattemptFailedError.Cause
 }

@@ -21,10 +21,7 @@ func (causeError *CauseError) GetCause() error {
 
 func (causeError *CauseError) Is(target error) bool {
 	_, ok := target.(*CauseError)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }
 
 func (causeError *CauseError) Unwrap() error {
@@ -60,8 +57,5 @@ func (inputError *InputError) Unwrap() error {
 
 func (inputError *InputError) Is(target error) bool {
 	_, ok := target.(*InputError)
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }

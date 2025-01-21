@@ -214,6 +214,12 @@ func SendRequest(
 		if !checkRetryResponse(response, err) {
 			break
 		}
+		if err != nil && i != 0 {
+			err = &motmedelHttpErrors.ReattemptFailedError{
+				Cause:   err,
+				Attempt: i + 1,
+			}
+		}
 	}
 
 	httpContext.Response = response
