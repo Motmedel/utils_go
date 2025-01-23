@@ -274,7 +274,7 @@ type Mux struct {
 	SuccessCallback       func(*http.Request, []byte, *http.Response, []byte)
 	FirewallConfiguration *muxTypes.FirewallConfiguration
 	DefaultHeaders        map[string]string
-	Middleware            []func(*http.Request) *http.Request
+	Middleware            []muxUtils.Middleware
 }
 
 func (mux *Mux) serveHttpWithCustomResponseWriter(responseWriter *muxTypes.ResponseWriter, request *http.Request) ([]byte, error) {
@@ -873,8 +873,17 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 	// Populate the request context.
 
 	// NOTE: The error is ignored.
-	if requestId, err := uuid.NewV7(); err != nil {
-		request = request.WithContext(context.WithValue(request.Context(), RequestIdContextKey, requestId.String()))
+	if requestId, err := uuid.NewV7(); err == nil {
+		contextRequest := request.WithContext(
+			context.WithValue(
+				request.Context(),
+				RequestIdContextKey,
+				requestId.String(),
+			),
+		)
+		if contextRequest != nil {
+			request = contextRequest
+		}
 	}
 
 	if len(mux.SetContextKeyValuePairs) != 0 {
@@ -882,7 +891,9 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		for _, pair := range mux.SetContextKeyValuePairs {
 			ctx = context.WithValue(ctx, pair[0], pair[1])
 		}
-		request = request.WithContext(ctx)
+		if contextRequest := request.WithContext(ctx); contextRequest != nil {
+			request = contextRequest
+		}
 	}
 
 	// Use a custom response writer.
@@ -950,7 +961,9 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 	} else {
 		for _, middleware := range mux.Middleware {
 			if middleware != nil {
-				request = middleware(request)
+				if middlewareRequest := middleware(request); middlewareRequest != nil {
+					request = middlewareRequest
+				}
 			}
 		}
 

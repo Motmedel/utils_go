@@ -10,7 +10,9 @@ type acceptMediaRangesContextType struct{}
 
 var AcceptMediaRangesContextKey acceptMediaRangesContextType
 
-func AcceptMiddleware(request *http.Request) *http.Request {
+type Middleware func(request *http.Request) *http.Request
+
+var AcceptMiddleware Middleware = func(request *http.Request) *http.Request {
 	if request == nil {
 		return nil
 	}
