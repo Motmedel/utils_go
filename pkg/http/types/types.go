@@ -18,7 +18,7 @@ func getFullType(typeValue string, subtypeValue string, normalize bool) string {
 	if typeValue == "" {
 		typeValue = "*"
 	}
-	if subtypeValue == "*" {
+	if subtypeValue == "" {
 		subtypeValue = "*"
 	}
 
@@ -64,11 +64,29 @@ func (mediaRange *MediaRange) GetFullType(normalize bool) string {
 }
 
 func (mediaRange *MediaRange) GetParameterMap(normalize bool) map[string]string {
-	if len(mediaRange.Parameters) == 0 {
+	parameters := mediaRange.Parameters
+	if len(parameters) == 0 {
 		return nil
 	}
 
-	return getParameterMap(mediaRange.Parameters, normalize)
+	return getParameterMap(parameters, normalize)
+}
+
+func (mediaRange *MediaRange) GetStructuredSyntaxName(normalize bool) string {
+	subtype := mediaRange.Subtype
+	separator := "+"
+
+	lastSeparatorIndex := strings.LastIndex(subtype, separator)
+	if lastSeparatorIndex == -1 {
+		return ""
+	}
+
+	structuredSyntaxName := subtype[lastSeparatorIndex+len(separator):]
+	if normalize {
+		structuredSyntaxName = strings.ToLower(structuredSyntaxName)
+	}
+
+	return structuredSyntaxName
 }
 
 type Accept struct {
