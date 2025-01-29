@@ -5,13 +5,15 @@ import (
 )
 
 var (
-	ErrNilHttpClient        = errors.New("nil http client")
-	ErrNilHttpRequest       = errors.New("nil http request")
-	ErrNilHttpResponse      = errors.New("nil http response")
-	ErrNon2xxStatusCode     = errors.New("non-2xx status code")
-	ErrEmptyMethod          = errors.New("empty http method")
-	ErrEmptyUrl             = errors.New("empty url")
-	ErrReattemptFailedError = errors.New("reattempt failed")
+	ErrNilHttpClient         = errors.New("nil http client")
+	ErrNilHttpRequest        = errors.New("nil http request")
+	ErrNilHttpResponse       = errors.New("nil http response")
+	ErrNilHttpRequestHeader  = errors.New("nil http request header")
+	ErrNilHttpResponseHeader = errors.New("nil http response header")
+	ErrNon2xxStatusCode      = errors.New("non-2xx status code")
+	ErrEmptyMethod           = errors.New("empty http method")
+	ErrEmptyUrl              = errors.New("empty url")
+	ErrReattemptFailedError  = errors.New("reattempt failed")
 )
 
 type Non2xxStatusCodeError struct {

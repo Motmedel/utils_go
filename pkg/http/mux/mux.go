@@ -140,7 +140,7 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 	return nil
 }
 
-func PerformErrorResponse(
+func WriteProblemDetailResponse(
 	responseWriter http.ResponseWriter,
 	request *http.Request,
 	problemDetail *problem_detail.ProblemDetail,
@@ -222,7 +222,7 @@ func DefaultClientErrorHandler(
 		problemDetail = problem_detail.MakeBadRequestProblemDetail("", nil)
 	}
 
-	PerformErrorResponse(responseWriter, request, problemDetail, headers)
+	WriteProblemDetailResponse(responseWriter, request, problemDetail, headers)
 }
 
 func DefaultServerErrorHandler(
@@ -249,7 +249,7 @@ func DefaultServerErrorHandler(
 		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
 	}
 
-	PerformErrorResponse(responseWriter, request, problemDetail, responseHeaders)
+	WriteProblemDetailResponse(responseWriter, request, problemDetail, responseHeaders)
 }
 
 type Mux struct {
