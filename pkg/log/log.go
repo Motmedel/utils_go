@@ -117,11 +117,20 @@ func LogDebug(message string, err error, logger *slog.Logger) {
 	}
 }
 
-func LogFatal(message string, err error, logger *slog.Logger, exitCode int) {
+func LogFatalWithExitCode(message string, err error, logger *slog.Logger, exitCode int) {
 	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
 		logger.Error(message, *errorGroup)
 	} else {
 		logger.Error(message)
 	}
 	os.Exit(exitCode)
+}
+
+func LogFatal(message string, err error, logger *slog.Logger) {
+	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
+		logger.Error(message, *errorGroup)
+	} else {
+		logger.Error(message)
+	}
+	os.Exit(1)
 }
