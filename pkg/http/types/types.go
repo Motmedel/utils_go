@@ -161,3 +161,10 @@ type RetryAfter struct {
 	WaitTime any
 	Raw      string
 }
+
+type ContentDisposition struct {
+	DispositionType           string
+	FilenameParameter         string
+	FilenameParameterAsterisk string
+	ExtensionParameters       map[string]string
+}
