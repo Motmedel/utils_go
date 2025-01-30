@@ -1,0 +1,24 @@
+root=content-disposition
+content-disposition=disposition-type *(OWS ";" OWS disposition-parm)
+disposition-type="inline"/"attachment"/disp-ext-type
+disp-ext-type=token
+disposition-parm=filename-parm/disp-ext-parm
+filename-parm="filename" OWS "=" OWS value / "filename*" OWS "=" OWS ext-value
+disp-ext-parm=token OWS "=" OWS value/ext-token "=" ext-value
+OWS=*(SP/HTAB)
+ext-token=token "*"
+value=token/quoted-string
+token=1*tchar
+tchar="!"/"#"/"$"/"%"/"&"/"'"/"*"/"+"/"-"/"."/"^"/"_"/"`"/"|"/"~"/DIGIT/ALPHA
+quoted-string=DQUOTE *(qdtext/quoted-pair) DQUOTE
+qdtext=HTAB/SP/%x21/%x23-5B/%x5D-7E
+quoted-pair="\" (HTAB/SP/VCHAR)
+ext-value=charset "'" [ language ] "'" value-chars
+charset="UTF-8"/"ISO-8859-1"/mime-charset
+mime-charset=1*mime-charsetc
+mime-charsetc=ALPHA/DIGIT/"!"/"#"/"$"/"%"/"&"/"+"/"-"/"^"/"_"/"`"/"{"/"}"/"~"
+language=2*3ALPHA ["-" extlang] / 4ALPHA / 5*8ALPHA
+extlang=3ALPHA *2("-" 3ALPHA)
+value-chars=*(pct-encoded/attr-char)
+pct-encoded="%" HEXDIG HEXDIG
+attr-char=ALPHA/DIGIT/"!"/"#"/"$"/"&"/"+"/"-"/"."/"^"/"_"/"`"/"|"/"~"
