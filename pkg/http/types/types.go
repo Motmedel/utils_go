@@ -163,8 +163,8 @@ type RetryAfter struct {
 }
 
 type ContentDisposition struct {
-	DispositionType           string
-	FilenameParameter         string
-	FilenameParameterAsterisk string
-	ExtensionParameters       map[string]string
+	DispositionType     string
+	Filename            string
+	FilenameAsterisk    string
+	ExtensionParameters map[string]string
 }
