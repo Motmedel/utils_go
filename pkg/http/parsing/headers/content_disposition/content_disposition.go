@@ -143,7 +143,7 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 			filenameLabel := strings.ToLower(string(parsing_utils.ExtractPathValue(data, subpaths[0])))
 			switch filenameLabel {
 			case "filename":
-				if contentDisposition.FilenameParameter != "" {
+				if contentDisposition.Filename != "" {
 					return nil, &SemanticError{
 						InputError: motmedelErrors.InputError{
 							Message: fmt.Sprintf("A duplicate %s label was observed.", filenameLabel),
@@ -177,9 +177,9 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 					}
 				}
 
-				contentDisposition.FilenameParameter = value
+				contentDisposition.Filename = value
 			case "filename*":
-				if contentDisposition.FilenameParameterAsterisk != "" {
+				if contentDisposition.FilenameAsterisk != "" {
 					return nil, &SemanticError{
 						InputError: motmedelErrors.InputError{
 							Message: fmt.Sprintf("A duplicate %s label was observed.", filenameLabel),
@@ -204,7 +204,7 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 					}
 				}
 
-				contentDisposition.FilenameParameterAsterisk = string(parsing_utils.ExtractPathValue(data, filenameAsteriskExtValuePath))
+				contentDisposition.FilenameAsterisk = string(parsing_utils.ExtractPathValue(data, filenameAsteriskExtValuePath))
 			default:
 				return nil, &motmedelErrors.InputError{
 					Message: "An unexpected filename label was observed.",

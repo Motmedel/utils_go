@@ -31,16 +31,16 @@ func TestParseContentDisposition(t *testing.T) {
 			name:  "valid content disposition with uppercase disposition type and filename",
 			input: []byte("Attachment; filename=example.html"),
 			expected: &motmedelHttpTypes.ContentDisposition{
-				DispositionType:   "attachment",
-				FilenameParameter: "example.html",
+				DispositionType: "attachment",
+				Filename:        "example.html",
 			},
 		},
 		{
 			name:  "valid content disposition with filename and custom parameters",
 			input: []byte("attachment; filename=doc.txt; a=A;b=B"),
 			expected: &motmedelHttpTypes.ContentDisposition{
-				DispositionType:   "attachment",
-				FilenameParameter: "doc.txt",
+				DispositionType: "attachment",
+				Filename:        "doc.txt",
 				ExtensionParameters: map[string]string{
 					"a": "A",
 					"b": "B",
@@ -51,17 +51,17 @@ func TestParseContentDisposition(t *testing.T) {
 			name:  "valid content disposition with lowercase disposition type and filename*",
 			input: []byte("attachment; filename*= UTF-8''%e2%82%ac%20rates"),
 			expected: &motmedelHttpTypes.ContentDisposition{
-				DispositionType:           "attachment",
-				FilenameParameterAsterisk: "UTF-8''%e2%82%ac%20rates",
+				DispositionType:  "attachment",
+				FilenameAsterisk: "UTF-8''%e2%82%ac%20rates",
 			},
 		},
 		{
 			name:  "valid content disposition with lowercase disposition type and quoted filename, filename*",
 			input: []byte(`attachment; filename="EURO rates"; filename*=utf-8''%e2%82%ac%20rates`),
 			expected: &motmedelHttpTypes.ContentDisposition{
-				DispositionType:           "attachment",
-				FilenameParameter:         "EURO rates",
-				FilenameParameterAsterisk: "utf-8''%e2%82%ac%20rates",
+				DispositionType:  "attachment",
+				Filename:         "EURO rates",
+				FilenameAsterisk: "utf-8''%e2%82%ac%20rates",
 			},
 		},
 		{
