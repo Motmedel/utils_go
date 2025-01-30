@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/strings"
 	"log/slog"
@@ -126,11 +127,10 @@ func LogFatalWithExitCode(message string, err error, logger *slog.Logger, exitCo
 	os.Exit(exitCode)
 }
 
+func LogFatalWithExitingMessage(message string, err error, logger *slog.Logger) {
+	LogFatalWithExitCode(fmt.Sprintf("%s Exiting.", message), err, logger, 1)
+}
+
 func LogFatal(message string, err error, logger *slog.Logger) {
-	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
-		logger.Error(message, *errorGroup)
-	} else {
-		logger.Error(message)
-	}
-	os.Exit(1)
+	LogFatalWithExitCode(message, err, logger, 1)
 }
