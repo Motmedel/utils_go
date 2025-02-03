@@ -13,7 +13,7 @@ func MakeArchiveFromReader(reader io.Reader) (motmedelTarTypes.Archive, error) {
 		return nil, nil
 	}
 
-	tarArchive := make(motmedelTarTypes.Archive)
+	archive := make(motmedelTarTypes.Archive)
 
 	tarReader := tar.NewReader(reader)
 	for {
@@ -39,32 +39,30 @@ func MakeArchiveFromReader(reader io.Reader) (motmedelTarTypes.Archive, error) {
 			}
 		}
 
-		tarArchive[header.Name] = &motmedelTarTypes.Entry{Header: header, Content: content}
+		archive[header.Name] = &motmedelTarTypes.Entry{Header: header, Content: content}
 	}
 
-	return tarArchive, nil
+	return archive, nil
 }
 
-func MakeTarArchiveFrommData(data []byte) (motmedelTarTypes.Archive, error) {
+func MakeArchiveFrommData(data []byte) (motmedelTarTypes.Archive, error) {
 	if len(data) == 0 {
 		return nil, nil
 	}
 
-	reader := bytes.NewReader(data)
-	tarMap, err := MakeArchiveFromReader(reader)
+	archive, err := MakeArchiveFromReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, &motmedelErrors.InputError{
+		return nil, &motmedelErrors.CauseError{
 			Message: "An error occurred when making a tar map from a reader.",
 			Cause:   err,
-			Input:   reader,
 		}
 	}
 
-	return tarMap, nil
+	return archive, nil
 }
 
-func MakeTarArchive(entries ...*motmedelTarTypes.Entry) motmedelTarTypes.Archive {
-	tarArchive := make(motmedelTarTypes.Archive)
+func MakeArchive(entries ...*motmedelTarTypes.Entry) motmedelTarTypes.Archive {
+	archive := make(motmedelTarTypes.Archive)
 
 	for _, entry := range entries {
 		if entry == nil {
@@ -83,9 +81,9 @@ func MakeTarArchive(entries ...*motmedelTarTypes.Entry) motmedelTarTypes.Archive
 
 		switch header.Typeflag {
 		case tar.TypeReg, tar.TypeDir:
-			tarArchive[headerName] = entry
+			archive[headerName] = entry
 		}
 	}
 
-	return tarArchive
+	return archive
 }
