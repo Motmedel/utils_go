@@ -78,6 +78,13 @@ func (archive Archive) Filter(patterns ...string) (Archive, error) {
 				continue
 			}
 
+			var isNegatePattern bool
+
+			if strings.HasPrefix(pattern, "!") {
+				isNegatePattern = true
+				pattern = pattern[1:]
+			}
+
 			patternMatches, err := filepath.Match(pattern, path)
 			if err != nil {
 				return nil, &motmedelErrors.InputError{
@@ -88,7 +95,7 @@ func (archive Archive) Filter(patterns ...string) (Archive, error) {
 			}
 
 			if patternMatches {
-				ignored = !strings.HasPrefix(pattern, "!")
+				ignored = !isNegatePattern
 			}
 		}
 
