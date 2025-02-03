@@ -88,7 +88,7 @@ func (archive Archive) Filter(patterns ...string) (Archive, error) {
 			}
 
 			if patternMatches {
-				ignored = !strings.HasSuffix(pattern, "!")
+				ignored = !strings.HasPrefix(pattern, "!")
 			}
 		}
 
