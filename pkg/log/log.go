@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/strings"
+	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"log/slog"
 	"os"
 	"reflect"
@@ -55,47 +55,56 @@ func makeErrorAttrs(err error) []any {
 	}
 
 	if inputError, ok := err.(motmedelErrors.InputErrorI); ok {
-		input := inputError.GetInput()
-		inputTextualRepresentation, err := strings.MakeTextualRepresentation(input)
-		if err != nil {
-			go func() {
-				LogError(
-					"An error occurred when making a textual representation of error input.",
-					err,
-					slog.Default(),
-				)
-			}()
-		} else {
-			var typeName string
-			if t := reflect.TypeOf(input); t != nil {
-				typeName = t.String()
-			}
+		if input := inputError.GetInput(); input != nil {
+			inputTextualRepresentation, err := motmedelStrings.MakeTextualRepresentation(input)
+			if err != nil {
+				go func() {
+					LogError(
+						"An error occurred when making a textual representation of error input.",
+						err,
+						slog.Default(),
+					)
+				}()
+			} else {
+				var typeName string
+				if t := reflect.TypeOf(input); t != nil {
+					typeName = t.String()
+				}
 
-			attrs = append(
-				attrs,
-				slog.Group(
-					"input",
-					slog.String("value", inputTextualRepresentation),
-					slog.String("type", typeName),
-				),
-			)
+				attrs = append(
+					attrs,
+					slog.Group(
+						"input",
+						slog.String("value", inputTextualRepresentation),
+						slog.String("type", typeName),
+					),
+				)
+			}
 		}
 	}
 
 	if causeError, ok := err.(motmedelErrors.CauseErrorI); ok {
-		attrs = append(attrs, slog.Group("cause", makeErrorAttrs(causeError.GetCause())...))
+		if cause := causeError.GetCause(); cause != nil {
+			attrs = append(attrs, slog.Group("cause", makeErrorAttrs(cause)...))
+		}
 	}
 
 	if codeError, ok := err.(motmedelErrors.CodeErrorI); ok {
-		attrs = append(attrs, slog.String("code", codeError.GetCode()))
+		if code := codeError.GetCode(); code != "" {
+			attrs = append(attrs, slog.String("code", code))
+		}
 	}
 
 	if idError, ok := err.(motmedelErrors.IdErrorI); ok {
-		attrs = append(attrs, slog.String("id", idError.GetId()))
+		if id := idError.GetId(); id != "" {
+			attrs = append(attrs, slog.String("id", id))
+		}
 	}
 
 	if stackTraceError, ok := err.(motmedelErrors.StackTraceErrorI); ok {
-		attrs = append(attrs, slog.String("stack_trace", stackTraceError.GetStackTrace()))
+		if stackTrace := stackTraceError.GetStackTrace(); stackTrace != "" {
+			attrs = append(attrs, slog.String("stack_trace", stackTrace))
+		}
 	}
 
 	return attrs
