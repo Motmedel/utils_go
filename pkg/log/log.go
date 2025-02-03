@@ -86,6 +86,18 @@ func makeErrorAttrs(err error) []any {
 		attrs = append(attrs, slog.Group("cause", makeErrorAttrs(causeError.GetCause())...))
 	}
 
+	if codeError, ok := err.(motmedelErrors.CodeErrorI); ok {
+		attrs = append(attrs, slog.String("code", codeError.GetCode()))
+	}
+
+	if idError, ok := err.(motmedelErrors.IdErrorI); ok {
+		attrs = append(attrs, slog.String("id", idError.GetId()))
+	}
+
+	if stackTraceError, ok := err.(motmedelErrors.StackTraceErrorI); ok {
+		attrs = append(attrs, slog.String("stack_trace", stackTraceError.GetStackTrace()))
+	}
+
 	return attrs
 }
 

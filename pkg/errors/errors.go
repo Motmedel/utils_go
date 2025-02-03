@@ -1,5 +1,17 @@
 package errors
 
+type CodeErrorI interface {
+	GetCode() string
+}
+
+type IdErrorI interface {
+	GetId() string
+}
+
+type StackTraceErrorI interface {
+	GetStackTrace() string
+}
+
 type CauseErrorI interface {
 	Error() string
 	GetCause() error
