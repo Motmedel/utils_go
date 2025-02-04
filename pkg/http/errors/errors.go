@@ -10,6 +10,7 @@ var (
 	ErrNilHttpResponse       = errors.New("nil http response")
 	ErrNilHttpRequestHeader  = errors.New("nil http request header")
 	ErrNilHttpResponseHeader = errors.New("nil http response header")
+	ErrNilHttpContext        = errors.New("nil http context")
 	ErrNon2xxStatusCode      = errors.New("non-2xx status code")
 	ErrEmptyMethod           = errors.New("empty http method")
 	ErrEmptyUrl              = errors.New("empty url")
