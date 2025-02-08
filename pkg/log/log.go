@@ -2,7 +2,6 @@ package log
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
@@ -15,6 +14,8 @@ import (
 
 // NOTE: Apparently, according to convention, you should not use string keys, and you should not use context as a kind
 // storage for optional parameters. But it seems to me a logger is a special case, and I see no better, idiomatic way.
+
+// TODO: Change type
 
 const LoggerCtxKey = "logger"
 
@@ -109,14 +110,13 @@ func makeErrorAttrs(err error) []any {
 		}
 	}
 
-	var execExitError *exec.ExitError
-	if errors.As(err, &execExitError) {
+	if execExitError, ok := err.(*exec.ExitError); ok {
 		exitCode := execExitError.ExitCode()
 		if exitCode != 0 {
 			attrs = append(attrs, slog.String("code", strconv.Itoa(exitCode)))
 		}
 
-		errorMessage = fmt.Sprintf("the process exited unsuccessful with exit code: %d", exitCode)
+		errorMessage = fmt.Sprintf("the process exited unsuccessful with exit code %d", exitCode)
 		if stderr := execExitError.Stderr; len(stderr) != 0 {
 			errorMessage += ": " + string(stderr)
 		}
