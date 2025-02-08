@@ -1,10 +1,5 @@
 package errors
 
-import (
-	"fmt"
-	"strconv"
-)
-
 type CodeErrorI interface {
 	GetCode() string
 }
@@ -74,32 +69,5 @@ func (inputError *InputError) Unwrap() error {
 
 func (inputError *InputError) Is(target error) bool {
 	_, ok := target.(*InputError)
-	return ok
-}
-
-type ProcessExitError struct {
-	Stderr   string
-	ExitCode int
-}
-
-func (processExitError *ProcessExitError) Error() string {
-	msg := fmt.Sprintf("the process exited unsuccessful with exit code: %d", processExitError.ExitCode)
-
-	if stderr := processExitError.Stderr; stderr != "" {
-		msg += ": " + stderr
-	}
-
-	return msg
-}
-
-func (processExitError *ProcessExitError) GetCode() string {
-	if processExitError.ExitCode != 0 {
-		return strconv.Itoa(processExitError.ExitCode)
-	}
-	return ""
-}
-
-func (processExitError *ProcessExitError) Is(target error) bool {
-	_, ok := target.(*ProcessExitError)
 	return ok
 }

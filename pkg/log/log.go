@@ -2,12 +2,15 @@ package log
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"log/slog"
 	"os"
+	"os/exec"
 	"reflect"
+	"strconv"
 )
 
 // NOTE: Apparently, according to convention, you should not use string keys, and you should not use context as a kind
@@ -49,10 +52,9 @@ func makeErrorAttrs(err error) []any {
 		return nil
 	}
 
-	attrs := []any{
-		slog.String("message", err.Error()),
-		slog.String("type", reflect.TypeOf(err).String()),
-	}
+	errorMessage := err.Error()
+
+	attrs := []any{slog.String("type", reflect.TypeOf(err).String())}
 
 	if inputError, ok := err.(motmedelErrors.InputErrorI); ok {
 		if input := inputError.GetInput(); input != nil {
@@ -106,6 +108,21 @@ func makeErrorAttrs(err error) []any {
 			attrs = append(attrs, slog.String("stack_trace", stackTrace))
 		}
 	}
+
+	var execExitError *exec.ExitError
+	if errors.As(err, &execExitError) {
+		exitCode := execExitError.ExitCode()
+		if exitCode != 0 {
+			attrs = append(attrs, slog.String("code", strconv.Itoa(exitCode)))
+		}
+
+		errorMessage = fmt.Sprintf("the process exited unsuccessful with exit code: %d", exitCode)
+		if stderr := execExitError.Stderr; len(stderr) != 0 {
+			errorMessage += ": " + string(stderr)
+		}
+	}
+
+	attrs = append(attrs, slog.String("message", errorMessage))
 
 	return attrs
 }
