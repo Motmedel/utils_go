@@ -1,6 +1,9 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 type CodeErrorI interface {
 	GetCode() string
@@ -80,13 +83,20 @@ type ProcessExitError struct {
 }
 
 func (processExitError *ProcessExitError) Error() string {
-	msg := fmt.Sprintf("the process exited with an unsuccessful exit code: %d", processExitError.ExitCode)
+	msg := fmt.Sprintf("the process exited unsuccessful with exit code: %d", processExitError.ExitCode)
 
 	if stderr := processExitError.Stderr; stderr != "" {
 		msg += ": " + stderr
 	}
 
 	return msg
+}
+
+func (processExitError *ProcessExitError) GetCode() string {
+	if processExitError.ExitCode != 0 {
+		return strconv.Itoa(processExitError.ExitCode)
+	}
+	return ""
 }
 
 func (processExitError *ProcessExitError) Is(target error) bool {
