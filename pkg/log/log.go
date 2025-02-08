@@ -116,7 +116,7 @@ func makeErrorAttrs(err error) []any {
 			attrs = append(attrs, slog.String("code", strconv.Itoa(exitCode)))
 		}
 
-		errorMessage = fmt.Sprintf("the process exited unsuccessful with exit code %d", exitCode)
+		errorMessage = fmt.Sprintf("The command exited unsuccessfully with exit code %d", exitCode)
 		if stderr := execExitError.Stderr; len(stderr) != 0 {
 			errorMessage += ": " + string(stderr)
 		}
