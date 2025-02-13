@@ -2,6 +2,7 @@ package errors
 
 import (
 	"errors"
+	"strconv"
 )
 
 var (
@@ -32,6 +33,13 @@ func (non2xxStatusCodeError *Non2xxStatusCodeError) Error() string {
 
 func (non2xxStatusCodeError *Non2xxStatusCodeError) GetInput() any {
 	return non2xxStatusCodeError.StatusCode
+}
+
+func (non2xxStatusCodeError *Non2xxStatusCodeError) GetCode() string {
+	if non2xxStatusCodeError.StatusCode == 0 {
+		return ""
+	}
+	return strconv.Itoa(non2xxStatusCodeError.StatusCode)
 }
 
 type ReattemptFailedError struct {
