@@ -5,15 +5,16 @@ import (
 )
 
 var (
-	ErrNilHttpClient         = errors.New("nil http client")
-	ErrNilHttpRequest        = errors.New("nil http request")
-	ErrNilHttpResponse       = errors.New("nil http response")
-	ErrNilHttpRequestHeader  = errors.New("nil http request header")
-	ErrNilHttpResponseHeader = errors.New("nil http response header")
+	ErrNilHttpClient         = errors.New("nil client")
+	ErrNilHttpRequest        = errors.New("nil request")
+	ErrNilHttpResponse       = errors.New("nil response")
+	ErrNilHttpRequestHeader  = errors.New("nil request header")
+	ErrNilHttpResponseHeader = errors.New("nil response header")
 	ErrNilHttpContext        = errors.New("nil http context")
 	ErrNon2xxStatusCode      = errors.New("non-2xx status code")
-	ErrEmptyMethod           = errors.New("empty http method")
+	ErrEmptyMethod           = errors.New("empty method")
 	ErrEmptyUrl              = errors.New("empty url")
+	ErrEmptyRResponseBody    = errors.New("empty response body")
 	ErrReattemptFailedError  = errors.New("reattempt failed")
 )
 
