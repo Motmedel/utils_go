@@ -14,7 +14,7 @@ var (
 	ErrNon2xxStatusCode      = errors.New("non-2xx status code")
 	ErrEmptyMethod           = errors.New("empty method")
 	ErrEmptyUrl              = errors.New("empty url")
-	ErrEmptyRResponseBody    = errors.New("empty response body")
+	ErrEmptyResponseBody     = errors.New("empty response body")
 	ErrReattemptFailedError  = errors.New("reattempt failed")
 )
 
