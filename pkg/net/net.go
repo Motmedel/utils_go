@@ -19,7 +19,7 @@ const (
 func SplitAddress(address string) (string, int, error) {
 	ip, portString, err := net.SplitHostPort(address)
 	if err != nil {
-		return "", 0, &motmedelErrors.InputError{
+		return "", 0, &motmedelErrors.Error{
 			Message: "An error occurred when splitting an address into host and port.",
 			Cause:   err,
 			Input:   address,
@@ -28,7 +28,7 @@ func SplitAddress(address string) (string, int, error) {
 
 	port, err := strconv.Atoi(portString)
 	if err != nil {
-		return ip, 0, &motmedelErrors.InputError{
+		return ip, 0, &motmedelErrors.Error{
 			Message: "An error occurred when parsing an address port string as an integer.",
 			Cause:   err,
 			Input:   portString,

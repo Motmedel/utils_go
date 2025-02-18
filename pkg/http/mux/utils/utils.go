@@ -34,7 +34,7 @@ func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue stri
 	ifModifiedSinceTimestamp, err := parseLastModifiedTimestamp(ifModifiedSinceValue)
 	if err != nil {
 		return false, &muxErrors.BadIfModifiedSinceTimestamp{
-			InputError: motmedelErrors.InputError{
+			Error: motmedelErrors.Error{
 				Message: "An error occurred when parsing a If-Modified-Since timestamp.",
 				Cause:   err,
 				Input:   ifModifiedSinceValue,
@@ -44,7 +44,7 @@ func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue stri
 
 	lastModifiedTimestamp, err := parseLastModifiedTimestamp(lastModifiedValue)
 	if err != nil {
-		return false, &motmedelErrors.InputError{
+		return false, &motmedelErrors.Error{
 			Message: "An error occurred when parsing a Last-Modified timestamp.",
 			Cause:   err,
 			Input:   lastModifiedValue,

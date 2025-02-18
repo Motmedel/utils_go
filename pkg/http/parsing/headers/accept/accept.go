@@ -26,7 +26,7 @@ var (
 func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 	paths, err := goabnf.Parse(data, AcceptGrammar, "root")
 	if err != nil {
-		return nil, &motmedelErrors.InputError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when parsing data as an accept value.",
 			Cause:   err,
 			Input:   data,
@@ -83,7 +83,7 @@ func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 
 				parsedWeight, err := strconv.ParseFloat(qValueString, 32)
 				if err != nil {
-					return nil, &motmedelErrors.InputError{
+					return nil, &motmedelErrors.Error{
 						Message: "An error occurred when parsing a weight string as a float.",
 						Cause:   err,
 						Input:   qValueString,
@@ -95,7 +95,7 @@ func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 				parameterString := string(parsing_utils.ExtractPathValue(data, parameterPath))
 				key, value, found := strings.Cut(parameterString, "=")
 				if !found {
-					return nil, &motmedelErrors.InputError{
+					return nil, &motmedelErrors.Error{
 						Message: "A parameter value could not be split.",
 						Cause:   ErrCouldNotSplitParameter,
 						Input:   parameterString,

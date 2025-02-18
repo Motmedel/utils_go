@@ -26,7 +26,7 @@ var (
 func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	paths, err := goabnf.Parse(data, RetryAfterGrammar, "root")
 	if err != nil {
-		return nil, &motmedelErrors.InputError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when parsing data as retry after.",
 			Cause:   err,
 			Input:   data,
@@ -49,7 +49,7 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 
 		httpDate, err := time.Parse(time.RFC1123, httpDateString)
 		if err != nil {
-			return nil, &motmedelErrors.InputError{
+			return nil, &motmedelErrors.Error{
 				Message: "An error occurred when parsing an http date string as a RFC1123 timestamp.",
 				Cause:   err,
 				Input:   httpDateString,
@@ -70,7 +70,7 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 
 		delaySeconds, err := strconv.Atoi(delaySecondsString)
 		if err != nil {
-			return nil, &motmedelErrors.InputError{
+			return nil, &motmedelErrors.Error{
 				Message: "An error occurred when parsing a delay seconds string as an integer.",
 				Cause:   err,
 				Input:   delaySecondsString,

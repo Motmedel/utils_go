@@ -25,7 +25,7 @@ var digitRegexp = regexp.MustCompile(`^\d+$`)
 func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error) {
 	paths, err := goabnf.Parse(data, StrictTransportSecurityGrammar, "root")
 	if err != nil {
-		return nil, &motmedelErrors.InputError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when parsing data as a strict transport security policy.",
 			Cause:   err,
 			Input:   data,
@@ -49,7 +49,7 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 		)
 		if directiveNamePath == nil {
 			return nil, nil
-			//return nil, &motmedelErrors.InputError{
+			//return nil, &motmedelErrors.Error{
 			//	Message: "No directive name could be found in an interesting path.",
 			//	Input:   interestingPath,
 			//}
@@ -76,7 +76,7 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 				quotedString := string(parsing_utils.ExtractPathValue(data, quotedStringPath))
 				directiveStringValue, err = strconv.Unquote(quotedString)
 				if err != nil {
-					return nil, &motmedelErrors.InputError{
+					return nil, &motmedelErrors.Error{
 						Message: "An error occurred when unquoting a quoted-string.",
 						Cause:   err,
 						Input:   quotedString,
@@ -91,7 +91,7 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 		if _, ok := directiveNameSet[lowercaseDirectiveName]; ok {
 			return nil, nil
 			//return nil, &MultipleSameNameDirectivesError{
-			//	InputError: motmedelErrors.InputError{
+			//	Error: motmedelErrors.Error{
 			//		Message: "Multiple directives with the same name were encountered.",
 			//		Input:   lowercaseDirectiveName,
 			//	},
@@ -104,7 +104,7 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 			if !digitRegexp.MatchString(directiveStringValue) {
 				return nil, nil
 				//return nil, &BadMaxAgeFormatError{
-				//	InputError: motmedelErrors.InputError{
+				//	Error: motmedelErrors.Error{
 				//		Message: "A max-age directive value is not only digits.",
 				//		Input:   directiveStringValue,
 				//	},
@@ -113,7 +113,7 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 
 			maxAgeNumber, err := strconv.Atoi(directiveStringValue)
 			if err != nil {
-				return nil, &motmedelErrors.InputError{
+				return nil, &motmedelErrors.Error{
 					Message: "An error occurred when parsing a max-age value as an integer.",
 					Cause:   err,
 					Input:   directiveStringValue,
@@ -125,7 +125,7 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 			if directiveValuePath != nil {
 				return nil, nil
 				//return nil, &NonValuelessIncludeSubdomainsError{
-				//	InputError: motmedelErrors.InputError{
+				//	Error: motmedelErrors.Error{
 				//		Message: "An includeSubdomains directive was encounter that is not valueless.",
 				//		Input:   directiveStringValue,
 				//	},
@@ -138,7 +138,7 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 	if _, ok := directiveNameSet[maxAgeDirectiveName]; !ok {
 		return nil, nil
 		//return nil, &MissingMaxAgeError{
-		//	InputError: motmedelErrors.InputError{
+		//	Error: motmedelErrors.Error{
 		//		Message: "The required max-age directive is missing.",
 		//		Input:   data,
 		//	},

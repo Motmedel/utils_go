@@ -49,14 +49,14 @@ func TestRetryAfterDelay(t *testing.T) {
 		t.Fatal("retry after is nil")
 	}
 
-	delaySeconds, ok := retryAfter.WaitTime.(time.Duration)
+	delayDuration, ok := retryAfter.WaitTime.(time.Duration)
 	if !ok {
 		t.Fatal("the wait time could not be converted to int64")
 	}
 
 	expectedDuration := 120 * time.Second
 
-	if delaySeconds != expectedDuration {
+	if delayDuration != expectedDuration {
 		t.Fatal("the delay seconds was not parsed as the correct duration")
 	}
 }

@@ -1,5 +1,12 @@
 package errors
 
+import "errors"
+
+var (
+	ErrSyntaxError   = errors.New("syntax error")
+	ErrSemanticError = errors.New("semantic error")
+)
+
 type CodeErrorI interface {
 	Error() string
 	GetCode() string

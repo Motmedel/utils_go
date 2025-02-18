@@ -41,7 +41,7 @@ func MakeJsonBodyParser[T any, U any](
 				}
 			} else {
 				return nil, &muxTypes.HandlerErrorResponse{
-					ServerError: &motmedelErrors.InputError{
+					ServerError: &motmedelErrors.Error{
 						Message: "An error occurred when parsing data as a map as a step to validate the data.",
 						Cause:   err,
 						Input:   body,
@@ -74,7 +74,7 @@ func MakeJsonBodyParser[T any, U any](
 
 			if err := json.Unmarshal(body, &result); err != nil {
 				return nil, &muxTypes.HandlerErrorResponse{
-					ServerError: &motmedelErrors.InputError{
+					ServerError: &motmedelErrors.Error{
 						Message: "An error occurred when parsing data as the resulting type.",
 						Cause:   err,
 						Input:   body,

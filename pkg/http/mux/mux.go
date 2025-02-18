@@ -109,14 +109,14 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 
 		for bodyChunk, err := range bodyStreamer {
 			if err != nil {
-				return &motmedelErrors.CauseError{
+				return &motmedelErrors.Error{
 					Message: "An error occurred when streaming chunks.",
 					Cause:   err,
 				}
 			}
 
 			if _, err := muxResponseWriter.Write(bodyChunk); err != nil {
-				return &motmedelErrors.CauseError{
+				return &motmedelErrors.Error{
 					Message: "An error occurred when writing a chunk.",
 					Cause:   err,
 				}
@@ -125,14 +125,14 @@ func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.Resp
 		}
 
 		if _, err := muxResponseWriter.Write([]byte{}); err != nil {
-			return &motmedelErrors.CauseError{
+			return &motmedelErrors.Error{
 				Message: "An error occurred when writing an empty chunk.",
 				Cause:   err,
 			}
 		}
 	} else {
 		if _, err := muxResponseWriter.Write(body); err != nil {
-			return &motmedelErrors.CauseError{
+			return &motmedelErrors.Error{
 				Message: "An error occurred when writing a response body.",
 				Cause:   err,
 			}
@@ -368,7 +368,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 					nil,
 					nil,
 					nil,
-					&motmedelErrors.CauseError{
+					&motmedelErrors.Error{
 						Message: "An error occurred when hijacking the connection, in association with a drop verdict.",
 						Cause:   err,
 					},
@@ -424,7 +424,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 				requestBody,
 				nil,
 				nil,
-				&motmedelErrors.CauseError{
+				&motmedelErrors.Error{
 					Message: "An error occurred when writing a response with the custom response writer.",
 					Cause:   writeErr,
 				},
@@ -522,7 +522,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 				if lookupMethod == http.MethodOptions {
 					err := WriteResponse(&muxTypes.ResponseInfo{Headers: headerEntries}, responseWriter)
 					if err != nil {
-						return nil, &motmedelErrors.CauseError{
+						return nil, &motmedelErrors.Error{
 							Message: "An error occurred when writing a default OPTIONS response.",
 							Cause:   err,
 						}
@@ -562,7 +562,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 						nil,
 						nil,
 						nil,
-						&motmedelErrors.CauseError{
+						&motmedelErrors.Error{
 							Message: "An error occurred when extracting a rate limiting key from a request.",
 							Cause:   err,
 						},
@@ -658,7 +658,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 							nil,
 							nil,
 							nil,
-							&motmedelErrors.InputError{
+							&motmedelErrors.Error{
 								Message: "An error occurred when attempting to parse the Content-Type header data.",
 								Cause:   err,
 								Input:   contentTypeBytes,
@@ -727,7 +727,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 							nil,
 						),
 						nil,
-						&motmedelErrors.InputError{
+						&motmedelErrors.Error{
 							Message: "An error occurred when attempting to parse the Content-Length as an unsigned integer.",
 							Cause:   err,
 							Input:   headerValue,
@@ -771,7 +771,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 						nil,
 						nil,
 						nil,
-						&motmedelErrors.CauseError{
+						&motmedelErrors.Error{
 							Message: "An error occurred when reading the request body.",
 							Cause:   err,
 						},
@@ -883,7 +883,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 								nil,
 								nil,
 								nil,
-								&motmedelErrors.CauseError{
+								&motmedelErrors.Error{
 									Message: "An error occurred when checking If-Modified-Since.",
 									Cause:   err,
 								},
@@ -910,7 +910,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 								nil,
 								nil,
 								nil,
-								&motmedelErrors.CauseError{
+								&motmedelErrors.Error{
 									Message: "An error occurred when parsing the Accept-Encoding header.",
 									Cause:   err,
 								},
@@ -977,7 +977,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 				}
 
 				if err := WriteResponse(responseInfo, responseWriter); err != nil {
-					return requestBody, &motmedelErrors.CauseError{
+					return requestBody, &motmedelErrors.Error{
 						Message: "An error occurred when writing a response for a static resource.",
 						Cause:   err,
 					}
@@ -1018,7 +1018,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 					}
 
 					if err := WriteResponse(responseInfo, responseWriter); err != nil {
-						return requestBody, &motmedelErrors.CauseError{
+						return requestBody, &motmedelErrors.Error{
 							Message: "An error occurred when writing a response for a handler.",
 							Cause:   err,
 						}

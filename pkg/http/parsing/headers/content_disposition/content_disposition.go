@@ -35,20 +35,6 @@ var (
 	ErrUnexpectedFilenameLabel            = errors.New("unexpected filename label")
 )
 
-type SemanticError struct {
-	motmedelErrors.InputError
-}
-
-func (semanticError *SemanticError) Is(target error) bool {
-	// TODO: Not sure if this works?
-	_, ok := target.(*SemanticError)
-	return ok
-}
-
-func (semanticError *SemanticError) Error() string {
-	return ErrSemanticError.Error()
-}
-
 func getValue(data []byte, path *goabnf.Path) (string, error) {
 	if path == nil {
 		return "", nil
@@ -67,7 +53,7 @@ func getValue(data []byte, path *goabnf.Path) (string, error) {
 		quotedString := string(parsing_utils.ExtractPathValue(data, quotedStringPath))
 		value, err = strconv.Unquote(quotedString)
 		if err != nil {
-			return "", &motmedelErrors.InputError{
+			return "", &motmedelErrors.Error{
 				Message: "An error occurred when unquoting a quoted-string.",
 				Cause:   err,
 				Input:   quotedString,
@@ -91,7 +77,7 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 
 	paths, err := goabnf.Parse(data, ContentDispositionGrammar, "root")
 	if err != nil {
-		return nil, &motmedelErrors.InputError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when parsing data as a content disposition.",
 			Cause:   err,
 			Input:   data,
@@ -121,36 +107,39 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 		case "filename-parm":
 			subpaths := interestingPath.Subpaths
 			if len(subpaths) < 1 {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: "No label was found for a filename parameter.",
 						Cause:   ErrNoFilenameLabel,
 						Input:   subpaths,
 					},
-				}
+				)
 			}
 
 			labelPath := subpaths[0]
 			if labelPath == nil {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: "A filename label path is nil.",
 						Cause:   ErrNilFilenameLabelPath,
 					},
-				}
+				)
 			}
 
 			filenameLabel := strings.ToLower(string(parsing_utils.ExtractPathValue(data, subpaths[0])))
 			switch filenameLabel {
 			case "filename":
 				if contentDisposition.Filename != "" {
-					return nil, &SemanticError{
-						InputError: motmedelErrors.InputError{
+					return nil, errors.Join(
+						ErrSemanticError,
+						&motmedelErrors.Error{
 							Message: fmt.Sprintf("A duplicate %s label was observed.", filenameLabel),
 							Cause:   ErrDuplicateLabel,
 							Input:   filenameLabel,
 						},
-					}
+					)
 				}
 
 				filenameValuePath := parsing_utils.SearchPathSingle(
@@ -160,17 +149,18 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 					false,
 				)
 				if filenameValuePath == nil {
-					return nil, &SemanticError{
-						InputError: motmedelErrors.InputError{
+					return nil, errors.Join(
+						ErrSemanticError,
+						&motmedelErrors.Error{
 							Message: "No value path was found for the filename parameter.",
 							Cause:   ErrNilFilenameValuePath,
 						},
-					}
+					)
 				}
 
 				value, err := getValue(data, filenameValuePath)
 				if err != nil {
-					return nil, &motmedelErrors.InputError{
+					return nil, &motmedelErrors.Error{
 						Message: "An error occurred when obtaining a parameter value.",
 						Cause:   err,
 						Input:   filenameValuePath,
@@ -180,13 +170,14 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 				contentDisposition.Filename = value
 			case "filename*":
 				if contentDisposition.FilenameAsterisk != "" {
-					return nil, &SemanticError{
-						InputError: motmedelErrors.InputError{
+					return nil, errors.Join(
+						ErrSemanticError,
+						&motmedelErrors.Error{
 							Message: fmt.Sprintf("A duplicate %s label was observed.", filenameLabel),
 							Cause:   ErrDuplicateLabel,
 							Input:   filenameLabel,
 						},
-					}
+					)
 				}
 
 				filenameAsteriskExtValuePath := parsing_utils.SearchPathSingle(
@@ -196,17 +187,18 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 					false,
 				)
 				if filenameAsteriskExtValuePath == nil {
-					return nil, &SemanticError{
-						InputError: motmedelErrors.InputError{
+					return nil, errors.Join(
+						ErrSemanticError,
+						&motmedelErrors.Error{
 							Message: "No value path was found for the filename* parameter.",
 							Cause:   ErrNilFilenameExtValuePath,
 						},
-					}
+					)
 				}
 
 				contentDisposition.FilenameAsterisk = string(parsing_utils.ExtractPathValue(data, filenameAsteriskExtValuePath))
 			default:
-				return nil, &motmedelErrors.InputError{
+				return nil, &motmedelErrors.Error{
 					Message: "An unexpected filename label was observed.",
 					Cause:   ErrUnexpectedFilenameLabel,
 					Input:   filenameLabel,
@@ -215,57 +207,64 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 		case "disp-ext-parm":
 			subpaths := interestingPath.Subpaths
 			if len(subpaths) != 3 {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: "Not enough extension subpaths are present.",
 						Cause:   ErrNotEnoughExtensionSubpaths,
 						Input:   subpaths,
 					},
-				}
+				)
 			}
 
 			labelPath := subpaths[0]
 			if labelPath == nil {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: "An extension label path is nil.",
 						Cause:   ErrNilExtensionLabelPath,
 					},
-				}
+				)
 			}
+
 			label := strings.ToLower(string(parsing_utils.ExtractPathValue(data, labelPath)))
 			if label == "" {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: "An extension label is empty.",
 						Cause:   ErrEmptyExtensionLabel,
 					},
-				}
+				)
 			}
 
 			if _, ok := contentDisposition.ExtensionParameters[label]; ok {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: fmt.Sprintf("A duplicate %s label was observed.", label),
 						Cause:   ErrDuplicateLabel,
 						Input:   label,
 					},
-				}
+				)
+
 			}
 
 			valuePath := subpaths[2]
 			if valuePath == nil {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: "An extension value path is nil.",
 						Cause:   ErrNilExtensionValuePath,
 					},
-				}
+				)
 			}
 
 			value, err := getValue(data, valuePath)
 			if err != nil {
-				return nil, &motmedelErrors.InputError{
+				return nil, &motmedelErrors.Error{
 					Message: "An error occurred when obtaining a parameter value.",
 					Cause:   err,
 					Input:   valuePath,
@@ -273,17 +272,18 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 			}
 
 			if value == "" {
-				return nil, &SemanticError{
-					InputError: motmedelErrors.InputError{
+				return nil, errors.Join(
+					ErrSemanticError,
+					&motmedelErrors.Error{
 						Message: "An extension value is empty.",
 						Cause:   ErrEmptyExtensionValue,
 					},
-				}
+				)
 			}
 
 			contentDisposition.ExtensionParameters[label] = value
 		default:
-			return nil, &motmedelErrors.InputError{
+			return nil, &motmedelErrors.Error{
 				Message: "An unexpected interesting path match rule was observed.",
 				Cause:   ErrUnexpectedInterestingPathMatchRule,
 				Input:   interestingPathMatchRule,

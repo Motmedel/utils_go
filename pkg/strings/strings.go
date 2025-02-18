@@ -35,7 +35,7 @@ func MakeTextualRepresentation(value any) (string, error) {
 		if tm, ok := value.(encoding.TextMarshaler); ok {
 			data, err := tm.MarshalText()
 			if err != nil {
-				return "", &motmedelErrors.CauseError{
+				return "", &motmedelErrors.Error{
 					Message: "An error occurred when making a textual representation using TextMarshaler.",
 					Cause:   err,
 				}

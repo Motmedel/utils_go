@@ -37,7 +37,7 @@ func (archive Archive) Bytes() ([]byte, error) {
 		}
 
 		if err := tarWriter.WriteHeader(header); err != nil {
-			return nil, &motmedelErrors.InputError{
+			return nil, &motmedelErrors.Error{
 				Message: "An error occurred when writing a tar header.",
 				Cause:   err,
 				Input:   header,
@@ -50,7 +50,7 @@ func (archive Archive) Bytes() ([]byte, error) {
 		}
 
 		if _, err := io.Copy(tarWriter, bytes.NewReader(content)); err != nil {
-			return nil, &motmedelErrors.CauseError{
+			return nil, &motmedelErrors.Error{
 				Message: "An error occurred when writing tar header file content.",
 				Cause:   err,
 			}
@@ -58,7 +58,7 @@ func (archive Archive) Bytes() ([]byte, error) {
 	}
 
 	if err := tarWriter.Close(); err != nil {
-		return nil, &motmedelErrors.CauseError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when flushing the tar writer.",
 			Cause:   err,
 		}
@@ -87,7 +87,7 @@ func (archive Archive) Filter(patterns ...string) (Archive, error) {
 
 			patternMatches, err := filepath.Match(pattern, path)
 			if err != nil {
-				return nil, &motmedelErrors.InputError{
+				return nil, &motmedelErrors.Error{
 					Message: "An error occurred when matching a path.",
 					Cause:   err,
 					Input:   []any{pattern, path},

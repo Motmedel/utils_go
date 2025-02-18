@@ -22,7 +22,7 @@ func MakeArchiveFromReader(reader io.Reader) (motmedelTarTypes.Archive, error) {
 			if err == io.EOF {
 				break
 			}
-			return nil, &motmedelErrors.CauseError{
+			return nil, &motmedelErrors.Error{
 				Message: "An error occurred when obtaining an entry in the tar archive.",
 				Cause:   err,
 			}
@@ -33,7 +33,7 @@ func MakeArchiveFromReader(reader io.Reader) (motmedelTarTypes.Archive, error) {
 
 		content, err := io.ReadAll(tarReader)
 		if err != nil {
-			return nil, &motmedelErrors.CauseError{
+			return nil, &motmedelErrors.Error{
 				Message: "An error occurred when reading header file content.",
 				Cause:   err,
 			}
@@ -52,7 +52,7 @@ func MakeArchiveFrommData(data []byte) (motmedelTarTypes.Archive, error) {
 
 	archive, err := MakeArchiveFromReader(bytes.NewReader(data))
 	if err != nil {
-		return nil, &motmedelErrors.CauseError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when making a tar map from a reader.",
 			Cause:   err,
 		}

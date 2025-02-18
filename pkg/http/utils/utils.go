@@ -75,7 +75,7 @@ func handleRequest(request *http.Request, httpClient HttpClient) (*http.Response
 
 	response, err := httpClient.Do(request)
 	if err != nil {
-		return nil, nil, &motmedelErrors.CauseError{
+		return nil, nil, &motmedelErrors.Error{
 			Message: "An error occurred when performing the request.",
 			Cause:   err,
 		}
@@ -88,7 +88,7 @@ func handleRequest(request *http.Request, httpClient HttpClient) (*http.Response
 
 	responseBodyData, err := io.ReadAll(responseBody)
 	if err != nil {
-		return response, nil, &motmedelErrors.CauseError{
+		return response, nil, &motmedelErrors.Error{
 			Message: "An error occurred when reading the response body.",
 			Cause:   err,
 		}
@@ -118,7 +118,7 @@ func SendRequest(
 
 	request, err := http.NewRequest(method, url, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return nil, &motmedelErrors.CauseError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when creating a request.",
 			Cause:   err,
 		}
@@ -129,7 +129,7 @@ func SendRequest(
 
 	if addToRequest != nil {
 		if err = addToRequest(request); err != nil {
-			return nil, &motmedelErrors.CauseError{
+			return nil, &motmedelErrors.Error{
 				Message: "An error occurred when adding to a request.",
 				Cause:   err,
 			}
@@ -225,7 +225,7 @@ func SendRequest(
 	httpContext.Response = response
 
 	if err != nil {
-		return httpContext, &motmedelErrors.InputError{
+		return httpContext, &motmedelErrors.Error{
 			Message: "An error occurred when handling an http request.",
 			Cause:   err,
 			Input:   request,
@@ -261,7 +261,7 @@ func SendJsonRequestResponse[T any, U any](
 
 	requestBody, err := json.Marshal(bodyValue)
 	if err != nil {
-		return nil, nil, &motmedelErrors.InputError{
+		return nil, nil, &motmedelErrors.Error{
 			Message: "An error occurred when marshalling the body value.",
 			Cause:   err,
 			Input:   bodyValue,
@@ -270,7 +270,7 @@ func SendJsonRequestResponse[T any, U any](
 
 	httpContext, err := SendRequest(httpClient, method, url, requestBody, addToRequest)
 	if err != nil {
-		return nil, httpContext, &motmedelErrors.InputError{
+		return nil, httpContext, &motmedelErrors.Error{
 			Message: "An error occurred when sending the request.",
 			Cause:   err,
 			Input:   []any{httpClient, method, url, requestBody},
@@ -287,7 +287,7 @@ func SendJsonRequestResponse[T any, U any](
 
 	var responseValue *U
 	if err = json.Unmarshal(responseBody, &responseValue); err != nil {
-		return nil, httpContext, &motmedelErrors.InputError{
+		return nil, httpContext, &motmedelErrors.Error{
 			Message: "An error occurred when unmarshalling the response body.",
 			Cause:   err,
 			Input:   responseBody,

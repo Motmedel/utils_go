@@ -21,7 +21,7 @@ var (
 )
 
 type BadQvalueError struct {
-	motmedelErrors.InputError
+	motmedelErrors.Error
 }
 
 func (badQvalueError *BadQvalueError) Is(target error) bool {
@@ -31,7 +31,7 @@ func (badQvalueError *BadQvalueError) Is(target error) bool {
 func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error) {
 	paths, err := goabnf.Parse(data, AcceptEncodingGrammar, "root")
 	if err != nil {
-		return nil, &motmedelErrors.InputError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when parsing data as an accept encoding.",
 			Cause:   err,
 			Input:   data,
@@ -71,7 +71,7 @@ func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error)
 			parsedQualityValue, err := strconv.ParseFloat(qvalueString, 32)
 			if err != nil {
 				return nil, &BadQvalueError{
-					InputError: motmedelErrors.InputError{
+					Error: motmedelErrors.Error{
 						Message: "A qvalue could not be parsed as a float.",
 						Cause:   err,
 						Input:   qvalueString,

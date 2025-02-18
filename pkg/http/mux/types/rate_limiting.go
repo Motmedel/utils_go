@@ -50,7 +50,7 @@ func DefaultGetRateLimitingKey(request *http.Request) (string, error) {
 	remoteAddr := request.RemoteAddr
 	ipAddress, _, err := motmedelNet.SplitAddress(remoteAddr)
 	if err != nil {
-		return "", &errors.InputError{
+		return "", &errors.Error{
 			Message: "An error occurred when splitting a remote address.",
 			Cause:   err,
 			Input:   remoteAddr,

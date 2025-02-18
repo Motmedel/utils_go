@@ -19,7 +19,7 @@ var (
 )
 
 type BadIfModifiedSinceTimestamp struct {
-	motmedelErrors.InputError
+	motmedelErrors.Error
 }
 
 func (badIfModifiedSinceTimestamp *BadIfModifiedSinceTimestamp) Is(target error) bool {

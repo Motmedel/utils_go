@@ -18,7 +18,7 @@ var ContentTypeGrammar *goabnf.Grammar
 func ParseContentType(data []byte) (*motmedelHttpTypes.ContentType, error) {
 	paths, err := goabnf.Parse(data, ContentTypeGrammar, "root")
 	if err != nil {
-		return nil, &motmedelErrors.InputError{
+		return nil, &motmedelErrors.Error{
 			Message: "An error occurred when parsing data as a content type.",
 			Cause:   err,
 			Input:   data,
@@ -52,7 +52,7 @@ func ParseContentType(data []byte) (*motmedelHttpTypes.ContentType, error) {
 				quotedString := string(parsing_utils.ExtractPathValue(data, quotedStringPath))
 				parameterValue, err = strconv.Unquote(quotedString)
 				if err != nil {
-					return nil, &motmedelErrors.InputError{
+					return nil, &motmedelErrors.Error{
 						Message: "An error occurred when unquoting a quoted-string.",
 						Cause:   err,
 						Input:   quotedString,
