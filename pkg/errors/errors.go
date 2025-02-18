@@ -1,14 +1,17 @@
 package errors
 
 type CodeErrorI interface {
+	Error() string
 	GetCode() string
 }
 
 type IdErrorI interface {
+	Error() string
 	GetId() string
 }
 
 type StackTraceErrorI interface {
+	Error() string
 	GetStackTrace() string
 }
 
@@ -18,56 +21,49 @@ type CauseErrorI interface {
 	Unwrap() error
 }
 
-type CauseError struct {
-	Message string
-	Cause   error
-}
-
-func (causeError *CauseError) Error() string {
-	return causeError.Message
-}
-
-func (causeError *CauseError) GetCause() error {
-	return causeError.Cause
-}
-
-func (causeError *CauseError) Is(target error) bool {
-	_, ok := target.(*CauseError)
-	return ok
-}
-
-func (causeError *CauseError) Unwrap() error {
-	return causeError.Cause
-}
-
 type InputErrorI interface {
 	Error() string
 	GetInput() any
 }
 
-type InputError struct {
-	Message string
-	Cause   error
-	Input   any
+type Error struct {
+	Message    string
+	Cause      error
+	Input      any
+	Code       string
+	Id         string
+	StackTrace string
 }
 
-func (inputError *InputError) Error() string {
-	return inputError.Message
+func (err *Error) Error() string {
+	return err.Message
 }
 
-func (inputError *InputError) GetCause() error {
-	return inputError.Cause
+func (err *Error) GetCause() error {
+	return err.Cause
 }
 
-func (inputError *InputError) GetInput() any {
-	return inputError.Input
+func (err *Error) GetInput() any {
+	return err.Input
 }
 
-func (inputError *InputError) Unwrap() error {
-	return inputError.Cause
+func (err *Error) GetCode() string {
+	return err.Code
 }
 
-func (inputError *InputError) Is(target error) bool {
-	_, ok := target.(*InputError)
+func (err *Error) GetId() string {
+	return err.Id
+}
+
+func (err *Error) GetStackTrace() string {
+	return err.StackTrace
+}
+
+func (err *Error) Unwrap() error {
+	return err.Cause
+}
+
+func (err *Error) Is(target error) bool {
+	_, ok := target.(*Error)
 	return ok
 }
