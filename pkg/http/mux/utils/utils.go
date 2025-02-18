@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"crypto/tls"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/http/mux"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -105,5 +108,36 @@ func GetMatchingContentEncoding(
 		return AcceptContentIdentityIdentifier
 	} else {
 		return ""
+	}
+}
+
+func MakeVhostHttpServer(hostToSpecification map[string]*mux.VhostMuxSpecification) *http.Server {
+	vhostMux := &mux.VhostMux{HostToSpecification: hostToSpecification}
+
+	return &http.Server{
+		Handler: vhostMux,
+		TLSConfig: &tls.Config{
+			GetCertificate: func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				if clientHello == nil {
+					return nil, nil
+				}
+
+				serverName := clientHello.ServerName
+				if serverName == "" {
+					return nil, nil
+				}
+
+				if hostToSpecification == nil {
+					return nil, muxErrors.ErrNilHostToMuxSpecification
+				}
+
+				specification, ok := hostToSpecification[serverName]
+				if !ok || specification == nil {
+					return nil, nil
+				}
+
+				return specification.Certificate, nil
+			},
+		},
 	}
 }

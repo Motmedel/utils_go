@@ -2,6 +2,7 @@ package mux
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1071,8 +1072,9 @@ func (mux *Mux) Delete(specifications ...*muxTypes.HandlerSpecification) {
 }
 
 type VhostMuxSpecification struct {
-	Mux        *Mux
-	RedirectTo string
+	Mux         *Mux
+	RedirectTo  string
+	Certificate *tls.Certificate
 }
 
 type VhostMux struct {
