@@ -13,6 +13,9 @@ var (
 	ErrBadIfModifiedSinceTimestamp           = errors.New("bad If-Modified-Since timestamp")
 	ErrNoResponseWriterFlusher               = errors.New("no response writer flusher")
 	ErrTransferEncodingAlreadySet            = errors.New("transfer encoding already set")
+	ErrNilHostToMuxSpecification             = errors.New("nil host to mux specification")
+	ErrNilMuxSpecification                   = errors.New("nil mux specification")
+	ErrUnusableMuxSpecification              = errors.New("unusable mux specification")
 )
 
 type BadIfModifiedSinceTimestamp struct {
