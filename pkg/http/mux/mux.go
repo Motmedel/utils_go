@@ -283,7 +283,6 @@ func (bm *baseMux) ServeHttpWithCallback(
 	request *http.Request,
 	callback func(*muxTypes.ResponseWriter, *http.Request) ([]byte, error),
 ) {
-
 	if originalResponseWriter == nil {
 		return
 	}
@@ -1172,4 +1171,40 @@ func (vhostMux *VhostMux) ServeHTTP(responseWriter http.ResponseWriter, request 
 			return nil, nil
 		},
 	)
+}
+
+// TODO: I should restructure this file. Moving this to utils currently incurs an import cycle.
+
+func MakeVhostHttpServerWithVhostMux(vhostMux *VhostMux) *http.Server {
+	if vhostMux == nil {
+		return nil
+	}
+
+	hostToSpecification := vhostMux.HostToSpecification
+
+	return &http.Server{
+		Handler: vhostMux,
+		TLSConfig: &tls.Config{
+			GetCertificate: func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				if clientHello == nil {
+					return nil, nil
+				}
+
+				if hostToSpecification == nil {
+					return nil, muxErrors.ErrNilHostToMuxSpecification
+				}
+
+				specification, ok := hostToSpecification[clientHello.ServerName]
+				if !ok || specification == nil {
+					return nil, nil
+				}
+
+				return specification.Certificate, nil
+			},
+		},
+	}
+}
+
+func MakeVhostHttpServer(hostToSpecification map[string]*VhostMuxSpecification) *http.Server {
+	return MakeVhostHttpServerWithVhostMux(&VhostMux{HostToSpecification: hostToSpecification})
 }
