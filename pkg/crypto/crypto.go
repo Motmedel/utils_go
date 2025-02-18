@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 )
@@ -20,10 +21,14 @@ func MakeRawDerCertificateChain(certificates []*x509.Certificate) [][]byte {
 	return certificateChain
 }
 
-func MakeTlsCertificateFromX509Certificates(certificates []*x509.Certificate) *tls.Certificate {
+func MakeTlsCertificateFromX509Certificates(certificates []*x509.Certificate, key crypto.PrivateKey) *tls.Certificate {
 	if len(certificates) == 0 {
 		return nil
 	}
 
-	return &tls.Certificate{Certificate: MakeRawDerCertificateChain(certificates), Leaf: certificates[0]}
+	return &tls.Certificate{
+		Certificate: MakeRawDerCertificateChain(certificates),
+		PrivateKey:  key,
+		Leaf:        certificates[0],
+	}
 }
