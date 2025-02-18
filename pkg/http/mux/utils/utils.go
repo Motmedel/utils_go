@@ -111,8 +111,12 @@ func GetMatchingContentEncoding(
 	}
 }
 
-func MakeVhostHttpServer(hostToSpecification map[string]*mux.VhostMuxSpecification) *http.Server {
-	vhostMux := &mux.VhostMux{HostToSpecification: hostToSpecification}
+func MakeVhostHttpServerWithVhostMux(vhostMux *mux.VhostMux) *http.Server {
+	if vhostMux == nil {
+		return nil
+	}
+
+	hostToSpecification := vhostMux.HostToSpecification
 
 	return &http.Server{
 		Handler: vhostMux,
@@ -122,16 +126,11 @@ func MakeVhostHttpServer(hostToSpecification map[string]*mux.VhostMuxSpecificati
 					return nil, nil
 				}
 
-				serverName := clientHello.ServerName
-				if serverName == "" {
-					return nil, nil
-				}
-
 				if hostToSpecification == nil {
 					return nil, muxErrors.ErrNilHostToMuxSpecification
 				}
 
-				specification, ok := hostToSpecification[serverName]
+				specification, ok := hostToSpecification[clientHello.ServerName]
 				if !ok || specification == nil {
 					return nil, nil
 				}
@@ -140,4 +139,8 @@ func MakeVhostHttpServer(hostToSpecification map[string]*mux.VhostMuxSpecificati
 			},
 		},
 	}
+}
+
+func MakeVhostHttpServer(hostToSpecification map[string]*mux.VhostMuxSpecification) *http.Server {
+	return MakeVhostHttpServerWithVhostMux(&mux.VhostMux{HostToSpecification: hostToSpecification})
 }
