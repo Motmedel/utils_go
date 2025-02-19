@@ -52,7 +52,7 @@ func CollectWrappedErrors(err error) []error {
 	return results
 }
 
-func removeExactFunction(stackTrace, funcName string) string {
+func removeFunctionFromStackTrace(stackTrace, funcName string) string {
 	lines := strings.Split(stackTrace, "\n")
 	filtered := make([]string, 0, len(lines))
 
@@ -68,14 +68,14 @@ func removeExactFunction(stackTrace, funcName string) string {
 	return strings.Join(filtered, "\n")
 }
 
-func getFunctionName(i interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+func getFunctionName(f any) string {
+	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }
 
 func CaptureStackTrace() string {
 	buf := make([]byte, 64<<10)
 	return strings.TrimSpace(
-		removeExactFunction(string(buf[:runtime.Stack(buf, false)]), getFunctionName(CaptureStackTrace)),
+		removeFunctionFromStackTrace(string(buf[:runtime.Stack(buf, false)]), getFunctionName(CaptureStackTrace)),
 	)
 }
 
@@ -171,7 +171,7 @@ func (err *ExtendedError) GetStackTrace() string {
 	return err.StackTrace
 }
 
-func MakeInputError(e any, input ...any) *ExtendedError {
+func MakeError(e any, input ...any) *ExtendedError {
 	var err error
 
 	// Expecting `e` to be an `error` or a string. If not, make it a string.
@@ -192,11 +192,11 @@ func MakeInputError(e any, input ...any) *ExtendedError {
 	return &ExtendedError{error: err, Input: errInput}
 }
 
-func MakeInputErrorWithStackTrace(e any, input ...any) *ExtendedError {
-	extendedErr := MakeInputError(e, input...)
-	extendedErr.StackTrace = removeExactFunction(
+func MakeErrorWithStackTrace(e any, input ...any) *ExtendedError {
+	extendedErr := MakeError(e, input...)
+	extendedErr.StackTrace = removeFunctionFromStackTrace(
 		CaptureStackTrace(),
-		getFunctionName(MakeInputErrorWithStackTrace),
+		getFunctionName(MakeErrorWithStackTrace),
 	)
 
 	return extendedErr
