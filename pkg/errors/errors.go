@@ -1,6 +1,11 @@
 package errors
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+	"runtime"
+	"strings"
+)
 
 var (
 	ErrSyntaxError   = errors.New("syntax error")
@@ -44,6 +49,35 @@ func CollectWrappedErrors(err error) []error {
 	}
 
 	return results
+}
+
+func removeExactFunction(stackTrace, funcName string) string {
+	lines := strings.Split(stackTrace, "\n")
+	filtered := make([]string, 0, len(lines))
+
+	for i := 0; i < len(lines); i++ {
+		// Check if the line matches the function signature (e.g., "main.funcName()")
+		if strings.HasPrefix(lines[i], funcName+"()") {
+			// Skip this line and the next line (file/line info)
+			i++
+		} else {
+			filtered = append(filtered, lines[i])
+		}
+	}
+	return strings.Join(filtered, "\n")
+}
+
+func CaptureStackTrace(format bool) string {
+	buf := make([]byte, 64<<10)
+	buf = buf[:runtime.Stack(buf, false)]
+
+	stackTrace := string(buf)
+
+	if format {
+		stackTrace = removeExactFunction("errors.CaptureStackTrace", stackTrace)
+	}
+
+	return stackTrace
 }
 
 type CodeErrorI interface {
@@ -112,4 +146,59 @@ func (err *Error) Unwrap() error {
 func (err *Error) Is(target error) bool {
 	_, ok := target.(*Error)
 	return ok
+}
+
+type ExtendedError struct {
+	error
+	Input      any
+	Code       string
+	Id         string
+	StackTrace string
+}
+
+func (err *ExtendedError) GetInput() any {
+	return err.Input
+}
+
+func (err *ExtendedError) GetCode() string {
+	return err.Code
+}
+
+func (err *ExtendedError) GetId() string {
+	return err.Id
+}
+
+func (err *ExtendedError) GetStackTrace() string {
+	return err.StackTrace
+}
+
+func MakeInputError(e any, input ...any) *ExtendedError {
+	var err error
+
+	// Expecting `e` to be an `error` or a string. If not, make it a string.
+	switch typedE := e.(type) {
+	case error:
+		err = typedE
+	case string:
+		err = errors.New(typedE)
+	default:
+		err = errors.New(fmt.Sprintf("%v", typedE))
+	}
+
+	var errInput any = input
+	if len(input) == 1 {
+		errInput = input[0]
+	}
+
+	return &ExtendedError{error: err, Input: errInput}
+}
+
+func MakeInputErrorWithStackTrace(e any, input ...any) *ExtendedError {
+	extendedErr := MakeInputError(e, input...)
+	extendedErr.StackTrace = removeExactFunction(
+		CaptureStackTrace(true),
+		"errors.MakeInputErrorWithStackTrace",
+	)
+
+	return extendedErr
 }
