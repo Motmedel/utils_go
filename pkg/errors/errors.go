@@ -3,6 +3,7 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 	"strings"
 )
@@ -57,7 +58,7 @@ func removeExactFunction(stackTrace, funcName string) string {
 
 	for i := 0; i < len(lines); i++ {
 		// Check if the line matches the function signature (e.g., "main.funcName()")
-		if strings.HasPrefix(lines[i], funcName+"()") {
+		if strings.HasPrefix(lines[i], funcName+"(") {
 			// Skip this line and the next line (file/line info)
 			i++
 		} else {
@@ -67,6 +68,10 @@ func removeExactFunction(stackTrace, funcName string) string {
 	return strings.Join(filtered, "\n")
 }
 
+func getFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
 func CaptureStackTrace(format bool) string {
 	buf := make([]byte, 64<<10)
 	buf = buf[:runtime.Stack(buf, false)]
@@ -74,7 +79,7 @@ func CaptureStackTrace(format bool) string {
 	stackTrace := string(buf)
 
 	if format {
-		stackTrace = removeExactFunction("errors.CaptureStackTrace", stackTrace)
+		stackTrace = removeExactFunction(stackTrace, getFunctionName(CaptureStackTrace))
 	}
 
 	return stackTrace
@@ -197,7 +202,7 @@ func MakeInputErrorWithStackTrace(e any, input ...any) *ExtendedError {
 	extendedErr := MakeInputError(e, input...)
 	extendedErr.StackTrace = removeExactFunction(
 		CaptureStackTrace(true),
-		"errors.MakeInputErrorWithStackTrace",
+		getFunctionName(MakeInputErrorWithStackTrace),
 	)
 
 	return extendedErr

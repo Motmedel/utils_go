@@ -59,7 +59,7 @@ func makeErrorAttrs(err error) []any {
 	var attrs []any
 
 	switch errType {
-	case "*errors.errorString", "*fmt.wrapError":
+	case "*errors.errorString", "*fmt.wrapError", "*errors.ExtendedError":
 		break
 	default:
 		attrs = append(attrs, slog.String("type", errType))
