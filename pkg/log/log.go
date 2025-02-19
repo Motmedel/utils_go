@@ -56,7 +56,14 @@ func makeErrorAttrs(err error) []any {
 	errorMessage := err.Error()
 	errType := reflect.TypeOf(err).String()
 
-	attrs := []any{slog.String("type", errType)}
+	var attrs []any
+
+	switch errType {
+	case "*errors.errorString", "*fmt.wrapError":
+		break
+	default:
+		attrs = append(attrs, slog.String("type", errType))
+	}
 
 	if inputError, ok := err.(motmedelErrors.InputErrorI); ok {
 		if input := inputError.GetInput(); input != nil {
