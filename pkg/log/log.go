@@ -96,7 +96,7 @@ func makeErrorAttrs(err error) []any {
 			continue
 		}
 
-		switch reflect.TypeOf(err).String() {
+		switch reflect.TypeOf(wrappedError).String() {
 		case "*errors.joinError", "*fmt.wrapError":
 			continue
 		}
