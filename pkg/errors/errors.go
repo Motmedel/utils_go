@@ -24,7 +24,7 @@ func CollectWrappedErrors(err error) []error {
 			results = append(results, poppedErr)
 		}
 
-		switch typedErr := err.(type) {
+		switch typedErr := poppedErr.(type) {
 		case interface{ Unwrap() error }:
 			unwrappedErr := typedErr.Unwrap()
 			if unwrappedErr == nil {
