@@ -205,3 +205,21 @@ func MakeErrorWithStackTrace(e any, input ...any) *ExtendedError {
 
 	return extendedErr
 }
+
+func IsAny(err error, targets ...error) bool {
+	for _, target := range targets {
+		if errors.Is(err, target) {
+			return true
+		}
+	}
+	return false
+}
+
+func IsAll(err error, targets ...error) bool {
+	for _, target := range targets {
+		if !errors.Is(err, target) {
+			return false
+		}
+	}
+	return true
+}
