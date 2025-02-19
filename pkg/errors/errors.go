@@ -72,17 +72,11 @@ func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
-func CaptureStackTrace(format bool) string {
+func CaptureStackTrace() string {
 	buf := make([]byte, 64<<10)
-	buf = buf[:runtime.Stack(buf, false)]
-
-	stackTrace := string(buf)
-
-	if format {
-		stackTrace = removeExactFunction(stackTrace, getFunctionName(CaptureStackTrace))
-	}
-
-	return strings.TrimSpace(stackTrace)
+	return strings.TrimSpace(
+		removeExactFunction(string(buf[:runtime.Stack(buf, false)]), getFunctionName(CaptureStackTrace)),
+	)
 }
 
 type CodeErrorI interface {
@@ -201,7 +195,7 @@ func MakeInputError(e any, input ...any) *ExtendedError {
 func MakeInputErrorWithStackTrace(e any, input ...any) *ExtendedError {
 	extendedErr := MakeInputError(e, input...)
 	extendedErr.StackTrace = removeExactFunction(
-		CaptureStackTrace(true),
+		CaptureStackTrace(),
 		getFunctionName(MakeInputErrorWithStackTrace),
 	)
 
