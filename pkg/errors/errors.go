@@ -82,7 +82,7 @@ func CaptureStackTrace(format bool) string {
 		stackTrace = removeExactFunction(stackTrace, getFunctionName(CaptureStackTrace))
 	}
 
-	return stackTrace
+	return strings.TrimSpace(stackTrace)
 }
 
 type CodeErrorI interface {
