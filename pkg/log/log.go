@@ -54,8 +54,9 @@ func makeErrorAttrs(err error) []any {
 	}
 
 	errorMessage := err.Error()
+	errType := reflect.TypeOf(err).String()
 
-	attrs := []any{slog.String("type", reflect.TypeOf(err).String())}
+	attrs := []any{slog.String("type", errType)}
 
 	if inputError, ok := err.(motmedelErrors.InputErrorI); ok {
 		if input := inputError.GetInput(); input != nil {
@@ -86,21 +87,17 @@ func makeErrorAttrs(err error) []any {
 		}
 	}
 
-	var wrappedErrors []error
-
-	if causeError, ok := err.(motmedelErrors.CauseErrorI); ok {
-		if cause := causeError.GetCause(); cause != nil {
-			wrappedErrors = append(wrappedErrors, cause)
-		}
-	}
-
-	wrappedErrors = append(wrappedErrors, motmedelErrors.CollectWrappedErrors(err)...)
-
+	wrappedErrors := motmedelErrors.CollectWrappedErrors(err)
 	var lastWrappedErrorAttrs []any
 
 	for i := len(wrappedErrors) - 1; i >= 0; i-- {
 		wrappedError := wrappedErrors[i]
 		if wrappedError == nil {
+			continue
+		}
+
+		switch reflect.TypeOf(err).String() {
+		case "*errors.joinError", "*fmt.wrapError":
 			continue
 		}
 
@@ -117,6 +114,9 @@ func makeErrorAttrs(err error) []any {
 	}
 
 	if lastWrappedErrorAttrs != nil {
+		if errType == "*errors.joinError" {
+			return lastWrappedErrorAttrs
+		}
 		attrs = append(attrs, slog.Group("cause", lastWrappedErrorAttrs...))
 	}
 
