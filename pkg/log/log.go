@@ -204,3 +204,23 @@ func LogFatalWithExitingMessage(message string, err error, logger *slog.Logger) 
 func LogFatal(message string, err error, logger *slog.Logger) {
 	LogFatalWithExitCode(message, err, logger, 1)
 }
+
+type Logger struct {
+	*slog.Logger
+}
+
+func (logger *Logger) Error(message string, err error) {
+	LogError(message, err, logger.Logger)
+}
+
+func (logger *Logger) Warning(message string, err error) {
+	LogError(message, err, logger.Logger)
+}
+
+func (logger *Logger) Fatal(message string, err error) {
+	LogFatalWithExitCode(message, err, logger.Logger, 1)
+}
+
+func (logger *Logger) FatalWithExitingMessage(message string, err error) {
+	LogFatalWithExitCode(fmt.Sprintf("%s Exiting.", message), err, logger.Logger, 1)
+}
