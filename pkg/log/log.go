@@ -86,10 +86,38 @@ func makeErrorAttrs(err error) []any {
 		}
 	}
 
+	var wrappedErrors []error
+
 	if causeError, ok := err.(motmedelErrors.CauseErrorI); ok {
 		if cause := causeError.GetCause(); cause != nil {
-			attrs = append(attrs, slog.Group("cause", makeErrorAttrs(cause)...))
+			wrappedErrors = append(wrappedErrors, cause)
 		}
+	}
+
+	wrappedErrors = append(wrappedErrors, motmedelErrors.CollectWrappedErrors(err)...)
+
+	var lastWrappedErrorAttrs []any
+
+	for i := len(wrappedErrors) - 1; i >= 0; i-- {
+		wrappedError := wrappedErrors[i]
+		if wrappedError == nil {
+			continue
+		}
+
+		wrappedErrorAttrs := makeErrorAttrs(wrappedError)
+
+		if lastWrappedErrorAttrs != nil {
+			wrappedErrorAttrs = append(
+				wrappedErrorAttrs,
+				slog.Group("cause", lastWrappedErrorAttrs...),
+			)
+		}
+
+		lastWrappedErrorAttrs = wrappedErrorAttrs
+	}
+
+	if lastWrappedErrorAttrs != nil {
+		attrs = append(attrs, slog.Group("cause", lastWrappedErrorAttrs...))
 	}
 
 	if codeError, ok := err.(motmedelErrors.CodeErrorI); ok {

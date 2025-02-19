@@ -7,6 +7,45 @@ var (
 	ErrSemanticError = errors.New("semantic error")
 )
 
+func CollectWrappedErrors(err error) []error {
+	var results []error
+
+	queue := []error{err}
+
+	for len(queue) > 0 {
+		poppedErr := queue[0]
+		queue = queue[1:]
+
+		if poppedErr == nil {
+			continue
+		}
+
+		if poppedErr != err {
+			results = append(results, poppedErr)
+		}
+
+		switch typedErr := err.(type) {
+		case interface{ Unwrap() error }:
+			unwrappedErr := typedErr.Unwrap()
+			if unwrappedErr == nil {
+				continue
+			}
+
+			queue = append(queue, unwrappedErr)
+		case interface{ Unwrap() []error }:
+			for _, unwrappedErr := range typedErr.Unwrap() {
+				if unwrappedErr == nil {
+					continue
+				}
+
+				queue = append(queue, unwrappedErr)
+			}
+		}
+	}
+
+	return results
+}
+
 type CodeErrorI interface {
 	Error() string
 	GetCode() string
