@@ -16,7 +16,6 @@ import (
 	"testing"
 )
 
-// Global test server variable that can be used by multiple tests.
 var httpServer *httptest.Server
 
 func TestMain(m *testing.M) {
@@ -83,6 +82,7 @@ func TestMux(t *testing.T) {
 				Status: http.StatusNotFound,
 			},
 		},
+		// TODO: Check if body is read (respond with request body)
 		// TODO: Test method mismatch
 		// TODO: Test body parser
 	}
