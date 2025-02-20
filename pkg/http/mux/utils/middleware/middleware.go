@@ -1,7 +1,8 @@
-package utils
+package middleware
 
 import (
 	"context"
+	muxTypesMiddleware "github.com/Motmedel/utils_go/pkg/http/mux/types/middleware"
 	motmedelHttpParsingAccept "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept"
 	"net/http"
 )
@@ -10,9 +11,7 @@ type acceptMediaRangesContextType struct{}
 
 var AcceptMediaRangesContextKey acceptMediaRangesContextType
 
-type Middleware func(request *http.Request) *http.Request
-
-var AcceptMiddleware Middleware = func(request *http.Request) *http.Request {
+var AcceptMiddleware muxTypesMiddleware.Middleware = func(request *http.Request) *http.Request {
 	if request == nil {
 		return nil
 	}

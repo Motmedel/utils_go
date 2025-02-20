@@ -1,10 +1,14 @@
-package types
+package static_content
+
+import (
+	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
+)
 
 type StaticContentData struct {
 	Data         []byte
 	Etag         string
 	LastModified string
-	Headers      []*HeaderEntry
+	Headers      []*muxTypesResponse.HeaderEntry
 }
 
 type StaticContent struct {

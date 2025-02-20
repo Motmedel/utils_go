@@ -1,0 +1,119 @@
+package mux
+
+import (
+	"crypto/tls"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
+	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
+	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
+	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"net"
+	"net/http"
+)
+
+type VhostMuxSpecification struct {
+	Mux         *Mux
+	RedirectTo  string
+	Certificate *tls.Certificate
+}
+
+type VhostMux struct {
+	baseMux
+	HostToSpecification map[string]*VhostMuxSpecification
+}
+
+func (vhostMux *VhostMux) MakeHttpServer() *http.Server {
+	return &http.Server{
+		Handler: vhostMux,
+		TLSConfig: &tls.Config{
+			GetCertificate: func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				if clientHello == nil {
+					return nil, nil
+				}
+
+				hostToSpecification := vhostMux.HostToSpecification
+				if hostToSpecification == nil {
+					return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilHostToMuxSpecification)
+				}
+
+				specification, ok := hostToSpecification[clientHello.ServerName]
+				if !ok || specification == nil {
+					return nil, nil
+				}
+
+				return specification.Certificate, nil
+			},
+		},
+	}
+}
+
+func vhostMuxHandleRequest(vhostMux *VhostMux, request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+	if vhostMux == nil {
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilVhostMux),
+		}
+	}
+
+	if request == nil {
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest),
+		}
+	}
+
+	host, _, err := net.SplitHostPort(request.Host)
+	if err != nil {
+		host = request.Host
+	}
+
+	hostToSpecification := vhostMux.HostToSpecification
+	if hostToSpecification == nil {
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilHostToMuxSpecification),
+		}
+	}
+
+	muxSpecification, ok := hostToSpecification[host]
+	if !ok {
+		return nil, &muxTypesResponseError.ResponseError{
+			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				http.StatusMisdirectedRequest,
+				"",
+				nil,
+			),
+		}
+	}
+	if muxSpecification == nil {
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilMuxSpecification),
+		}
+	}
+
+	if redirectTo := muxSpecification.RedirectTo; redirectTo != "" {
+		//http.Redirect(
+		//	responseWriter,
+		//	request,
+		//	redirectTo+request.RequestURI,
+		//	http.StatusMovedPermanently,
+		//)
+	} else if muxSpecificationMux := muxSpecification.Mux; muxSpecificationMux != nil {
+		return muxHandleRequest(muxSpecificationMux, request)
+	}
+
+	return nil, &muxTypesResponseError.ResponseError{
+		ServerError: motmedelErrors.MakeErrorWithStackTrace(
+			muxErrors.ErrUnusableMuxSpecification,
+			muxSpecification,
+		),
+	}
+}
+
+func (vhostMux *VhostMux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
+	vhostMux.baseMux.ServeHttpWithCallback(
+		responseWriter,
+		request,
+		func(request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+			return vhostMuxHandleRequest(vhostMux, request)
+		},
+	)
+}

@@ -1,7 +1,8 @@
-package types
+package rate_limiting
 
 import (
-	"github.com/Motmedel/utils_go/pkg/errors"
+	"fmt"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
 	"net/http"
 	"sync"
@@ -50,11 +51,7 @@ func DefaultGetRateLimitingKey(request *http.Request) (string, error) {
 	remoteAddr := request.RemoteAddr
 	ipAddress, _, err := motmedelNet.SplitAddress(remoteAddr)
 	if err != nil {
-		return "", &errors.Error{
-			Message: "An error occurred when splitting a remote address.",
-			Cause:   err,
-			Input:   remoteAddr,
-		}
+		return "", motmedelErrors.MakeError(fmt.Errorf("motmedel net split address: %w", err), remoteAddr)
 	}
 
 	return ipAddress, nil

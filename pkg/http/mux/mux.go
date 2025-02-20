@@ -2,28 +2,28 @@ package mux
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
+	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	muxTypes "github.com/Motmedel/utils_go/pkg/http/mux/types"
-	muxUtils "github.com/Motmedel/utils_go/pkg/http/mux/utils"
-	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
-	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
+	muxInternal "github.com/Motmedel/utils_go/pkg/http/mux/internal"
+	muxInternalMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/mux"
+	muxTypesEnpointSpecification "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
+	muxTypesFirewall "github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
+	muxTypesMiddleware "github.com/Motmedel/utils_go/pkg/http/mux/types/middleware"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
+	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
+	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
 	"github.com/google/uuid"
-	"io"
 	"log/slog"
-	"maps"
-	"net"
 	"net/http"
-	"slices"
-	"strconv"
 	"strings"
-	"time"
 )
 
 var DefaultHeaders = map[string]string{
@@ -36,252 +36,35 @@ var DefaultHeaders = map[string]string{
 	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
 }
 
-type parsedRequestBodyContextType struct{}
-type requestIdContextType struct{}
-
-var ParsedRequestBodyContextKey parsedRequestBodyContextType
-var RequestIdContextKey requestIdContextType
-
-func WriteResponse(responseInfo *muxTypes.ResponseInfo, responseWriter http.ResponseWriter) error {
-	if responseInfo == nil {
-		return nil
-	}
-
-	if responseWriter == nil {
-		return nil
-	}
-
-	var defaultHeaders map[string]string
-	muxResponseWriter, ok := responseWriter.(*muxTypes.ResponseWriter)
-	if ok {
-		defaultHeaders = muxResponseWriter.DefaultHeaders
-	} else {
-		defaultHeaders = make(map[string]string)
-	}
-	skippedDefaultHeadersSet := make(map[string]struct{})
-
-	body := responseInfo.Body
-	bodyStreamer := responseInfo.BodyStreamer
-
-	responseWriterHeader := responseWriter.Header()
-	for _, header := range responseInfo.Headers {
-		if header == nil {
-			continue
-		}
-
-		if strings.ToLower(header.Name) == "content-type" && len(body) == 0 && bodyStreamer == nil {
-			continue
-		}
-
-		if _, ok := defaultHeaders[header.Name]; ok {
-			if header.Overwrite {
-				skippedDefaultHeadersSet[header.Name] = struct{}{}
-			} else {
-				continue
-			}
-		}
-
-		responseWriterHeader.Set(header.Name, header.Value)
-	}
-	for headerName, headerValue := range defaultHeaders {
-		if _, ok := skippedDefaultHeadersSet[headerName]; ok {
-			continue
-		}
-		responseWriterHeader.Set(headerName, headerValue)
-	}
-
-	if responseInfo.StatusCode != 0 {
-		responseWriter.WriteHeader(responseInfo.StatusCode)
-	}
-
-	if bodyStreamer != nil {
-		flusher, ok := muxResponseWriter.ResponseWriter.(http.Flusher)
-		if !ok {
-			return muxErrors.ErrNoResponseWriterFlusher
-		}
-
-		if _, ok := responseWriterHeader["transfer-encoding"]; ok {
-			return muxErrors.ErrTransferEncodingAlreadySet
-		}
-
-		// TODO: Figure out how to support HTTP/2?
-		responseWriterHeader.Set("Transfer-Encoding", "chunked")
-
-		for bodyChunk, err := range bodyStreamer {
-			if err != nil {
-				return &motmedelErrors.Error{
-					Message: "An error occurred when streaming chunks.",
-					Cause:   err,
-				}
-			}
-
-			if _, err := muxResponseWriter.Write(bodyChunk); err != nil {
-				return &motmedelErrors.Error{
-					Message: "An error occurred when writing a chunk.",
-					Cause:   err,
-				}
-			}
-			flusher.Flush()
-		}
-
-		if _, err := muxResponseWriter.Write([]byte{}); err != nil {
-			return &motmedelErrors.Error{
-				Message: "An error occurred when writing an empty chunk.",
-				Cause:   err,
-			}
-		}
-	} else {
-		if _, err := muxResponseWriter.Write(body); err != nil {
-			return &motmedelErrors.Error{
-				Message: "An error occurred when writing a response body.",
-				Cause:   err,
-			}
-		}
-	}
-
-	return nil
-}
-
-func WriteProblemDetailResponse(
-	responseWriter http.ResponseWriter,
-	request *http.Request,
-	problemDetail *problem_detail.ProblemDetail,
-	responseHeaders []*muxTypes.HeaderEntry,
-) {
-	logger := motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil)
-
-	if problemDetail == nil {
-		motmedelLog.LogError(
-			"The error response problem detail is nil.",
-			muxErrors.ErrNilErrorResponseProblemDetail,
-			logger,
-		)
-		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
-		responseHeaders = nil
-	}
-
-	if problemDetail.Status == 0 {
-		motmedelLog.LogError(
-			"The error response problem detail status is unset.",
-			muxErrors.ErrUnsetErrorResponseProblemDetailStatus,
-			logger,
-		)
-		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
-		responseHeaders = nil
-	}
-
-	statusCode := problemDetail.Status
-	responseBody, err := problemDetail.Bytes()
-	if err != nil {
-		motmedelLog.LogError("An error occurred when converting a problem detail into bytes.", err, logger)
-
-		statusCode = http.StatusInternalServerError
-		responseHeaders = nil
-	}
-
-	if responseHeaders == nil {
-		responseHeaders = []*muxTypes.HeaderEntry{{Name: "Content-Type", Value: "application/problem+json"}}
-	} else {
-		for i, header := range responseHeaders {
-			if strings.ToLower(header.Name) == "content-type" {
-				responseHeaders[i] = nil
-			}
-		}
-		responseHeaders = append(
-			responseHeaders,
-			&muxTypes.HeaderEntry{Name: "Content-Type", Value: "application/problem+json"},
-		)
-	}
-
-	responseInfo := &muxTypes.ResponseInfo{StatusCode: statusCode, Body: responseBody, Headers: responseHeaders}
-
-	if err := WriteResponse(responseInfo, responseWriter); err != nil {
-		motmedelLog.LogError("An error occurred when writing an error response.", err, logger)
-	}
-}
-
-func DefaultClientErrorHandler(
-	responseWriter http.ResponseWriter,
-	request *http.Request,
-	requestBody []byte,
-	problemDetail *problem_detail.ProblemDetail,
-	headers []*muxTypes.HeaderEntry,
-	err error,
-) {
-	if err != nil {
-		motmedelLog.LogWarning(
-			"A client error occurred.",
-			err,
-			motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil),
-		)
-	}
-
-	if responseWriter == nil {
-		return
-	}
-
-	if problemDetail == nil {
-		problemDetail = problem_detail.MakeBadRequestProblemDetail("", nil)
-	}
-
-	WriteProblemDetailResponse(responseWriter, request, problemDetail, headers)
-}
-
-func DefaultServerErrorHandler(
-	responseWriter http.ResponseWriter,
-	request *http.Request,
-	requestBody []byte,
-	problemDetail *problem_detail.ProblemDetail,
-	responseHeaders []*muxTypes.HeaderEntry,
-	err error,
-) {
-	if err != nil {
-		motmedelLog.LogError(
-			"A server error occurred.",
-			err,
-			motmedelLog.GetLoggerFromCtxWithDefault(request.Context(), nil),
-		)
-	}
-
-	if responseWriter == nil {
-		return
-	}
-
-	if problemDetail == nil {
-		problemDetail = problem_detail.MakeInternalServerErrorProblemDetail("", nil)
-	}
-
-	WriteProblemDetailResponse(responseWriter, request, problemDetail, responseHeaders)
-}
-
 type baseMux struct {
 	SetContextKeyValuePairs [][2]any
-	ClientErrorHandler      func(
-		http.ResponseWriter,
-		*http.Request,
-		[]byte,
-		*problem_detail.ProblemDetail,
-		[]*muxTypes.HeaderEntry,
-		error,
-	)
-	ServerErrorHandler func(
-		http.ResponseWriter,
-		*http.Request,
-		[]byte,
-		*problem_detail.ProblemDetail,
-		[]*muxTypes.HeaderEntry,
-		error,
-	)
-	SuccessCallback       func(*http.Request, []byte, *http.Response, []byte)
-	FirewallConfiguration *muxTypes.FirewallConfiguration
-	DefaultHeaders        map[string]string
-	Middleware            []muxUtils.Middleware
+	ResponseErrorHandler    func(context.Context, *muxTypesResponseError.ResponseError, *muxTypesResponseWriter.ResponseWriter)
+	DoneCallback            func(*motmedelHttpTypes.HttpContext)
+	FirewallConfiguration   *muxTypesFirewall.Configuration
+	DefaultHeaders          map[string]string
+	Middleware              []muxTypesMiddleware.Middleware
+}
+
+func (bm *baseMux) getFirewallVerdict(request *http.Request) (muxTypesFirewall.Verdict, *muxTypesResponseError.ResponseError) {
+	if request == nil {
+		return muxTypesFirewall.VerdictReject, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest),
+		}
+	}
+
+	if firewallConfiguration := bm.FirewallConfiguration; firewallConfiguration != nil {
+		if firewallHandler := firewallConfiguration.Handler; firewallHandler != nil {
+			return firewallHandler(request)
+		}
+	}
+
+	return muxTypesFirewall.VerdictAccept, nil
 }
 
 func (bm *baseMux) ServeHttpWithCallback(
 	originalResponseWriter http.ResponseWriter,
 	request *http.Request,
-	callback func(*muxTypes.ResponseWriter, *http.Request) ([]byte, error),
+	callback func(*http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError),
 ) {
 	if originalResponseWriter == nil {
 		return
@@ -295,16 +78,9 @@ func (bm *baseMux) ServeHttpWithCallback(
 		return
 	}
 
-	// Set the client and server error handlers if not specified.
-
-	clientErrorHandler := bm.ClientErrorHandler
-	if clientErrorHandler == nil {
-		clientErrorHandler = DefaultClientErrorHandler
-	}
-
-	serverErrorHandler := bm.ServerErrorHandler
-	if serverErrorHandler == nil {
-		serverErrorHandler = DefaultServerErrorHandler
+	responseErrorHandler := bm.ResponseErrorHandler
+	if responseErrorHandler == nil {
+		responseErrorHandler = muxInternal.DefaultResponseErrorHandler
 	}
 
 	// Populate the request context.
@@ -312,16 +88,19 @@ func (bm *baseMux) ServeHttpWithCallback(
 	// NOTE: The error is ignored.
 	if requestId, err := uuid.NewV7(); err == nil {
 		contextRequest := request.WithContext(
-			context.WithValue(
-				request.Context(),
-				RequestIdContextKey,
-				requestId.String(),
-			),
+			context.WithValue(request.Context(), muxContext.RequestIdContextKey, requestId.String()),
 		)
 		if contextRequest != nil {
 			request = contextRequest
 		}
 	}
+
+	httpContext := &motmedelHttpTypes.HttpContext{Request: request}
+	request = request.WithContext(context.WithValue(request.Context(), muxContext.HttpContextContextKey, httpContext))
+
+	requestCtx := request.Context()
+
+	// TODO: Can I add a "connection id" via some http.Server method?
 
 	if len(bm.SetContextKeyValuePairs) != 0 {
 		ctx := request.Context()
@@ -335,7 +114,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 	// Use a custom response writer.
 
-	responseWriter := &muxTypes.ResponseWriter{
+	responseWriter := &muxTypesResponseWriter.ResponseWriter{
 		ResponseWriter: originalResponseWriter,
 		DefaultHeaders: func() map[string]string {
 			if defaultHeaders := bm.DefaultHeaders; defaultHeaders != nil {
@@ -344,38 +123,29 @@ func (bm *baseMux) ServeHttpWithCallback(
 			return DefaultHeaders
 		}(),
 	}
+	responseWriter.IsHeadRequest = strings.ToUpper(request.Method) == http.MethodHead
 
-	// Check the request with the firewall.
+	// Check the request with the muxTypesFirewall.
 
-	verdict := muxTypes.VerdictAccept
-
-	if firewallConfiguration := bm.FirewallConfiguration; firewallConfiguration != nil {
-		if firewallHandler := firewallConfiguration.Handler; firewallHandler != nil {
-			verdict = firewallHandler(request)
-		}
-	}
-
-	var requestBody []byte
-
-	if verdict == muxTypes.VerdictDrop {
+	verdict, firewallResponseError := bm.getFirewallVerdict(request)
+	if verdict == muxTypesFirewall.VerdictDrop {
 		hijacker, ok := originalResponseWriter.(http.Hijacker)
 		if ok {
 			connection, _, err := hijacker.Hijack()
 			if err != nil {
-				serverErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					nil,
-					nil,
-					&motmedelErrors.Error{
-						Message: "An error occurred when hijacking the connection, in association with a drop verdict.",
-						Cause:   err,
+				responseErrorHandler(
+					requestCtx,
+					&muxTypesResponseError.ResponseError{
+						ServerError: motmedelErrors.MakeErrorWithStackTrace(
+							fmt.Errorf("response writer hijacker hijack: %w", err),
+						),
 					},
+					responseWriter,
 				)
 			}
 			if err := connection.Close(); err != nil {
 				// Nothing else to do here but to log and return?
+				// TODO: Rework the logging
 				motmedelLog.LogWarning(
 					"An error occurred when closing a connection.",
 					err,
@@ -384,17 +154,16 @@ func (bm *baseMux) ServeHttpWithCallback(
 			}
 			return
 		} else {
+			// Trigger a termination of the connection.
 			panic(http.ErrAbortHandler)
 		}
-	} else if verdict == muxTypes.VerdictReject {
-		clientErrorHandler(
-			responseWriter,
-			request,
-			nil,
-			problem_detail.MakeStatusCodeProblemDetail(http.StatusForbidden, "", nil),
-			nil,
-			nil,
-		)
+	} else if verdict == muxTypesFirewall.VerdictReject {
+		if firewallResponseError == nil {
+			firewallResponseError = &muxTypesResponseError.ResponseError{
+				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusForbidden, "", nil),
+			}
+		}
+		responseErrorHandler(requestCtx, firewallResponseError, responseWriter)
 	} else {
 		for _, middleware := range bm.Middleware {
 			if middleware != nil {
@@ -406,641 +175,233 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 		// Respond to the request.
 
-		var writeErr error
-
-		requestBody, writeErr = callback(responseWriter, request)
-		if writeErr != nil {
-			// Using a nil response writer signals that no status code or server error body should be written. This is
-			// the right approach when having written chunks and some chunks have already been successfully written, meaning
-			// both a status code and body has been responded with already.
-			serverErrorResponseWriter := responseWriter
-			if responseWriter.WriteHeaderCalled {
-				serverErrorResponseWriter = nil
+		response, responseError := callback(request)
+		if responseError != nil {
+			responseErrorHandler(request.Context(), responseError, responseWriter)
+		} else {
+			if response == nil {
+				response = &muxTypesResponse.Response{}
 			}
 
-			serverErrorHandler(
-				serverErrorResponseWriter,
-				request,
-				requestBody,
-				nil,
-				nil,
-				&motmedelErrors.Error{
-					Message: "An error occurred when writing a response with the custom response writer.",
-					Cause:   writeErr,
-				},
-			)
+			if err := responseWriter.WriteResponse(response); err != nil {
+				if err != nil {
+					responseErrorHandler(
+						request.Context(),
+						&muxTypesResponseError.ResponseError{
+							ServerError: motmedelErrors.MakeError(
+								fmt.Errorf("write response: %w", err),
+								response,
+							),
+						},
+						responseWriter,
+					)
+				}
+			}
 		}
+
+		httpContext.Response = &http.Response{
+			StatusCode: responseWriter.WrittenStatusCode, Header: responseWriter.Header(),
+		}
+		httpContext.ResponseBody = responseWriter.WrittenBody
 	}
 
 	// Handle the case when no response was produced.
 
 	if !responseWriter.WriteHeaderCalled {
-		serverErrorHandler(responseWriter, request, requestBody, nil, nil, muxErrors.ErrNoResponseWritten)
+		responseErrorHandler(
+			requestCtx,
+			&muxTypesResponseError.ResponseError{
+				ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNoResponseWritten),
+			},
+			responseWriter,
+		)
 	}
 
-	if successCallback := bm.SuccessCallback; successCallback != nil {
-		successCallback(
-			request,
-			requestBody,
-			&http.Response{StatusCode: responseWriter.WrittenStatusCode, Header: responseWriter.Header()},
-			responseWriter.WrittenBody,
-		)
+	if doneCallback := bm.DoneCallback; doneCallback != nil {
+		doneCallback(httpContext)
 	}
 }
 
 type Mux struct {
 	baseMux
-	HandlerSpecificationMap map[string]map[string]*muxTypes.HandlerSpecification
+	HandlerSpecificationMap map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification
+}
+
+func muxHandleRequest(mux *Mux, request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+	if mux == nil {
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilMux),
+		}
+	}
+
+	if request == nil {
+		return nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest)}
+	}
+
+	requestHeader := request.Header
+	if requestHeader == nil {
+		return nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestHeader)}
+	}
+
+	httpContext, ok := request.Context().Value(muxContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	if !ok {
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrCouldNotObtainHttpContext),
+		}
+	}
+	if httpContext == nil {
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpContext),
+		}
+	}
+
+	// Locate the endpoint specification.
+
+	endpointSpecification, responseInfo, responseError := muxInternalMux.ObtainEndpointSpecification(
+		mux.HandlerSpecificationMap,
+		request,
+	)
+	if responseInfo != nil || responseError != nil {
+		return responseInfo, responseError
+	}
+	if endpointSpecification == nil {
+		return nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilEndpointSpecification)}
+	}
+
+	// Perform rate limiting, if specified.
+
+	if rateLimitingConfiguration := endpointSpecification.RateLimitingConfiguration; rateLimitingConfiguration != nil {
+		if responseError := muxInternalMux.HandleRateLimiting(rateLimitingConfiguration, request); responseError != nil {
+			return nil, responseError
+		}
+	}
+
+	// TODO: Obtain the parsed url.
+
+	// Obtain the parsed header.
+
+	if headerParserConfiguration := endpointSpecification.HeaderParserConfiguration; headerParserConfiguration != nil {
+		if parser := headerParserConfiguration.Parser; parser != nil {
+			parsedHeader, responseError := parser(request)
+			if responseError != nil {
+				return nil, responseError
+			}
+
+			request = request.WithContext(
+				context.WithValue(request.Context(), parsing.ParsedRequestHeaderContextKey, parsedHeader),
+			)
+		}
+	}
+
+	// Validate body parameters, and obtain and validate the body
+
+	allowEmptyBody := true
+	var expectedContentType string
+	var bodyParser func(*http.Request, []byte) (any, *muxTypesResponseError.ResponseError)
+
+	// Obtain validation options from the handler specification configuration.
+	if bodyParserConfiguration := endpointSpecification.BodyParserConfiguration; bodyParserConfiguration != nil {
+		allowEmptyBody = bodyParserConfiguration.AllowEmpty
+		expectedContentType = bodyParserConfiguration.ContentType
+		bodyParser = bodyParserConfiguration.Parser
+	}
+
+	// Validate Content-Type (parse and match header value against accepted value)
+	if expectedContentType != "" {
+		if responseError = muxInternalMux.ValidateContentType(expectedContentType, requestHeader); responseError != nil {
+			return nil, responseError
+		}
+	}
+
+	// Validate Content-Length (parse and check if empty is accepted)
+	if responseError := muxInternalMux.ValidateContentLength(allowEmptyBody, requestHeader); responseError != nil {
+		return nil, responseError
+	}
+
+	// Obtain the request body
+	requestBody, responseError := muxInternalMux.ObtainRequestBody(request.ContentLength, request.Body)
+	if responseError != nil {
+		return nil, responseError
+	}
+	httpContext.RequestBody = requestBody
+
+	if !allowEmptyBody && len(requestBody) == 0 {
+		return nil, &muxTypesResponseError.ResponseError{
+			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				http.StatusBadRequest,
+				"A body is expected.",
+				nil,
+			),
+		}
+	}
+
+	// Basic check to see if the request body conforms to the expected content type.
+	switch expectedContentType {
+	case "application/json":
+		if !json.Valid(requestBody) {
+			return nil, &muxTypesResponseError.ResponseError{
+				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+					http.StatusBadRequest,
+					"Invalid JSON body.",
+					nil,
+				),
+			}
+		}
+	}
+
+	// Parse the body.
+	if bodyParser != nil {
+		parsedBody, responseError := bodyParser(request, requestBody)
+		if responseError != nil {
+			return nil, responseError
+		}
+
+		request = request.WithContext(
+			context.WithValue(request.Context(), parsing.ParsedRequestBodyContextKey, parsedBody),
+		)
+	}
+
+	// Respond with static content.
+
+	if staticContent := endpointSpecification.StaticContent; staticContent != nil {
+		isCached, responseError := muxInternalMux.ObtainIsCached(staticContent, requestHeader)
+		if responseError != nil {
+			return nil, responseError
+		}
+
+		return muxInternalMux.ObtainStaticContentResponse(staticContent, isCached, requestHeader)
+	}
+
+	// Respond with dynamic content (via a handler).
+
+	if handler := endpointSpecification.Handler; handler != nil {
+		return handler(request, requestBody)
+	}
+
+	return nil, nil
+
 }
 
 func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *http.Request) {
 	mux.baseMux.ServeHttpWithCallback(
 		originalResponseWriter,
 		request,
-		func(responseWriter *muxTypes.ResponseWriter, request *http.Request) ([]byte, error) {
-			if responseWriter == nil {
-				return nil, nil
-			}
-
-			if request == nil {
-				return nil, nil
-			}
-
-			// Set the client and server error handlers if not specified.
-
-			clientErrorHandler := mux.ClientErrorHandler
-			if clientErrorHandler == nil {
-				clientErrorHandler = DefaultClientErrorHandler
-			}
-
-			serverErrorHandler := mux.ServerErrorHandler
-			if serverErrorHandler == nil {
-				serverErrorHandler = DefaultServerErrorHandler
-			}
-
-			// Locate the handler.
-
-			requestMethod := strings.ToUpper(request.Method)
-
-			lookupMethod := requestMethod
-			if requestMethod == http.MethodHead {
-				// A HEAD request is to be processed as if it were a GET request. But signal not to write a body.
-				lookupMethod = http.MethodGet
-				responseWriter.IsHeadRequest = true
-			}
-
-			methodToHandlerSpecification, ok := mux.HandlerSpecificationMap[request.URL.Path]
-			if !ok {
-				clientErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
-					nil,
-					nil,
-				)
-				return nil, nil
-			}
-
-			handlerSpecification, ok := methodToHandlerSpecification[lookupMethod]
-			if !ok {
-				allowedMethods := slices.Collect(maps.Keys(methodToHandlerSpecification))
-
-				if _, ok := methodToHandlerSpecification[http.MethodOptions]; !ok {
-					allowedMethods = append(allowedMethods, http.MethodOptions)
-				}
-
-				if _, ok := methodToHandlerSpecification[http.MethodHead]; !ok {
-					if _, ok := methodToHandlerSpecification[http.MethodGet]; ok {
-						allowedMethods = append(allowedMethods, http.MethodHead)
-					}
-				}
-
-				expectedMethodsString := strings.Join(allowedMethods, ", ")
-				headerEntries := []*muxTypes.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}
-
-				if lookupMethod == http.MethodOptions {
-					err := WriteResponse(&muxTypes.ResponseInfo{Headers: headerEntries}, responseWriter)
-					if err != nil {
-						return nil, &motmedelErrors.Error{
-							Message: "An error occurred when writing a default OPTIONS response.",
-							Cause:   err,
-						}
-					}
-
-					return nil, nil
-				}
-
-				clientErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					problem_detail.MakeStatusCodeProblemDetail(
-						http.StatusMethodNotAllowed,
-						fmt.Sprintf("Expected \"%s\", observed \"%s\"", expectedMethodsString, requestMethod),
-						nil,
-					),
-					headerEntries,
-					nil,
-				)
-				return nil, nil
-			}
-
-			// Perform rate limiting, if specified.
-
-			if rateLimitingConfiguration := handlerSpecification.RateLimitingConfiguration; rateLimitingConfiguration != nil {
-				getKeyFunc := rateLimitingConfiguration.GetKey
-				if getKeyFunc == nil {
-					getKeyFunc = muxTypes.DefaultGetRateLimitingKey
-				}
-
-				key, err := getKeyFunc(request)
-				if err != nil {
-					serverErrorHandler(
-						responseWriter,
-						request,
-						nil,
-						nil,
-						nil,
-						&motmedelErrors.Error{
-							Message: "An error occurred when extracting a rate limiting key from a request.",
-							Cause:   err,
-						},
-					)
-					return nil, nil
-				}
-
-				rateLimitingConfiguration.Lookup.Mutex.Lock()
-				if rateLimitingConfiguration.Lookup.Map == nil {
-					rateLimitingConfiguration.Lookup.Map = make(map[string]*muxTypes.TimerRateLimiter)
-				}
-				rateLimitingConfiguration.Lookup.Mutex.Unlock()
-
-				timerRateLimiter, ok := rateLimitingConfiguration.Lookup.Map[key]
-				if !ok {
-					timerRateLimiter = &muxTypes.TimerRateLimiter{
-						RateLimiter: muxTypes.RateLimiter{
-							Bucket:           make([]*time.Time, rateLimitingConfiguration.NumRequests),
-							NumSecondsExpiry: rateLimitingConfiguration.NumSecondsExpiration,
-						},
-					}
-					rateLimitingConfiguration.Lookup.Map[key] = timerRateLimiter
-				}
-
-				if timerRateLimiter.Timer != nil {
-					timerRateLimiter.Timer.Stop()
-				}
-				timerRateLimiter.Timer = time.AfterFunc(
-					time.Duration(2*timerRateLimiter.NumSecondsExpiry)*time.Second,
-					func() {
-						rateLimitingConfiguration.Lookup.Mutex.Lock()
-						defer rateLimitingConfiguration.Lookup.Mutex.Unlock()
-						if timerRateLimiter.NumOccupied == 0 {
-							delete(rateLimitingConfiguration.Lookup.Map, key)
-						}
-					},
-				)
-
-				expirationTime, full := timerRateLimiter.Claim()
-				if full {
-					clientErrorHandler(
-						responseWriter,
-						request,
-						nil,
-						problem_detail.MakeStatusCodeProblemDetail(http.StatusTooManyRequests, "", nil),
-						[]*muxTypes.HeaderEntry{
-							{
-								Name:  "Retry-After",
-								Value: expirationTime.UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT",
-							},
-						},
-						nil,
-					)
-					return nil, nil
-				}
-			}
-
-			// Obtain the body parser configuration.
-
-			bodyParserConfiguration := handlerSpecification.BodyParserConfiguration
-
-			var fullNormalizeContentTypeString string
-
-			// Validate Content-Type
-
-			if bodyParserConfiguration != nil {
-				if expectedContentType := bodyParserConfiguration.ContentType; expectedContentType != "" {
-					acceptedContentTypeHeaders := []*muxTypes.HeaderEntry{{Name: "Accept", Value: expectedContentType}}
-
-					contentTypeString := request.Header.Get("Content-Type")
-					if contentTypeString == "" {
-						clientErrorHandler(
-							responseWriter,
-							request,
-							nil,
-							problem_detail.MakeStatusCodeProblemDetail(
-								http.StatusUnsupportedMediaType,
-								"Missing Content-Type",
-								nil,
-							),
-							acceptedContentTypeHeaders,
-							nil,
-						)
-						return nil, nil
-					}
-
-					contentTypeBytes := []byte(contentTypeString)
-					contentType, err := content_type.ParseContentType(contentTypeBytes)
-					if err != nil {
-						serverErrorHandler(
-							responseWriter,
-							request,
-							nil,
-							nil,
-							nil,
-							&motmedelErrors.Error{
-								Message: "An error occurred when attempting to parse the Content-Type header data.",
-								Cause:   err,
-								Input:   contentTypeBytes,
-							},
-						)
-						return nil, nil
-					}
-					if contentType == nil {
-						clientErrorHandler(
-							responseWriter,
-							request,
-							nil,
-							problem_detail.MakeStatusCodeProblemDetail(
-								http.StatusBadRequest,
-								"Malformed Content-Type",
-								nil,
-							),
-							nil,
-							nil,
-						)
-						return nil, nil
-					}
-
-					// TODO: The specification could require a certain charset too?
-					fullNormalizeContentTypeString = contentType.GetFullType(true)
-					if fullNormalizeContentTypeString != expectedContentType {
-						clientErrorHandler(
-							responseWriter,
-							request,
-							nil,
-							problem_detail.MakeStatusCodeProblemDetail(
-								http.StatusUnsupportedMediaType,
-								fmt.Sprintf(
-									"Expected Content-Type to be \"%s\", observed \"%s\"",
-									expectedContentType,
-									fullNormalizeContentTypeString,
-								),
-								nil,
-							),
-							acceptedContentTypeHeaders,
-							nil,
-						)
-						return nil, nil
-					}
-				}
-			}
-
-			// Validate Content-Length
-
-			zeroContentLengthStatusCode := http.StatusLengthRequired
-			zeroContentLengthMessage := "A body is expected; Content-Length must be set"
-
-			var contentLength uint64
-			if _, ok := request.Header["Content-Length"]; ok {
-				var err error
-				headerValue := request.Header.Get("Content-Length")
-				contentLength, err = strconv.ParseUint(headerValue, 10, 64)
-				if err != nil {
-					clientErrorHandler(
-						responseWriter,
-						request,
-						nil,
-						problem_detail.MakeStatusCodeProblemDetail(
-							http.StatusBadRequest,
-							"Malformed Content-Length",
-							nil,
-						),
-						nil,
-						&motmedelErrors.Error{
-							Message: "An error occurred when attempting to parse the Content-Length as an unsigned integer.",
-							Cause:   err,
-							Input:   headerValue,
-						},
-					)
-					return nil, nil
-				}
-				if contentLength == 0 {
-					zeroContentLengthStatusCode = http.StatusBadRequest
-					zeroContentLengthMessage = "A body is expected; Content-Length cannot be 0"
-				}
-			}
-
-			if bodyParserConfiguration != nil && !bodyParserConfiguration.AllowEmpty && contentLength == 0 {
-				clientErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					problem_detail.MakeStatusCodeProblemDetail(
-						zeroContentLengthStatusCode,
-						zeroContentLengthMessage,
-						nil,
-					),
-					nil,
-					nil,
-				)
-				return nil, nil
-			}
-
-			// Obtain the request body
-
-			var requestBody []byte
-
-			if request.ContentLength != 0 {
-				var err error
-				requestBody, err = io.ReadAll(request.Body)
-				if err != nil {
-					serverErrorHandler(
-						responseWriter,
-						request,
-						nil,
-						nil,
-						nil,
-						&motmedelErrors.Error{
-							Message: "An error occurred when reading the request body.",
-							Cause:   err,
-						},
-					)
-					return nil, nil
-				}
-				defer request.Body.Close()
-
-				if bodyParserConfiguration != nil {
-					// NOTE: This should never happen? The Content-Length check should pick this up?
-					if !bodyParserConfiguration.AllowEmpty && len(requestBody) == 0 {
-						clientErrorHandler(
-							responseWriter,
-							request,
-							nil,
-							problem_detail.MakeStatusCodeProblemDetail(
-								http.StatusBadRequest,
-								"A body is expected",
-								nil,
-							),
-							nil,
-							nil,
-						)
-						return requestBody, nil
-					}
-
-					switch fullNormalizeContentTypeString {
-					case "application/json":
-						if !json.Valid(requestBody) {
-							clientErrorHandler(
-								responseWriter,
-								request,
-								nil,
-								problem_detail.MakeStatusCodeProblemDetail(
-									http.StatusBadRequest,
-									"Malformed JSON body",
-									nil,
-								),
-								nil,
-								nil,
-							)
-							return requestBody, nil
-						}
-					}
-
-					if parser := bodyParserConfiguration.Parser; parser != nil {
-						parsedBody, handlerErrorResponse := parser(request, requestBody)
-						if handlerErrorResponse != nil {
-							serverError := handlerErrorResponse.ServerError
-							clientError := handlerErrorResponse.ClientError
-							problemDetail := handlerErrorResponse.ProblemDetail
-							headers := handlerErrorResponse.ResponseHeaders
-
-							if serverError != nil {
-								serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, serverError)
-								return requestBody, nil
-							} else if clientError != nil {
-								clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, clientError)
-								return requestBody, nil
-							} else if problemDetail != nil {
-								statusCode := problemDetail.Status
-								if statusCode >= 400 && statusCode < 500 {
-									serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
-									return requestBody, nil
-								} else if statusCode >= 500 && statusCode < 600 {
-									clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
-									return requestBody, nil
-								} else {
-									return requestBody, nil
-								}
-							}
-						}
-
-						request = request.WithContext(
-							context.WithValue(request.Context(), ParsedRequestBodyContextKey, parsedBody),
-						)
-					}
-				}
-			}
-
-			// Decide whether the response is static content, or requires handling.
-
-			if staticContent := handlerSpecification.StaticContent; staticContent != nil {
-				isCached := muxUtils.IfNoneMatchCacheHit(
-					request.Header.Get("If-None-Match"),
-					staticContent.Etag,
-				)
-				if !isCached {
-					var err error
-					isCached, err = muxUtils.IfModifiedSinceCacheHit(
-						request.Header.Get("If-Modified-Since"),
-						staticContent.LastModified,
-					)
-					if err != nil {
-						if errors.Is(err, muxErrors.ErrBadIfModifiedSinceTimestamp) {
-							clientErrorHandler(
-								responseWriter,
-								request,
-								nil,
-								problem_detail.MakeBadRequestProblemDetail("Bad If-Modified-Since value", nil),
-								nil,
-								err,
-							)
-							return requestBody, nil
-						} else {
-							serverErrorHandler(
-								responseWriter,
-								request,
-								nil,
-								nil,
-								nil,
-								&motmedelErrors.Error{
-									Message: "An error occurred when checking If-Modified-Since.",
-									Cause:   err,
-								},
-							)
-							return requestBody, nil
-						}
-					}
-				}
-
-				responseInfo := &muxTypes.ResponseInfo{Headers: staticContent.Headers}
-				if isCached {
-					responseInfo.StatusCode = http.StatusNotModified
-				} else {
-					encoding := muxUtils.AcceptContentIdentityIdentifier
-
-					var supportedEncodings []string
-
-					if _, ok := request.Header["Accept-Encoding"]; ok {
-						acceptEncoding, err := accept_encoding.ParseAcceptEncoding([]byte(request.Header.Get("Accept-Encoding")))
-						if err != nil {
-							serverErrorHandler(
-								responseWriter,
-								request,
-								nil,
-								nil,
-								nil,
-								&motmedelErrors.Error{
-									Message: "An error occurred when parsing the Accept-Encoding header.",
-									Cause:   err,
-								},
-							)
-							return requestBody, nil
-						}
-						if acceptEncoding == nil {
-							clientErrorHandler(
-								responseWriter,
-								request,
-								nil,
-								problem_detail.MakeBadRequestProblemDetail("Bad Accept-Encoding value", nil),
-								nil,
-								nil,
-							)
-						}
-
-						supportedEncodings = slices.Collect(maps.Keys(staticContent.ContentEncodingToData))
-						contentEncodingToData := staticContent.ContentEncodingToData
-
-						slices.SortFunc(supportedEncodings, func(a, b string) int {
-							aData := contentEncodingToData[a].Data
-							bData := contentEncodingToData[b].Data
-							if len(aData) < len(bData) {
-								return -1
-							} else if len(aData) > len(bData) {
-								return 1
-							}
-							return 0
-						})
-
-						encoding = muxUtils.GetMatchingContentEncoding(
-							acceptEncoding.GetPriorityOrderedEncodings(),
-							supportedEncodings,
-						)
-					}
-
-					if encoding == "" {
-						clientErrorHandler(
-							responseWriter,
-							request,
-							nil,
-							problem_detail.MakeStatusCodeProblemDetail(http.StatusUnsupportedMediaType, "No content encoding could be negotiated", nil),
-							[]*muxTypes.HeaderEntry{
-								{Name: "Accept-Encoding", Value: strings.Join(supportedEncodings, ", ")},
-							},
-							nil,
-						)
-					} else {
-						responseInfo.StatusCode = http.StatusOK
-						if encoding == muxUtils.AcceptContentIdentityIdentifier {
-							responseInfo.Body = staticContent.Data
-						} else {
-							responseInfo.Headers = append(
-								responseInfo.Headers,
-								&muxTypes.HeaderEntry{
-									Name:  "Content-Encoding",
-									Value: encoding,
-								},
-							)
-							responseInfo.Body = staticContent.ContentEncodingToData[encoding].Data
-						}
-					}
-				}
-
-				if err := WriteResponse(responseInfo, responseWriter); err != nil {
-					return requestBody, &motmedelErrors.Error{
-						Message: "An error occurred when writing a response for a static resource.",
-						Cause:   err,
-					}
-				}
-			} else {
-				handler := handlerSpecification.Handler
-				if handler == nil {
-					serverErrorHandler(responseWriter, request, nil, nil, nil, muxErrors.ErrNilHandler)
-					return requestBody, nil
-				}
-
-				responseInfo, handlerErrorResponse := handler(request, requestBody)
-
-				if handlerErrorResponse != nil {
-					serverError := handlerErrorResponse.ServerError
-					clientError := handlerErrorResponse.ClientError
-					problemDetail := handlerErrorResponse.ProblemDetail
-					headers := handlerErrorResponse.ResponseHeaders
-
-					if serverError != nil {
-						serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, serverError)
-					} else if clientError != nil {
-						clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, clientError)
-					} else if problemDetail != nil {
-						statusCode := problemDetail.Status
-						if statusCode >= 400 && statusCode < 500 {
-							serverErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
-						} else if statusCode >= 500 && statusCode < 600 {
-							clientErrorHandler(responseWriter, request, requestBody, problemDetail, headers, nil)
-						} else {
-							// The "no response written" error should occur.
-							return nil, nil
-						}
-					}
-				} else {
-					if responseInfo == nil {
-						responseInfo = &muxTypes.ResponseInfo{}
-					}
-
-					if err := WriteResponse(responseInfo, responseWriter); err != nil {
-						return requestBody, &motmedelErrors.Error{
-							Message: "An error occurred when writing a response for a handler.",
-							Cause:   err,
-						}
-					}
-				}
-			}
-
-			return nil, nil
+		func(request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+			return muxHandleRequest(mux, request)
 		},
 	)
 }
 
-func (mux *Mux) Add(specifications ...*muxTypes.HandlerSpecification) {
+func (mux *Mux) Add(specifications ...*muxTypesEnpointSpecification.EndpointSpecification) {
 	handlerSpecificationMap := mux.HandlerSpecificationMap
 	if handlerSpecificationMap == nil {
-		handlerSpecificationMap = make(map[string]map[string]*muxTypes.HandlerSpecification)
+		handlerSpecificationMap = make(map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification)
 	}
 
 	for _, specification := range specifications {
 		methodToHandlerSpecification, ok := handlerSpecificationMap[specification.Path]
 		if !ok {
-			methodToHandlerSpecification = make(map[string]*muxTypes.HandlerSpecification)
+			methodToHandlerSpecification = make(map[string]*muxTypesEnpointSpecification.EndpointSpecification)
 			handlerSpecificationMap[specification.Path] = methodToHandlerSpecification
 		}
 
@@ -1050,7 +411,7 @@ func (mux *Mux) Add(specifications ...*muxTypes.HandlerSpecification) {
 	mux.HandlerSpecificationMap = handlerSpecificationMap
 }
 
-func (mux *Mux) Delete(specifications ...*muxTypes.HandlerSpecification) {
+func (mux *Mux) Delete(specifications ...*muxTypesEnpointSpecification.EndpointSpecification) {
 	handlerSpecificationMap := mux.HandlerSpecificationMap
 	if handlerSpecificationMap == nil {
 		return
@@ -1068,143 +429,4 @@ func (mux *Mux) Delete(specifications ...*muxTypes.HandlerSpecification) {
 			delete(handlerSpecificationMap, specification.Path)
 		}
 	}
-}
-
-type VhostMuxSpecification struct {
-	Mux         *Mux
-	RedirectTo  string
-	Certificate *tls.Certificate
-}
-
-type VhostMux struct {
-	baseMux
-	HostToSpecification map[string]*VhostMuxSpecification
-}
-
-func (vhostMux *VhostMux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
-	vhostMux.baseMux.ServeHttpWithCallback(
-		responseWriter,
-		request,
-		func(responseWriter *muxTypes.ResponseWriter, request *http.Request) ([]byte, error) {
-			if responseWriter == nil {
-				return nil, nil
-			}
-
-			if request == nil {
-				return nil, nil
-			}
-
-			// Set the client and server error handlers if not specified.
-
-			clientErrorHandler := vhostMux.ClientErrorHandler
-			if clientErrorHandler == nil {
-				clientErrorHandler = DefaultClientErrorHandler
-			}
-
-			serverErrorHandler := vhostMux.ServerErrorHandler
-			if serverErrorHandler == nil {
-				serverErrorHandler = DefaultServerErrorHandler
-			}
-
-			host, _, err := net.SplitHostPort(request.Host)
-			if err != nil {
-				host = request.Host
-			}
-
-			if vhostMux.HostToSpecification == nil {
-				serverErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					problem_detail.MakeInternalServerErrorProblemDetail("", nil),
-					nil,
-					muxErrors.ErrNilHostToMuxSpecification,
-				)
-				return nil, nil
-			}
-
-			muxSpecification, ok := vhostMux.HostToSpecification[host]
-			if !ok {
-				clientErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					problem_detail.MakeStatusCodeProblemDetail(http.StatusMisdirectedRequest, "", nil),
-					nil,
-					nil,
-				)
-				return nil, nil
-			}
-
-			if muxSpecification == nil {
-				serverErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					problem_detail.MakeInternalServerErrorProblemDetail("", nil),
-					nil,
-					muxErrors.ErrNilMuxSpecification,
-				)
-				return nil, nil
-			}
-
-			if redirectTo := muxSpecification.RedirectTo; redirectTo != "" {
-				http.Redirect(
-					responseWriter,
-					request,
-					redirectTo+request.RequestURI,
-					http.StatusMovedPermanently,
-				)
-			} else if muxSpecificationMux := muxSpecification.Mux; muxSpecificationMux != nil {
-				muxSpecificationMux.ServeHTTP(responseWriter, request)
-			} else {
-				serverErrorHandler(
-					responseWriter,
-					request,
-					nil,
-					problem_detail.MakeInternalServerErrorProblemDetail("", nil),
-					nil,
-					muxErrors.ErrUnusableMuxSpecification,
-				)
-			}
-
-			return nil, nil
-		},
-	)
-}
-
-// TODO: I should restructure this file. Moving this to utils currently incurs an import cycle.
-
-func MakeVhostHttpServerWithVhostMux(vhostMux *VhostMux) *http.Server {
-	if vhostMux == nil {
-		return nil
-	}
-
-	hostToSpecification := vhostMux.HostToSpecification
-
-	return &http.Server{
-		Handler: vhostMux,
-		TLSConfig: &tls.Config{
-			GetCertificate: func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				if clientHello == nil {
-					return nil, nil
-				}
-
-				if hostToSpecification == nil {
-					return nil, muxErrors.ErrNilHostToMuxSpecification
-				}
-
-				specification, ok := hostToSpecification[clientHello.ServerName]
-				if !ok || specification == nil {
-					return nil, nil
-				}
-
-				return specification.Certificate, nil
-			},
-		},
-	}
-}
-
-func MakeVhostHttpServer(hostToSpecification map[string]*VhostMuxSpecification) *http.Server {
-	return MakeVhostHttpServerWithVhostMux(&VhostMux{HostToSpecification: hostToSpecification})
 }
