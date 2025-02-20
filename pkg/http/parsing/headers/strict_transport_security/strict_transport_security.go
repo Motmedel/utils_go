@@ -2,6 +2,8 @@ package strict_transport_security
 
 import (
 	_ "embed"
+	"errors"
+	"fmt"
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -22,17 +24,19 @@ const (
 
 var digitRegexp = regexp.MustCompile(`^\d+$`)
 
+var (
+	ErrNilStrictTransportSecurity = errors.New("nil strict transport security")
+)
+
+// TODO: Update to use proper errors
+
 func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error) {
-	paths, err := goabnf.Parse(data, StrictTransportSecurityGrammar, "root")
+	paths, err := parsing_utils.GetParsedDataPaths(StrictTransportSecurityGrammar, data)
 	if err != nil {
-		return nil, &motmedelErrors.Error{
-			Message: "An error occurred when parsing data as a strict transport security policy.",
-			Cause:   err,
-			Input:   data,
-		}
+		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, nil
+		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	directiveNameSet := make(map[string]struct{})
@@ -158,6 +162,6 @@ func init() {
 	var err error
 	StrictTransportSecurityGrammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("goabnf parse abnf (strict transport security grammar): %v", err))
 	}
 }

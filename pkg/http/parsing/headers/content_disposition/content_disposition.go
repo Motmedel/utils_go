@@ -18,9 +18,8 @@ var ContentDispositionGrammar *goabnf.Grammar
 var grammar []byte
 
 var (
-	ErrSyntaxError                        = errors.New("syntax error")
+	ErrNilContentDisposition              = errors.New("nil content disposition")
 	ErrSemanticError                      = errors.New("semantic error")
-	ErrNilGrammar                         = errors.New("nil grammar")
 	ErrNoFilenameLabel                    = errors.New("no filename label")
 	ErrNilFilenameLabelPath               = errors.New("nil filename label path")
 	ErrNilExtensionLabelPath              = errors.New("nil extension label path")
@@ -36,6 +35,7 @@ var (
 )
 
 func getValue(data []byte, path *goabnf.Path) (string, error) {
+
 	if path == nil {
 		return "", nil
 	}
@@ -66,25 +66,15 @@ func getValue(data []byte, path *goabnf.Path) (string, error) {
 	return value, nil
 }
 
+// TODO: Handle all errors properly.
+
 func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
-	if len(data) == 0 {
-		return nil, nil
-	}
-
-	if ContentDispositionGrammar == nil {
-		return nil, ErrNilGrammar
-	}
-
-	paths, err := goabnf.Parse(data, ContentDispositionGrammar, "root")
+	paths, err := parsing_utils.GetParsedDataPaths(ContentDispositionGrammar, data)
 	if err != nil {
-		return nil, &motmedelErrors.Error{
-			Message: "An error occurred when parsing data as a content disposition.",
-			Cause:   err,
-			Input:   data,
-		}
+		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, ErrSyntaxError
+		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	contentDisposition := motmedelHttpTypes.ContentDisposition{

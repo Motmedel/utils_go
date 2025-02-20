@@ -3,6 +3,7 @@ package accept_encoding
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -16,29 +17,18 @@ var grammar []byte
 var AcceptEncodingGrammar *goabnf.Grammar
 
 var (
-	ErrBadQvalue      = errors.New("qvalue could not be parsed as a float")
-	ErrNilCodingsPath = errors.New("nil codings path")
+	ErrNilAcceptEncoding = errors.New("nil accept encoding")
+	ErrInvalidQvalue     = errors.New("invalid qvalue")
+	ErrNilCodingsPath    = errors.New("nil codings path")
 )
 
-type BadQvalueError struct {
-	motmedelErrors.Error
-}
-
-func (badQvalueError *BadQvalueError) Is(target error) bool {
-	return target == ErrBadQvalue
-}
-
 func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error) {
-	paths, err := goabnf.Parse(data, AcceptEncodingGrammar, "root")
+	paths, err := parsing_utils.GetParsedDataPaths(AcceptEncodingGrammar, data)
 	if err != nil {
-		return nil, &motmedelErrors.Error{
-			Message: "An error occurred when parsing data as an accept encoding.",
-			Cause:   err,
-			Input:   data,
-		}
+		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, nil
+		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	var acceptEncoding motmedelHttpTypes.AcceptEncoding
@@ -55,7 +45,9 @@ func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error)
 			false,
 		)
 		if codingsPath == nil {
-			return nil, ErrNilCodingsPath
+			return nil, motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilCodingsPath),
+			)
 		}
 		codingsValue := parsing_utils.ExtractPathValue(data, codingsPath)
 
@@ -68,15 +60,18 @@ func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error)
 		)
 		if qvaluePath != nil {
 			qvalueString := string(parsing_utils.ExtractPathValue(data, qvaluePath))
-			parsedQualityValue, err := strconv.ParseFloat(qvalueString, 32)
+			bitSize := 32
+			parsedQualityValue, err := strconv.ParseFloat(qvalueString, bitSize)
 			if err != nil {
-				return nil, &BadQvalueError{
-					Error: motmedelErrors.Error{
-						Message: "A qvalue could not be parsed as a float.",
-						Cause:   err,
-						Input:   qvalueString,
-					},
-				}
+				return nil, motmedelErrors.MakeErrorWithStackTrace(
+					fmt.Errorf(
+						"%w: %w: strvconv parse float (qvalue): %w",
+						motmedelErrors.ErrSemanticError,
+						ErrInvalidQvalue,
+						err,
+					),
+					qvaluePath, bitSize,
+				)
 			}
 
 			qualityValue = float32(parsedQualityValue)
@@ -97,6 +92,6 @@ func init() {
 	var err error
 	AcceptEncodingGrammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("goabnf parse abnf (accept encoding grammar): %v", err))
 	}
 }

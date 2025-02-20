@@ -18,23 +18,20 @@ var grammar []byte
 var AcceptGrammar *goabnf.Grammar
 
 var (
-	ErrCouldNotSplitParameter = errors.New("could not split parameter")
-	ErrNilQValuePath          = errors.New("nil qvalue path")
+	ErrNilAccept              = errors.New("nil accept")
 	ErrParameterNamedQ        = errors.New("parameter named q")
+	ErrNilQValuePath          = errors.New("nil qvalue path")
+	ErrInvalidQvalue          = errors.New("invalid qvalue")
+	ErrCouldNotSplitParameter = errors.New("could not split parameter")
 )
 
 func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
-	paths, err := goabnf.Parse(data, AcceptGrammar, "root")
+	paths, err := parsing_utils.GetParsedDataPaths(AcceptGrammar, data)
 	if err != nil {
-		return nil, &motmedelErrors.Error{
-			Message: "An error occurred when parsing data as an accept value.",
-			Cause:   err,
-			Input:   data,
-		}
+		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
-
 	if len(paths) == 0 {
-		return nil, nil
+		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	accept := &motmedelHttpTypes.Accept{Raw: string(data)}
@@ -71,35 +68,42 @@ func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 		for i, parameterPath := range parameterPaths {
 			if parameterPath.MatchRule == "weight" {
 				if i != len(parameterPaths)-1 {
-					return nil, ErrParameterNamedQ
+					return nil, motmedelErrors.MakeErrorWithStackTrace(
+						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrParameterNamedQ),
+					)
 				}
 
 				qValuePath := parsing_utils.SearchPathSingle(interestingPath, []string{"qvalue"}, 1, false)
 				if qValuePath == nil {
-					return nil, ErrNilQValuePath
+					return nil, motmedelErrors.MakeErrorWithStackTrace(
+						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilQValuePath),
+					)
 				}
 
 				qValueString := string(parsing_utils.ExtractPathValue(data, qValuePath))
-
-				parsedWeight, err := strconv.ParseFloat(qValueString, 32)
+				bitSize := 32
+				parsedWeight, err := strconv.ParseFloat(qValueString, bitSize)
 				if err != nil {
-					return nil, &motmedelErrors.Error{
-						Message: "An error occurred when parsing a weight string as a float.",
-						Cause:   err,
-						Input:   qValueString,
-					}
+					return nil, motmedelErrors.MakeErrorWithStackTrace(
+						fmt.Errorf(
+							"%w: %w: strvconv parse float: %w",
+							motmedelErrors.ErrSemanticError, ErrInvalidQvalue, err,
+						),
+						qValueString, bitSize,
+					)
 				}
 
 				mediaRange.Weight = float32(parsedWeight)
 			} else {
 				parameterString := string(parsing_utils.ExtractPathValue(data, parameterPath))
+				separator := "='"
 				key, value, found := strings.Cut(parameterString, "=")
 				if !found {
-					return nil, &motmedelErrors.Error{
-						Message: "A parameter value could not be split.",
-						Cause:   ErrCouldNotSplitParameter,
-						Input:   parameterString,
-					}
+					return nil, motmedelErrors.MakeErrorWithStackTrace(
+						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrCouldNotSplitParameter),
+						parameterString,
+						separator,
+					)
 				}
 
 				mediaRange.Parameters = append(mediaRange.Parameters, [2]string{key, value})
@@ -116,6 +120,6 @@ func init() {
 	var err error
 	AcceptGrammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
-		panic(fmt.Sprintf("an error occurred when parsing the grammar: %v", err))
+		panic(fmt.Sprintf("goabnf parse abnf (accept grammar): %v", err))
 	}
 }

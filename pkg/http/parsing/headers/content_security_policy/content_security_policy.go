@@ -3,6 +3,7 @@ package content_security_policy
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"fmt"
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -36,6 +37,12 @@ var sourceListDirectiveNames = map[string]struct{}{
 }
 
 var ContentSecurityPolicyGrammar *goabnf.Grammar
+
+var (
+	ErrNilContentSecurityPolicy = errors.New("nil content security policy")
+)
+
+// TODO: Update to use proper errors
 
 func makeSourcesFromPaths(
 	data []byte,
@@ -152,16 +159,12 @@ func makeSourcesFromPaths(
 }
 
 func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.ContentSecurityPolicy, error) {
-	paths, err := goabnf.Parse(data, ContentSecurityPolicyGrammar, "root")
+	paths, err := parsing_utils.GetParsedDataPaths(ContentSecurityPolicyGrammar, data)
 	if err != nil {
-		return nil, &motmedelErrors.Error{
-			Message: "An error occurred when parsing data as a content security policy.",
-			Cause:   err,
-			Input:   data,
-		}
+		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, nil
+		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	directiveNameSet := make(map[string]struct{})

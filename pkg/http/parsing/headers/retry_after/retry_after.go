@@ -18,22 +18,21 @@ var grammar []byte
 var RetryAfterGrammar *goabnf.Grammar
 
 var (
-	ErrEmptyHttpDate     = errors.New("empty http date")
-	ErrEmptyDelaySeconds = errors.New("empty delay seconds")
-	ErrNoPathMatch       = errors.New("neither HTTP-date or delay-seconds matched")
+	ErrNilRetryAfter       = errors.New("nil retry after")
+	ErrEmptyHttpDate       = errors.New("empty http date")
+	ErrInvalidHttpDate     = errors.New("invalid http date")
+	ErrEmptyDelaySeconds   = errors.New("empty delay seconds")
+	ErrInvalidDelaySeconds = errors.New("invalid delay seconds")
+	ErrNoPathMatch         = errors.New("neither HTTP-date or delay-seconds matched")
 )
 
 func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
-	paths, err := goabnf.Parse(data, RetryAfterGrammar, "root")
+	paths, err := parsing_utils.GetParsedDataPaths(RetryAfterGrammar, data)
 	if err != nil {
-		return nil, &motmedelErrors.Error{
-			Message: "An error occurred when parsing data as retry after.",
-			Cause:   err,
-			Input:   data,
-		}
+		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, nil
+		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	retryAfter := &motmedelHttpTypes.RetryAfter{Raw: string(data)}
@@ -44,16 +43,22 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	if httpDatePath != nil {
 		httpDateString := string(parsing_utils.ExtractPathValue(data, httpDatePath))
 		if httpDateString == "" {
-			return nil, ErrEmptyHttpDate
+			return nil, motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrEmptyHttpDate),
+			)
 		}
 
 		httpDate, err := time.Parse(time.RFC1123, httpDateString)
 		if err != nil {
-			return nil, &motmedelErrors.Error{
-				Message: "An error occurred when parsing an http date string as a RFC1123 timestamp.",
-				Cause:   err,
-				Input:   httpDateString,
-			}
+			return nil, motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf(
+					"%w: %w: time parse rfc1123: %w",
+					motmedelErrors.ErrSemanticError,
+					ErrInvalidHttpDate,
+					err,
+				),
+				httpDateString,
+			)
 		}
 
 		retryAfter.WaitTime = httpDate
@@ -65,16 +70,22 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	if delaySecondsPath != nil {
 		delaySecondsString := string(parsing_utils.ExtractPathValue(data, delaySecondsPath))
 		if delaySecondsString == "" {
-			return nil, ErrEmptyDelaySeconds
+			return nil, motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrEmptyDelaySeconds),
+			)
 		}
 
 		delaySeconds, err := strconv.Atoi(delaySecondsString)
 		if err != nil {
-			return nil, &motmedelErrors.Error{
-				Message: "An error occurred when parsing a delay seconds string as an integer.",
-				Cause:   err,
-				Input:   delaySecondsString,
-			}
+			return nil, motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf(
+					"%w: %w: strconv atoi: %w",
+					motmedelErrors.ErrSemanticError,
+					ErrInvalidDelaySeconds,
+					err,
+				),
+				delaySecondsString,
+			)
 		}
 
 		retryAfter.WaitTime = time.Duration(delaySeconds) * time.Second
@@ -82,13 +93,13 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 		return retryAfter, nil
 	}
 
-	return nil, ErrNoPathMatch
+	return nil, motmedelErrors.MakeErrorWithStackTrace(ErrNoPathMatch)
 }
 
 func init() {
 	var err error
 	RetryAfterGrammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
-		panic(fmt.Sprintf("an error occurred when parsing Retry-After grammar: %v", err))
+		panic(fmt.Sprintf("goabnf parse abnf (retry after grammar): %v", err))
 	}
 }
