@@ -2,9 +2,13 @@ package mux
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -44,34 +48,43 @@ func TestMain(m *testing.M) {
 
 func TestMux(t *testing.T) {
 	testCases := []struct {
-		name               string
-		url                string
-		method             string
-		body               []byte
-		headers            [][2]string
-		expectedStatusCode int
-		expectedHeaders    [][2]string
-		expectedBody       []byte
+		name                  string
+		url                   string
+		method                string
+		body                  []byte
+		headers               [][2]string
+		expectedStatusCode    int
+		expectedHeaders       [][2]string
+		expectedBody          []byte
+		expectedProblemDetail *problem_detail.ProblemDetail
 	}{
 		{
-			name:               "GET /hello-world",
+			name:               "status ok",
 			method:             http.MethodGet,
 			url:                "/hello-world",
 			expectedStatusCode: http.StatusOK,
 			expectedBody:       []byte("hello world"),
 		},
 		{
-			name:               "GET /empty",
+			name:               "status no content",
 			method:             http.MethodGet,
 			url:                "/empty",
 			expectedStatusCode: http.StatusNoContent,
 		},
+		// TODO: Test static content retrieval
 		{
-			name:               "GET /not-found",
+			name:               "error status not found",
 			method:             http.MethodGet,
 			url:                "/not-found",
 			expectedStatusCode: http.StatusNotFound,
+			expectedProblemDetail: &problem_detail.ProblemDetail{
+				Type:   "about:blank",
+				Title:  http.StatusText(http.StatusNotFound),
+				Status: http.StatusNotFound,
+			},
 		},
+		// TODO: Test method mismatch
+		// TODO: Test body parser
 	}
 
 	for _, testCase := range testCases {
@@ -111,7 +124,21 @@ func TestMux(t *testing.T) {
 				}
 			}
 
-			if bytes.Equal(responseBody, testCase.expectedBody) {
+			if expectedProblemDetail := testCase.expectedProblemDetail; expectedProblemDetail != nil {
+				var problemDetail *problem_detail.ProblemDetail
+				if err := json.Unmarshal(responseBody, &problemDetail); err != nil {
+					t.Fatalf("json unmarshal response body: %v", err)
+				}
+
+				opts := []cmp.Option{
+					cmpopts.IgnoreFields(problem_detail.ProblemDetail{}, "Instance"),
+					cmpopts.EquateEmpty(),
+				}
+
+				if diff := cmp.Diff(expectedProblemDetail, problemDetail, opts...); diff != "" {
+					t.Errorf("problem detail mismatch (-expected +got):\n%s", diff)
+				}
+			} else if !bytes.Equal(responseBody, testCase.expectedBody) {
 				t.Errorf("got response body %q, expected response body %q", responseBody, testCase.expectedBody)
 			}
 		})

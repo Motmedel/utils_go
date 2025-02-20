@@ -200,7 +200,7 @@ func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypes
 		}
 	}
 
-	if allowEmpty && contentLength == 0 {
+	if !allowEmpty && contentLength == 0 {
 		return &muxTypesResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				zeroContentLengthStatusCode,

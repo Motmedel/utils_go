@@ -265,7 +265,9 @@ func muxHandleRequest(mux *Mux, request *http.Request) (*muxTypesResponse.Respon
 		return responseInfo, responseError
 	}
 	if endpointSpecification == nil {
-		return nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilEndpointSpecification)}
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilEndpointSpecification),
+		}
 	}
 
 	// Perform rate limiting, if specified.
