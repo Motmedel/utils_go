@@ -27,25 +27,13 @@ import (
 	"strings"
 )
 
-var DefaultHeaders = map[string]string{
-	"Cache-Control":                "no-store",
-	"X-Content-Type-Options":       "nosniff",
-	"Cross-Origin-Resource-Policy": "same-origin",
-}
-
-var DefaultDocumentHeaders = map[string]string{
-	"Cross-Origin-Opener-Policy":   "same-origin",
-	"Cross-Origin-Embedder-Policy": "require-corp",
-	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
-}
-
 type baseMux struct {
 	SetContextKeyValuePairs [][2]any
 	ResponseErrorHandler    func(context.Context, *muxTypesResponseError.ResponseError, *muxTypesResponseWriter.ResponseWriter)
 	DoneCallback            func(*motmedelHttpTypes.HttpContext)
 	FirewallConfiguration   *muxTypesFirewall.Configuration
 	DefaultHeaders          map[string]string
+	DefaultDocumentHeaders  map[string]string
 	Middleware              []muxTypesMiddleware.Middleware
 }
 
@@ -89,8 +77,22 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 	// Populate the request context.
 
-	// NOTE: The error is ignored.
-	if requestId, err := uuid.NewV7(); err == nil {
+	httpContext := &motmedelHttpTypes.HttpContext{Request: request}
+	request = request.WithContext(
+		context.WithValue(request.Context(), motmedelHttpContext.HttpContextContextKey, httpContext),
+	)
+
+	requestId, err := uuid.NewV7()
+	if err != nil {
+		slog.Default().WarnContext(
+			context.WithValue(
+				request.Context(),
+				motmedelErrors.ErrorContextKey,
+				motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("uuid new v7: %w", err)),
+			),
+			"An error occurred when generating a request id.",
+		)
+	} else {
 		contextRequest := request.WithContext(
 			context.WithValue(request.Context(), muxContext.RequestIdContextKey, requestId.String()),
 		)
@@ -98,15 +100,6 @@ func (bm *baseMux) ServeHttpWithCallback(
 			request = contextRequest
 		}
 	}
-
-	httpContext := &motmedelHttpTypes.HttpContext{Request: request}
-	request = request.WithContext(
-		context.WithValue(request.Context(), motmedelHttpContext.HttpContextContextKey, httpContext),
-	)
-
-	requestCtx := request.Context()
-
-	// TODO: Can I add a "connection id" via some http.Server method?
 
 	if len(bm.SetContextKeyValuePairs) != 0 {
 		ctx := request.Context()
@@ -126,14 +119,11 @@ func (bm *baseMux) ServeHttpWithCallback(
 		responseWriter = convertedResponseWriter
 		originalResponseWriter = convertedResponseWriter.ResponseWriter
 	} else {
+		// TODO: This header stuff probably does not work with vhost?
 		responseWriter = &muxTypesResponseWriter.ResponseWriter{
-			ResponseWriter: originalResponseWriter,
-			DefaultHeaders: func() map[string]string {
-				if defaultHeaders := bm.DefaultHeaders; defaultHeaders != nil {
-					return defaultHeaders
-				}
-				return DefaultHeaders
-			}(),
+			ResponseWriter:         originalResponseWriter,
+			DefaultHeaders:         bm.DefaultHeaders,
+			DefaultDocumentHeaders: bm.DefaultDocumentHeaders,
 		}
 	}
 
@@ -148,7 +138,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 			connection, _, err := hijacker.Hijack()
 			if err != nil {
 				responseErrorHandler(
-					requestCtx,
+					request.Context(),
 					&muxTypesResponseError.ResponseError{
 						ServerError: motmedelErrors.MakeErrorWithStackTrace(
 							fmt.Errorf("response writer hijacker hijack: %w", err),
@@ -177,7 +167,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusForbidden, "", nil),
 			}
 		}
-		responseErrorHandler(requestCtx, firewallResponseError, responseWriter)
+		responseErrorHandler(request.Context(), firewallResponseError, responseWriter)
 	} else {
 		for _, middleware := range bm.Middleware {
 			if middleware != nil {
@@ -221,7 +211,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 	if !responseWriter.WriteHeaderCalled {
 		responseErrorHandler(
-			requestCtx,
+			request.Context(),
 			&muxTypesResponseError.ResponseError{
 				ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNoResponseWritten),
 			},

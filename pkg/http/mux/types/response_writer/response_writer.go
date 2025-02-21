@@ -5,9 +5,23 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
+	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"net/http"
 	"strings"
 )
+
+var DefaultHeaders = map[string]string{
+	"Cache-Control":                "no-store",
+	"X-Content-Type-Options":       "nosniff",
+	"Cross-Origin-Resource-Policy": "same-origin",
+}
+
+var DefaultDocumentHeaders = map[string]string{
+	"Cross-Origin-Opener-Policy":   "same-origin",
+	"Cross-Origin-Embedder-Policy": "require-corp",
+	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
+}
 
 type ResponseWriter struct {
 	http.ResponseWriter
@@ -19,7 +33,8 @@ type ResponseWriter struct {
 	WrittenStatusCode int
 	WrittenBody       []byte
 
-	DefaultHeaders map[string]string
+	DefaultHeaders         map[string]string
+	DefaultDocumentHeaders map[string]string
 }
 
 func (responseWriter *ResponseWriter) WriteHeader(statusCode int) {
@@ -66,38 +81,93 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 		return motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilResponseWriter)
 	}
 
-	// TODO: Rework default headers... Use some kind of tagging for responses? (check Chrome dev types -- see the extension I wrote for a list?)
 	defaultHeaders := responseWriter.DefaultHeaders
+	if defaultHeaders == nil {
+		defaultHeaders = DefaultHeaders
+	}
+
+	defaultDocumentHeaders := responseWriter.DefaultHeaders
+	if defaultDocumentHeaders == nil {
+		defaultDocumentHeaders = DefaultDocumentHeaders
+	}
+
 	skippedDefaultHeadersSet := make(map[string]struct{})
 
 	body := response.Body
 	bodyStreamer := response.BodyStreamer
 
+	var contentTypeString *string
+
 	responseWriterHeader := responseWriter.Header()
 	for _, header := range response.Headers {
-		if header == nil {
+		if header == nil || header.Name == "" {
 			continue
 		}
 
-		if strings.ToLower(header.Name) == "content-type" && len(body) == 0 && bodyStreamer == nil {
-			continue
-		}
+		canonicalHeaderName := http.CanonicalHeaderKey(header.Name)
+		headerValue := header.Value
 
-		if _, ok := defaultHeaders[header.Name]; ok {
-			if header.Overwrite {
-				skippedDefaultHeadersSet[header.Name] = struct{}{}
-			} else {
+		if canonicalHeaderName == "Content-Type" {
+			contentTypeString = &headerValue
+			if len(body) == 0 && bodyStreamer == nil {
 				continue
 			}
 		}
 
-		responseWriterHeader.Set(header.Name, header.Value)
+		if _, ok := defaultHeaders[canonicalHeaderName]; ok {
+			if !header.Overwrite {
+				continue
+			}
+			skippedDefaultHeadersSet[canonicalHeaderName] = struct{}{}
+		}
+
+		if _, ok := defaultDocumentHeaders[canonicalHeaderName]; ok {
+			if !header.Overwrite {
+				continue
+			}
+			skippedDefaultHeadersSet[canonicalHeaderName] = struct{}{}
+		}
+
+		responseWriterHeader.Set(canonicalHeaderName, headerValue)
 	}
 	for headerName, headerValue := range defaultHeaders {
 		if _, ok := skippedDefaultHeadersSet[headerName]; ok {
 			continue
 		}
 		responseWriterHeader.Set(headerName, headerValue)
+	}
+
+	if contentTypeString != nil {
+		contentTypeData := []byte(*contentTypeString)
+		contentType, err := content_type.ParseContentType(contentTypeData)
+		if err != nil {
+			return motmedelErrors.MakeError(fmt.Errorf("parse content type: %w", err), contentTypeData)
+		}
+		if contentType == nil {
+			return motmedelErrors.MakeErrorWithStackTrace(content_type.ErrNilContentType, contentTypeData)
+		}
+
+		var useDocumentHeaders bool
+
+		effectiveContentTypeValues := []string{
+			strings.ToLower(contentType.Subtype),
+			contentType.GetStructuredSyntaxName(true),
+		}
+		for _, effectiveContentTypeValue := range effectiveContentTypeValues {
+			switch effectiveContentTypeValue {
+			case "html", "xhtml", "xml", "svg":
+				useDocumentHeaders = true
+			}
+		}
+
+		if useDocumentHeaders {
+			for headerName, headerValue := range defaultDocumentHeaders {
+				if _, ok := skippedDefaultHeadersSet[headerName]; ok {
+					continue
+				}
+				responseWriterHeader.Set(headerName, headerValue)
+			}
+		}
 	}
 
 	if response.StatusCode != 0 {
