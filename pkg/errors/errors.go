@@ -207,6 +207,9 @@ func MakeError(e any, input ...any) *ExtendedError {
 	}
 
 	var errInput any = input
+	if len(input) == 0 {
+		errInput = nil
+	}
 	if len(input) == 1 {
 		errInput = input[0]
 	}
