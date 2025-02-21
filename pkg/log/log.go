@@ -12,32 +12,16 @@ import (
 	"strconv"
 )
 
-// NOTE: Apparently, according to convention, you should not use string keys, and you should not use context as a kind
-// storage for optional parameters. But it seems to me a logger is a special case, and I see no better, idiomatic way.
-
-// TODO: Change type
-
-const LoggerCtxKey = "logger"
-
-func GetLoggerFromCtx(ctx context.Context) *slog.Logger {
-	logger, _ := ctx.Value(LoggerCtxKey).(*slog.Logger)
-	return logger
+type ContextHandler struct {
+	slog.Handler
 }
 
-func GetLoggerFromCtxWithDefault(ctx context.Context, defaultLogger *slog.Logger) *slog.Logger {
-	logger := GetLoggerFromCtx(ctx)
-	if logger == nil {
-		if defaultLogger != nil {
-			logger = defaultLogger
-		} else {
-			logger = slog.Default()
-		}
+func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Record) error {
+	if logErr, ok := ctx.Value(motmedelErrors.ErrorContextKey).(error); ok {
+		record.Add(MakeErrorAttrs(logErr)...)
 	}
-	return logger
-}
 
-func CtxWithLogger(ctx context.Context, logger *slog.Logger) context.Context {
-	return context.WithValue(ctx, LoggerCtxKey, logger)
+	return contextHandler.Handler.Handle(ctx, record)
 }
 
 func AttrsFromMap(m map[string]any) []any {
@@ -48,7 +32,7 @@ func AttrsFromMap(m map[string]any) []any {
 	return attrs
 }
 
-func makeErrorAttrs(err error) []any {
+func MakeErrorAttrs(err error) []any {
 	if err == nil {
 		return nil
 	}
@@ -59,7 +43,7 @@ func makeErrorAttrs(err error) []any {
 	var attrs []any
 
 	switch errType {
-	case "*errors.errorString", "*fmt.wrapError", "*errors.ExtendedError":
+	case "*errors.errorString", "*fmt.wrapError", "*errors.Error", "*errors.ExtendedError":
 		break
 	default:
 		attrs = append(attrs, slog.String("type", errType))
@@ -108,7 +92,7 @@ func makeErrorAttrs(err error) []any {
 			continue
 		}
 
-		wrappedErrorAttrs := makeErrorAttrs(wrappedError)
+		wrappedErrorAttrs := MakeErrorAttrs(wrappedError)
 
 		if lastWrappedErrorAttrs != nil {
 			wrappedErrorAttrs = append(
@@ -151,7 +135,16 @@ func makeErrorAttrs(err error) []any {
 			attrs = append(attrs, slog.String("code", strconv.Itoa(exitCode)))
 		}
 
-		errorMessage = string(execExitError.Stderr)
+		if stderr := execExitError.Stderr; len(stderr) != 0 {
+			attrs = append(
+				attrs,
+				slog.Group(
+					"output",
+					slog.String("stderr", string(stderr)),
+					slog.String("type", "stderr"),
+				),
+			)
+		}
 	}
 
 	attrs = append(attrs, slog.String("message", errorMessage))
@@ -160,7 +153,7 @@ func makeErrorAttrs(err error) []any {
 }
 
 func MakeErrorGroup(err error) *slog.Attr {
-	group := slog.Group("error", makeErrorAttrs(err)...)
+	group := slog.Group("error", MakeErrorAttrs(err)...)
 	return &group
 }
 

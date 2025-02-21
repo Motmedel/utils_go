@@ -1,6 +1,6 @@
 module github.com/Motmedel/utils_go/pkg/http/mux
 
-go 1.23.4
+go 1.24
 
 require (
 	github.com/Motmedel/utils_go v0.0.113

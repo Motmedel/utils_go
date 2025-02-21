@@ -52,6 +52,26 @@ func getParameterMap(parameters [][2]string, normalize bool) map[string]string {
 	return parameterMap
 }
 
+func getStructuredSyntaxName(subtype string, normalize bool) string {
+	if subtype == "" {
+		return ""
+	}
+
+	separator := "+"
+
+	lastSeparatorIndex := strings.LastIndex(subtype, separator)
+	if lastSeparatorIndex == -1 {
+		return ""
+	}
+
+	structuredSyntaxName := subtype[lastSeparatorIndex+len(separator):]
+	if normalize {
+		structuredSyntaxName = strings.ToLower(structuredSyntaxName)
+	}
+
+	return structuredSyntaxName
+}
+
 type MediaRange struct {
 	Type       string
 	Subtype    string
@@ -73,20 +93,7 @@ func (mediaRange *MediaRange) GetParameterMap(normalize bool) map[string]string 
 }
 
 func (mediaRange *MediaRange) GetStructuredSyntaxName(normalize bool) string {
-	subtype := mediaRange.Subtype
-	separator := "+"
-
-	lastSeparatorIndex := strings.LastIndex(subtype, separator)
-	if lastSeparatorIndex == -1 {
-		return ""
-	}
-
-	structuredSyntaxName := subtype[lastSeparatorIndex+len(separator):]
-	if normalize {
-		structuredSyntaxName = strings.ToLower(structuredSyntaxName)
-	}
-
-	return structuredSyntaxName
+	return getStructuredSyntaxName(mediaRange.Subtype, normalize)
 }
 
 type Accept struct {
@@ -105,8 +112,6 @@ func (accept *Accept) GetPriorityOrderedEncodings() []*MediaRange {
 	return mediaRanges
 }
 
-// TODO: I should parse those `a/b+c` types somehow too. Is that some official format?
-
 type MediaType struct {
 	Type       string
 	Subtype    string
@@ -115,6 +120,10 @@ type MediaType struct {
 
 func (mediaType *MediaType) GetFullType(normalize bool) string {
 	return getFullType(mediaType.Type, mediaType.Subtype, normalize)
+}
+
+func (mediaType *MediaType) GetStructuredSyntaxName(normalize bool) string {
+	return getStructuredSyntaxName(mediaType.Subtype, normalize)
 }
 
 func (mediaType *MediaType) GetParametersMap(normalize bool) map[string]string {

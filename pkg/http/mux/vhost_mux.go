@@ -5,6 +5,7 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
+	muxInternalVhostMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/vhost_mux"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
@@ -23,32 +24,43 @@ type VhostMux struct {
 	HostToSpecification map[string]*VhostMuxSpecification
 }
 
-func (vhostMux *VhostMux) MakeHttpServer() *http.Server {
-	return &http.Server{
-		Handler: vhostMux,
-		TLSConfig: &tls.Config{
-			GetCertificate: func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-				if clientHello == nil {
-					return nil, nil
-				}
+func (vhostMux *VhostMux) PatchHttpServer(httpServer *http.Server) {
+	if httpServer == nil {
+		return
+	}
 
-				hostToSpecification := vhostMux.HostToSpecification
-				if hostToSpecification == nil {
-					return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilHostToMuxSpecification)
-				}
+	httpServer.Handler = vhostMux
 
-				specification, ok := hostToSpecification[clientHello.ServerName]
-				if !ok || specification == nil {
-					return nil, nil
-				}
+	tlsConfig := httpServer.TLSConfig
+	if tlsConfig == nil {
+		tlsConfig = &tls.Config{}
+		httpServer.TLSConfig = tlsConfig
+	}
 
-				return specification.Certificate, nil
-			},
-		},
+	tlsConfig.GetCertificate = func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		if clientHello == nil {
+			return nil, nil
+		}
+
+		hostToSpecification := vhostMux.HostToSpecification
+		if hostToSpecification == nil {
+			return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilHostToMuxSpecification)
+		}
+
+		specification, ok := hostToSpecification[clientHello.ServerName]
+		if !ok || specification == nil {
+			return nil, nil
+		}
+
+		return specification.Certificate, nil
 	}
 }
 
-func vhostMuxHandleRequest(vhostMux *VhostMux, request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+func vhostMuxHandleRequest(
+	vhostMux *VhostMux,
+	request *http.Request,
+	responseWriter http.ResponseWriter,
+) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if vhostMux == nil {
 		return nil, &muxTypesResponseError.ResponseError{
 			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilVhostMux),
@@ -90,14 +102,14 @@ func vhostMuxHandleRequest(vhostMux *VhostMux, request *http.Request) (*muxTypes
 	}
 
 	if redirectTo := muxSpecification.RedirectTo; redirectTo != "" {
-		//http.Redirect(
-		//	responseWriter,
-		//	request,
-		//	redirectTo+request.RequestURI,
-		//	http.StatusMovedPermanently,
-		//)
+		return &muxTypesResponse.Response{
+			StatusCode: http.StatusMovedPermanently,
+			Headers: []*muxTypesResponse.HeaderEntry{
+				{Name: "Location", Value: muxInternalVhostMux.HexEscapeNonASCII(redirectTo + request.RequestURI)},
+			},
+		}, nil
 	} else if muxSpecificationMux := muxSpecification.Mux; muxSpecificationMux != nil {
-		return muxHandleRequest(muxSpecificationMux, request)
+		muxSpecificationMux.ServeHTTP(responseWriter, request)
 	}
 
 	return nil, &muxTypesResponseError.ResponseError{
@@ -112,8 +124,8 @@ func (vhostMux *VhostMux) ServeHTTP(responseWriter http.ResponseWriter, request 
 	vhostMux.baseMux.ServeHttpWithCallback(
 		responseWriter,
 		request,
-		func(request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
-			return vhostMuxHandleRequest(vhostMux, request)
+		func(request *http.Request, responseWriter http.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+			return vhostMuxHandleRequest(vhostMux, request, responseWriter)
 		},
 	)
 }

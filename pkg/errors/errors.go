@@ -1,12 +1,21 @@
 package errors
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
 )
+
+type errorContextType struct{}
+
+var ErrorContextKey errorContextType
+
+func ErrCtx(err error) context.Context {
+	return context.WithValue(context.Background(), ErrorContextKey, err)
+}
 
 var (
 	ErrSyntaxError   = errors.New("syntax error")

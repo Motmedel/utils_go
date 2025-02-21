@@ -34,15 +34,13 @@ func DefaultResponseErrorHandler(
 
 	switch responseErrorType := responseError.Type(); responseErrorType {
 	case muxTypesResponseError.ResponseErrorType_ClientError:
-		logger.Warning(
-			"A client error occurred.",
-			responseError.ClientError,
-		)
+		defer func() {
+			logger.Warning("A client error occurred.", responseError.ClientError)
+		}()
 	case muxTypesResponseError.ResponseErrorType_ServerError:
-		logger.Error(
-			"A server error occurred.",
-			responseError.ServerError,
-		)
+		defer func() {
+			logger.Error("A server error occurred.", responseError.ServerError)
+		}()
 	case muxTypesResponseError.ResponseErrorType_Invalid:
 		logger.Error(
 			"An invalid response error type was encountered.",

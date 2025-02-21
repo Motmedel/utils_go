@@ -5,18 +5,15 @@ import (
 )
 
 var (
-	ErrNilHandler                            = errors.New("nil handler")
-	ErrNilEndpointSpecification              = errors.New("nil endpoint specification")
-	ErrNoResponseWritten                     = errors.New("no response was written")
-	ErrNilErrorResponseProblemDetail         = errors.New("nil error response problem detail")
-	ErrUnsetErrorResponseProblemDetailStatus = errors.New("the error response problem detail status is unset")
-	ErrBadIfModifiedSinceTimestamp           = errors.New("bad If-Modified-Since timestamp")
-	ErrNoResponseWriterFlusher               = errors.New("no response writer flusher")
-	ErrTransferEncodingAlreadySet            = errors.New("transfer encoding already set")
-	ErrNilHostToMuxSpecification             = errors.New("nil host to mux specification")
-	ErrNilMuxSpecification                   = errors.New("nil mux specification")
-	ErrUnusableMuxSpecification              = errors.New("unusable mux specification")
-	ErrNilResponseWriter                     = errors.New("nil response writer")
+	ErrNilEndpointSpecification    = errors.New("nil endpoint specification")
+	ErrNoResponseWritten           = errors.New("no response was written")
+	ErrBadIfModifiedSinceTimestamp = errors.New("bad If-Modified-Since timestamp")
+	ErrNoResponseWriterFlusher     = errors.New("no response writer flusher")
+	ErrTransferEncodingAlreadySet  = errors.New("transfer encoding already set")
+	ErrNilHostToMuxSpecification   = errors.New("nil host to mux specification")
+	ErrNilMuxSpecification         = errors.New("nil mux specification")
+	ErrUnusableMuxSpecification    = errors.New("unusable mux specification")
+	ErrNilResponseWriter           = errors.New("nil response writer")
 	// TODO: Put in HTTP errors?
 	ErrNilContentType = errors.New("nil content type")
 	// TODO: Put in HTTP errors?

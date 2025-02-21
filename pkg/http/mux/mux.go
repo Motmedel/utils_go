@@ -64,7 +64,7 @@ func (bm *baseMux) getFirewallVerdict(request *http.Request) (muxTypesFirewall.V
 func (bm *baseMux) ServeHttpWithCallback(
 	originalResponseWriter http.ResponseWriter,
 	request *http.Request,
-	callback func(*http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError),
+	callback func(*http.Request, http.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError),
 ) {
 	if originalResponseWriter == nil {
 		return
@@ -114,15 +114,23 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 	// Use a custom response writer.
 
-	responseWriter := &muxTypesResponseWriter.ResponseWriter{
-		ResponseWriter: originalResponseWriter,
-		DefaultHeaders: func() map[string]string {
-			if defaultHeaders := bm.DefaultHeaders; defaultHeaders != nil {
-				return defaultHeaders
-			}
-			return DefaultHeaders
-		}(),
+	var responseWriter *muxTypesResponseWriter.ResponseWriter
+
+	if convertedResponseWriter, ok := originalResponseWriter.(*muxTypesResponseWriter.ResponseWriter); ok {
+		responseWriter = convertedResponseWriter
+		originalResponseWriter = convertedResponseWriter.ResponseWriter
+	} else {
+		responseWriter = &muxTypesResponseWriter.ResponseWriter{
+			ResponseWriter: originalResponseWriter,
+			DefaultHeaders: func() map[string]string {
+				if defaultHeaders := bm.DefaultHeaders; defaultHeaders != nil {
+					return defaultHeaders
+				}
+				return DefaultHeaders
+			}(),
+		}
 	}
+
 	responseWriter.IsHeadRequest = strings.ToUpper(request.Method) == http.MethodHead
 
 	// Check the request with the muxTypesFirewall.
@@ -175,7 +183,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 		// Respond to the request.
 
-		response, responseError := callback(request)
+		response, responseError := callback(request, responseWriter)
 		if responseError != nil {
 			responseErrorHandler(request.Context(), responseError, responseWriter)
 		} else {
@@ -227,7 +235,11 @@ type Mux struct {
 	HandlerSpecificationMap map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification
 }
 
-func muxHandleRequest(mux *Mux, request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+func muxHandleRequest(
+	mux *Mux,
+	request *http.Request,
+	_ http.ResponseWriter,
+) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if mux == nil {
 		return nil, &muxTypesResponseError.ResponseError{
 			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilMux),
@@ -388,8 +400,8 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 	mux.baseMux.ServeHttpWithCallback(
 		originalResponseWriter,
 		request,
-		func(request *http.Request) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
-			return muxHandleRequest(mux, request)
+		func(request *http.Request, responseWriter http.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+			return muxHandleRequest(mux, request, responseWriter)
 		},
 	)
 }
