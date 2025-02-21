@@ -42,11 +42,18 @@ func MakeErrorAttrs(err error) []any {
 
 	var attrs []any
 
-	switch errType {
-	case "*errors.errorString", "*fmt.wrapError", "*errors.Error", "*errors.ExtendedError":
+	switch err.(type) {
+	case *motmedelErrors.Error:
+		break
+	case *motmedelErrors.ExtendedError:
 		break
 	default:
-		attrs = append(attrs, slog.String("type", errType))
+		switch errType {
+		case "*errors.errorString", "*fmt.wrapError":
+			break
+		default:
+			attrs = append(attrs, slog.String("type", errType))
+		}
 	}
 
 	if inputError, ok := err.(motmedelErrors.InputErrorI); ok {
