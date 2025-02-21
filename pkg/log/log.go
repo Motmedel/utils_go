@@ -18,7 +18,7 @@ type ContextHandler struct {
 
 func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Record) error {
 	if logErr, ok := ctx.Value(motmedelErrors.ErrorContextKey).(error); ok {
-		record.Add(MakeErrorAttrs(logErr)...)
+		record.Add(slog.Group("error", MakeErrorAttrs(logErr)...))
 	}
 
 	return contextHandler.Handler.Handle(ctx, record)
@@ -147,7 +147,9 @@ func MakeErrorAttrs(err error) []any {
 		}
 	}
 
-	attrs = append(attrs, slog.String("message", errorMessage))
+	if errorMessage != "" {
+		attrs = append(attrs, slog.String("message", errorMessage))
+	}
 
 	return attrs
 }
