@@ -187,8 +187,8 @@ func (err *ExtendedError) GetStackTrace() string {
 	return err.StackTrace
 }
 
-func (err *ExtendedError) Unwrap() error {
-	return err.error
+func (err *ExtendedError) Unwrap() []error {
+	return CollectWrappedErrors(err.error)
 }
 
 func MakeError(e any, input ...any) *ExtendedError {
