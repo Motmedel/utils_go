@@ -40,7 +40,7 @@ func DefaultResponseErrorHandler(
 			clientError.Id = errorId
 			slog.WarnContext(
 				context.WithValue(ctx, motmedelErrors.ErrorContextKey, clientError),
-				"A client error occurred",
+				"A client error occurred.",
 			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_ServerError:
@@ -49,7 +49,7 @@ func DefaultResponseErrorHandler(
 			serverError.Id = errorId
 			slog.ErrorContext(
 				context.WithValue(ctx, motmedelErrors.ErrorContextKey, serverError),
-				"A server error occurred",
+				"A server error occurred.",
 			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_Invalid:
