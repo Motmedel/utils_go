@@ -8,7 +8,6 @@ import (
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	"log/slog"
-	"strconv"
 )
 
 func DefaultResponseErrorHandler(
@@ -33,14 +32,12 @@ func DefaultResponseErrorHandler(
 	}
 
 	var errorId string
-	var errorCode string
 
 	switch responseErrorType := responseError.Type(); responseErrorType {
 	case muxTypesResponseError.ResponseErrorType_ClientError:
 		defer func() {
 			clientError := motmedelErrors.MakeError(responseError.ClientError)
 			clientError.Id = errorId
-			clientError.Code = errorCode
 			slog.WarnContext(
 				context.WithValue(ctx, motmedelErrors.ErrorContextKey, clientError),
 				"A client error occurred",
@@ -50,7 +47,6 @@ func DefaultResponseErrorHandler(
 		defer func() {
 			serverError := motmedelErrors.MakeError(responseError.ServerError)
 			serverError.Id = errorId
-			serverError.Code = errorCode
 			slog.ErrorContext(
 				context.WithValue(ctx, motmedelErrors.ErrorContextKey, serverError),
 				"A server error occurred",
@@ -101,7 +97,6 @@ func DefaultResponseErrorHandler(
 	}
 	responseError.ProblemDetail = problemDetail
 	errorId = problemDetail.Instance
-	errorCode = strconv.Itoa(problemDetail.Status)
 
 	response, err := responseError.MakeResponse()
 	if err != nil {
