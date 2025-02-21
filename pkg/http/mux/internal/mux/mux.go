@@ -142,7 +142,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 	}
 	if contentType == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilContentType),
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(content_type.ErrNilContentType),
 		}
 	}
 
@@ -216,7 +216,7 @@ func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypes
 func ObtainRequestBody(contentLength int64, bodyReader io.ReadCloser) ([]byte, *muxTypesResponseError.ResponseError) {
 	if bodyReader == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilHttpRequestBodyReader),
+			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestBodyReader),
 		}
 	}
 
@@ -395,7 +395,7 @@ func ObtainStaticContentResponse(
 			}
 			if acceptEncoding == nil {
 				return nil, &muxTypesResponseError.ResponseError{
-					ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilAcceptEncoding),
+					ServerError: motmedelErrors.MakeErrorWithStackTrace(accept_encoding.ErrNilAcceptEncoding),
 				}
 			}
 

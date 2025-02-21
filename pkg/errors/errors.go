@@ -193,6 +193,8 @@ func MakeError(e any, input ...any) *ExtendedError {
 		err = typedE
 	case string:
 		err = errors.New(typedE)
+	case nil:
+		break
 	default:
 		err = errors.New(fmt.Sprintf("%v", typedE))
 	}

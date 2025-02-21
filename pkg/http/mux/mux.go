@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -28,11 +29,14 @@ import (
 
 var DefaultHeaders = map[string]string{
 	"Cache-Control":                "no-store",
+	"X-Content-Type-Options":       "nosniff",
+	"Cross-Origin-Resource-Policy": "same-origin",
+}
+
+var DefaultDocumentHeaders = map[string]string{
 	"Cross-Origin-Opener-Policy":   "same-origin",
 	"Cross-Origin-Embedder-Policy": "require-corp",
-	"Cross-Origin-Resource-Policy": "same-origin",
 	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-	"X-Content-Type-Options":       "nosniff",
 	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
 }
 
@@ -96,7 +100,9 @@ func (bm *baseMux) ServeHttpWithCallback(
 	}
 
 	httpContext := &motmedelHttpTypes.HttpContext{Request: request}
-	request = request.WithContext(context.WithValue(request.Context(), muxContext.HttpContextContextKey, httpContext))
+	request = request.WithContext(
+		context.WithValue(request.Context(), motmedelHttpContext.HttpContextContextKey, httpContext),
+	)
 
 	requestCtx := request.Context()
 
@@ -255,7 +261,7 @@ func muxHandleRequest(
 		return nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestHeader)}
 	}
 
-	httpContext, ok := request.Context().Value(muxContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	httpContext, ok := request.Context().Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
 	if !ok {
 		return nil, &muxTypesResponseError.ResponseError{
 			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrCouldNotObtainHttpContext),

@@ -41,18 +41,48 @@ func (responseError *ResponseError) Type() ResponseErrorType {
 	return ResponseErrorType_Invalid
 }
 
-func (responseError *ResponseError) MakeResponse() (*muxTypesResponse.Response, error) {
-	problemDetail := responseError.ProblemDetail
-
-	if problemDetail == nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilProblemDetail)
+func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail.ProblemDetail, error) {
+	if problemDetail := responseError.ProblemDetail; problemDetail != nil {
+		return problemDetail, nil
 	}
 
-	if problemDetail.Status == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrEmptyStatus)
+	if responseError.ClientError != nil && responseError.ServerError != nil {
+		return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrMultipleResponseErrorErrors)
+	}
+
+	if responseError.ServerError != nil {
+		return problem_detail.MakeInternalServerErrorProblemDetail("", nil), nil
+	}
+
+	if responseError.ClientError != nil {
+		return problem_detail.MakeBadRequestProblemDetail("", nil), nil
+	}
+
+	return nil, motmedelErrors.MakeErrorWithStackTrace(
+		fmt.Errorf(
+			"%w: %w, %w",
+			muxErrors.ErrUnusableResponseError,
+			muxErrors.ErrNilProblemDetail,
+			muxErrors.ErrEmptyResponseErrorErrors,
+		),
+	)
+}
+
+func (responseError *ResponseError) MakeResponse() (*muxTypesResponse.Response, error) {
+	problemDetail := responseError.ProblemDetail
+	if problemDetail == nil {
+		return nil, motmedelErrors.MakeErrorWithStackTrace(
+			fmt.Errorf("%w: %w", muxErrors.ErrUnusableResponseError, muxErrors.ErrNilProblemDetail),
+		)
 	}
 
 	statusCode := problemDetail.Status
+	if statusCode == 0 {
+		return nil, motmedelErrors.MakeErrorWithStackTrace(
+			fmt.Errorf("%w: problem detail: %w", muxErrors.ErrUnusableResponseError, muxErrors.ErrEmptyStatus),
+		)
+	}
+
 	responseBody, err := problemDetail.Bytes()
 	if err != nil {
 		return nil, motmedelErrors.MakeError(fmt.Errorf("problem detail bytes: %w", err), problemDetail)

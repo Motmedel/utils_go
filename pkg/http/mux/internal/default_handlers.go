@@ -7,7 +7,8 @@ import (
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
-	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
+	"log/slog"
+	"strconv"
 )
 
 func DefaultResponseErrorHandler(
@@ -19,40 +20,62 @@ func DefaultResponseErrorHandler(
 		return
 	}
 
-	// TODO: Make a function without the default argument...
-	logger := motmedelLog.Logger{
-		Logger: motmedelLog.GetLoggerFromCtxWithDefault(ctx, nil),
-	}
-
 	if responseWriter == nil {
-		logger.Error(
+		slog.ErrorContext(
+			context.WithValue(
+				ctx,
+				motmedelErrors.ErrorContextKey,
+				motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilResponseWriter),
+			),
 			"The response writer is nil.",
-			motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilResponseWriter),
 		)
 		return
 	}
+
+	var errorId string
+	var errorCode string
 
 	switch responseErrorType := responseError.Type(); responseErrorType {
 	case muxTypesResponseError.ResponseErrorType_ClientError:
 		defer func() {
-			logger.Warning("A client error occurred.", responseError.ClientError)
+			clientError := motmedelErrors.MakeError(responseError.ClientError)
+			clientError.Id = errorId
+			clientError.Code = errorCode
+			slog.WarnContext(
+				context.WithValue(ctx, motmedelErrors.ErrorContextKey, clientError),
+				"A client error occurred",
+			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_ServerError:
 		defer func() {
-			logger.Error("A server error occurred.", responseError.ServerError)
+			serverError := motmedelErrors.MakeError(responseError.ServerError)
+			serverError.Id = errorId
+			serverError.Code = errorCode
+			slog.ErrorContext(
+				context.WithValue(ctx, motmedelErrors.ErrorContextKey, serverError),
+				"A server error occurred",
+			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_Invalid:
-		logger.Error(
+		slog.ErrorContext(
+			context.WithValue(
+				ctx,
+				motmedelErrors.ErrorContextKey,
+				motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrUnusableResponseError, responseError),
+			),
 			"An invalid response error type was encountered.",
-			motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrInvalidResponseError, responseError),
 		)
 		return
 	default:
-		logger.Error(
-			"An unexpected response error type was encountered.",
-			motmedelErrors.MakeErrorWithStackTrace(
-				fmt.Errorf("%w: %v", muxErrors.ErrUnexpectedResponseErrorType, responseErrorType),
+		slog.ErrorContext(
+			context.WithValue(
+				ctx,
+				motmedelErrors.ErrorContextKey,
+				motmedelErrors.MakeErrorWithStackTrace(
+					fmt.Errorf("%w: %v", muxErrors.ErrUnexpectedResponseErrorType, responseErrorType),
+				),
 			),
+			"An unexpected response error type was encountered.",
 		)
 		return
 	}
@@ -61,25 +84,47 @@ func DefaultResponseErrorHandler(
 		return
 	}
 
+	problemDetail, err := responseError.GetEffectiveProblemDetail()
+	if err != nil {
+		slog.ErrorContext(
+			context.WithValue(
+				ctx,
+				motmedelErrors.ErrorContextKey,
+				motmedelErrors.MakeErrorWithStackTrace(
+					fmt.Errorf("response error get effective problem detail: %w", err),
+					responseError,
+				),
+			),
+			"An error occurred when obtaining the effective response error problem detail.",
+		)
+		return
+	}
+	responseError.ProblemDetail = problemDetail
+	errorId = problemDetail.Instance
+	errorCode = strconv.Itoa(problemDetail.Status)
+
 	response, err := responseError.MakeResponse()
 	if err != nil {
-		logger.Error(
-			"An error occurred when making a response from a response error.",
-			motmedelErrors.MakeError(
-				fmt.Errorf("make response error response: %w", err),
-				responseError,
+		slog.ErrorContext(
+			context.WithValue(
+				ctx,
+				motmedelErrors.ErrorContextKey,
+				motmedelErrors.MakeError(fmt.Errorf("make response error response: %w", err), responseError),
 			),
+			"An error occurred when making a response from a response error.",
 		)
 		return
 	}
 
 	if err := responseWriter.WriteResponse(response); err != nil {
-		logger.Error(
-			"An error occurred when writing an error response.",
-			motmedelErrors.MakeError(
-				fmt.Errorf("write response: %w", err),
-				responseError,
+		slog.ErrorContext(
+			context.WithValue(
+				ctx,
+				motmedelErrors.ErrorContextKey,
+				motmedelErrors.MakeError(fmt.Errorf("write response: %w", err), responseError),
 			),
+			"An error occurred when writing an error response.",
 		)
+		return
 	}
 }
