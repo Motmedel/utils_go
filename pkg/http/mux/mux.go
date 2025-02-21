@@ -198,18 +198,16 @@ func (bm *baseMux) ServeHttpWithCallback(
 			}
 
 			if err := responseWriter.WriteResponse(response); err != nil {
-				if err != nil {
-					responseErrorHandler(
-						request.Context(),
-						&muxTypesResponseError.ResponseError{
-							ServerError: motmedelErrors.MakeError(
-								fmt.Errorf("write response: %w", err),
-								response,
-							),
-						},
-						responseWriter,
-					)
-				}
+				responseErrorHandler(
+					request.Context(),
+					&muxTypesResponseError.ResponseError{
+						ServerError: motmedelErrors.MakeError(
+							fmt.Errorf("write response: %w", err),
+							response,
+						),
+					},
+					responseWriter,
+				)
 			}
 		}
 

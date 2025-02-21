@@ -164,6 +164,13 @@ type ExtendedError struct {
 	StackTrace string
 }
 
+func (err *ExtendedError) Error() string {
+	if err.error == nil {
+		return ""
+	}
+	return err.error.Error()
+}
+
 func (err *ExtendedError) GetInput() any {
 	return err.Input
 }
