@@ -19,6 +19,18 @@ func Concat[V any](sequences ...iter.Seq[V]) iter.Seq[V] {
 	}
 }
 
+func Concat2[K any, V any](sequences ...iter.Seq2[K, V]) iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, sequence := range sequences {
+			for kElement, vElement := range sequence {
+				if !yield(kElement, V(vElement)) {
+					return
+				}
+			}
+		}
+	}
+}
+
 func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
 	outputSlice := make([]OutputType, len(inputSlice))
 	for i, inputValue := range inputSlice {
