@@ -6,6 +6,8 @@ import (
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
+	motmedelIter "github.com/Motmedel/utils_go/pkg/iter"
+	"maps"
 	"net/http"
 	"strings"
 )
@@ -81,14 +83,28 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 		return motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilResponseWriter)
 	}
 
-	defaultHeaders := responseWriter.DefaultHeaders
-	if defaultHeaders == nil {
+	var defaultHeaders map[string]string
+	if responseWriterDefaultHeaders := responseWriter.DefaultHeaders; responseWriterDefaultHeaders == nil {
 		defaultHeaders = DefaultHeaders
+	} else {
+		defaultHeaders = maps.Collect(
+			motmedelIter.Concat2(
+				maps.All(DefaultHeaders),
+				maps.All(responseWriterDefaultHeaders),
+			),
+		)
 	}
 
-	defaultDocumentHeaders := responseWriter.DefaultHeaders
-	if defaultDocumentHeaders == nil {
+	var defaultDocumentHeaders map[string]string
+	if responseWriterDefaultDocumentHeaders := responseWriter.DefaultDocumentHeaders; responseWriterDefaultDocumentHeaders == nil {
 		defaultDocumentHeaders = DefaultDocumentHeaders
+	} else {
+		defaultDocumentHeaders = maps.Collect(
+			motmedelIter.Concat2(
+				maps.All(DefaultDocumentHeaders),
+				maps.All(responseWriterDefaultDocumentHeaders),
+			),
+		)
 	}
 
 	skippedDefaultHeadersSet := make(map[string]struct{})
@@ -167,7 +183,6 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 				}
 				responseWriterHeader.Set(headerName, headerValue)
 			}
-
 		}
 	}
 
