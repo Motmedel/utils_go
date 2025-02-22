@@ -6,6 +6,7 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
+	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	motmedelHttpHeadersParsingAccept "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept"
 	motmedelHttpHeadersParsingAcceptEncoding "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -15,6 +16,8 @@ import (
 	"strings"
 	"time"
 )
+
+const AcceptContentIdentity = "identity"
 
 type HttpClient interface {
 	Do(*http.Request) (*http.Response, error)
@@ -326,4 +329,105 @@ func GetContentNegotiation(requestHeader http.Header, strict bool) (*motmedelHtt
 	}
 
 	return &contentNegotiation, nil
+}
+
+func GetMatchingContentEncoding(
+	clientSupportedEncodings []*motmedelHttpTypes.Encoding,
+	serverSupportedEncodingIdentifiers []string,
+) string {
+	if len(clientSupportedEncodings) == 0 {
+		return AcceptContentIdentity
+	}
+
+	disallowIdentity := false
+
+	for _, clientEncoding := range clientSupportedEncodings {
+		coding := strings.ToLower(clientEncoding.Coding)
+		qualityValue := clientEncoding.QualityValue
+
+		if coding == "*" {
+			if qualityValue == 0 {
+				disallowIdentity = true
+			} else {
+				if len(serverSupportedEncodingIdentifiers) != 0 {
+					return serverSupportedEncodingIdentifiers[0]
+				} else {
+					if !disallowIdentity {
+						return AcceptContentIdentity
+					}
+				}
+			}
+		}
+
+		if coding == AcceptContentIdentity {
+			if qualityValue == 0 {
+				disallowIdentity = true
+			} else {
+				return AcceptContentIdentity
+			}
+		}
+
+		if qualityValue == 0 {
+			continue
+		}
+
+		for _, supportedEncoding := range serverSupportedEncodingIdentifiers {
+			if clientEncoding.Coding == supportedEncoding {
+				return supportedEncoding
+			}
+		}
+	}
+
+	if !disallowIdentity {
+		return AcceptContentIdentity
+	} else {
+		return ""
+	}
+}
+
+func ParseLastModifiedTimestamp(timestamp string) (time.Time, error) {
+	if t, err := time.Parse(time.RFC1123, timestamp); err != nil {
+		return time.Time{}, motmedelErrors.MakeErrorWithStackTrace(
+			fmt.Errorf(
+				"%w: time parse rfc1123: %w",
+				muxErrors.ErrBadIfModifiedSinceTimestamp,
+				err,
+			),
+			timestamp,
+		)
+	} else {
+		return t, nil
+	}
+}
+
+func IfNoneMatchCacheHit(ifNoneMatchValue string, etag string) bool {
+	if ifNoneMatchValue == "" || etag == "" {
+		return false
+	}
+
+	return ifNoneMatchValue == etag
+}
+
+func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue string) (bool, error) {
+	if ifModifiedSinceValue == "" || lastModifiedValue == "" {
+		return false, nil
+	}
+
+	ifModifiedSinceTimestamp, err := ParseLastModifiedTimestamp(ifModifiedSinceValue)
+	if err != nil {
+		return false, motmedelErrors.MakeError(
+			fmt.Errorf("parse last modified timestamp (If-Modified-Since): %w", err),
+			ifModifiedSinceValue,
+		)
+	}
+
+	lastModifiedTimestamp, err := ParseLastModifiedTimestamp(lastModifiedValue)
+	if err != nil {
+		return false, motmedelErrors.MakeError(
+			fmt.Errorf("parse last modified timestamp (Last-Modified): %w", err),
+			lastModifiedValue,
+		)
+	}
+
+	return ifModifiedSinceTimestamp.Equal(lastModifiedTimestamp) || lastModifiedTimestamp.Before(ifModifiedSinceTimestamp), nil
 }
