@@ -177,3 +177,9 @@ type ContentDisposition struct {
 	FilenameAsterisk    string
 	ExtensionParameters map[string]string
 }
+
+type ContentNegotiation struct {
+	Accept         *Accept
+	AcceptEncoding *AcceptEncoding
+	// TODO: Add more headers.
+}
