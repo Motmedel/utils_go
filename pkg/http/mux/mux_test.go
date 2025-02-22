@@ -3,7 +3,9 @@ package mux
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
@@ -23,6 +25,29 @@ var httpServer *httptest.Server
 
 func TestMain(m *testing.M) {
 	mux := &Mux{}
+	mux.FirewallConfiguration = &firewall.Configuration{
+		Handler: func(request *http.Request) (firewall.Verdict, *response_error.ResponseError) {
+			if request.URL.RawQuery != "" {
+				return firewall.VerdictReject, &response_error.ResponseError{
+					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusForbidden,
+						"URL query parameters are not allowed.",
+						nil,
+					),
+				}
+			}
+
+			if request.URL.Path == "/secret-reject" {
+				return firewall.VerdictReject, nil
+			}
+
+			if request.URL.Path == "/secret-drop" {
+				return firewall.VerdictDrop, nil
+			}
+
+			return firewall.VerdictAccept, nil
+		},
+	}
 	mux.Add(
 		&endpoint_specification.EndpointSpecification{
 			Path:   "/hello-world",
@@ -73,6 +98,8 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// TODO: Test adding and deleting from a mux.
+
 func TestMux(t *testing.T) {
 	testCases := []struct {
 		name                  string
@@ -84,6 +111,7 @@ func TestMux(t *testing.T) {
 		expectedHeaders       [][2]string
 		expectedBody          []byte
 		expectedProblemDetail *problem_detail.ProblemDetail
+		expectedClientDoError error
 	}{
 		{
 			name:               "status ok, handler",
@@ -158,6 +186,7 @@ func TestMux(t *testing.T) {
 			expectedStatusCode: http.StatusMethodNotAllowed,
 			expectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS"}},
 		},
+		// TODO: Add test for static content retrieval with effective identity 0
 		{
 			name:               "status no content",
 			method:             http.MethodGet,
@@ -223,16 +252,36 @@ func TestMux(t *testing.T) {
 			},
 		},
 		{
-			name:               "error bad request, invalid json body",
-			method:             http.MethodPost,
-			url:                "/push",
-			headers:            [][2]string{{"Content-Type", "application/json"}},
-			body:               []byte(`{"data": "data"`),
-			expectedStatusCode: http.StatusBadRequest,
-			expectedProblemDetail: &problem_detail.ProblemDetail{
-				Detail: `Invalid JSON body.`,
-			},
+			name:                  "error bad request, invalid json body",
+			method:                http.MethodPost,
+			url:                   "/push",
+			headers:               [][2]string{{"Content-Type", "application/json"}},
+			body:                  []byte(`{"data": "data"`),
+			expectedStatusCode:    http.StatusBadRequest,
+			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Invalid JSON body."},
 		},
+		{
+			name:                  "error status forbidden, firewall match url query parameters",
+			method:                http.MethodGet,
+			url:                   "/foo?bar=fuu",
+			expectedStatusCode:    http.StatusForbidden,
+			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "URL query parameters are not allowed."},
+		},
+		{
+			name:                  "error status forbidden, firewall match url secret (reject)",
+			method:                http.MethodGet,
+			url:                   "/secret-reject",
+			expectedStatusCode:    http.StatusForbidden,
+			expectedProblemDetail: &problem_detail.ProblemDetail{},
+		},
+		{
+			name:                  "error status forbidden, firewall match url secret (drop)",
+			method:                http.MethodGet,
+			url:                   "/secret-drop",
+			expectedClientDoError: io.EOF,
+		},
+		// TODO: Test body parsing (context); return ok in endpoint handler if value is read correctly
+		// TODO: Test rate limiting in separate function that does several requests
 	}
 
 	for _, testCase := range testCases {
@@ -253,7 +302,12 @@ func TestMux(t *testing.T) {
 
 			response, err := http.DefaultClient.Do(request)
 			if err != nil {
-				t.Fatalf("http client do: %v", err)
+				if testCase.expectedClientDoError != nil {
+					if errors.Is(err, testCase.expectedClientDoError) {
+						return
+					}
+					t.Fatalf("http client do: %v", err)
+				}
 			}
 			defer response.Body.Close()
 
