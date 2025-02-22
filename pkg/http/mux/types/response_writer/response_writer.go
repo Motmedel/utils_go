@@ -1,12 +1,17 @@
 package response_writer
 
 import (
+	"context"
 	"fmt"
+	motmedelGzip "github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	motmedelIter "github.com/Motmedel/utils_go/pkg/iter"
+	"log/slog"
 	"maps"
 	"net/http"
 	"strings"
@@ -74,13 +79,13 @@ func (responseWriter *ResponseWriter) Write(data []byte) (int, error) {
 	return n, nil
 }
 
-func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.Response) error {
+func (responseWriter *ResponseWriter) WriteResponse(
+	ctx context.Context,
+	response *muxTypesResponse.Response,
+	acceptEncoding *motmedelHttpTypes.AcceptEncoding,
+) error {
 	if response == nil {
 		return nil
-	}
-
-	if responseWriter == nil {
-		return motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilResponseWriter)
 	}
 
 	var defaultHeaders map[string]string
@@ -113,6 +118,8 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 	bodyStreamer := response.BodyStreamer
 
 	var contentTypeString *string
+	var contentEncodingString *string
+	var cacheControlString string
 
 	responseWriterHeader := responseWriter.Header()
 	for _, header := range response.Headers {
@@ -128,6 +135,17 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 			if len(body) == 0 && bodyStreamer == nil {
 				continue
 			}
+		}
+
+		if canonicalHeaderName == "Content-Encoding" {
+			contentEncodingString = &headerValue
+			if len(body) == 0 && bodyStreamer == nil {
+				continue
+			}
+		}
+
+		if canonicalHeaderName == "Cache-Control" {
+			cacheControlString = headerValue
 		}
 
 		if _, ok := defaultHeaders[canonicalHeaderName]; ok {
@@ -186,6 +204,41 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 		}
 	}
 
+	// Try to compress the body if it is of a decent size, and
+	shouldTryToCompressBody := len(body) > 1000 &&
+		// ... no content encoding is already applied
+		contentEncodingString == nil &&
+		// ... the client indicates that it supports encoded content
+		acceptEncoding != nil &&
+		// ... the response body is not sensitive (compressing could theoretically enable attacks)
+		!response.SensitiveBody &&
+		// ... the response concerns a non-static resource (static resources should provide encoded values explicitly,
+		// and I don't want to add a `Vary` header like this)
+		cacheControlString == "no-store"
+
+	if shouldTryToCompressBody {
+		// NOTE: The case where `identify` effectively has a quality value of 0 should be handled elsewhere.
+		switch motmedelHttpUtils.GetMatchingContentEncoding(acceptEncoding.GetPriorityOrderedEncodings(), []string{"gzip"}) {
+		case "gzip":
+			gzipBody, err := motmedelGzip.MakeGzipData(body)
+			if err != nil {
+				slog.Default().WarnContext(
+					context.WithValue(
+						ctx,
+						motmedelErrors.ErrorContextKey,
+						motmedelErrors.MakeError(fmt.Errorf("make gzip data: %w", err), body),
+					),
+					"An error occurred when making Gzip data.",
+				)
+			}
+
+			if len(gzipBody) < len(body) {
+				body = gzipBody
+				responseWriterHeader.Set("Content-Encoding", "gzip")
+			}
+		}
+	}
+
 	if response.StatusCode != 0 {
 		responseWriter.WriteHeader(response.StatusCode)
 	}
@@ -196,7 +249,7 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 			return muxErrors.ErrNoResponseWriterFlusher
 		}
 
-		if _, ok := responseWriterHeader["transfer-encoding"]; ok {
+		if _, ok := responseWriterHeader["Transfer-Encoding"]; ok {
 			return muxErrors.ErrTransferEncodingAlreadySet
 		}
 

@@ -8,6 +8,7 @@ import (
 	muxInternalVhostMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/vhost_mux"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	"net"
 	"net/http"
@@ -124,8 +125,18 @@ func (vhostMux *VhostMux) ServeHTTP(responseWriter http.ResponseWriter, request 
 	vhostMux.baseMux.ServeHttpWithCallback(
 		responseWriter,
 		request,
-		func(request *http.Request, responseWriter http.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
-			return vhostMuxHandleRequest(vhostMux, request, responseWriter)
+		func(request *http.Request, responseWriter *muxTypesResponseWriter.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+			response, responseError := vhostMuxHandleRequest(vhostMux, request, responseWriter)
+			if responseError != nil {
+				responseError.BodyMaker = vhostMux.ResponseErrorBodyMaker
+			}
+
+			if responseWriter != nil {
+				responseWriter.DefaultHeaders = vhostMux.DefaultHeaders
+				responseWriter.DefaultDocumentHeaders = vhostMux.DefaultDocumentHeaders
+			}
+
+			return response, responseError
 		},
 	)
 }

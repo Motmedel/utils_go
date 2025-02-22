@@ -9,8 +9,9 @@ type HeaderEntry struct {
 }
 
 type Response struct {
-	StatusCode   int
-	Headers      []*HeaderEntry
-	Body         []byte
-	BodyStreamer iter.Seq2[[]byte, error]
+	StatusCode    int
+	Headers       []*HeaderEntry
+	Body          []byte
+	BodyStreamer  iter.Seq2[[]byte, error]
+	SensitiveBody bool
 }

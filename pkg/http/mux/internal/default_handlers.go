@@ -5,6 +5,7 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
+	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
@@ -101,7 +102,8 @@ func DefaultResponseErrorHandler(
 	responseError.ProblemDetail = problemDetail
 	errorId = problemDetail.Instance
 
-	response, err := responseError.MakeResponse()
+	contentNegotiation, _ := ctx.Value(muxContext.ContentNegotiationContextKey).(*motmedelHttpTypes.ContentNegotiation)
+	response, err := responseError.MakeResponse(contentNegotiation)
 	if err != nil {
 		slog.ErrorContext(
 			context.WithValue(
@@ -114,7 +116,12 @@ func DefaultResponseErrorHandler(
 		return
 	}
 
-	if err := responseWriter.WriteResponse(response); err != nil {
+	var acceptEncoding *motmedelHttpTypes.AcceptEncoding
+	if contentNegotiation != nil {
+		acceptEncoding = contentNegotiation.AcceptEncoding
+	}
+
+	if err := responseWriter.WriteResponse(ctx, response, acceptEncoding); err != nil {
 		slog.ErrorContext(
 			context.WithValue(
 				ctx,

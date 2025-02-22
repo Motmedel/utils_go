@@ -5,8 +5,11 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
+	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	"strings"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
+	"net/http"
 )
 
 type ResponseErrorType int
@@ -22,6 +25,7 @@ type ResponseError struct {
 	Headers       []*muxTypesResponse.HeaderEntry
 	ClientError   error
 	ServerError   error
+	BodyMaker     func(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
 }
 
 func (responseError *ResponseError) Type() ResponseErrorType {
@@ -68,7 +72,9 @@ func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail
 	)
 }
 
-func (responseError *ResponseError) MakeResponse() (*muxTypesResponse.Response, error) {
+func (responseError *ResponseError) MakeResponse(
+	contentNegotiation *motmedelHttpTypes.ContentNegotiation,
+) (*muxTypesResponse.Response, error) {
 	problemDetail := responseError.ProblemDetail
 	if problemDetail == nil {
 		return nil, motmedelErrors.MakeErrorWithStackTrace(
@@ -83,26 +89,68 @@ func (responseError *ResponseError) MakeResponse() (*muxTypesResponse.Response, 
 		)
 	}
 
-	responseBody, err := problemDetail.Bytes()
-	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("problem detail bytes: %w", err), problemDetail)
-	}
+	headers := responseError.Headers
+	if len(headers) != 0 {
+		for i, header := range headers {
+			if header == nil || header.Name == "" {
+				continue
+			}
 
-	responseHeaders := responseError.Headers
-
-	if responseHeaders == nil {
-		responseHeaders = []*muxTypesResponse.HeaderEntry{{Name: "Content-Type", Value: "application/problem+json"}}
-	} else {
-		for i, header := range responseHeaders {
-			if strings.ToLower(header.Name) == "content-type" {
-				responseHeaders[i] = nil
+			if http.CanonicalHeaderKey(header.Name) == "Content-Type" {
+				headers[i] = nil
 			}
 		}
-		responseHeaders = append(
-			responseHeaders,
-			&muxTypesResponse.HeaderEntry{Name: "Content-Type", Value: "application/problem+json"},
-		)
 	}
 
-	return &muxTypesResponse.Response{StatusCode: statusCode, Body: responseBody, Headers: responseHeaders}, nil
+	var body []byte
+	supportsResponseBody := true
+
+	if contentNegotiation != nil && contentNegotiation.AcceptEncoding != nil {
+		supportsResponseBody = motmedelHttpUtils.GetMatchingContentEncoding(
+			contentNegotiation.AcceptEncoding.GetPriorityOrderedEncodings(),
+			[]string{motmedelHttpUtils.AcceptContentIdentity},
+		) == motmedelHttpUtils.AcceptContentIdentity
+	}
+
+	if supportsResponseBody {
+		var contentType string
+		var err error
+
+		if bodyMaker := responseError.BodyMaker; bodyMaker != nil {
+			body, contentType, err = bodyMaker(problemDetail, contentNegotiation)
+			if err != nil {
+				return nil, motmedelErrors.MakeError(
+					fmt.Errorf("body maker: %w", err),
+					problemDetail, contentNegotiation,
+				)
+			}
+
+			contentTypeData := []byte(contentType)
+			if _, err := content_type.ParseContentType(contentTypeData); err != nil {
+				return nil, motmedelErrors.MakeError(
+					fmt.Errorf("parse content type (body maker): %w", err),
+					contentTypeData,
+				)
+			}
+		} else {
+			body, err = problemDetail.Bytes()
+			if err != nil {
+				return nil, motmedelErrors.MakeError(fmt.Errorf("problem detail bytes: %w", err), problemDetail)
+			}
+			contentType = "application/problem+json"
+		}
+
+		if len(body) != 0 {
+			if contentType == "" {
+				return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrEmptyResponseErrorContentType)
+			}
+
+			headers = append(
+				headers,
+				&muxTypesResponse.HeaderEntry{Name: "Content-Type", Value: contentType},
+			)
+		}
+	}
+
+	return &muxTypesResponse.Response{StatusCode: statusCode, Body: body, Headers: headers}, nil
 }

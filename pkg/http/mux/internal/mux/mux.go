@@ -11,11 +11,10 @@ import (
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
-	muxUtilsCaching "github.com/Motmedel/utils_go/pkg/http/mux/utils/caching"
-	muxUtilsContentEncoding "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_encoding"
-	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"io"
 	"maps"
 	"net/http"
@@ -110,7 +109,6 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 		}
 	}
 
-	// TODO: Am I Sure it is accept and now `Allow`?
 	acceptedContentTypeHeaders := []*muxTypesResponse.HeaderEntry{{Name: "Accept", Value: expectedContentType}}
 
 	if _, ok := requestHeader["Content-Type"]; !ok {
@@ -153,7 +151,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusUnsupportedMediaType,
 				fmt.Sprintf(
-					"Expected Content-Type to be \"%s\", observed \"%s\"",
+					"Expected Content-Type to be %q, observed %q.",
 					expectedContentType,
 					fullNormalizeContentTypeString,
 				),
@@ -276,14 +274,14 @@ func ObtainEndpointSpecification(
 	if !ok {
 		allowedMethods := slices.Collect(maps.Keys(methodToHandlerSpecification))
 
-		if _, ok := methodToHandlerSpecification[http.MethodOptions]; !ok {
-			allowedMethods = append(allowedMethods, http.MethodOptions)
-		}
-
 		if _, ok := methodToHandlerSpecification[http.MethodHead]; !ok {
 			if _, ok := methodToHandlerSpecification[http.MethodGet]; ok {
 				allowedMethods = append(allowedMethods, http.MethodHead)
 			}
+		}
+
+		if _, ok := methodToHandlerSpecification[http.MethodOptions]; !ok {
+			allowedMethods = append(allowedMethods, http.MethodOptions)
 		}
 
 		expectedMethodsString := strings.Join(allowedMethods, ", ")
@@ -297,7 +295,8 @@ func ObtainEndpointSpecification(
 		return nil, nil, &muxTypesResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusMethodNotAllowed,
-				fmt.Sprintf("Expected \"%s\", observed \"%s\"", expectedMethodsString, requestMethod),
+				fmt.Sprintf(
+					"Expected %s; observed %q.", expectedMethodsString, requestMethod),
 				nil,
 			),
 			Headers: headerEntries,
@@ -320,12 +319,12 @@ func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestH
 		}
 	}
 
-	isCached := muxUtilsCaching.IfNoneMatchCacheHit(requestHeader.Get("If-None-Match"), staticContent.Etag)
+	isCached := motmedelHttpUtils.IfNoneMatchCacheHit(requestHeader.Get("If-None-Match"), staticContent.Etag)
 	if !isCached {
 		var err error
 		ifModifiedSince := requestHeader.Get("If-Modified-Since")
 		lastModified := staticContent.LastModified
-		isCached, err = muxUtilsCaching.IfModifiedSinceCacheHit(ifModifiedSince, lastModified)
+		isCached, err = motmedelHttpUtils.IfModifiedSinceCacheHit(ifModifiedSince, lastModified)
 		if err != nil {
 			wrappedErr := motmedelErrors.MakeError(
 				fmt.Errorf("if modified since cache hit: %w", err),
@@ -352,6 +351,7 @@ func ObtainStaticContentResponse(
 	staticContent *muxTypesStaticContent.StaticContent,
 	isCached bool,
 	requestHeader http.Header,
+	acceptEncoding *motmedelHttpTypes.AcceptEncoding,
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if staticContent == nil {
 		return nil, &muxTypesResponseError.ResponseError{
@@ -365,41 +365,15 @@ func ObtainStaticContentResponse(
 		}
 	}
 
+	// NOTE: It is up to the user provide the `Vary` header?
 	response := &muxTypesResponse.Response{Headers: staticContent.Headers}
 	if isCached {
 		response.StatusCode = http.StatusNotModified
 	} else {
-		encoding := muxUtilsContentEncoding.AcceptContentIdentityIdentifier
+		encoding := motmedelHttpUtils.AcceptContentIdentity
 
-		var supportedEncodings []string
-
-		if _, ok := requestHeader["Accept-Encoding"]; ok {
-			acceptEncodingData := []byte(requestHeader.Get("Accept-Encoding"))
-			acceptEncoding, err := accept_encoding.ParseAcceptEncoding(acceptEncodingData)
-			if err != nil {
-				wrappedErr := motmedelErrors.MakeError(
-					fmt.Errorf("parse accept encoding: %w", err),
-					acceptEncodingData,
-				)
-				if motmedelErrors.IsAny(err, motmedelErrors.ErrSyntaxError, motmedelErrors.ErrSemanticError) {
-					return nil, &muxTypesResponseError.ResponseError{
-						ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-							http.StatusBadRequest,
-							"Malformed Accept-Encoding.",
-							nil,
-						),
-						ClientError: wrappedErr,
-					}
-				}
-				return nil, &muxTypesResponseError.ResponseError{ServerError: wrappedErr}
-			}
-			if acceptEncoding == nil {
-				return nil, &muxTypesResponseError.ResponseError{
-					ServerError: motmedelErrors.MakeErrorWithStackTrace(accept_encoding.ErrNilAcceptEncoding),
-				}
-			}
-
-			supportedEncodings = slices.Collect(maps.Keys(staticContent.ContentEncodingToData))
+		if acceptEncoding != nil {
+			supportedEncodings := slices.Collect(maps.Keys(staticContent.ContentEncodingToData))
 			contentEncodingToData := staticContent.ContentEncodingToData
 
 			slices.SortFunc(supportedEncodings, func(a, b string) int {
@@ -413,27 +387,22 @@ func ObtainStaticContentResponse(
 				return 0
 			})
 
-			encoding = muxUtilsContentEncoding.GetMatchingContentEncoding(
+			encoding = motmedelHttpUtils.GetMatchingContentEncoding(
 				acceptEncoding.GetPriorityOrderedEncodings(),
 				supportedEncodings,
 			)
 		}
 
 		if encoding == "" {
+			// NOTE: The problem detail won't appear in the response body because not even `identity` is acceptable;
+			//	rather, the problem detail specifies the status code only.
 			return nil, &muxTypesResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-					http.StatusUnsupportedMediaType,
-					"No content encoding could be negotiated.",
-					nil,
-				),
-				Headers: []*muxTypesResponse.HeaderEntry{
-					{Name: "Accept-Encoding", Value: strings.Join(supportedEncodings, ", ")},
-				},
+				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusNotAcceptable, "", nil),
 			}
 		}
 
 		response.StatusCode = http.StatusOK
-		if encoding == muxUtilsContentEncoding.AcceptContentIdentityIdentifier {
+		if encoding == motmedelHttpUtils.AcceptContentIdentity {
 			response.Body = staticContent.Data
 		} else {
 			response.Headers = append(

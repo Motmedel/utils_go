@@ -20,7 +20,7 @@ import (
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
-	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
+	"github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
@@ -35,6 +35,7 @@ type baseMux struct {
 	DefaultHeaders          map[string]string
 	DefaultDocumentHeaders  map[string]string
 	Middleware              []muxTypesMiddleware.Middleware
+	ResponseErrorBodyMaker  func(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
 }
 
 func (bm *baseMux) getFirewallVerdict(request *http.Request) (muxTypesFirewall.Verdict, *muxTypesResponseError.ResponseError) {
@@ -56,7 +57,7 @@ func (bm *baseMux) getFirewallVerdict(request *http.Request) (muxTypesFirewall.V
 func (bm *baseMux) ServeHttpWithCallback(
 	originalResponseWriter http.ResponseWriter,
 	request *http.Request,
-	callback func(*http.Request, http.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError),
+	callback func(*http.Request, *muxTypesResponseWriter.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError),
 ) {
 	if originalResponseWriter == nil {
 		return
@@ -94,7 +95,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 		)
 	} else {
 		contextRequest := request.WithContext(
-			context.WithValue(request.Context(), muxContext.RequestIdContextKey, requestId.String()),
+			context.WithValue(request.Context(), motmedelHttpContext.RequestIdContextKey, requestId.String()),
 		)
 		if contextRequest != nil {
 			request = contextRequest
@@ -118,8 +119,10 @@ func (bm *baseMux) ServeHttpWithCallback(
 	if convertedResponseWriter, ok := originalResponseWriter.(*muxTypesResponseWriter.ResponseWriter); ok {
 		responseWriter = convertedResponseWriter
 		originalResponseWriter = convertedResponseWriter.ResponseWriter
+
+		responseWriter.DefaultHeaders = bm.DefaultHeaders
+		responseWriter.DefaultDocumentHeaders = bm.DefaultDocumentHeaders
 	} else {
-		// TODO: This header stuff probably does not work with vhost?
 		responseWriter = &muxTypesResponseWriter.ResponseWriter{
 			ResponseWriter:         originalResponseWriter,
 			DefaultHeaders:         bm.DefaultHeaders,
@@ -148,12 +151,15 @@ func (bm *baseMux) ServeHttpWithCallback(
 				)
 			}
 			if err := connection.Close(); err != nil {
-				// Nothing else to do here but to log and return?
-				// TODO: Rework the logging
-				motmedelLog.LogWarning(
+				slog.Default().ErrorContext(
+					context.WithValue(
+						request.Context(),
+						motmedelErrors.ErrorContextKey,
+						motmedelErrors.MakeErrorWithStackTrace(
+							fmt.Errorf("connection close: %w", err),
+						),
+					),
 					"An error occurred when closing a connection.",
-					err,
-					slog.Default(),
 				)
 			}
 			return
@@ -177,6 +183,15 @@ func (bm *baseMux) ServeHttpWithCallback(
 			}
 		}
 
+		var acceptEncoding *motmedelHttpTypes.AcceptEncoding
+
+		if contentNegotiation, _ := utils.GetContentNegotiation(request.Header, false); contentNegotiation != nil {
+			request = request.WithContext(
+				context.WithValue(request.Context(), muxContext.ContentNegotiationContextKey, contentNegotiation),
+			)
+			acceptEncoding = contentNegotiation.AcceptEncoding
+		}
+
 		// Respond to the request.
 
 		response, responseError := callback(request, responseWriter)
@@ -187,7 +202,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 				response = &muxTypesResponse.Response{}
 			}
 
-			if err := responseWriter.WriteResponse(response); err != nil {
+			if err := responseWriter.WriteResponse(request.Context(), response, acceptEncoding); err != nil {
 				responseErrorHandler(
 					request.Context(),
 					&muxTypesResponseError.ResponseError{
@@ -377,7 +392,13 @@ func muxHandleRequest(
 			return nil, responseError
 		}
 
-		return muxInternalMux.ObtainStaticContentResponse(staticContent, isCached, requestHeader)
+		var acceptEncoding *motmedelHttpTypes.AcceptEncoding
+		contentNegotiation, _ := request.Context().Value(muxContext.ContentNegotiationContextKey).(*motmedelHttpTypes.ContentNegotiation)
+		if contentNegotiation != nil {
+			acceptEncoding = contentNegotiation.AcceptEncoding
+		}
+
+		return muxInternalMux.ObtainStaticContentResponse(staticContent, isCached, requestHeader, acceptEncoding)
 	}
 
 	// Respond with dynamic content (via a handler).
@@ -394,8 +415,18 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 	mux.baseMux.ServeHttpWithCallback(
 		originalResponseWriter,
 		request,
-		func(request *http.Request, responseWriter http.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
-			return muxHandleRequest(mux, request, responseWriter)
+		func(request *http.Request, responseWriter *muxTypesResponseWriter.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+			response, responseError := muxHandleRequest(mux, request, responseWriter)
+			if responseError != nil {
+				responseError.BodyMaker = mux.ResponseErrorBodyMaker
+			}
+
+			if responseWriter != nil {
+				responseWriter.DefaultHeaders = mux.DefaultHeaders
+				responseWriter.DefaultDocumentHeaders = mux.DefaultDocumentHeaders
+			}
+
+			return response, responseError
 		},
 	)
 }
