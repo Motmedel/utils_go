@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"log/slog"
+	"net/http"
 )
 
 func DefaultResponseErrorHandler(
@@ -121,5 +124,13 @@ func DefaultResponseErrorHandler(
 			"An error occurred when writing an error response.",
 		)
 		return
+	}
+
+	if httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(motmedelHttpTypes.HttpContext); ok {
+		httpContext.Response = &http.Response{
+			StatusCode: responseWriter.WrittenStatusCode,
+			Header:     responseWriter.Header(),
+		}
+		httpContext.ResponseBody = responseWriter.WrittenBody
 	}
 }

@@ -167,6 +167,7 @@ func (responseWriter *ResponseWriter) WriteResponse(response *muxTypesResponse.R
 				}
 				responseWriterHeader.Set(headerName, headerValue)
 			}
+
 		}
 	}
 

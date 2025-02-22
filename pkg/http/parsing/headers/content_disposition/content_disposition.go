@@ -35,7 +35,6 @@ var (
 )
 
 func getValue(data []byte, path *goabnf.Path) (string, error) {
-
 	if path == nil {
 		return "", nil
 	}

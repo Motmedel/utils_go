@@ -1,8 +1,23 @@
 package iter
 
 import (
+	"iter"
+	"maps"
 	"reflect"
+	"slices"
 )
+
+func Concat[V any](sequences ...iter.Seq[V]) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		for _, sequence := range sequences {
+			for element := range sequence {
+				if !yield(element) {
+					return
+				}
+			}
+		}
+	}
+}
 
 func Map[InputType any, OutputType any](inputSlice []InputType, f func(InputType) OutputType) []OutputType {
 	outputSlice := make([]OutputType, len(inputSlice))
@@ -32,14 +47,17 @@ func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(Inp
 	return outputSlice
 }
 
-func Set[T comparable](input []T) []T {
-	uniqueMap := make(map[T]bool)
-	var result []T
-	for _, str := range input {
-		if _, ok := uniqueMap[str]; !ok {
-			uniqueMap[str] = true
-			result = append(result, str)
+func Set[T comparable](elements []T) []T {
+	if len(elements) == 0 {
+		return nil
+	}
+
+	setMap := make(map[T]struct{})
+	for _, element := range elements {
+		if _, ok := setMap[element]; !ok {
+			setMap[element] = struct{}{}
 		}
 	}
-	return result
+
+	return slices.Collect(maps.Keys(setMap))
 }
