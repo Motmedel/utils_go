@@ -14,30 +14,34 @@ import (
 
 type ContextHandler struct {
 	slog.Handler
-	handlers []func(context.Context, *slog.Record)
+	handlers []func(context.Context, *slog.Record) error
 }
 
 func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Record) error {
 	for _, handler := range contextHandler.handlers {
 		if handler != nil {
-			handler(ctx, &record)
+			if err := handler(ctx, &record); err != nil {
+				return fmt.Errorf("handler: %w", err)
+			}
 		}
 	}
 	return contextHandler.Handler.Handle(ctx, record)
 }
 
-func MakeContextHandler(handlers ...func(ctx context.Context, record *slog.Record)) *ContextHandler {
+func MakeContextHandler(handlers ...func(ctx context.Context, record *slog.Record) error) *ContextHandler {
 	return &ContextHandler{handlers: handlers}
 }
 
-func HandleErrorContext(ctx context.Context, record *slog.Record) {
+func HandleErrorContext(ctx context.Context, record *slog.Record) error {
 	if logErr, ok := ctx.Value(motmedelErrors.ErrorContextKey).(error); ok {
 		record.Add(slog.Group("error", MakeErrorAttrs(logErr)...))
 	}
+
+	return nil
 }
 
 var ErrorContextHandler = ContextHandler{
-	handlers: []func(ctx context.Context, record *slog.Record){HandleErrorContext},
+	handlers: []func(ctx context.Context, record *slog.Record) error{HandleErrorContext},
 }
 
 func AttrsFromMap(m map[string]any) []any {
