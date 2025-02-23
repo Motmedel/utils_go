@@ -30,7 +30,7 @@ import (
 type baseMux struct {
 	SetContextKeyValuePairs [][2]any
 	ResponseErrorHandler    func(context.Context, *muxTypesResponseError.ResponseError, *muxTypesResponseWriter.ResponseWriter)
-	DoneCallback            func(*motmedelHttpTypes.HttpContext)
+	DoneCallback            func(context.Context)
 	FirewallConfiguration   *muxTypesFirewall.Configuration
 	DefaultHeaders          map[string]string
 	DefaultDocumentHeaders  map[string]string
@@ -237,7 +237,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 	}
 
 	if doneCallback := bm.DoneCallback; doneCallback != nil {
-		doneCallback(httpContext)
+		doneCallback(request.Context())
 	}
 }
 
