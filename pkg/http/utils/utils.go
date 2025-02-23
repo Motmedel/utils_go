@@ -400,7 +400,6 @@ func GetMatchingAccept(
 
 		clientType := strings.ToLower(clientMediaRange.Type)
 		clientSubtype := strings.ToLower(clientMediaRange.Subtype)
-		clientSuffix := clientMediaRange.GetStructuredSyntaxName(true)
 
 		for _, serverMediaRange := range serverSupportedMediaRanges {
 			if serverMediaRange == nil {
@@ -414,7 +413,7 @@ func GetMatchingAccept(
 			serverType := strings.ToLower(serverMediaRange.Type)
 			serverSubtype := strings.ToLower(serverMediaRange.Subtype)
 
-			if (clientType == "*" || clientType == serverType) && (clientSubtype == "*" || clientSubtype == serverSubtype || clientSuffix == serverSubtype) {
+			if (clientType == "*" || clientType == serverType) && (clientSubtype == "*" || clientSubtype == serverSubtype) {
 				return serverMediaRange
 			}
 		}
