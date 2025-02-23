@@ -25,6 +25,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 )
 
 var httpServer *httptest.Server
@@ -201,7 +202,7 @@ func TestMain(m *testing.M) {
 			Method: http.MethodGet,
 			RateLimitingConfiguration: &rate_limiting.RateLimitingConfiguration{
 				NumRequests:          3,
-				NumSecondsExpiration: 60,
+				NumSecondsExpiration: 5,
 			},
 		},
 	)
@@ -521,10 +522,25 @@ func TestRateLimiting(t *testing.T) {
 	if retryAfterValue == "" {
 		t.Error("no Retry-After header")
 	} else {
-		if _, err := retry_after.ParseRetryAfter([]byte(retryAfterValue)); err != nil {
+		retryAfter, err := retry_after.ParseRetryAfter([]byte(retryAfterValue))
+		if err != nil {
 			t.Errorf("invalid Retry-After: %v", err)
+		} else {
+			waitTime, ok := retryAfter.WaitTime.(time.Time)
+			if !ok {
+				t.Error("invalid Retry-After wait time")
+			}
+
+			time.Sleep(time.Until(waitTime))
+
+			response, err = http.Get(httpServer.URL + path)
+			if err != nil {
+				t.Fatalf("http get: %v", err)
+			}
+
+			if response.StatusCode != http.StatusNoContent {
+				t.Errorf("got status code %d, expected %d", response.StatusCode, http.StatusNoContent)
+			}
 		}
 	}
-
-	// TODO: Wait and see if the request is successful?
 }

@@ -32,7 +32,8 @@ func (rateLimiter *RateLimiter) Claim() (*time.Time, bool) {
 	rateLimiter.insertionIndex = (currentInsertionIndex + 1) % len(rateLimiter.Bucket)
 	rateLimiter.NumOccupied += 1
 
-	time.AfterFunc(expirationTime.Sub(time.Now()), func() {
+	// NOTE: Arbitrarily decreasing the wait time by one second.
+	time.AfterFunc(time.Until(expirationTime)-time.Second, func() {
 		rateLimiter.mutex.Lock()
 		defer rateLimiter.mutex.Unlock()
 
