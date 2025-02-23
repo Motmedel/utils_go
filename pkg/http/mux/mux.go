@@ -150,17 +150,19 @@ func (bm *baseMux) ServeHttpWithCallback(
 					responseWriter,
 				)
 			}
-			if err := connection.Close(); err != nil {
-				slog.Default().ErrorContext(
-					context.WithValue(
-						request.Context(),
-						motmedelErrors.ErrorContextKey,
-						motmedelErrors.MakeErrorWithStackTrace(
-							fmt.Errorf("connection close: %w", err),
+			if connection != nil {
+				if err := connection.Close(); err != nil {
+					slog.Default().ErrorContext(
+						context.WithValue(
+							request.Context(),
+							motmedelErrors.ErrorContextKey,
+							motmedelErrors.MakeErrorWithStackTrace(
+								fmt.Errorf("connection close: %w", err),
+							),
 						),
-					),
-					"An error occurred when closing a connection.",
-				)
+						"An error occurred when closing a connection.",
+					)
+				}
 			}
 			return
 		} else {

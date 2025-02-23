@@ -415,7 +415,19 @@ func ObtainStaticContentResponse(
 				}
 			}
 
-			response.Body = contentEncodingToData[encoding].Data
+			staticContentData, ok := contentEncodingToData[encoding]
+			if !ok {
+				return nil, &muxTypesResponseError.ResponseError{
+					ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrContentEncodingToDataNotOk),
+				}
+			}
+			if staticContent == nil {
+				return nil, &muxTypesResponseError.ResponseError{
+					ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilStaticContentData),
+				}
+			}
+
+			response.Body = staticContentData.Data
 		}
 	}
 
