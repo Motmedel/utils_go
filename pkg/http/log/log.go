@@ -14,14 +14,17 @@ import (
 
 var DefaultHeaderExtractor = ecs.DefaultMaskedHeaderExtractor
 
-type ContextHandler struct {
-	slog.Handler
-	headerExtractor func(requestResponse any) string
+type HttpContextExtractor struct {
+	HeaderExtractor func(any) string
 }
 
-func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Record) error {
+func (httpContextExtractor *HttpContextExtractor) Handle(ctx context.Context, record *slog.Record) error {
+	if record == nil {
+		return nil
+	}
+
 	if httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext); ok {
-		headerExtractor := contextHandler.headerExtractor
+		headerExtractor := httpContextExtractor.HeaderExtractor
 		if headerExtractor == nil {
 			headerExtractor = DefaultHeaderExtractor
 		}
@@ -53,5 +56,5 @@ func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Re
 		record.Add(motmedelLog.AttrsFromMap(baseMap)...)
 	}
 
-	return contextHandler.Handler.Handle(ctx, record)
+	return nil
 }

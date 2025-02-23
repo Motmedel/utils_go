@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/Motmedel/ecs_go v0.0.55
-	github.com/Motmedel/utils_go v0.0.124
+	github.com/Motmedel/utils_go v0.0.132
 )
 
 require (

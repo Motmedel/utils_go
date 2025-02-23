@@ -16,13 +16,19 @@ type ContextExtractor interface {
 	Handle(context.Context, *slog.Record) error
 }
 
+type ContextExtractorFunction func(context.Context, *slog.Record) error
+
+func (cef ContextExtractorFunction) Handle(ctx context.Context, record *slog.Record) error {
+	return cef(ctx, record)
+}
+
 type ContextHandler struct {
 	slog.Handler
-	extractors []ContextExtractor
+	Extractors []ContextExtractor
 }
 
 func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Record) error {
-	for _, extractor := range contextHandler.extractors {
+	for _, extractor := range contextHandler.Extractors {
 		if extractor != nil {
 			if err := extractor.Handle(ctx, &record); err != nil {
 				return fmt.Errorf("extractor handle: %w", err)
@@ -30,10 +36,6 @@ func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Re
 		}
 	}
 	return contextHandler.Handler.Handle(ctx, record)
-}
-
-func MakeContextHandler(extractor ...ContextExtractor) *ContextHandler {
-	return &ContextHandler{extractors: extractor}
 }
 
 func ExtractErrorContext(ctx context.Context, record *slog.Record) error {
@@ -48,15 +50,7 @@ func ExtractErrorContext(ctx context.Context, record *slog.Record) error {
 	return nil
 }
 
-type ContextExtractorFunction func(context.Context, *slog.Record) error
-
-func (cef ContextExtractorFunction) Handle(ctx context.Context, record *slog.Record) error {
-	return cef(ctx, record)
-}
-
-var ErrorContextHandler = ContextHandler{
-	extractors: []ContextExtractor{ContextExtractorFunction(ExtractErrorContext)},
-}
+var ErrorContextExtractor = ContextExtractorFunction(ExtractErrorContext)
 
 func AttrsFromMap(m map[string]any) []any {
 	var attrs []any
