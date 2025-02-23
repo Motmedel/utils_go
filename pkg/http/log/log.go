@@ -23,6 +23,10 @@ func (httpContextExtractor *HttpContextExtractor) Handle(ctx context.Context, re
 		return nil
 	}
 
+	if requestId, ok := ctx.Value(motmedelHttpContext.RequestIdContextKey).(string); ok {
+		record.Add(slog.Group("http", slog.Group("request", slog.String("id", requestId))))
+	}
+
 	if httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext); ok {
 		headerExtractor := httpContextExtractor.HeaderExtractor
 		if headerExtractor == nil {
