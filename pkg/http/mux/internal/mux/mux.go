@@ -288,15 +288,13 @@ func ObtainEndpointSpecification(
 		headerEntries := []*muxTypesResponse.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}
 
 		if effectiveLookupMethod == http.MethodOptions {
-			// TODO: Let the default options be configurable; be most restrictive by default.
 			return nil, &muxTypesResponse.Response{Headers: headerEntries}, nil
 		}
 
 		return nil, nil, &muxTypesResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusMethodNotAllowed,
-				fmt.Sprintf(
-					"Expected %s; observed %q.", expectedMethodsString, requestMethod),
+				fmt.Sprintf("Expected %s.", expectedMethodsString),
 				nil,
 			),
 			Headers: headerEntries,

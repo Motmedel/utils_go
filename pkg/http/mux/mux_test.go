@@ -4,14 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/rate_limiting"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
+	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"io"
@@ -22,6 +28,10 @@ import (
 )
 
 var httpServer *httptest.Server
+
+type bodyParserTestData struct {
+	Data string `json:"data"`
+}
 
 func TestMain(m *testing.M) {
 	mux := &Mux{}
@@ -48,6 +58,41 @@ func TestMain(m *testing.M) {
 			return firewall.VerdictAccept, nil
 		},
 	}
+	mux.ResponseErrorBodyMaker = func(detail *problem_detail.ProblemDetail, negotiation *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error) {
+		if detail == nil {
+			return nil, "", motmedelErrors.MakeErrorWithStackTrace("nil problem detail")
+		}
+
+		if detail.Status == http.StatusTeapot && (negotiation != nil && negotiation.Accept != nil) {
+			matchingServerMediaRange := motmedelHttpUtils.GetMatchingAccept(
+				negotiation.Accept.GetPriorityOrderedEncodings(),
+				[]*motmedelHttpTypes.ServerMediaRange{
+					{Type: "application", Subtype: "problem+json"},
+					{Type: "application", Subtype: "json"},
+					{Type: "text", Subtype: "html"},
+				},
+			)
+
+			var matchingServerMediaRangeString string
+			if matchingServerMediaRange != nil {
+				matchingServerMediaRangeString = matchingServerMediaRange.GetFullType(true)
+			}
+
+			switch matchingServerMediaRangeString {
+			case "text/html":
+				return []byte(fmt.Sprintf("<html>%d</html>", detail.Status)), "text/html", nil
+			}
+		}
+
+		detailData, err := detail.Bytes()
+		if err != nil {
+			return nil, "", motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf("problem detail bytes: %w", err),
+			)
+		}
+		return detailData, "application/problem+json", nil
+	}
+
 	mux.Add(
 		&endpoint_specification.EndpointSpecification{
 			Path:   "/hello-world",
@@ -60,6 +105,10 @@ func TestMain(m *testing.M) {
 					},
 				}, nil
 			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/hello-world",
+			Method: http.MethodPost,
 		},
 		&endpoint_specification.EndpointSpecification{
 			Path:   "/hello-world-static",
@@ -78,7 +127,6 @@ func TestMain(m *testing.M) {
 			Method: http.MethodPost,
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
 				ContentType: "application/json",
-				AllowEmpty:  false,
 			},
 		},
 		&endpoint_specification.EndpointSpecification{
@@ -86,6 +134,74 @@ func TestMain(m *testing.M) {
 			Method: http.MethodGet,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
 				return nil, nil
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/body-parsing",
+			Method: http.MethodPost,
+			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
+				d, ok := request.Context().Value(parsing.ParsedRequestBodyContextKey).(*bodyParserTestData)
+				if !ok || d == nil {
+					return nil, &response_error.ResponseError{
+						ServerError: motmedelErrors.MakeErrorWithStackTrace(
+							errors.New("could not obtain parsed request body"),
+						),
+					}
+				}
+
+				if d.Data != "hello world" {
+					return nil, &response_error.ResponseError{
+						ProblemDetail: problem_detail.MakeInternalServerErrorProblemDetail("", nil),
+					}
+				}
+
+				return nil, nil
+			},
+			BodyParserConfiguration: &parsing.BodyParserConfiguration{
+				ContentType: "application/json",
+				Parser: func(request *http.Request, body []byte) (any, *response_error.ResponseError) {
+					var d bodyParserTestData
+
+					if err := json.Unmarshal(body, &d); err != nil {
+						wrappedErr := motmedelErrors.MakeErrorWithStackTrace(
+							fmt.Errorf("json unmarshal: %w", err),
+							body,
+						)
+
+						var unmarshalTypeError *json.UnmarshalTypeError
+						if errors.As(err, &unmarshalTypeError) {
+							return nil, &response_error.ResponseError{
+								ClientError: wrappedErr,
+								ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+									http.StatusUnprocessableEntity,
+									"Invalid body. The value is not appropriate for the JSON type.",
+									nil,
+								),
+							}
+						} else {
+							return nil, &response_error.ResponseError{ServerError: wrappedErr}
+						}
+					}
+
+					return &d, nil
+				},
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/teapot",
+			Method: http.MethodGet,
+			Handler: func(request *http.Request, i []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
+				return nil, &response_error.ResponseError{
+					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusTeapot, "", nil),
+				}
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/rate-limiting",
+			Method: http.MethodGet,
+			RateLimitingConfiguration: &rate_limiting.RateLimitingConfiguration{
+				NumRequests:          3,
+				NumSecondsExpiration: 60,
 			},
 		},
 	)
@@ -129,6 +245,13 @@ func TestMux(t *testing.T) {
 			expectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
 		},
 		{
+			name:               "status no content (OPTIONS)",
+			method:             http.MethodOptions,
+			url:                "/hello-world",
+			expectedStatusCode: http.StatusNoContent,
+			expectedHeaders:    [][2]string{{"Allow", "GET, POST, HEAD, OPTIONS"}},
+		},
+		{
 			name:               "status ok, static content",
 			method:             http.MethodGet,
 			url:                "/hello-world-static",
@@ -170,23 +293,22 @@ func TestMux(t *testing.T) {
 		},
 		{
 			name:               "bad method",
-			method:             http.MethodPost,
+			method:             http.MethodPatch,
 			url:                "/hello-world",
 			expectedStatusCode: http.StatusMethodNotAllowed,
 			expectedProblemDetail: &problem_detail.ProblemDetail{
-				Detail: `Expected GET, HEAD, OPTIONS; observed "POST".`,
+				Detail: `Expected GET, POST, HEAD, OPTIONS.`,
 			},
-			expectedHeaders: [][2]string{{"Allow", "GET, HEAD, OPTIONS"}},
+			expectedHeaders: [][2]string{{"Allow", "GET, POST, HEAD, OPTIONS"}},
 		},
 		{
 			name:               "error status method not allowed, without response body",
-			method:             http.MethodPost,
+			method:             http.MethodPatch,
 			url:                "/hello-world",
 			headers:            [][2]string{{"Accept-Encoding", "*;q=0"}},
 			expectedStatusCode: http.StatusMethodNotAllowed,
-			expectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS"}},
+			expectedHeaders:    [][2]string{{"Allow", "GET, POST, HEAD, OPTIONS"}},
 		},
-		// TODO: Add test for static content retrieval with effective identity 0
 		{
 			name:               "status no content",
 			method:             http.MethodGet,
@@ -206,6 +328,14 @@ func TestMux(t *testing.T) {
 			url:                "/push",
 			headers:            [][2]string{{"Content-Type", "application/json"}},
 			body:               []byte(`{"data": "data"}`),
+			expectedStatusCode: http.StatusNoContent,
+		},
+		{
+			name:               "status no content, body parsing test",
+			method:             http.MethodPost,
+			url:                "/body-parsing",
+			headers:            [][2]string{{"Content-Type", "application/json"}},
+			body:               []byte(`{"data": "hello world"}`),
 			expectedStatusCode: http.StatusNoContent,
 		},
 		{
@@ -280,8 +410,15 @@ func TestMux(t *testing.T) {
 			url:                   "/secret-drop",
 			expectedClientDoError: io.EOF,
 		},
-		// TODO: Test body parsing (context); return ok in endpoint handler if value is read correctly
-		// TODO: Test rate limiting in separate function that does several requests
+		{
+			name:               "custom error representation",
+			method:             http.MethodGet,
+			url:                "/teapot",
+			headers:            [][2]string{{"Accept", "text/html"}},
+			expectedStatusCode: http.StatusTeapot,
+			expectedBody:       []byte("<html>418</html>"),
+			expectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -354,4 +491,40 @@ func TestMux(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRateLimiting(t *testing.T) {
+	path := "/rate-limiting"
+
+	for i := 0; i < 3; i++ {
+		response, err := http.Get(httpServer.URL + path)
+		if err != nil {
+			t.Fatalf("http get: %v", err)
+		}
+
+		if response.StatusCode != http.StatusNoContent {
+			t.Errorf("got status code %d, expected %d", response.StatusCode, http.StatusNoContent)
+		}
+	}
+
+	response, err := http.Get(httpServer.URL + path)
+	if err != nil {
+		t.Fatalf("http get: %v", err)
+	}
+
+	expectedStatusCode := http.StatusTooManyRequests
+	if response.StatusCode != expectedStatusCode {
+		t.Errorf("got status code %d, expected %d", response.StatusCode, expectedStatusCode)
+	}
+
+	retryAfterValue := response.Header.Get("Retry-After")
+	if retryAfterValue == "" {
+		t.Error("no Retry-After header")
+	} else {
+		if _, err := retry_after.ParseRetryAfter([]byte(retryAfterValue)); err != nil {
+			t.Errorf("invalid Retry-After: %v", err)
+		}
+	}
+
+	// TODO: Wait and see if the request is successful?
 }
