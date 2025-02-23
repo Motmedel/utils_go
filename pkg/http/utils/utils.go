@@ -385,6 +385,44 @@ func GetMatchingContentEncoding(
 	}
 }
 
+func GetMatchingAccept(
+	clientSupportedMediaRanges []*motmedelHttpTypes.MediaRange,
+	serverSupportedMediaRanges []*motmedelHttpTypes.ServerMediaRange,
+) *motmedelHttpTypes.ServerMediaRange {
+	if len(clientSupportedMediaRanges) == 0 || len(serverSupportedMediaRanges) == 0 {
+		return nil
+	}
+
+	for _, clientMediaRange := range clientSupportedMediaRanges {
+		if clientMediaRange == nil {
+			continue
+		}
+
+		clientType := strings.ToLower(clientMediaRange.Type)
+		clientSubtype := strings.ToLower(clientMediaRange.Subtype)
+		clientSuffix := clientMediaRange.GetStructuredSyntaxName(true)
+
+		for _, serverMediaRange := range serverSupportedMediaRanges {
+			if serverMediaRange == nil {
+				continue
+			}
+
+			if clientType == "*" && clientSubtype == "*" {
+				return serverMediaRange
+			}
+
+			serverType := strings.ToLower(serverMediaRange.Type)
+			serverSubtype := strings.ToLower(serverMediaRange.Subtype)
+
+			if (clientType == "*" || clientType == serverType) && (clientSubtype == "*" || clientSubtype == serverSubtype || clientSuffix == serverSubtype) {
+				return serverMediaRange
+			}
+		}
+	}
+
+	return nil
+}
+
 func ParseLastModifiedTimestamp(timestamp string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC1123, timestamp); err != nil {
 		return time.Time{}, motmedelErrors.MakeErrorWithStackTrace(

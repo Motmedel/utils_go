@@ -96,6 +96,19 @@ func (mediaRange *MediaRange) GetStructuredSyntaxName(normalize bool) string {
 	return getStructuredSyntaxName(mediaRange.Subtype, normalize)
 }
 
+type ServerMediaRange struct {
+	Type    string
+	Subtype string
+}
+
+func (serverMediaRange *ServerMediaRange) GetFullType(normalize bool) string {
+	return getFullType(serverMediaRange.Type, serverMediaRange.Subtype, normalize)
+}
+
+func (serverMediaRange *ServerMediaRange) GetStructuredSyntaxName(normalize bool) string {
+	return getStructuredSyntaxName(serverMediaRange.Subtype, normalize)
+}
+
 type Accept struct {
 	MediaRanges []*MediaRange
 	Raw         string
