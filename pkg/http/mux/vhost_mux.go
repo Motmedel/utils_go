@@ -111,6 +111,7 @@ func vhostMuxHandleRequest(
 		}, nil
 	} else if muxSpecificationMux := muxSpecification.Mux; muxSpecificationMux != nil {
 		muxSpecificationMux.ServeHTTP(responseWriter, request)
+		return nil, nil
 	}
 
 	return nil, &muxTypesResponseError.ResponseError{

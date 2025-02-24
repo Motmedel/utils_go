@@ -197,29 +197,33 @@ func (bm *baseMux) ServeHttpWithCallback(
 		// Respond to the request.
 
 		response, responseError := callback(request, responseWriter)
-		if responseError != nil {
-			responseErrorHandler(request.Context(), responseError, responseWriter)
-		} else {
-			if response == nil {
-				response = &muxTypesResponse.Response{}
-			}
 
-			if err := responseWriter.WriteResponse(request.Context(), response, acceptEncoding); err != nil {
-				responseErrorHandler(
-					request.Context(),
-					&muxTypesResponseError.ResponseError{
-						ServerError: motmedelErrors.MakeError(
-							fmt.Errorf("write response: %w", err),
-							response,
-						),
-					},
-					responseWriter,
-				)
+		if !responseWriter.WriteHeaderCalled {
+			if responseError != nil {
+				responseErrorHandler(request.Context(), responseError, responseWriter)
+			} else {
+				if response == nil {
+					response = &muxTypesResponse.Response{}
+				}
+
+				if err := responseWriter.WriteResponse(request.Context(), response, acceptEncoding); err != nil {
+					responseErrorHandler(
+						request.Context(),
+						&muxTypesResponseError.ResponseError{
+							ServerError: motmedelErrors.MakeError(
+								fmt.Errorf("write response: %w", err),
+								response,
+							),
+						},
+						responseWriter,
+					)
+				}
 			}
 		}
 
 		httpContext.Response = &http.Response{
-			StatusCode: responseWriter.WrittenStatusCode, Header: responseWriter.Header(),
+			StatusCode: responseWriter.WrittenStatusCode,
+			Header:     responseWriter.Header(),
 		}
 		httpContext.ResponseBody = responseWriter.WrittenBody
 	}
