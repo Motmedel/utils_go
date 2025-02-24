@@ -188,7 +188,14 @@ func (err *ExtendedError) GetStackTrace() string {
 }
 
 func (err *ExtendedError) Unwrap() []error {
-	return CollectWrappedErrors(err.error)
+	switch typedErr := err.error.(type) {
+	case interface{ Unwrap() error }:
+		return []error{typedErr.Unwrap()}
+	case interface{ Unwrap() []error }:
+		return typedErr.Unwrap()
+	}
+
+	return nil
 }
 
 func MakeError(e any, input ...any) *ExtendedError {
