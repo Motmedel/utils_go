@@ -172,19 +172,71 @@ func (err *ExtendedError) Error() string {
 }
 
 func (err *ExtendedError) GetInput() any {
-	return err.Input
+	if input := err.Input; input != nil {
+		return input
+	}
+
+	includedErr := err.error
+	if includedErr == nil {
+		return nil
+	}
+
+	if inputError, ok := includedErr.(InputErrorI); ok {
+		return inputError.GetInput()
+	}
+
+	return nil
 }
 
 func (err *ExtendedError) GetCode() string {
-	return err.Code
+	if code := err.Code; code != "" {
+		return err.Code
+	}
+
+	includedErr := err.error
+	if includedErr == nil {
+		return ""
+	}
+
+	if codeError, ok := includedErr.(CodeErrorI); ok {
+		return codeError.GetCode()
+	}
+
+	return ""
 }
 
 func (err *ExtendedError) GetId() string {
-	return err.Id
+	if id := err.Id; id != "" {
+		return err.Id
+	}
+
+	includedErr := err.error
+	if includedErr == nil {
+		return ""
+	}
+
+	if idError, ok := includedErr.(IdErrorI); ok {
+		return idError.GetId()
+	}
+
+	return ""
 }
 
 func (err *ExtendedError) GetStackTrace() string {
-	return err.StackTrace
+	if stackTrace := err.StackTrace; stackTrace != "" {
+		return stackTrace
+	}
+
+	includedErr := err.error
+	if includedErr == nil {
+		return ""
+	}
+
+	if stackTraceError, ok := includedErr.(StackTraceErrorI); ok {
+		return stackTraceError.GetStackTrace()
+	}
+
+	return ""
 }
 
 func (err *ExtendedError) Unwrap() []error {
