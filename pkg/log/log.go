@@ -55,7 +55,11 @@ var ErrorContextExtractor = ContextExtractorFunction(ExtractErrorContext)
 func AttrsFromMap(m map[string]any) []any {
 	var attrs []any
 	for key, value := range m {
-		attrs = append(attrs, slog.Any(key, value))
+		if stringAnyMap, ok := value.(map[string]any); ok {
+			attrs = append(attrs, slog.Group(key, AttrsFromMap(stringAnyMap)...))
+		} else {
+			attrs = append(attrs, slog.Any(key, value))
+		}
 	}
 	return attrs
 }
