@@ -250,6 +250,10 @@ func (err *ExtendedError) Unwrap() []error {
 	return nil
 }
 
+func (err *ExtendedError) Is(target error) bool {
+	return errors.Is(err.error, target)
+}
+
 func MakeError(e any, input ...any) *ExtendedError {
 	var err error
 
