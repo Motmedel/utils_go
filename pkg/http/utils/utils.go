@@ -6,7 +6,6 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
-	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	motmedelHttpHeadersParsingAccept "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept"
 	motmedelHttpHeadersParsingAcceptEncoding "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -427,7 +426,7 @@ func ParseLastModifiedTimestamp(timestamp string) (time.Time, error) {
 		return time.Time{}, motmedelErrors.MakeErrorWithStackTrace(
 			fmt.Errorf(
 				"%w: time parse rfc1123: %w",
-				muxErrors.ErrBadIfModifiedSinceTimestamp,
+				motmedelHttpErrors.ErrBadIfModifiedSinceTimestamp,
 				err,
 			),
 			timestamp,
