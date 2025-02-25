@@ -18,9 +18,9 @@ import (
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
+	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
-	"github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
@@ -187,7 +187,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 		var acceptEncoding *motmedelHttpTypes.AcceptEncoding
 
-		if contentNegotiation, _ := utils.GetContentNegotiation(request.Header, false); contentNegotiation != nil {
+		if contentNegotiation, _ := muxUtilsContentNegotiation.GetContentNegotiation(request.Header, false); contentNegotiation != nil {
 			request = request.WithContext(
 				context.WithValue(request.Context(), muxContext.ContentNegotiationContextKey, contentNegotiation),
 			)

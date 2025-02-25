@@ -329,7 +329,7 @@ func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestH
 				ifModifiedSince,
 				lastModified,
 			)
-			if errors.Is(err, muxErrors.ErrBadIfModifiedSinceTimestamp) {
+			if errors.Is(err, motmedelHttpErrors.ErrBadIfModifiedSinceTimestamp) {
 				return false, &muxTypesResponseError.ResponseError{
 					ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Bad If-Modified-Since value", nil),
 					ClientError:   wrappedErr,
