@@ -3,6 +3,7 @@ package net
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"net"
@@ -59,6 +60,41 @@ func lastAddress(network net.IPNet) net.IP {
 		last[i] = ip[i] | ^mask[i]
 	}
 	return last
+}
+
+func ParseAddressNet(addressNet string) (*net.IPNet, error) {
+	if addressNet == "" {
+		return nil, nil
+	}
+
+	networkString := addressNet
+
+	if ip := net.ParseIP(addressNet); ip != nil {
+		var mask int
+		switch ipVersion := GetIpVersion(&ip); ipVersion {
+		case 4:
+			mask = 32
+		case 6:
+			mask = 128
+		default:
+			return nil, motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf("%w: %d", motmedelNetErrors.ErrUnexpectedIpVersion, ipVersion),
+				ipVersion,
+			)
+		}
+
+		networkString += fmt.Sprintf("/%d", mask)
+	}
+
+	_, network, err := net.ParseCIDR(networkString)
+	if err != nil {
+		return nil, motmedelErrors.MakeErrorWithStackTrace(
+			fmt.Errorf("net parse cidr: %w", err),
+			networkString,
+		)
+	}
+
+	return network, nil
 }
 
 func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary bool) (string, error) {
