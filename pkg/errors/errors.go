@@ -292,7 +292,7 @@ func MakeErrorWithStackTrace(e any, input ...any) *ExtendedError {
 	return extendedErr
 }
 
-var NewWihTrace = MakeErrorWithStackTrace
+var NewWithTrace = MakeErrorWithStackTrace
 
 func IsAny(err error, targets ...error) bool {
 	for _, target := range targets {
