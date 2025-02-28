@@ -18,8 +18,9 @@ func ErrCtx(err error) context.Context {
 }
 
 var (
-	ErrSyntaxError   = errors.New("syntax error")
-	ErrSemanticError = errors.New("semantic error")
+	ErrSyntaxError     = errors.New("syntax error")
+	ErrSemanticError   = errors.New("semantic error")
+	ErrValidationError = errors.New("validation error")
 )
 
 func CollectWrappedErrors(err error) []error {
