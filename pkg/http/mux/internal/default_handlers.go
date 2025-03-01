@@ -133,7 +133,7 @@ func DefaultResponseErrorHandler(
 		return
 	}
 
-	if httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(motmedelHttpTypes.HttpContext); ok {
+	if httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext); ok {
 		httpContext.Response = &http.Response{
 			StatusCode: responseWriter.WrittenStatusCode,
 			Header:     responseWriter.Header(),
