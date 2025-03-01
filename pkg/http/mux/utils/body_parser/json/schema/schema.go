@@ -9,6 +9,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
 	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	motmedelInterfaces "github.com/Motmedel/utils_go/pkg/interfaces"
 	"maps"
 	"net/http"
 	"slices"
@@ -91,6 +92,9 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (any, *response_er
 	result, responseError = bodyParser.BodyParser.Parse(body)
 	if responseError != nil {
 		return nil, responseError
+	}
+
+	if validator, ok := result.(motmedelInterfaces.Validator); ok {
 	}
 
 	if processor := bodyParser.Processor; processor != nil {
