@@ -195,4 +195,7 @@ type ContentNegotiation struct {
 	Accept         *Accept
 	AcceptEncoding *AcceptEncoding
 	// TODO: Add more headers.
+
+	NegotiatedAccept         string
+	NegotiatedAcceptEncoding string
 }
