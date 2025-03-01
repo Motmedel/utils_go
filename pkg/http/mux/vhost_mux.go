@@ -129,7 +129,7 @@ func (vhostMux *VhostMux) ServeHTTP(responseWriter http.ResponseWriter, request 
 		func(request *http.Request, responseWriter *muxTypesResponseWriter.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 			response, responseError := vhostMuxHandleRequest(vhostMux, request, responseWriter)
 			if responseError != nil {
-				responseError.BodyMaker = vhostMux.ResponseErrorBodyMaker
+				responseError.ProblemDetailConverter = vhostMux.ProblemDetailConverter
 			}
 
 			if responseWriter != nil {

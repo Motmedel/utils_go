@@ -1,11 +1,12 @@
 package response_error
 
 import (
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
-	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
@@ -20,12 +21,79 @@ const (
 	ResponseErrorType_ServerError
 )
 
+type ProblemDetailConverter interface {
+	Convert(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
+}
+
+type ProblemDetailConverterFunction func(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
+
+func (f ProblemDetailConverterFunction) Convert(
+	problemDetail *problem_detail.ProblemDetail,
+	contentNegotiation *motmedelHttpTypes.ContentNegotiation,
+) ([]byte, string, error) {
+	return f(problemDetail, contentNegotiation)
+}
+
+var DefaultProblemDetailMediaRanges = []*motmedelHttpTypes.ServerMediaRange{
+	{Type: "application", Subtype: "problem+json"},
+	{Type: "application", Subtype: "json"},
+	{Type: "application", Subtype: "problem+xml"},
+	{Type: "application", Subtype: "xml"},
+	{Type: "text", Subtype: "plain"},
+}
+
+func ConvertProblemDetail(
+	detail *problem_detail.ProblemDetail,
+	negotiation *motmedelHttpTypes.ContentNegotiation,
+) ([]byte, string, error) {
+	if detail == nil {
+		return nil, "", nil
+	}
+
+	if negotiation != nil {
+		if negotiation.NegotiatedAccept == "" && negotiation.Accept != nil {
+			matchingServerMediaRange := motmedelHttpUtils.GetMatchingAccept(
+				negotiation.Accept.GetPriorityOrderedEncodings(),
+				DefaultProblemDetailMediaRanges,
+			)
+			if matchingServerMediaRange != nil {
+				negotiation.NegotiatedAccept = matchingServerMediaRange.GetFullType(true)
+			}
+		}
+
+		switch negotiatedAccept := negotiation.NegotiatedAccept; negotiatedAccept {
+		case "application/problem+xml", "application/xml":
+			data, err := xml.Marshal(detail)
+			if err != nil {
+				return nil, "", motmedelErrors.New(fmt.Errorf("xml marshal: %w", err), detail)
+			}
+			return data, "application/problem+xml", nil
+		case "text/plain":
+			text, err := detail.String()
+			if err != nil {
+				return nil, "", motmedelErrors.New(fmt.Errorf("problem detail string: %w", err), detail)
+			}
+			return []byte(text), negotiatedAccept, nil
+		}
+	}
+
+	// Default to using JSON.
+	data, err := json.Marshal(detail)
+	if err != nil {
+		return nil, "", motmedelErrors.New(fmt.Errorf("json marshal: %w", err), detail)
+	}
+
+	return data, "application/problem+json", nil
+}
+
+var DefaultProblemDetailConverter = ProblemDetailConverterFunction(ConvertProblemDetail)
+
 type ResponseError struct {
-	ProblemDetail *problem_detail.ProblemDetail
-	Headers       []*muxTypesResponse.HeaderEntry
-	ClientError   error
-	ServerError   error
-	BodyMaker     func(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
+	ProblemDetail          *problem_detail.ProblemDetail
+	Headers                []*muxTypesResponse.HeaderEntry
+	ClientError            error
+	ServerError            error
+	ProblemDetailConverter ProblemDetailConverter
 }
 
 func (responseError *ResponseError) Type() ResponseErrorType {
@@ -73,7 +141,7 @@ func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail
 }
 
 func (responseError *ResponseError) MakeResponse(
-	contentNegotiation *motmedelHttpTypes.ContentNegotiation,
+	negotiation *motmedelHttpTypes.ContentNegotiation,
 ) (*muxTypesResponse.Response, error) {
 	problemDetail := responseError.ProblemDetail
 	if problemDetail == nil {
@@ -96,53 +164,42 @@ func (responseError *ResponseError) MakeResponse(
 				continue
 			}
 
+			// Clear any pre-existing Content-Type header.
 			if http.CanonicalHeaderKey(header.Name) == "Content-Type" {
 				headers[i] = nil
 			}
 		}
 	}
 
-	var body []byte
 	supportsResponseBody := true
-
-	if contentNegotiation != nil && contentNegotiation.AcceptEncoding != nil {
+	if negotiation != nil && negotiation.AcceptEncoding != nil {
 		supportsResponseBody = motmedelHttpUtils.GetMatchingContentEncoding(
-			contentNegotiation.AcceptEncoding.GetPriorityOrderedEncodings(),
+			negotiation.AcceptEncoding.GetPriorityOrderedEncodings(),
 			[]string{motmedelHttpUtils.AcceptContentIdentity},
 		) == motmedelHttpUtils.AcceptContentIdentity
 	}
 
+	var body []byte
+
 	if supportsResponseBody {
+		converter := responseError.ProblemDetailConverter
+		if converter == nil {
+			converter = DefaultProblemDetailConverter
+		}
+
 		var contentType string
 		var err error
-
-		if bodyMaker := responseError.BodyMaker; bodyMaker != nil {
-			body, contentType, err = bodyMaker(problemDetail, contentNegotiation)
-			if err != nil {
-				return nil, motmedelErrors.MakeError(
-					fmt.Errorf("body maker: %w", err),
-					problemDetail, contentNegotiation,
-				)
-			}
-
-			contentTypeData := []byte(contentType)
-			if _, err := content_type.ParseContentType(contentTypeData); err != nil {
-				return nil, motmedelErrors.MakeError(
-					fmt.Errorf("parse content type (body maker): %w", err),
-					contentTypeData,
-				)
-			}
-		} else {
-			body, err = problemDetail.Bytes()
-			if err != nil {
-				return nil, motmedelErrors.MakeError(fmt.Errorf("problem detail bytes: %w", err), problemDetail)
-			}
-			contentType = "application/problem+json"
+		body, contentType, err = converter.Convert(problemDetail, negotiation)
+		if err != nil {
+			return nil, motmedelErrors.MakeError(
+				fmt.Errorf("convert: %w", err),
+				problemDetail, negotiation,
+			)
 		}
 
 		if len(body) != 0 {
 			if contentType == "" {
-				return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrEmptyResponseErrorContentType)
+				return nil, motmedelErrors.NewWithTrace(muxErrors.ErrEmptyResponseErrorContentType)
 			}
 
 			headers = append(

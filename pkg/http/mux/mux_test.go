@@ -17,6 +17,7 @@ import (
 	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/go-cmp/cmp"
@@ -25,6 +26,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"testing"
 	"time"
 )
@@ -34,6 +36,41 @@ var httpServer *httptest.Server
 type bodyParserTestData struct {
 	Data string `json:"data"`
 }
+
+var defaultHtmlProblemDetailMediaRanges = slices.Concat(
+	response_error.DefaultProblemDetailMediaRanges,
+	[]*motmedelHttpTypes.ServerMediaRange{{Type: "text", Subtype: "html"}},
+)
+
+func htmlConvertProblemDetail(
+	detail *problem_detail.ProblemDetail,
+	negotiation *motmedelHttpTypes.ContentNegotiation,
+) ([]byte, string, error) {
+	if detail == nil {
+		return nil, "", motmedelErrors.NewWithTrace(problemDetailErrors.ErrNilProblemDetail)
+	}
+
+	if detail.Status == http.StatusTeapot && negotiation != nil {
+		if negotiation.NegotiatedAccept == "" {
+			matchingServerMediaRange := motmedelHttpUtils.GetMatchingAccept(
+				negotiation.Accept.GetPriorityOrderedEncodings(),
+				defaultHtmlProblemDetailMediaRanges,
+			)
+			if matchingServerMediaRange != nil {
+				negotiation.NegotiatedAccept = matchingServerMediaRange.GetFullType(true)
+			}
+		}
+
+		switch negotiatedAccept := negotiation.NegotiatedAccept; negotiatedAccept {
+		case "text/html":
+			return []byte(fmt.Sprintf("<html>%d</html>", detail.Status)), "text/html", nil
+		}
+	}
+
+	return response_error.ConvertProblemDetail(detail, negotiation)
+}
+
+var HtmlProblemDetailConverter = response_error.ProblemDetailConverterFunction(htmlConvertProblemDetail)
 
 func TestMain(m *testing.M) {
 	mux := &Mux{}
@@ -60,40 +97,7 @@ func TestMain(m *testing.M) {
 			return firewall.VerdictAccept, nil
 		},
 	}
-	mux.ResponseErrorBodyMaker = func(detail *problem_detail.ProblemDetail, negotiation *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error) {
-		if detail == nil {
-			return nil, "", motmedelErrors.MakeErrorWithStackTrace("nil problem detail")
-		}
-
-		if detail.Status == http.StatusTeapot && (negotiation != nil && negotiation.Accept != nil) {
-			matchingServerMediaRange := motmedelHttpUtils.GetMatchingAccept(
-				negotiation.Accept.GetPriorityOrderedEncodings(),
-				[]*motmedelHttpTypes.ServerMediaRange{
-					{Type: "application", Subtype: "problem+json"},
-					{Type: "application", Subtype: "json"},
-					{Type: "text", Subtype: "html"},
-				},
-			)
-
-			var matchingServerMediaRangeString string
-			if matchingServerMediaRange != nil {
-				matchingServerMediaRangeString = matchingServerMediaRange.GetFullType(true)
-			}
-
-			switch matchingServerMediaRangeString {
-			case "text/html":
-				return []byte(fmt.Sprintf("<html>%d</html>", detail.Status)), "text/html", nil
-			}
-		}
-
-		detailData, err := detail.Bytes()
-		if err != nil {
-			return nil, "", motmedelErrors.MakeErrorWithStackTrace(
-				fmt.Errorf("problem detail bytes: %w", err),
-			)
-		}
-		return detailData, "application/problem+json", nil
-	}
+	mux.ProblemDetailConverter = HtmlProblemDetailConverter
 
 	mux.Add(
 		&endpoint_specification.EndpointSpecification{

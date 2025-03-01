@@ -36,7 +36,7 @@ type baseMux struct {
 	DefaultHeaders          map[string]string
 	DefaultDocumentHeaders  map[string]string
 	Middleware              []muxTypesMiddleware.Middleware
-	ResponseErrorBodyMaker  func(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
+	ProblemDetailConverter  muxTypesResponseError.ProblemDetailConverter
 }
 
 func (bm *baseMux) getFirewallVerdict(request *http.Request) (muxTypesFirewall.Verdict, *muxTypesResponseError.ResponseError) {
@@ -425,7 +425,7 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 		func(request *http.Request, responseWriter *muxTypesResponseWriter.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 			response, responseError := muxHandleRequest(mux, request, responseWriter)
 			if responseError != nil {
-				responseError.BodyMaker = mux.ResponseErrorBodyMaker
+				responseError.ProblemDetailConverter = mux.ProblemDetailConverter
 			}
 
 			if responseWriter != nil {
