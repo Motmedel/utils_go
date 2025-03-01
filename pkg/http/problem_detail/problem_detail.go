@@ -88,7 +88,6 @@ func (problemDetail *ProblemDetail) MarshalXML(encoder *xml.Encoder, start xml.S
 
 	start.Name.Local = "problem"
 	start.Name.Space = "urn:ietf:rfc:7807"
-	start.Attr = append(start.Attr, xml.Attr{Name: xml.Name{Local: "xmlns"}, Value: "urn:ietf:rfc:7807"})
 
 	if err := encoder.EncodeToken(start); err != nil {
 		return motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("encode token (start): %w", err), start)
@@ -99,11 +98,7 @@ func (problemDetail *ProblemDetail) MarshalXML(encoder *xml.Encoder, start xml.S
 			return nil
 		}
 
-		err := encoder.EncodeElement(
-			value,
-			xml.StartElement{Name: xml.Name{Local: localName, Space: "urn:ietf:rfc:7807"}},
-		)
-		if err != nil {
+		if err := encoder.EncodeElement(value, xml.StartElement{Name: xml.Name{Local: localName}}); err != nil {
 			return motmedelErrors.NewWithTrace(fmt.Errorf("encode element: %w", err), localName, value)
 		}
 
@@ -178,7 +173,12 @@ func (problemDetail *ProblemDetail) String() (string, error) {
 		text = title
 	}
 
-	for _, s := range []string{problemDetail.Detail, problemDetail.Type, problemDetail.Instance} {
+	problemDetailType := problemDetail.Type
+	if problemDetailType == "about:blank" {
+		problemDetailType = ""
+	}
+
+	for _, s := range []string{problemDetail.Detail, problemDetailType, problemDetail.Instance} {
 		if s == "" {
 			continue
 		}
