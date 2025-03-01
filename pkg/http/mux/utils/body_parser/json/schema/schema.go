@@ -57,12 +57,12 @@ type JsonSchemaBodyParser[T any] struct {
 	Processor body_parser.BodyProcessor[*T]
 }
 
-func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (any, *response_error.ResponseError) {
+func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []byte) (any, *response_error.ResponseError) {
 	if bodyParser.Schema == nil {
 		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
 	}
 
-	dataMapPtr, responseError := bodyParserJson.ParseJsonBody[map[string]any](body)
+	dataMapPtr, responseError := bodyParserJson.ParseJsonBody[map[string]any](request, body)
 	if responseError != nil {
 		return nil, responseError
 	}
@@ -90,7 +90,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (any, *response_er
 	}
 
 	var result any
-	result, responseError = bodyParser.BodyParser.Parse(body)
+	result, responseError = bodyParser.BodyParser.Parse(request, body)
 	if responseError != nil {
 		return nil, responseError
 	}
