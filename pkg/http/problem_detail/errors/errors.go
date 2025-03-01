@@ -7,4 +7,5 @@ var (
 	ErrEmptyType        = errors.New("empty type")
 	ErrEmptyTitle       = errors.New("empty title")
 	ErrEmptyStatus      = errors.New("empty status")
+	ErrNilEncoder       = errors.New("nil encoder")
 )
