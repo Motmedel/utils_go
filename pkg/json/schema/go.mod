@@ -1,4 +1,4 @@
-module schema
+module github.com/Motmedel/utils_go/pkg/json/schema
 
 go 1.24.0
 
