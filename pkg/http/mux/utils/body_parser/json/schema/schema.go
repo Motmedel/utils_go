@@ -70,7 +70,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (any, *response_er
 	}
 
 	if err := Validate(*dataMapPtr, bodyParser.Schema); err != nil {
-		wrappedErr := motmedelErrors.New(fmt.Errorf("validate: %w", err), *dataMapPtr, bodyParser.Schema)
+		wrappedErr := motmedelErrors.New(fmt.Errorf("validate (input): %w", err), *dataMapPtr, bodyParser.Schema)
 
 		var validateError *ValidateError
 		if errors.As(err, &validateError) {
@@ -95,6 +95,22 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (any, *response_er
 	}
 
 	if validator, ok := result.(motmedelInterfaces.Validator); ok {
+		if err := validator.Validate(); err != nil {
+			wrappedErr := fmt.Errorf("validate (result): %w", err)
+
+			if errors.Is(err, motmedelErrors.ErrValidationError) {
+				return nil, &response_error.ResponseError{
+					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusUnprocessableEntity,
+						"Invalid body.",
+						map[string]string{"error": err.Error()},
+					),
+					ClientError: wrappedErr,
+				}
+			}
+
+			return nil, &response_error.ResponseError{ServerError: wrappedErr}
+		}
 	}
 
 	if processor := bodyParser.Processor; processor != nil {
