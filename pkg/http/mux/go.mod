@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/Motmedel/utils_go v0.0.147
 	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.20
-	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.3
+	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.4
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 )

@@ -67,7 +67,11 @@ func ConvertProblemDetail(
 			if err != nil {
 				return nil, "", motmedelErrors.New(fmt.Errorf("xml marshal: %w", err), detail)
 			}
-			return data, "application/problem+xml", nil
+
+			output := []byte(`<?xml version="1.0" encoding="UTF-8"?>`)
+			output = append(output, data...)
+
+			return output, "application/problem+xml", nil
 		case "text/plain":
 			text, err := detail.String()
 			if err != nil {
