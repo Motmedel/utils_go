@@ -10,6 +10,7 @@ import (
 	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelInterfaces "github.com/Motmedel/utils_go/pkg/interfaces"
+	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 	"maps"
 	"net/http"
 	"slices"
@@ -123,6 +124,15 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (any, *response_er
 	return result, nil
 }
 
-func New[T any](schema *jsonschema.Schema) body_parser.BodyParser[T] {
+func NewWithSchema[T any](schema *jsonschema.Schema) body_parser.BodyParser[T] {
 	return &JsonSchemaBodyParser[T]{BodyParser: bodyParserJson.New[T](), Schema: schema}
+}
+
+func New[T any](t T) (body_parser.BodyParser[T], error) {
+	schema, err := motmedelJsonSchema.New[T](t)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("schema new: %w", err), t)
+	}
+
+	return NewWithSchema[T](schema), nil
 }

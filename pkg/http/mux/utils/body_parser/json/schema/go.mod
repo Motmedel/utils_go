@@ -7,6 +7,7 @@ require (
 	github.com/Motmedel/utils_go v0.0.146
 	github.com/Motmedel/utils_go/pkg/http/mux v0.0.47
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.2
+	github.com/Motmedel/utils_go/pkg/json/schema v0.0.2
 )
 
 require (
@@ -19,5 +20,7 @@ require (
 	github.com/gotnospirit/messageformat v0.0.0-20221001023931-dfe49f1eb092 // indirect
 	github.com/kaptinlin/go-i18n v0.1.3 // indirect
 	github.com/pandatix/go-abnf v0.1.7 // indirect
+	github.com/swaggest/jsonschema-go v0.3.73 // indirect
+	github.com/swaggest/refl v1.3.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 )
