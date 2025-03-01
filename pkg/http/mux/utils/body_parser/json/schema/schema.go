@@ -52,7 +52,7 @@ func Validate(dataMap map[string]any, schema *jsonschema.Schema) error {
 }
 
 type JsonSchemaBodyParser[T any] struct {
-	body_parser.BodyParser[T]
+	body_parser.BodyParser
 	Schema    *jsonschema.Schema
 	Processor body_parser.BodyProcessor[*T]
 }
@@ -124,11 +124,11 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 	return result, nil
 }
 
-func NewWithSchema[T any](schema *jsonschema.Schema) body_parser.BodyParser[T] {
+func NewWithSchema[T any](schema *jsonschema.Schema) body_parser.BodyParser {
 	return &JsonSchemaBodyParser[T]{BodyParser: bodyParserJson.New[T](), Schema: schema}
 }
 
-func New[T any](t T) (body_parser.BodyParser[T], error) {
+func New[T any](t T) (body_parser.BodyParser, error) {
 	schema, err := motmedelJsonSchema.New[T](t)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("schema new: %w", err), t)
