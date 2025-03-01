@@ -25,5 +25,5 @@ type HeaderParserConfiguration struct {
 type BodyParserConfiguration struct {
 	ContentType string
 	AllowEmpty  bool
-	Parser      body_parser.BodyParser[any]
+	Parser      body_parser.BodyParser
 }

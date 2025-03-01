@@ -327,7 +327,7 @@ func muxHandleRequest(
 
 	allowEmptyBody := true
 	var expectedContentType string
-	var bodyParser body_parser.BodyParser[any]
+	var bodyParser body_parser.BodyParser
 
 	// Obtain validation options from the handler specification configuration.
 	if bodyParserConfiguration := endpointSpecification.BodyParserConfiguration; bodyParserConfiguration != nil {
