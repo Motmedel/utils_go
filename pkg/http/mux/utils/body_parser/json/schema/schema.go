@@ -55,7 +55,7 @@ type JsonSchemaBodyParser[T any] struct {
 	Processor body_parser.BodyProcessor[*T]
 }
 
-func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (*T, *response_error.ResponseError) {
+func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (any, *response_error.ResponseError) {
 	if bodyParser.Schema == nil {
 		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
 	}
@@ -77,7 +77,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (*T, *response_err
 				// TODO: The error messages could be made nicer.
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnprocessableEntity,
-					"Invalid body",
+					"Invalid body.",
 					map[string][]string{"errors": slices.Collect(maps.Values(validateError.ListErrors))},
 				),
 				ClientError: wrappedErr,
@@ -87,7 +87,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (*T, *response_err
 		return nil, &response_error.ResponseError{ServerError: wrappedErr}
 	}
 
-	var result *T
+	var result any
 	result, responseError = bodyParser.BodyParser.Parse(body)
 	if responseError != nil {
 		return nil, responseError
@@ -104,8 +104,5 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(body []byte) (*T, *response_err
 }
 
 func New[T any](schema *jsonschema.Schema) body_parser.BodyParser[T] {
-	return &JsonSchemaBodyParser[T]{
-		BodyParser: bodyParserJson.New[T](),
-		Schema:     schema,
-	}
+	return &JsonSchemaBodyParser[T]{BodyParser: bodyParserJson.New[T](), Schema: schema}
 }
