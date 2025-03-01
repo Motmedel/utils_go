@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func ParseJsonBody[T any](body []byte) (*T, *response_error.ResponseError) {
+func ParseJsonBody[T any](_ *http.Request, body []byte) (*T, *response_error.ResponseError) {
 	var target T
 
 	if err := json.Unmarshal(body, &target); err != nil {

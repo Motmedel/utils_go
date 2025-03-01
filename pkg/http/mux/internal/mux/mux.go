@@ -284,6 +284,8 @@ func ObtainEndpointSpecification(
 			allowedMethods = append(allowedMethods, http.MethodOptions)
 		}
 
+		slices.Sort(allowedMethods)
+
 		expectedMethodsString := strings.Join(allowedMethods, ", ")
 		headerEntries := []*muxTypesResponse.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}
 

@@ -230,7 +230,7 @@ func TestMux(t *testing.T) {
 			method:             http.MethodOptions,
 			url:                "/hello-world",
 			expectedStatusCode: http.StatusNoContent,
-			expectedHeaders:    [][2]string{{"Allow", "GET, POST, HEAD, OPTIONS"}},
+			expectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 		},
 		{
 			name:               "status ok, static content",
@@ -278,9 +278,9 @@ func TestMux(t *testing.T) {
 			url:                "/hello-world",
 			expectedStatusCode: http.StatusMethodNotAllowed,
 			expectedProblemDetail: &problem_detail.ProblemDetail{
-				Detail: `Expected GET, POST, HEAD, OPTIONS.`,
+				Detail: `Expected GET, HEAD, OPTIONS, POST.`,
 			},
-			expectedHeaders: [][2]string{{"Allow", "GET, POST, HEAD, OPTIONS"}},
+			expectedHeaders: [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 		},
 		{
 			name:               "error status method not allowed, without response body",
@@ -288,7 +288,7 @@ func TestMux(t *testing.T) {
 			url:                "/hello-world",
 			headers:            [][2]string{{"Accept-Encoding", "*;q=0"}},
 			expectedStatusCode: http.StatusMethodNotAllowed,
-			expectedHeaders:    [][2]string{{"Allow", "GET, POST, HEAD, OPTIONS"}},
+			expectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 		},
 		{
 			name:               "status no content",

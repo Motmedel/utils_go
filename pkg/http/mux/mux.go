@@ -381,7 +381,7 @@ func muxHandleRequest(
 
 	// Parse the body.
 	if bodyParser != nil {
-		parsedBody, responseError := bodyParser.Parse(requestBody)
+		parsedBody, responseError := bodyParser.Parse(request, requestBody)
 		if responseError != nil {
 			return nil, responseError
 		}
