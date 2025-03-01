@@ -2,6 +2,7 @@ package parsing
 
 import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	"github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
 	"net/http"
 )
 
@@ -24,5 +25,5 @@ type HeaderParserConfiguration struct {
 type BodyParserConfiguration struct {
 	ContentType string
 	AllowEmpty  bool
-	Parser      func(*http.Request, []byte) (any, *response_error.ResponseError)
+	Parser      body_parser.BodyParser[any]
 }

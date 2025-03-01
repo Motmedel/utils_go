@@ -14,6 +14,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
+	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -160,32 +161,7 @@ func TestMain(m *testing.M) {
 			},
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
 				ContentType: "application/json",
-				Parser: func(request *http.Request, body []byte) (any, *response_error.ResponseError) {
-					var d bodyParserTestData
-
-					if err := json.Unmarshal(body, &d); err != nil {
-						wrappedErr := motmedelErrors.MakeErrorWithStackTrace(
-							fmt.Errorf("json unmarshal: %w", err),
-							body,
-						)
-
-						var unmarshalTypeError *json.UnmarshalTypeError
-						if errors.As(err, &unmarshalTypeError) {
-							return nil, &response_error.ResponseError{
-								ClientError: wrappedErr,
-								ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-									http.StatusUnprocessableEntity,
-									"Invalid body. The value is not appropriate for the JSON type.",
-									nil,
-								),
-							}
-						} else {
-							return nil, &response_error.ResponseError{ServerError: wrappedErr}
-						}
-					}
-
-					return &d, nil
-				},
+				Parser:      bodyParserJson.New[bodyParserTestData](),
 			},
 		},
 		&endpoint_specification.EndpointSpecification{

@@ -18,6 +18,7 @@ import (
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
+	"github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -326,7 +327,7 @@ func muxHandleRequest(
 
 	allowEmptyBody := true
 	var expectedContentType string
-	var bodyParser func(*http.Request, []byte) (any, *muxTypesResponseError.ResponseError)
+	var bodyParser body_parser.BodyParser[any]
 
 	// Obtain validation options from the handler specification configuration.
 	if bodyParserConfiguration := endpointSpecification.BodyParserConfiguration; bodyParserConfiguration != nil {
@@ -380,7 +381,7 @@ func muxHandleRequest(
 
 	// Parse the body.
 	if bodyParser != nil {
-		parsedBody, responseError := bodyParser(request, requestBody)
+		parsedBody, responseError := bodyParser.Parse(requestBody)
 		if responseError != nil {
 			return nil, responseError
 		}
