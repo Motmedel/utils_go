@@ -2,12 +2,15 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,10 +18,6 @@ import (
 )
 
 const AcceptContentIdentity = "identity"
-
-type HttpClient interface {
-	Do(*http.Request) (*http.Response, error)
-}
 
 func DefaultRetryResponseChecker(response *http.Response, err error) bool {
 	if response != nil {
@@ -30,18 +29,6 @@ func DefaultRetryResponseChecker(response *http.Response, err error) bool {
 	}
 
 	return false
-}
-
-type RetryConfiguration struct {
-	Count           int
-	BaseDelay       time.Duration
-	MaximumWaitTime time.Duration
-	CheckResponse   func(*http.Response, error) bool
-}
-
-type HttpRetryClient struct {
-	http.Client
-	RetryConfiguration *RetryConfiguration
 }
 
 func getRetryAfterTime(retryAfterValue string, referenceTime *time.Time) *time.Time {
@@ -67,7 +54,7 @@ func getRetryAfterTime(retryAfterValue string, referenceTime *time.Time) *time.T
 	return nil
 }
 
-func handleRequest(request *http.Request, httpClient HttpClient) (*http.Response, []byte, error) {
+func handleRequest(ctx context.Context, request *http.Request, httpClient *http.Client) (*http.Response, []byte, error) {
 	if request == nil {
 		return nil, nil, nil
 	}
@@ -87,13 +74,32 @@ func handleRequest(request *http.Request, httpClient HttpClient) (*http.Response
 		return nil, nil, motmedelHttpErrors.ErrNilHttpResponse
 	}
 	responseBody := response.Body
-	defer responseBody.Close()
 
-	responseBodyData, err := io.ReadAll(responseBody)
-	if err != nil {
-		return response, nil, &motmedelErrors.Error{
-			Message: "An error occurred when reading the response body.",
-			Cause:   err,
+	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	if httpContext != nil {
+		httpContext.Response = response
+	}
+
+	var responseBodyData []byte
+
+	// If the response is chunked, the length should be 0, and the callee can read the body from `response.Body`.
+	if response.ContentLength > 0 {
+		responseBodyData, err = io.ReadAll(responseBody)
+		defer func() {
+			if err := responseBody.Close(); err != nil {
+				slog.Warn(fmt.Sprintf("close response body: %v", err))
+			}
+		}()
+
+		if err != nil {
+			return response, nil, &motmedelErrors.Error{
+				Message: "An error occurred when reading the response body.",
+				Cause:   err,
+			}
+		}
+
+		if httpContext != nil {
+			httpContext.ResponseBody = responseBodyData
 		}
 	}
 
@@ -101,42 +107,43 @@ func handleRequest(request *http.Request, httpClient HttpClient) (*http.Response
 }
 
 func SendRequest(
-	httpClient HttpClient,
+	ctx context.Context,
+	httpClient *http.Client,
 	method string,
 	url string,
 	requestBody []byte,
 	addToRequest func(*http.Request) error,
-) (*motmedelHttpTypes.HttpContext, error) {
+) (*http.Response, []byte, error) {
 	if httpClient == nil {
-		return nil, motmedelHttpErrors.ErrNilHttpClient
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
 	if method == "" {
-		return nil, motmedelHttpErrors.ErrEmptyMethod
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyMethod)
 	}
 
 	if url == "" {
-		return nil, motmedelHttpErrors.ErrEmptyUrl
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
 	}
 
 	request, err := http.NewRequest(method, url, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return nil, &motmedelErrors.Error{
-			Message: "An error occurred when creating a request.",
-			Cause:   err,
-		}
+		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method, url)
 	}
 	if request == nil {
-		return nil, motmedelHttpErrors.ErrNilHttpRequest
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest)
 	}
 
 	if addToRequest != nil {
 		if err = addToRequest(request); err != nil {
-			return nil, &motmedelErrors.Error{
-				Message: "An error occurred when adding to a request.",
-				Cause:   err,
-			}
+			return nil, nil, motmedelErrors.New(fmt.Errorf("add to request: %w", err), request)
 		}
+	}
+
+	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	if httpContext != nil {
+		httpContext.Request = request
+		httpContext.RequestBody = requestBody
 	}
 
 	var retryCount int
@@ -144,17 +151,14 @@ func SendRequest(
 	var maximumWaitTime time.Duration
 	var checkRetryResponse func(*http.Response, error) bool
 
-	httpRetryClient, ok := httpClient.(*HttpRetryClient)
-	if ok && httpRetryClient != nil {
-		if retryConfiguration := httpRetryClient.RetryConfiguration; retryConfiguration != nil {
-			retryCount = max(retryCount, retryConfiguration.Count)
-			baseDelay = retryConfiguration.BaseDelay
-			maximumWaitTime = retryConfiguration.MaximumWaitTime
-			checkRetryResponse = retryConfiguration.CheckResponse
-		}
+	retryConfiguration, ok := ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration)
+	if ok && retryConfiguration != nil {
+		retryCount = max(retryCount, retryConfiguration.Count)
+		baseDelay = retryConfiguration.BaseDelay
+		maximumWaitTime = retryConfiguration.MaximumWaitTime
+		checkRetryResponse = retryConfiguration.CheckResponse
 	}
 
-	httpContext := &motmedelHttpTypes.HttpContext{Request: request, RequestBody: requestBody}
 	var response *http.Response
 	var responseBody []byte
 
@@ -209,7 +213,7 @@ func SendRequest(
 			}
 		}
 
-		response, responseBody, err = handleRequest(request, httpClient)
+		response, responseBody, err = handleRequest(ctx, request, httpClient)
 
 		if checkRetryResponse == nil {
 			checkRetryResponse = DefaultRetryResponseChecker
@@ -224,80 +228,64 @@ func SendRequest(
 			}
 		}
 	}
-
-	httpContext.Response = response
-
 	if err != nil {
-		return httpContext, &motmedelErrors.Error{
-			Message: "An error occurred when handling an http request.",
-			Cause:   err,
-			Input:   request,
-		}
+		return nil, nil, motmedelErrors.New(fmt.Errorf("handle request: %w", err), request, httpClient)
 	}
-	httpContext.ResponseBody = responseBody
 
 	if !strings.HasPrefix(strconv.Itoa(response.StatusCode), "2") {
-		return httpContext, &motmedelHttpErrors.Non2xxStatusCodeError{StatusCode: response.StatusCode}
+		return nil, nil, motmedelErrors.NewWithTrace(
+			&motmedelHttpErrors.Non2xxStatusCodeError{StatusCode: response.StatusCode},
+		)
 	}
 
-	return httpContext, nil
+	return response, responseBody, nil
 }
 
 func SendJsonRequestResponse[T any, U any](
-	httpClient HttpClient,
+	ctx context.Context,
+	httpClient *http.Client,
 	method string,
 	url string,
 	bodyValue *T,
 	addToRequest func(*http.Request) error,
-) (*U, *motmedelHttpTypes.HttpContext, error) {
+) (*U, error) {
 	if httpClient == nil {
-		return nil, nil, motmedelHttpErrors.ErrNilHttpClient
+		return nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
 	if method == "" {
-		return nil, nil, motmedelHttpErrors.ErrEmptyMethod
+		return nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyMethod)
 	}
 
 	if url == "" {
-		return nil, nil, motmedelHttpErrors.ErrEmptyUrl
+		return nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
 	}
 
 	requestBody, err := json.Marshal(bodyValue)
 	if err != nil {
-		return nil, nil, &motmedelErrors.Error{
-			Message: "An error occurred when marshalling the body value.",
-			Cause:   err,
-			Input:   bodyValue,
-		}
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (body value): %w", err), bodyValue)
 	}
 
-	httpContext, err := SendRequest(httpClient, method, url, requestBody, addToRequest)
+	response, responseBody, err := SendRequest(ctx, httpClient, method, url, requestBody, addToRequest)
+	if response != nil && response.Body != nil {
+		defer response.Body.Close()
+	}
 	if err != nil {
-		return nil, httpContext, &motmedelErrors.Error{
-			Message: "An error occurred when sending the request.",
-			Cause:   err,
-			Input:   []any{httpClient, method, url, requestBody},
-		}
-	}
-	if httpContext == nil {
-		return nil, nil, nil
-	}
-
-	responseBody := httpContext.ResponseBody
-	if len(responseBody) == 0 {
-		return nil, httpContext, nil
+		return nil, motmedelErrors.New(
+			fmt.Errorf("send request: %w", err),
+			httpClient, method, url, requestBody, addToRequest,
+		)
 	}
 
 	var responseValue *U
 	if err = json.Unmarshal(responseBody, &responseValue); err != nil {
-		return nil, httpContext, &motmedelErrors.Error{
-			Message: "An error occurred when unmarshalling the response body.",
-			Cause:   err,
-			Input:   responseBody,
-		}
+		return nil, motmedelErrors.NewWithTrace(
+			fmt.Errorf("json unmarshal (response body): %w", err),
+			responseBody,
+		)
 	}
 
-	return responseValue, httpContext, nil
+	return responseValue, nil
 }
 
 func GetMatchingContentEncoding(

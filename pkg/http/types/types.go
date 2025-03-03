@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 )
 
 type HttpContext struct {
@@ -198,4 +199,11 @@ type ContentNegotiation struct {
 
 	NegotiatedAccept         string
 	NegotiatedAcceptEncoding string
+}
+
+type RetryConfiguration struct {
+	Count           int
+	BaseDelay       time.Duration
+	MaximumWaitTime time.Duration
+	CheckResponse   func(*http.Response, error) bool
 }
