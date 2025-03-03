@@ -13,8 +13,8 @@ type errorContextType struct{}
 
 var ErrorContextKey errorContextType
 
-func ErrCtx(err error) context.Context {
-	return context.WithValue(context.Background(), ErrorContextKey, err)
+func WithErrorContextValue(ctx context.Context, err error) context.Context {
+	return context.WithValue(ctx, ErrorContextKey, err)
 }
 
 var (
