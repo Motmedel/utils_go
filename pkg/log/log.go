@@ -3,10 +3,10 @@ package log
 import (
 	"context"
 	"fmt"
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"log/slog"
-	"os"
 	"os/exec"
 	"reflect"
 	"strconv"
@@ -38,33 +38,14 @@ func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Re
 	return contextHandler.Handler.Handle(ctx, record)
 }
 
-func ExtractErrorContext(ctx context.Context, record *slog.Record) error {
-	if record == nil {
-		return nil
-	}
-
-	if logErr, ok := ctx.Value(motmedelErrors.ErrorContextKey).(error); ok {
-		record.Add(slog.Group("error", MakeErrorAttrs(logErr)...))
-	}
-
-	return nil
+type ErrorContextExtractor struct {
+	SkipCause      bool
+	SkipInput      bool
+	SkipStackTrace bool
+	SkipOutput     bool
 }
 
-var ErrorContextExtractor = ContextExtractorFunction(ExtractErrorContext)
-
-func AttrsFromMap(m map[string]any) []any {
-	var attrs []any
-	for key, value := range m {
-		if stringAnyMap, ok := value.(map[string]any); ok {
-			attrs = append(attrs, slog.Group(key, AttrsFromMap(stringAnyMap)...))
-		} else {
-			attrs = append(attrs, slog.Any(key, value))
-		}
-	}
-	return attrs
-}
-
-func MakeErrorAttrs(err error) []any {
+func (extractor *ErrorContextExtractor) MakeErrorAttrs(err error) []any {
 	if err == nil {
 		return nil
 	}
@@ -88,15 +69,16 @@ func MakeErrorAttrs(err error) []any {
 		}
 	}
 
-	if inputError, ok := err.(motmedelErrors.InputErrorI); ok {
+	if inputError, ok := err.(motmedelErrors.InputErrorI); ok && !extractor.SkipInput {
 		if input := inputError.GetInput(); input != nil {
 			inputTextualRepresentation, err := motmedelStrings.MakeTextualRepresentation(input)
 			if err != nil {
 				go func() {
-					LogError(
-						"An error occurred when making a textual representation of error input.",
-						err,
-						slog.Default(),
+					slog.Error(
+						fmt.Sprintf(
+							"An error occurred when making a textual representation of error input: %v",
+							err,
+						),
 					)
 				}()
 			} else {
@@ -117,37 +99,39 @@ func MakeErrorAttrs(err error) []any {
 		}
 	}
 
-	wrappedErrors := motmedelErrors.CollectWrappedErrors(err)
-	var lastWrappedErrorAttrs []any
+	if !extractor.SkipCause {
+		wrappedErrors := motmedelErrors.CollectWrappedErrors(err)
+		var lastWrappedErrorAttrs []any
 
-	for i := len(wrappedErrors) - 1; i >= 0; i-- {
-		wrappedError := wrappedErrors[i]
-		if wrappedError == nil {
-			continue
+		for i := len(wrappedErrors) - 1; i >= 0; i-- {
+			wrappedError := wrappedErrors[i]
+			if wrappedError == nil {
+				continue
+			}
+
+			switch reflect.TypeOf(wrappedError).String() {
+			case "*errors.joinError", "*fmt.wrapError":
+				continue
+			}
+
+			wrappedErrorAttrs := extractor.MakeErrorAttrs(wrappedError)
+
+			if lastWrappedErrorAttrs != nil {
+				wrappedErrorAttrs = append(
+					wrappedErrorAttrs,
+					slog.Group("cause", lastWrappedErrorAttrs...),
+				)
+			}
+
+			lastWrappedErrorAttrs = wrappedErrorAttrs
 		}
-
-		switch reflect.TypeOf(wrappedError).String() {
-		case "*errors.joinError", "*fmt.wrapError":
-			continue
-		}
-
-		wrappedErrorAttrs := MakeErrorAttrs(wrappedError)
 
 		if lastWrappedErrorAttrs != nil {
-			wrappedErrorAttrs = append(
-				wrappedErrorAttrs,
-				slog.Group("cause", lastWrappedErrorAttrs...),
-			)
+			if errType == "*errors.joinError" {
+				return lastWrappedErrorAttrs
+			}
+			attrs = append(attrs, slog.Group("cause", lastWrappedErrorAttrs...))
 		}
-
-		lastWrappedErrorAttrs = wrappedErrorAttrs
-	}
-
-	if lastWrappedErrorAttrs != nil {
-		if errType == "*errors.joinError" {
-			return lastWrappedErrorAttrs
-		}
-		attrs = append(attrs, slog.Group("cause", lastWrappedErrorAttrs...))
 	}
 
 	if codeError, ok := err.(motmedelErrors.CodeErrorI); ok {
@@ -162,7 +146,7 @@ func MakeErrorAttrs(err error) []any {
 		}
 	}
 
-	if stackTraceError, ok := err.(motmedelErrors.StackTraceErrorI); ok {
+	if stackTraceError, ok := err.(motmedelErrors.StackTraceErrorI); ok && !extractor.SkipStackTrace {
 		if stackTrace := stackTraceError.GetStackTrace(); stackTrace != "" {
 			attrs = append(attrs, slog.String("stack_trace", stackTrace))
 		}
@@ -174,7 +158,7 @@ func MakeErrorAttrs(err error) []any {
 			attrs = append(attrs, slog.String("code", strconv.Itoa(exitCode)))
 		}
 
-		if stderr := execExitError.Stderr; len(stderr) != 0 {
+		if stderr := execExitError.Stderr; len(stderr) != 0 && !extractor.SkipOutput {
 			attrs = append(
 				attrs,
 				slog.Group(
@@ -193,68 +177,26 @@ func MakeErrorAttrs(err error) []any {
 	return attrs
 }
 
-func MakeErrorGroup(err error) *slog.Attr {
-	group := slog.Group("error", MakeErrorAttrs(err)...)
-	return &group
-}
-
-func LogError(message string, err error, logger *slog.Logger) {
-	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
-		logger.Error(message, *errorGroup)
-	} else {
-		logger.Error(message)
+func (extractor *ErrorContextExtractor) Handle(ctx context.Context, record *slog.Record) error {
+	if record == nil {
+		return nil
 	}
-}
 
-func LogWarning(message string, err error, logger *slog.Logger) {
-	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
-		logger.Warn(message, *errorGroup)
-	} else {
-		logger.Warn(message)
+	if logErr, ok := ctx.Value(motmedelContext.ErrorContextKey).(error); ok {
+		record.Add(slog.Group("error", extractor.MakeErrorAttrs(logErr)...))
 	}
+
+	return nil
 }
 
-func LogDebug(message string, err error, logger *slog.Logger) {
-	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
-		logger.Debug(message, *errorGroup)
-	} else {
-		logger.Debug(message)
+func AttrsFromMap(m map[string]any) []any {
+	var attrs []any
+	for key, value := range m {
+		if stringAnyMap, ok := value.(map[string]any); ok {
+			attrs = append(attrs, slog.Group(key, AttrsFromMap(stringAnyMap)...))
+		} else {
+			attrs = append(attrs, slog.Any(key, value))
+		}
 	}
-}
-
-func LogFatalWithExitCode(message string, err error, logger *slog.Logger, exitCode int) {
-	if errorGroup := MakeErrorGroup(err); errorGroup != nil {
-		logger.Error(message, *errorGroup)
-	} else {
-		logger.Error(message)
-	}
-	os.Exit(exitCode)
-}
-
-func LogFatalWithExitingMessage(message string, err error, logger *slog.Logger) {
-	LogFatalWithExitCode(fmt.Sprintf("%s Exiting.", message), err, logger, 1)
-}
-
-func LogFatal(message string, err error, logger *slog.Logger) {
-	LogFatalWithExitCode(message, err, logger, 1)
-}
-
-type Logger struct {
-	*slog.Logger
-}
-
-func (logger *Logger) Error(message string, err error) {
-	LogError(message, err, logger.Logger)
-}
-
-func (logger *Logger) Warning(message string, err error) {
-	LogError(message, err, logger.Logger)
-}
-
-func (logger *Logger) Fatal(message string, err error) {
-	LogFatalWithExitCode(message, err, logger.Logger, 1)
-}
-
-func (logger *Logger) FatalWithExitingMessage(message string, err error) {
-	LogFatalWithExitCode(fmt.Sprintf("%s Exiting.", message), err, logger.Logger, 1)
+	return attrs
 }
