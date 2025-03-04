@@ -80,27 +80,23 @@ func handleRequest(ctx context.Context, request *http.Request, httpClient *http.
 		httpContext.Response = response
 	}
 
-	var responseBodyData []byte
-
-	// If the response is chunked, the length should be 0, and the callee can read the body from `response.Body`.
-	if response.ContentLength > 0 {
-		responseBodyData, err = io.ReadAll(responseBody)
-		defer func() {
-			if err := responseBody.Close(); err != nil {
-				slog.Warn(fmt.Sprintf("close response body: %v", err))
-			}
-		}()
-
-		if err != nil {
-			return response, nil, &motmedelErrors.Error{
-				Message: "An error occurred when reading the response body.",
-				Cause:   err,
-			}
+	// TODO: Figure out some way of supporting streaming responses?
+	responseBodyData, err := io.ReadAll(responseBody)
+	defer func() {
+		if err := responseBody.Close(); err != nil {
+			slog.Warn(fmt.Sprintf("close response body: %v", err))
 		}
+	}()
 
-		if httpContext != nil {
-			httpContext.ResponseBody = responseBodyData
+	if err != nil {
+		return response, nil, &motmedelErrors.Error{
+			Message: "An error occurred when reading the response body.",
+			Cause:   err,
 		}
+	}
+
+	if httpContext != nil {
+		httpContext.ResponseBody = responseBodyData
 	}
 
 	return response, responseBodyData, nil
