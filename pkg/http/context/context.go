@@ -13,6 +13,14 @@ type httpContextContextType struct{}
 
 var HttpContextContextKey httpContextContextType
 
+func WithHttpContextValue(parent context.Context, httpContext *motmedelHttpTypes.HttpContext) context.Context {
+	return context.WithValue(parent, HttpContextContextKey, httpContext)
+}
+
+func WithHttpContext(parent context.Context) context.Context {
+	return WithHttpContextValue(parent, &motmedelHttpTypes.HttpContext{})
+}
+
 type retryConfigurationContextType struct{}
 
 var RetryConfigurationContextKey retryConfigurationContextType
