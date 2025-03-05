@@ -329,7 +329,7 @@ func Fetch(
 	return FetchWithRequest(ctx, request, httpClient, options)
 }
 
-func FetchJson[T any, U any](
+func FetchJson[U any, T any](
 	ctx context.Context,
 	url string,
 	httpClient *http.Client,
