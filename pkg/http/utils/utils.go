@@ -58,7 +58,7 @@ func fetch(
 	ctx context.Context,
 	request *http.Request,
 	httpClient *http.Client,
-	options *FetchOptions,
+	options *motmedelHttpTypes.FetchOptions,
 ) (*http.Response, []byte, error) {
 	if request == nil {
 		return nil, nil, nil
@@ -111,27 +111,24 @@ func fetch(
 	return response, responseBodyData, nil
 }
 
-type FetchOptions struct {
-	Method               string
-	Headers              map[string]string
-	Body                 []byte
-	SkipReadResponseBody bool
-	SkipErrOnStatus      bool
-	RetryConfig          *motmedelHttpTypes.RetryConfiguration
-}
-
 func fetchWithRetryConfig(
 	ctx context.Context,
 	request *http.Request,
 	httpClient *http.Client,
-	options *FetchOptions,
+	options *motmedelHttpTypes.FetchOptions,
 ) (*http.Response, []byte, error) {
+	if request == nil {
+		return nil, nil, nil
+	}
+
+	if httpClient == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+	}
 
 	var retryConfiguration *motmedelHttpTypes.RetryConfiguration
 	if options != nil {
 		retryConfiguration = options.RetryConfig
 	}
-
 	if retryConfiguration == nil {
 		retryConfiguration = ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration)
 	}
@@ -218,12 +215,6 @@ func fetchWithRetryConfig(
 		return nil, nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), request, httpClient)
 	}
 
-	if !strings.HasPrefix(strconv.Itoa(response.StatusCode), "2") {
-		return nil, nil, motmedelErrors.NewWithTrace(
-			&motmedelHttpErrors.Non2xxStatusCodeError{StatusCode: response.StatusCode},
-		)
-	}
-
 	return response, responseBody, nil
 }
 
@@ -231,7 +222,7 @@ func FetchWithRequest(
 	ctx context.Context,
 	request *http.Request,
 	httpClient *http.Client,
-	options *FetchOptions,
+	options *motmedelHttpTypes.FetchOptions,
 ) (*http.Response, []byte, error) {
 	if request == nil {
 		return nil, nil, nil
@@ -246,22 +237,49 @@ func FetchWithRequest(
 		httpContext.Request = request
 	}
 
-	if options != nil && options.RetryConfig != nil {
-		return fetchWithRetryConfig(ctx, request, httpClient, options)
+	var skipErrorOnStatus bool
+	var retryConfiguration *motmedelHttpTypes.RetryConfiguration
+
+	if options != nil {
+		skipErrorOnStatus = options.SkipErrorOnStatus
+		retryConfiguration = options.RetryConfig
 	}
 
-	if _, ok := ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration); ok {
-		return fetchWithRetryConfig(ctx, request, httpClient, options)
+	if retryConfiguration == nil {
+		retryConfiguration, _ = ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration)
 	}
 
-	return fetch(ctx, request, httpClient, options)
+	var response *http.Response
+	var responseBody []byte
+	var err error
+	var errString string
+
+	if retryConfiguration != nil {
+		response, responseBody, err = fetchWithRetryConfig(ctx, request, httpClient, options)
+		errString = " with retry config"
+	} else {
+		response, responseBody, err = fetch(ctx, request, httpClient, options)
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetch%s: %w", errString, err)
+	}
+
+	if !skipErrorOnStatus {
+		if !strings.HasPrefix(strconv.Itoa(response.StatusCode), "2") {
+			return nil, nil, motmedelErrors.NewWithTrace(
+				&motmedelHttpErrors.Non2xxStatusCodeError{StatusCode: response.StatusCode},
+			)
+		}
+	}
+
+	return response, responseBody, nil
 }
 
 func Fetch(
 	ctx context.Context,
 	url string,
 	httpClient *http.Client,
-	options *FetchOptions,
+	options *motmedelHttpTypes.FetchOptions,
 ) (*http.Response, []byte, error) {
 	if url == "" {
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
@@ -315,7 +333,7 @@ func FetchJson[T any, U any](
 	url string,
 	httpClient *http.Client,
 	bodyValue *T,
-	options *FetchOptions,
+	options *motmedelHttpTypes.FetchOptions,
 ) (*http.Response, *U, error) {
 	if url == "" {
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
@@ -331,7 +349,7 @@ func FetchJson[T any, U any](
 	}
 
 	if options == nil {
-		options = &FetchOptions{}
+		options = &motmedelHttpTypes.FetchOptions{}
 	}
 
 	options.Body = requestBody

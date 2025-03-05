@@ -207,3 +207,12 @@ type RetryConfiguration struct {
 	MaximumWaitTime time.Duration
 	CheckResponse   func(*http.Response, error) bool
 }
+
+type FetchOptions struct {
+	Method               string
+	Headers              map[string]string
+	Body                 []byte
+	SkipReadResponseBody bool
+	SkipErrorOnStatus    bool
+	RetryConfig          *RetryConfiguration
+}
