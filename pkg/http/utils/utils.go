@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -523,4 +524,11 @@ func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue stri
 	}
 
 	return ifModifiedSinceTimestamp.Equal(lastModifiedTimestamp) || lastModifiedTimestamp.Before(ifModifiedSinceTimestamp), nil
+}
+
+// NOTE: Copied from the standard library.
+
+func BasicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
