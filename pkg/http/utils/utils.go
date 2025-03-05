@@ -54,24 +54,28 @@ func getRetryAfterTime(retryAfterValue string, referenceTime *time.Time) *time.T
 	return nil
 }
 
-func handleRequest(ctx context.Context, request *http.Request, httpClient *http.Client) (*http.Response, []byte, error) {
+func fetch(
+	ctx context.Context,
+	request *http.Request,
+	httpClient *http.Client,
+	options *FetchOptions,
+) (*http.Response, []byte, error) {
 	if request == nil {
 		return nil, nil, nil
 	}
 
 	if httpClient == nil {
-		return nil, nil, motmedelHttpErrors.ErrNilHttpClient
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
 	response, err := httpClient.Do(request)
 	if err != nil {
-		return nil, nil, &motmedelErrors.Error{
-			Message: "An error occurred when performing the request.",
-			Cause:   err,
-		}
+		return nil, nil, motmedelErrors.NewWithTrace(
+			motmedelErrors.NewWithTrace(fmt.Errorf("http client do: %w", err), request),
+		)
 	}
 	if response == nil {
-		return nil, nil, motmedelHttpErrors.ErrNilHttpResponse
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpResponse)
 	}
 	responseBody := response.Body
 
@@ -80,81 +84,70 @@ func handleRequest(ctx context.Context, request *http.Request, httpClient *http.
 		httpContext.Response = response
 	}
 
-	// TODO: Figure out some way of supporting streaming responses?
-	responseBodyData, err := io.ReadAll(responseBody)
-	defer func() {
-		if err := responseBody.Close(); err != nil {
-			slog.Warn(fmt.Sprintf("close response body: %v", err))
-		}
-	}()
-
-	if err != nil {
-		return response, nil, &motmedelErrors.Error{
-			Message: "An error occurred when reading the response body.",
-			Cause:   err,
-		}
+	var skipReadResponseBody bool
+	if options != nil {
+		skipReadResponseBody = options.SkipReadResponseBody
 	}
 
-	if httpContext != nil {
-		httpContext.ResponseBody = responseBodyData
+	var responseBodyData []byte
+
+	if !skipReadResponseBody {
+		responseBodyData, err = io.ReadAll(responseBody)
+		defer func() {
+			if err := responseBody.Close(); err != nil {
+				slog.Warn(fmt.Sprintf("close response body: %v", err))
+			}
+		}()
+
+		if err != nil {
+			return response, nil, motmedelErrors.NewWithTrace(fmt.Errorf("io read all (response body): %w", err))
+		}
+
+		if httpContext != nil {
+			httpContext.ResponseBody = responseBodyData
+		}
 	}
 
 	return response, responseBodyData, nil
 }
 
-func SendRequest(
+type FetchOptions struct {
+	Method               string
+	Headers              map[string]string
+	Body                 []byte
+	SkipReadResponseBody bool
+	SkipErrOnStatus      bool
+	RetryConfig          *motmedelHttpTypes.RetryConfiguration
+}
+
+func fetchWithRetryConfig(
 	ctx context.Context,
+	request *http.Request,
 	httpClient *http.Client,
-	method string,
-	url string,
-	requestBody []byte,
-	addToRequest func(*http.Request) error,
+	options *FetchOptions,
 ) (*http.Response, []byte, error) {
-	if httpClient == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+
+	var retryConfiguration *motmedelHttpTypes.RetryConfiguration
+	if options != nil {
+		retryConfiguration = options.RetryConfig
 	}
 
-	if method == "" {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyMethod)
-	}
-
-	if url == "" {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
-	}
-
-	request, err := http.NewRequest(method, url, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method, url)
-	}
-	if request == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest)
-	}
-
-	if addToRequest != nil {
-		if err = addToRequest(request); err != nil {
-			return nil, nil, motmedelErrors.New(fmt.Errorf("add to request: %w", err), request)
-		}
-	}
-
-	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
-	if httpContext != nil {
-		httpContext.Request = request
-		httpContext.RequestBody = requestBody
+	if retryConfiguration == nil {
+		retryConfiguration = ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration)
 	}
 
 	var retryCount int
 	var baseDelay time.Duration
 	var maximumWaitTime time.Duration
 	var checkRetryResponse func(*http.Response, error) bool
-
-	retryConfiguration, ok := ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration)
-	if ok && retryConfiguration != nil {
+	if retryConfiguration != nil {
 		retryCount = max(retryCount, retryConfiguration.Count)
 		baseDelay = retryConfiguration.BaseDelay
 		maximumWaitTime = retryConfiguration.MaximumWaitTime
 		checkRetryResponse = retryConfiguration.CheckResponse
 	}
 
+	var err error
 	var response *http.Response
 	var responseBody []byte
 
@@ -209,7 +202,7 @@ func SendRequest(
 			}
 		}
 
-		response, responseBody, err = handleRequest(ctx, request, httpClient)
+		response, responseBody, err = fetch(ctx, request, httpClient, options)
 
 		if checkRetryResponse == nil {
 			checkRetryResponse = DefaultRetryResponseChecker
@@ -218,14 +211,11 @@ func SendRequest(
 			break
 		}
 		if err != nil && i != 0 {
-			err = &motmedelHttpErrors.ReattemptFailedError{
-				Cause:   err,
-				Attempt: i + 1,
-			}
+			err = &motmedelHttpErrors.ReattemptFailedError{Cause: err, Attempt: i + 1}
 		}
 	}
 	if err != nil {
-		return nil, nil, motmedelErrors.New(fmt.Errorf("handle request: %w", err), request, httpClient)
+		return nil, nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), request, httpClient)
 	}
 
 	if !strings.HasPrefix(strconv.Itoa(response.StatusCode), "2") {
@@ -237,51 +227,146 @@ func SendRequest(
 	return response, responseBody, nil
 }
 
-func SendJsonRequestResponse[T any, U any](
+func FetchWithRequest(
 	ctx context.Context,
+	request *http.Request,
 	httpClient *http.Client,
-	method string,
-	url string,
-	bodyValue *T,
-	addToRequest func(*http.Request) error,
-) (*U, error) {
+	options *FetchOptions,
+) (*http.Response, []byte, error) {
+	if request == nil {
+		return nil, nil, nil
+	}
+
 	if httpClient == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+	}
+
+	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	if httpContext != nil {
+		httpContext.Request = request
+	}
+
+	if options != nil && options.RetryConfig != nil {
+		return fetchWithRetryConfig(ctx, request, httpClient, options)
+	}
+
+	if _, ok := ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration); ok {
+		return fetchWithRetryConfig(ctx, request, httpClient, options)
+	}
+
+	return fetch(ctx, request, httpClient, options)
+}
+
+func Fetch(
+	ctx context.Context,
+	url string,
+	httpClient *http.Client,
+	options *FetchOptions,
+) (*http.Response, []byte, error) {
+	if url == "" {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+	}
+
+	if httpClient == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+	}
+
+	var method string
+	var body []byte
+	var headers map[string]string
+	if options != nil {
+		method = options.Method
+		headers = options.Headers
+		body = options.Body
 	}
 
 	if method == "" {
-		return nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyMethod)
+		method = http.MethodGet
 	}
 
+	request, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method, url)
+	}
+	if request == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest)
+	}
+
+	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	if httpContext != nil {
+		httpContext.Request = request
+		httpContext.RequestBody = body
+	}
+
+	requestHeader := request.Header
+	if requestHeader == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader)
+	}
+
+	for key, value := range headers {
+		request.Header.Set(key, value)
+	}
+
+	return FetchWithRequest(ctx, request, httpClient, options)
+}
+
+func FetchJson[T any, U any](
+	ctx context.Context,
+	url string,
+	httpClient *http.Client,
+	bodyValue *T,
+	options *FetchOptions,
+) (*http.Response, *U, error) {
 	if url == "" {
-		return nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+	}
+
+	if httpClient == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
 	requestBody, err := json.Marshal(bodyValue)
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (body value): %w", err), bodyValue)
+		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (body value): %w", err), bodyValue)
 	}
 
-	response, responseBody, err := SendRequest(ctx, httpClient, method, url, requestBody, addToRequest)
-	if response != nil && response.Body != nil {
-		defer response.Body.Close()
+	if options == nil {
+		options = &FetchOptions{}
 	}
+
+	options.Body = requestBody
+
+	if options.Headers == nil {
+		options.Headers = make(map[string]string)
+	}
+
+	optionsHeaders := options.Headers
+
+	if _, ok := optionsHeaders["Content-Type"]; !ok {
+		optionsHeaders["Content-Type"] = "application/json"
+	}
+
+	if _, ok := optionsHeaders["Accept"]; !ok {
+		optionsHeaders["Accept"] = "application/json"
+	}
+
+	response, responseBody, err := Fetch(ctx, url, httpClient, options)
 	if err != nil {
-		return nil, motmedelErrors.New(
-			fmt.Errorf("send request: %w", err),
-			httpClient, method, url, requestBody, addToRequest,
-		)
+		return response, nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), url, httpClient, options)
+	}
+	if len(requestBody) == 0 {
+		return response, nil, nil
 	}
 
 	var responseValue *U
 	if err = json.Unmarshal(responseBody, &responseValue); err != nil {
-		return nil, motmedelErrors.NewWithTrace(
+		return response, nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("json unmarshal (response body): %w", err),
 			responseBody,
 		)
 	}
 
-	return responseValue, nil
+	return response, responseValue, nil
 }
 
 func GetMatchingContentEncoding(
