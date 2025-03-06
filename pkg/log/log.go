@@ -71,30 +71,47 @@ func (extractor *ErrorContextExtractor) MakeErrorAttrs(err error) []any {
 
 	if inputError, ok := err.(motmedelErrors.InputErrorI); ok && !extractor.SkipInput {
 		if input := inputError.GetInput(); input != nil {
-			inputTextualRepresentation, err := motmedelStrings.MakeTextualRepresentation(input)
-			if err != nil {
-				go func() {
-					slog.Error(
-						fmt.Sprintf(
-							"An error occurred when making a textual representation of error input: %v",
-							err,
-						),
-					)
-				}()
-			} else {
-				var typeName string
+			var inputSlice []any
+			var typeName string
+			switch typedInput := input.(type) {
+			case []any:
+				inputSlice = typedInput
+			default:
+				inputSlice = []any{typedInput}
 				if t := reflect.TypeOf(input); t != nil {
 					typeName = t.String()
 				}
+			}
 
-				attrs = append(
-					attrs,
-					slog.Group(
-						"input",
-						slog.String("value", inputTextualRepresentation),
-						slog.String("type", typeName),
-					),
-				)
+			var textualRepresentations []string
+
+			for _, inputElement := range inputSlice {
+				textualRepresentation, err := motmedelStrings.MakeTextualRepresentation(inputElement)
+				if err != nil {
+					slog.Error(
+						fmt.Sprintf(
+							"An error occurred when making a textual representation of error input: %v",
+							fmt.Errorf("make textual representation: %w", err),
+						),
+					)
+					continue
+				}
+
+				textualRepresentations = append(textualRepresentations, textualRepresentation)
+			}
+
+			if len(textualRepresentations) != 0 {
+				var logValue any = textualRepresentations
+				if len(textualRepresentations) == 1 {
+					logValue = textualRepresentations[0]
+				}
+
+				logArgs := []any{slog.Any("value", logValue)}
+				if typeName != "" {
+					logArgs = append(logArgs, slog.String("type", typeName))
+				}
+
+				attrs = append(attrs, slog.Group("input", logArgs...))
 			}
 		}
 	}
