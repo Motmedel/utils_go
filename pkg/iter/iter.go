@@ -7,6 +7,43 @@ import (
 	"slices"
 )
 
+func SetDifference[T any](set1 map[string]T, set2 map[string]T) map[string]T {
+	result := make(map[string]T)
+
+	for key := range set1 {
+		if _, ok := set2[key]; !ok {
+			var t T
+			result[key] = t
+		}
+	}
+
+	return result
+}
+
+func SetIntersection[T any](set1 map[string]T, set2 map[string]T) map[string]T {
+	var base map[string]T
+	var other map[string]T
+
+	if len(set1) < len(set2) {
+		base = set1
+		other = set2
+	} else {
+		base = set2
+		other = set1
+	}
+
+	result := make(map[string]T)
+
+	for key := range base {
+		if _, ok := other[key]; ok {
+			var t T
+			result[key] = t
+		}
+	}
+
+	return result
+}
+
 func Concat[V any](sequences ...iter.Seq[V]) iter.Seq[V] {
 	return func(yield func(V) bool) {
 		for _, sequence := range sequences {
