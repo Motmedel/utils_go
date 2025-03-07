@@ -7,8 +7,8 @@ import (
 	"slices"
 )
 
-func SetDifference[T any](set1 map[string]T, set2 map[string]T) map[string]T {
-	result := make(map[string]T)
+func SetDifference[T any, U comparable](set1 map[U]T, set2 map[U]T) map[U]T {
+	result := make(map[U]T)
 
 	for key := range set1 {
 		if _, ok := set2[key]; !ok {
@@ -20,9 +20,9 @@ func SetDifference[T any](set1 map[string]T, set2 map[string]T) map[string]T {
 	return result
 }
 
-func SetIntersection[T any](set1 map[string]T, set2 map[string]T) map[string]T {
-	var base map[string]T
-	var other map[string]T
+func SetIntersection[T any, U comparable](set1 map[U]T, set2 map[U]T) map[U]T {
+	var base map[U]T
+	var other map[U]T
 
 	if len(set1) < len(set2) {
 		base = set1
@@ -32,7 +32,7 @@ func SetIntersection[T any](set1 map[string]T, set2 map[string]T) map[string]T {
 		other = set1
 	}
 
-	result := make(map[string]T)
+	result := make(map[U]T)
 
 	for key := range base {
 		if _, ok := other[key]; ok {
