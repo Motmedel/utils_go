@@ -96,15 +96,18 @@ func MapFilter[InputType any, OutputType any](inputSlice []InputType, f func(Inp
 	return outputSlice
 }
 
-func Set[T comparable](elements []T) []T {
-	if len(elements) == 0 {
+func Set[T comparable](elementSlices ...[]T) []T {
+	if len(elementSlices) == 0 {
 		return nil
 	}
 
 	setMap := make(map[T]struct{})
-	for _, element := range elements {
-		if _, ok := setMap[element]; !ok {
-			setMap[element] = struct{}{}
+
+	for _, elementSlice := range elementSlices {
+		for _, element := range elementSlice {
+			if _, ok := setMap[element]; !ok {
+				setMap[element] = struct{}{}
+			}
 		}
 	}
 
