@@ -10,6 +10,7 @@ var (
 	ErrNilHttpRequest              = errors.New("nil request")
 	ErrNilHttpResponse             = errors.New("nil response")
 	ErrNilHttpRequestHeader        = errors.New("nil request header")
+	ErrNilHttpRequestUrl           = errors.New("nil request url")
 	ErrNilHttpResponseHeader       = errors.New("nil response header")
 	ErrNilHttpRequestBodyReader    = errors.New("nil http request body reader")
 	ErrNilHttpResponseBodyReader   = errors.New("nil http response body reader")
