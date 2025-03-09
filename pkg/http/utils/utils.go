@@ -344,9 +344,16 @@ func FetchJson[U any, T any](
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
-	requestBody, err := json.Marshal(bodyValue)
-	if err != nil {
-		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (body value): %w", err), bodyValue)
+	var requestBody []byte
+	if bodyValue != nil {
+		var err error
+		requestBody, err = json.Marshal(bodyValue)
+		if err != nil {
+			return nil, nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf("json marshal (body value): %w", err),
+				bodyValue,
+			)
+		}
 	}
 
 	if options == nil {
@@ -361,7 +368,7 @@ func FetchJson[U any, T any](
 
 	optionsHeaders := options.Headers
 
-	if _, ok := optionsHeaders["Content-Type"]; !ok {
+	if _, ok := optionsHeaders["Content-Type"]; !ok && len(requestBody) > 0 {
 		optionsHeaders["Content-Type"] = "application/json"
 	}
 
