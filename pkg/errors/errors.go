@@ -246,6 +246,10 @@ func (err *ExtendedError) Is(target error) bool {
 	return errors.Is(err.error, target)
 }
 
+func (err *ExtendedError) As(target any) bool {
+	return errors.As(err.error, &target)
+}
+
 func MakeError(e any, input ...any) *ExtendedError {
 	var err error
 
