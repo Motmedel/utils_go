@@ -3,6 +3,7 @@ package response_writer
 import (
 	"context"
 	"fmt"
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelGzip "github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -222,10 +223,9 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		case "gzip":
 			gzipBody, err := motmedelGzip.MakeGzipData(body)
 			if err != nil {
-				slog.Default().WarnContext(
-					context.WithValue(
+				slog.WarnContext(
+					motmedelContext.WithErrorContextValue(
 						ctx,
-						motmedelErrors.ErrorContextKey,
 						motmedelErrors.MakeError(fmt.Errorf("make gzip data: %w", err), body),
 					),
 					"An error occurred when making Gzip data.",

@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
@@ -25,9 +26,8 @@ func DefaultResponseErrorHandler(
 
 	if responseWriter == nil {
 		slog.ErrorContext(
-			context.WithValue(
+			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.ErrorContextKey,
 				motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilResponseWriter),
 			),
 			"The response writer is nil.",
@@ -43,7 +43,7 @@ func DefaultResponseErrorHandler(
 			clientError := motmedelErrors.MakeError(responseError.ClientError)
 			clientError.Id = errorId
 			slog.WarnContext(
-				context.WithValue(ctx, motmedelErrors.ErrorContextKey, clientError),
+				motmedelContext.WithErrorContextValue(ctx, clientError),
 				"A client error occurred.",
 			)
 		}()
@@ -52,15 +52,14 @@ func DefaultResponseErrorHandler(
 			serverError := motmedelErrors.MakeError(responseError.ServerError)
 			serverError.Id = errorId
 			slog.ErrorContext(
-				context.WithValue(ctx, motmedelErrors.ErrorContextKey, serverError),
+				motmedelContext.WithErrorContextValue(ctx, serverError),
 				"A server error occurred.",
 			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_Invalid:
 		slog.ErrorContext(
-			context.WithValue(
+			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.ErrorContextKey,
 				motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrUnusableResponseError, responseError),
 			),
 			"An invalid response error type was encountered.",
@@ -68,9 +67,8 @@ func DefaultResponseErrorHandler(
 		return
 	default:
 		slog.ErrorContext(
-			context.WithValue(
+			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.ErrorContextKey,
 				motmedelErrors.MakeErrorWithStackTrace(
 					fmt.Errorf("%w: %v", muxErrors.ErrUnexpectedResponseErrorType, responseErrorType),
 				),
@@ -87,9 +85,8 @@ func DefaultResponseErrorHandler(
 	problemDetail, err := responseError.GetEffectiveProblemDetail()
 	if err != nil {
 		slog.ErrorContext(
-			context.WithValue(
+			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.ErrorContextKey,
 				motmedelErrors.MakeErrorWithStackTrace(
 					fmt.Errorf("response error get effective problem detail: %w", err),
 					responseError,
@@ -106,9 +103,8 @@ func DefaultResponseErrorHandler(
 	response, err := responseError.MakeResponse(contentNegotiation)
 	if err != nil {
 		slog.ErrorContext(
-			context.WithValue(
+			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.ErrorContextKey,
 				motmedelErrors.MakeError(fmt.Errorf("make response error response: %w", err), responseError),
 			),
 			"An error occurred when making a response from a response error.",
@@ -123,9 +119,8 @@ func DefaultResponseErrorHandler(
 
 	if err := responseWriter.WriteResponse(ctx, response, acceptEncoding); err != nil {
 		slog.ErrorContext(
-			context.WithValue(
+			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.ErrorContextKey,
 				motmedelErrors.MakeError(fmt.Errorf("write response: %w", err), responseError),
 			),
 			"An error occurred when writing an error response.",

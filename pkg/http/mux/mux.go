@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
@@ -86,10 +87,9 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 	requestId, err := uuid.NewV7()
 	if err != nil {
-		slog.Default().WarnContext(
-			context.WithValue(
+		slog.WarnContext(
+			motmedelContext.WithErrorContextValue(
 				request.Context(),
-				motmedelErrors.ErrorContextKey,
 				motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("uuid new v7: %w", err)),
 			),
 			"An error occurred when generating a request id.",
@@ -153,10 +153,9 @@ func (bm *baseMux) ServeHttpWithCallback(
 			}
 			if connection != nil {
 				if err := connection.Close(); err != nil {
-					slog.Default().ErrorContext(
-						context.WithValue(
+					slog.ErrorContext(
+						motmedelContext.WithErrorContextValue(
 							request.Context(),
-							motmedelErrors.ErrorContextKey,
 							motmedelErrors.MakeErrorWithStackTrace(
 								fmt.Errorf("connection close: %w", err),
 							),
