@@ -329,7 +329,58 @@ func Fetch(
 	return FetchWithRequest(ctx, request, httpClient, options)
 }
 
-func FetchJson[U any, T any](
+func FetchJson[U any](
+	ctx context.Context,
+	url string,
+	httpClient *http.Client,
+	options *motmedelHttpTypes.FetchOptions,
+) (*http.Response, *U, error) {
+	if url == "" {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+	}
+
+	if httpClient == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+	}
+
+	if options == nil {
+		options = &motmedelHttpTypes.FetchOptions{}
+	}
+
+	if options.Headers == nil {
+		options.Headers = make(map[string]string)
+	}
+
+	optionsHeaders := options.Headers
+
+	if _, ok := optionsHeaders["Content-Type"]; !ok && len(options.Body) > 0 {
+		optionsHeaders["Content-Type"] = "application/json"
+	}
+
+	if _, ok := optionsHeaders["Accept"]; !ok {
+		optionsHeaders["Accept"] = "application/json"
+	}
+
+	response, responseBody, err := Fetch(ctx, url, httpClient, options)
+	if err != nil {
+		return response, nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), url, httpClient, options)
+	}
+	if len(responseBody) == 0 {
+		return response, nil, nil
+	}
+
+	var responseValue *U
+	if err = json.Unmarshal(responseBody, &responseValue); err != nil {
+		return response, nil, motmedelErrors.NewWithTrace(
+			fmt.Errorf("json unmarshal (response body): %w", err),
+			responseBody,
+		)
+	}
+
+	return response, responseValue, nil
+}
+
+func FetchJsonWithBody[U any, T any](
 	ctx context.Context,
 	url string,
 	httpClient *http.Client,
@@ -354,45 +405,15 @@ func FetchJson[U any, T any](
 				bodyValue,
 			)
 		}
+
+		if options == nil {
+			options = &motmedelHttpTypes.FetchOptions{}
+		}
+
+		options.Body = requestBody
 	}
 
-	if options == nil {
-		options = &motmedelHttpTypes.FetchOptions{}
-	}
-
-	options.Body = requestBody
-
-	if options.Headers == nil {
-		options.Headers = make(map[string]string)
-	}
-
-	optionsHeaders := options.Headers
-
-	if _, ok := optionsHeaders["Content-Type"]; !ok && len(requestBody) > 0 {
-		optionsHeaders["Content-Type"] = "application/json"
-	}
-
-	if _, ok := optionsHeaders["Accept"]; !ok {
-		optionsHeaders["Accept"] = "application/json"
-	}
-
-	response, responseBody, err := Fetch(ctx, url, httpClient, options)
-	if err != nil {
-		return response, nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), url, httpClient, options)
-	}
-	if len(requestBody) == 0 {
-		return response, nil, nil
-	}
-
-	var responseValue *U
-	if err = json.Unmarshal(responseBody, &responseValue); err != nil {
-		return response, nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("json unmarshal (response body): %w", err),
-			responseBody,
-		)
-	}
-
-	return response, responseValue, nil
+	return FetchJson[U](ctx, url, httpClient, options)
 }
 
 func GetMatchingContentEncoding(
