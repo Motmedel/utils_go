@@ -23,8 +23,20 @@ func (cef ContextExtractorFunction) Handle(ctx context.Context, record *slog.Rec
 }
 
 type ContextHandler struct {
-	slog.Handler
+	Next       slog.Handler
 	Extractors []ContextExtractor
+}
+
+func (contextHandler *ContextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return contextHandler.Next.WithAttrs(attrs)
+}
+
+func (contextHandler *ContextHandler) WithGroup(name string) slog.Handler {
+	return contextHandler.Next.WithGroup(name)
+}
+
+func (contextHandler *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return contextHandler.Next.Enabled(ctx, level)
 }
 
 func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Record) error {
@@ -35,7 +47,8 @@ func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Re
 			}
 		}
 	}
-	return contextHandler.Handler.Handle(ctx, record)
+
+	return contextHandler.Next.Handle(ctx, record)
 }
 
 type ErrorContextExtractor struct {
