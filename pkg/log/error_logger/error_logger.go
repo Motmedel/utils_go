@@ -43,7 +43,7 @@ func (logger *Logger) FatalWithExitingMessage(message string, err error, input .
 func NewWithErrorContextExtractor(handler slog.Handler, extractor *motmedelLog.ErrorContextExtractor) *Logger {
 	return &Logger{
 		Logger: slog.New(
-			&motmedelLog.ContextHandler{Handler: handler, Extractors: []motmedelLog.ContextExtractor{extractor}},
+			&motmedelLog.ContextHandler{Next: handler, Extractors: []motmedelLog.ContextExtractor{extractor}},
 		),
 	}
 }
