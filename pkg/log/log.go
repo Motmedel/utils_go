@@ -28,11 +28,13 @@ type ContextHandler struct {
 }
 
 func (contextHandler *ContextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return contextHandler.Next.WithAttrs(attrs)
+	contextHandler.Next = contextHandler.Next.WithAttrs(attrs)
+	return contextHandler
 }
 
 func (contextHandler *ContextHandler) WithGroup(name string) slog.Handler {
-	return contextHandler.Next.WithGroup(name)
+	contextHandler.Next = contextHandler.Next.WithGroup(name)
+	return contextHandler
 }
 
 func (contextHandler *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
