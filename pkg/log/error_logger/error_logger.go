@@ -4,6 +4,7 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
+	motmedelContextLogger "github.com/Motmedel/utils_go/pkg/log/context_logger"
 	motmedelLogError "github.com/Motmedel/utils_go/pkg/log/error"
 	"log/slog"
 )
@@ -41,11 +42,7 @@ func (logger *Logger) FatalWithExitingMessage(message string, err error, input .
 }
 
 func NewWithErrorContextExtractor(handler slog.Handler, extractor *motmedelLog.ErrorContextExtractor) *Logger {
-	return &Logger{
-		Logger: slog.New(
-			&motmedelLog.ContextHandler{Next: handler, Extractors: []motmedelLog.ContextExtractor{extractor}},
-		),
-	}
+	return &Logger{Logger: motmedelContextLogger.New(handler, extractor)}
 }
 
 func New(handler slog.Handler) *Logger {
