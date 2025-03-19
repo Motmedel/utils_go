@@ -177,6 +177,14 @@ type FrameAncestorsDirective struct {
 	SourceDirective
 }
 
+type UpgradeInsecureRequestDirective struct {
+	Directive
+}
+
+type RequireSriDirective struct {
+	Directive
+}
+
 type ContentSecurityPolicy struct {
 	Directives            []DirectiveI `json:"directives"`
 	OtherDirectives       []DirectiveI `json:"other_directives"`
