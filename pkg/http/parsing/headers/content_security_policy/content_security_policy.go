@@ -275,8 +275,8 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			directive = &contentSecurityPolicyTypes.MediaSrcDirective{SourceDirective: sourceDirective}
 		case "object-src":
 			directive = &contentSecurityPolicyTypes.ObjectSrcDirective{SourceDirective: sourceDirective}
-		case "require-sri":
-			directive = &contentSecurityPolicyTypes.RequireSriDirective{Directive: innerDirective}
+		case "require-sri-for":
+			directive = &contentSecurityPolicyTypes.RequireSriForDirective{Directive: innerDirective}
 		case "script-src":
 			directive = &contentSecurityPolicyTypes.ScriptSrcDirective{SourceDirective: sourceDirective}
 		case "script-src-attr":
