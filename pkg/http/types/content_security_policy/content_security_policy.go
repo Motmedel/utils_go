@@ -181,7 +181,7 @@ type UpgradeInsecureRequestDirective struct {
 	Directive
 }
 
-type RequireSriDirective struct {
+type RequireSriForDirective struct {
 	Directive
 }
 
