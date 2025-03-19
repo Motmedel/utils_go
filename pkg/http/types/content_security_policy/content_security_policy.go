@@ -183,6 +183,7 @@ type UpgradeInsecureRequestDirective struct {
 
 type RequireSriForDirective struct {
 	Directive
+	ResourceTypes []string `json:"resource_types,omitempty"`
 }
 
 type ContentSecurityPolicy struct {
