@@ -40,6 +40,9 @@ var ContentSecurityPolicyGrammar *goabnf.Grammar
 
 var (
 	ErrNilContentSecurityPolicy = errors.New("nil content security policy")
+	ErrNilHostPartPath          = errors.New("nil host part path")
+	ErrNilDirectiveNamePath     = errors.New("nil directive name path")
+	ErrUnexpectedSourceRuleName = errors.New("unexpected source rule name")
 )
 
 // TODO: Update to use proper errors
@@ -91,10 +94,7 @@ func makeSourcesFromPaths(
 				false,
 			)
 			if hostPartPath == nil {
-				return nil, &motmedelErrors.Error{
-					Message: "No host-part path was found in a host-source path.",
-					Input:   concreteSourcePath,
-				}
+				return nil, motmedelErrors.NewWithTrace(ErrNilHostPartPath, concreteSourcePath)
 			}
 
 			hostSource.Host = string(parsing_utils.ExtractPathValue(data, hostPartPath))
@@ -148,10 +148,10 @@ func makeSourcesFromPaths(
 				},
 			)
 		default:
-			return nil, &motmedelErrors.Error{
-				Message: "An unexpected source rule name was observed.",
-				Input:   matchRuleName,
-			}
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf("%w: %s", ErrUnexpectedSourceRuleName, matchRuleName),
+				matchRuleName,
+			)
 		}
 	}
 
@@ -161,10 +161,10 @@ func makeSourcesFromPaths(
 func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.ContentSecurityPolicy, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(ContentSecurityPolicyGrammar, data)
 	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	directiveNameSet := make(map[string]struct{})
@@ -181,10 +181,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			false,
 		)
 		if directiveNamePath == nil {
-			return nil, &motmedelErrors.Error{
-				Message: "No directive name could be found in an interesting path.",
-				Input:   interestingPath,
-			}
+			return nil, motmedelErrors.NewWithTrace(ErrNilDirectiveNamePath, interestingPath)
 		}
 		directiveName := string(parsing_utils.ExtractPathValue(data, directiveNamePath))
 
@@ -221,11 +218,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			} else {
 				serializedSourceListPaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "serialized-source-list")
 				if err != nil {
-					return nil, &motmedelErrors.Error{
-						Message: "An error occurred when parsing a serialized-source-list.",
-						Cause:   err,
-						Input:   directiveValue,
-					}
+					return nil, motmedelErrors.New(
+						fmt.Errorf("goabnf parse (serialized source list): %w", err),
+						directiveValue,
+					)
 				}
 				if len(serializedSourceListPaths) == 0 {
 					return nil, nil
@@ -237,11 +233,11 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 					"source-expression",
 				)
 				if err != nil {
-					return nil, &motmedelErrors.Error{
-						Message: "An error occurred when obtaining sources from serialized-source-list paths.",
-						Cause:   err,
-						Input:   directiveValue,
-					}
+					return nil, motmedelErrors.New(
+						fmt.Errorf("make sources from paths (source expression): %w", err),
+						directiveValue,
+						serializedSourceListPaths,
+					)
 				}
 				if sources == nil {
 					return nil, nil
@@ -279,6 +275,8 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			directive = &contentSecurityPolicyTypes.MediaSrcDirective{SourceDirective: sourceDirective}
 		case "object-src":
 			directive = &contentSecurityPolicyTypes.ObjectSrcDirective{SourceDirective: sourceDirective}
+		case "require-sri":
+			directive = &contentSecurityPolicyTypes.RequireSriDirective{Directive: innerDirective}
 		case "script-src":
 			directive = &contentSecurityPolicyTypes.ScriptSrcDirective{SourceDirective: sourceDirective}
 		case "script-src-attr":
@@ -291,6 +289,8 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			directive = &contentSecurityPolicyTypes.StyleSrcAttrDirective{SourceDirective: sourceDirective}
 		case "style-src-elem":
 			directive = &contentSecurityPolicyTypes.StyleSrcElemDirective{SourceDirective: sourceDirective}
+		case "upgrade-insecure-request":
+			directive = &contentSecurityPolicyTypes.UpgradeInsecureRequestDirective{Directive: innerDirective}
 		case "worker-src":
 			directive = &contentSecurityPolicyTypes.WorkerSrcDirective{SourceDirective: sourceDirective}
 		case "sandbox":
@@ -302,11 +302,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 				"sandbox-directive-value-root",
 			)
 			if err != nil {
-				return nil, &motmedelErrors.Error{
-					Message: "An error occurred when parsing data as a sandbox directive value.",
-					Cause:   err,
-					Input:   directiveValue,
-				}
+				return nil, motmedelErrors.New(
+					fmt.Errorf("goabnf parse (sandbox directive value root): %w", err),
+					directiveValue,
+				)
 			}
 			if len(sandboxDirectiveValuePaths) == 0 {
 				return nil, nil
@@ -331,11 +330,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 
 			reportUriDirectivePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "report-uri-directive-value-root")
 			if err != nil {
-				return nil, &motmedelErrors.Error{
-					Message: "An error occurred when parsing a report-uri directive value.",
-					Cause:   err,
-					Input:   directiveValue,
-				}
+				return nil, motmedelErrors.New(
+					fmt.Errorf("goabnf parse (report uri directive value root): %w", err),
+					directiveValue,
+				)
 			}
 			if len(reportUriDirectivePaths) == 0 {
 				return nil, nil
@@ -370,11 +368,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			} else {
 				ancestorSourceListPaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "ancestor-source-list-root")
 				if err != nil {
-					return nil, &motmedelErrors.Error{
-						Message: "An error occurred when parsing a ancestor-source-list root.",
-						Cause:   err,
-						Input:   directiveValue,
-					}
+					return nil, motmedelErrors.New(
+						fmt.Errorf("goabnf parse (ancestor soruce list root): %w", err),
+						directiveValue,
+					)
 				}
 				if len(ancestorSourceListPaths) == 0 {
 					return nil, nil
@@ -382,11 +379,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 
 				sources, err = makeSourcesFromPaths(directiveValue, ancestorSourceListPaths, "ancestor-source")
 				if err != nil {
-					return nil, &motmedelErrors.Error{
-						Message: "An error occurred when obtaining sources from a frame-ancestors directive.",
-						Cause:   err,
-						Input:   directiveValue,
-					}
+					return nil, motmedelErrors.New(
+						fmt.Errorf("make sources from paths (ancestor source): %w", err),
+						directiveValue,
+					)
 				}
 				if sources == nil {
 					return nil, nil
