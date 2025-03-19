@@ -276,7 +276,20 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 		case "object-src":
 			directive = &contentSecurityPolicyTypes.ObjectSrcDirective{SourceDirective: sourceDirective}
 		case "require-sri-for":
-			directive = &contentSecurityPolicyTypes.RequireSriForDirective{Directive: innerDirective}
+			resourceTypes := bytes.Split(directiveValue, []byte(" "))
+			var trimmedResourceTypes []string
+			for _, resourceType := range resourceTypes {
+				trimmedResourceType := bytes.ToLower(bytes.TrimSpace(resourceType))
+				if len(trimmedResourceType) == 0 {
+					continue
+				}
+				trimmedResourceTypes = append(trimmedResourceTypes, string(trimmedResourceType))
+			}
+
+			directive = &contentSecurityPolicyTypes.RequireSriForDirective{
+				Directive:     innerDirective,
+				ResourceTypes: trimmedResourceTypes,
+			}
 		case "script-src":
 			directive = &contentSecurityPolicyTypes.ScriptSrcDirective{SourceDirective: sourceDirective}
 		case "script-src-attr":
