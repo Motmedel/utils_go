@@ -211,7 +211,11 @@ func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypes
 	return nil
 }
 
-func ObtainRequestBody(contentLength int64, bodyReader io.ReadCloser) ([]byte, *muxTypesResponseError.ResponseError) {
+func ObtainRequestBody(
+	contentLength int64,
+	bodyReader io.ReadCloser,
+	maxBytes int64,
+) ([]byte, *muxTypesResponseError.ResponseError) {
 	if bodyReader == nil {
 		return nil, &muxTypesResponseError.ResponseError{
 			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestBodyReader),
@@ -219,12 +223,39 @@ func ObtainRequestBody(contentLength int64, bodyReader io.ReadCloser) ([]byte, *
 	}
 
 	if contentLength >= 0 {
+		if contentLength > 0 && maxBytes > 0 && contentLength > maxBytes {
+			return nil, &muxTypesResponseError.ResponseError{
+				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+					http.StatusRequestEntityTooLarge,
+					fmt.Sprintf("Limit: %d bytes", maxBytes),
+					nil,
+				),
+			}
+		}
+
 		var err error
 		requestBody, err := io.ReadAll(bodyReader)
 		if err != nil {
-			return nil, &muxTypesResponseError.ResponseError{
-				ServerError: motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("io read all request body: %w", err)),
+			wrappedErr := motmedelErrors.MakeErrorWithStackTrace(
+				fmt.Errorf("io read all (request body): %w", err),
+				bodyReader,
+			)
+
+			// NOTE: "Request Entity Too Large" should always be picked up by the content length check, but add this
+			// for completion.
+			var maxBytesError *http.MaxBytesError
+			if errors.As(err, &maxBytesError) {
+				return nil, &muxTypesResponseError.ResponseError{
+					ClientError: wrappedErr,
+					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusRequestEntityTooLarge,
+						fmt.Sprintf("Limit: %d bytes", maxBytesError.Limit),
+						nil,
+					),
+				}
 			}
+
+			return nil, &muxTypesResponseError.ResponseError{ServerError: wrappedErr}
 		}
 		defer bodyReader.Close()
 

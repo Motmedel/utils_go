@@ -169,6 +169,17 @@ func TestMain(m *testing.M) {
 			},
 		},
 		&endpoint_specification.EndpointSpecification{
+			Path:   "/body-parsing-limit",
+			Method: http.MethodPost,
+			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
+				return nil, nil
+			},
+			BodyParserConfiguration: &parsing.BodyParserConfiguration{
+				ContentType: "application/octet-stream",
+				MaxBytes:    2,
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
 			Path:   "/teapot",
 			Method: http.MethodGet,
 			Handler: func(request *http.Request, i []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
@@ -399,6 +410,23 @@ func TestMux(t *testing.T) {
 			expectedStatusCode: http.StatusTeapot,
 			expectedBody:       []byte("<html>418</html>"),
 			expectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
+		},
+		{
+			name:                  "max bytes too large",
+			method:                http.MethodPost,
+			url:                   "/body-parsing-limit",
+			headers:               [][2]string{{"Content-Type", "application/octet-stream"}},
+			body:                  []byte("123"),
+			expectedStatusCode:    http.StatusRequestEntityTooLarge,
+			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 2 bytes"},
+		},
+		{
+			name:               "max bytes ok",
+			method:             http.MethodPost,
+			url:                "/body-parsing-limit",
+			headers:            [][2]string{{"Content-Type", "application/octet-stream"}},
+			body:               []byte("12"),
+			expectedStatusCode: http.StatusNoContent,
 		},
 	}
 

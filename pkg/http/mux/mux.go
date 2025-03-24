@@ -253,7 +253,7 @@ type Mux struct {
 func muxHandleRequest(
 	mux *Mux,
 	request *http.Request,
-	_ http.ResponseWriter,
+	responseWriter http.ResponseWriter,
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if mux == nil {
 		return nil, &muxTypesResponseError.ResponseError{
@@ -327,12 +327,14 @@ func muxHandleRequest(
 	allowEmptyBody := true
 	var expectedContentType string
 	var bodyParser body_parser.BodyParser
+	var maxBytes int64
 
 	// Obtain validation options from the handler specification configuration.
 	if bodyParserConfiguration := endpointSpecification.BodyParserConfiguration; bodyParserConfiguration != nil {
 		allowEmptyBody = bodyParserConfiguration.AllowEmpty
 		expectedContentType = bodyParserConfiguration.ContentType
 		bodyParser = bodyParserConfiguration.Parser
+		maxBytes = bodyParserConfiguration.MaxBytes
 	}
 
 	// Validate Content-Type (parse and match header value against accepted value)
@@ -342,13 +344,17 @@ func muxHandleRequest(
 		}
 	}
 
+	if maxBytes > 0 {
+		request.Body = http.MaxBytesReader(responseWriter, request.Body, maxBytes)
+	}
+
 	// Validate Content-Length (parse and check if empty is accepted)
 	if responseError := muxInternalMux.ValidateContentLength(allowEmptyBody, requestHeader); responseError != nil {
 		return nil, responseError
 	}
 
 	// Obtain the request body
-	requestBody, responseError := muxInternalMux.ObtainRequestBody(request.ContentLength, request.Body)
+	requestBody, responseError := muxInternalMux.ObtainRequestBody(request.ContentLength, request.Body, maxBytes)
 	if responseError != nil {
 		return nil, responseError
 	}

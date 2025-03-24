@@ -25,5 +25,6 @@ type HeaderParserConfiguration struct {
 type BodyParserConfiguration struct {
 	ContentType string
 	AllowEmpty  bool
+	MaxBytes    int64
 	Parser      body_parser.BodyParser
 }
