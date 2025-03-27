@@ -64,6 +64,7 @@ var ExtensionToParameter = map[string]*StaticContentParameter{
 	".css":   {ContentType: "text/css", CandidateForCompression: true},
 	".js":    {ContentType: "text/javascript", CandidateForCompression: true},
 	".map":   {ContentType: "application/json", CandidateForCompression: true},
+	".svg":   {ContentType: "image/svg+xml", CandidateForCompression: true},
 	".webp":  {ContentType: "image/webp"},
 	".avif":  {ContentType: "image/avif"},
 	".woff2": {ContentType: "font/woff2"},
