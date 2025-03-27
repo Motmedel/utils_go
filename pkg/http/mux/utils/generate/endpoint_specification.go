@@ -25,7 +25,7 @@ import (
 const staticCacheControl = "public, max-age=31356000, immutable"
 const robotsTxtCacheControl = "public, max-age=86400"
 
-func makeStaticContentHeaders(
+func MakeStaticContentHeaders(
 	contentType string,
 	cacheControl string,
 	etag string,
@@ -63,7 +63,7 @@ type StaticContentParameter struct {
 }
 
 func (parameter *StaticContentParameter) HeaderEntries(etag string, lastModified string) []*muxResponse.HeaderEntry {
-	return makeStaticContentHeaders(parameter.ContentType, parameter.CacheControl, etag, lastModified)
+	return MakeStaticContentHeaders(parameter.ContentType, parameter.CacheControl, etag, lastModified)
 }
 
 var ExtensionToParameter = map[string]*StaticContentParameter{
@@ -404,7 +404,7 @@ func MakeRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *endpoint_specificati
 				Data:         data,
 				Etag:         etag,
 				LastModified: lastModified,
-				Headers:      makeStaticContentHeaders("text/plain", robotsTxtCacheControl, etag, lastModified),
+				Headers:      MakeStaticContentHeaders("text/plain", robotsTxtCacheControl, etag, lastModified),
 			},
 		},
 	}
