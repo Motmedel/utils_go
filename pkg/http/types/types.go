@@ -237,19 +237,19 @@ func (robotsTxt *RobotsTxt) String() string {
 	return strings.Join(nonEmptyGroupStrings, "\n\n")
 }
 
-func makeLine(label string, value string) string {
+func makeLine(label string, value string, allowEmpty bool) string {
 	trimmedValue := strings.TrimSpace(value)
-	if trimmedValue == "" {
+	if trimmedValue == "" && !allowEmpty {
 		return ""
 	}
 
 	return fmt.Sprintf("%s: %s", label, trimmedValue)
 }
 
-func makePart(values []string, label string) string {
+func makePart(values []string, label string, allowEmpty bool) string {
 	var parts []string
 	for _, value := range values {
-		if line := makeLine(label, value); line != "" {
+		if line := makeLine(label, value, allowEmpty); line != "" {
 			parts = append(parts, line)
 		}
 	}
@@ -269,23 +269,23 @@ func (robotsTxtGroup *RobotsTxtGroup) String() string {
 		return ""
 	}
 
-	userAgentPart := makePart(robotsTxtGroup.UserAgents, "User-Agent")
+	userAgentPart := makePart(robotsTxtGroup.UserAgents, "User-Agent", false)
 	if userAgentPart == "" {
 		return ""
 	}
 
 	parts := []string{userAgentPart}
 
-	if disallowedPart := makePart(robotsTxtGroup.Disallowed, "Disallowed"); disallowedPart != "" {
+	if disallowedPart := makePart(robotsTxtGroup.Disallowed, "Disallowed", true); disallowedPart != "" {
 		parts = append(parts, disallowedPart)
 	}
 
-	if allowedPart := makePart(robotsTxtGroup.Allowed, "Allowed"); allowedPart != "" {
+	if allowedPart := makePart(robotsTxtGroup.Allowed, "Allowed", false); allowedPart != "" {
 		parts = append(parts, allowedPart)
 	}
 
 	for _, otherRecord := range robotsTxtGroup.OtherRecords {
-		if line := makeLine(otherRecord[0], otherRecord[1]); line != "" {
+		if line := makeLine(otherRecord[0], otherRecord[1], false); line != "" {
 			parts = append(parts, line)
 		}
 	}
