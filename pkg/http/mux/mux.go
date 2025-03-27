@@ -444,6 +444,10 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 }
 
 func (mux *Mux) Add(specifications ...*muxTypesEnpointSpecification.EndpointSpecification) {
+	if len(specifications) == 0 {
+		return
+	}
+
 	handlerSpecificationMap := mux.HandlerSpecificationMap
 	if handlerSpecificationMap == nil {
 		handlerSpecificationMap = make(map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification)
@@ -463,6 +467,10 @@ func (mux *Mux) Add(specifications ...*muxTypesEnpointSpecification.EndpointSpec
 }
 
 func (mux *Mux) Delete(specifications ...*muxTypesEnpointSpecification.EndpointSpecification) {
+	if len(specifications) == 0 {
+		return
+	}
+
 	handlerSpecificationMap := mux.HandlerSpecificationMap
 	if handlerSpecificationMap == nil {
 		return

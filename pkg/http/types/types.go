@@ -292,3 +292,6 @@ func (robotsTxtGroup *RobotsTxtGroup) String() string {
 
 	return strings.Join(parts, "\n")
 }
+
+type SecurityTxt struct {
+}

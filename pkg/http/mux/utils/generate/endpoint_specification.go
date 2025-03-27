@@ -10,6 +10,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	muxResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"golang.org/x/sync/errgroup"
 	"io"
@@ -18,9 +19,11 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
-const staticCacheControl = "public,max-age=31356000,immutable"
+const staticCacheControl = "public, max-age=31356000, immutable"
+const robotsTxtCacheControl = "public, max-age=86400"
 
 func makeStaticContentHeaders(
 	contentType string,
@@ -377,4 +380,32 @@ loop:
 	}
 
 	return specifications, nil
+}
+
+func MakeRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *endpoint_specification.EndpointSpecification {
+	if robotsTxt == nil {
+		return nil
+	}
+
+	robotsTxtString := robotsTxt.String()
+	if robotsTxtString == "" {
+		return nil
+	}
+
+	data := []byte(robotsTxtString)
+	etag := motmedelHttpUtils.MakeStrongEtag(data)
+	lastModified := time.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT"
+
+	return &endpoint_specification.EndpointSpecification{
+		Path:   "/robots.txt",
+		Method: http.MethodGet,
+		StaticContent: &static_content.StaticContent{
+			StaticContentData: static_content.StaticContentData{
+				Data:         data,
+				Etag:         etag,
+				LastModified: lastModified,
+				Headers:      makeStaticContentHeaders("text/plain", robotsTxtCacheControl, etag, lastModified),
+			},
+		},
+	}
 }
