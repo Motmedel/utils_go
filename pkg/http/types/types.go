@@ -276,11 +276,11 @@ func (robotsTxtGroup *RobotsTxtGroup) String() string {
 
 	parts := []string{userAgentPart}
 
-	if disallowedPart := makePart(robotsTxtGroup.Disallowed, "Disallowed", true); disallowedPart != "" {
+	if disallowedPart := makePart(robotsTxtGroup.Disallowed, "Disallow", true); disallowedPart != "" {
 		parts = append(parts, disallowedPart)
 	}
 
-	if allowedPart := makePart(robotsTxtGroup.Allowed, "Allowed", false); allowedPart != "" {
+	if allowedPart := makePart(robotsTxtGroup.Allowed, "Allow", false); allowedPart != "" {
 		parts = append(parts, allowedPart)
 	}
 
