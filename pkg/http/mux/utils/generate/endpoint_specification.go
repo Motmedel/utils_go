@@ -316,6 +316,11 @@ loop:
 		case <-cancelCtx.Done():
 			break loop
 		default:
+
+			if file.FileInfo().IsDir() {
+				continue
+			}
+
 			errGroup.Go(
 				func() error {
 					fileReader, err := file.Open()
