@@ -20,6 +20,8 @@ import (
 	"sync"
 )
 
+const staticCacheControl = "public,max-age=31356000,immutable"
+
 func makeStaticContentHeaders(
 	contentType string,
 	cacheControl string,
@@ -40,9 +42,11 @@ func makeStaticContentHeaders(
 		entries = append(entries, &muxResponse.HeaderEntry{Name: "Last-Modified", Value: lastModified})
 	}
 
-	if cacheControl != "" {
-		entries = append(entries, &muxResponse.HeaderEntry{Name: "Cache-Control", Value: cacheControl})
+	if cacheControl == "" {
+		cacheControl = staticCacheControl
 	}
+
+	entries = append(entries, &muxResponse.HeaderEntry{Name: "Cache-Control", Value: cacheControl, Overwrite: true})
 
 	return entries
 }
@@ -118,7 +122,11 @@ loop:
 							case "content-type", "cache-control", "last-modified":
 								headers = append(
 									headers,
-									&muxResponse.HeaderEntry{Name: headerEntry.Value, Value: headerEntry.Value},
+									&muxResponse.HeaderEntry{
+										Name:      headerEntry.Name,
+										Value:     headerEntry.Value,
+										Overwrite: headerEntry.Overwrite,
+									},
 								)
 							}
 						}
@@ -129,7 +137,7 @@ loop:
 							Data:         gzipData,
 							Etag:         etag,
 							LastModified: staticContent.LastModified,
-							Headers:      staticContent.Headers,
+							Headers:      headers,
 						}
 					default:
 						return motmedelErrors.NewWithTrace(
@@ -165,8 +173,15 @@ func EndpointSpecificationFromDataPath(
 	lastModified string,
 	addContentEncodingData bool,
 ) (*endpoint_specification.EndpointSpecification, error) {
+	if path == "" {
+		return nil, nil
+	}
+
+	if !strings.HasPrefix("/", path) {
+		path = "/" + path
+	}
+
 	extension := strings.ToLower(filepath.Ext(path))
-	resultPath := "/" + path
 
 	parameter, ok := ExtensionToParameter[extension]
 	if !ok {
@@ -183,7 +198,7 @@ func EndpointSpecificationFromDataPath(
 	}
 
 	if extension == ".html" {
-		resultPath = strings.TrimSuffix(resultPath, ".html")
+		path = strings.TrimSuffix(path, ".html")
 	}
 
 	etag := motmedelHttpUtils.MakeStrongEtag(data)
@@ -207,7 +222,7 @@ func EndpointSpecificationFromDataPath(
 	}
 
 	return &endpoint_specification.EndpointSpecification{
-		Path:          resultPath,
+		Path:          path,
 		Method:        http.MethodGet,
 		StaticContent: staticContent,
 	}, nil
@@ -217,14 +232,6 @@ func EndpointSpecificationsFromDirectory(
 	rootPath string,
 	addContentEncodingData bool,
 ) ([]*endpoint_specification.EndpointSpecification, error) {
-	if rootPath == "" {
-		return nil, nil
-	}
-
-	if !strings.HasSuffix(rootPath, "/") {
-		rootPath += "/"
-	}
-
 	if rootPath == "" {
 		return nil, nil
 	}
@@ -337,11 +344,11 @@ loop:
 						return motmedelErrors.NewWithTrace(fmt.Errorf("io read all (zip file reader): %w", err), fileReader)
 					}
 
-					suggestedEndpointPath := "/" + file.Name
+					path := file.Name
 					lastModified := file.FileInfo().ModTime().UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT"
 
 					specification, err := EndpointSpecificationFromDataPath(
-						suggestedEndpointPath,
+						path,
 						data,
 						lastModified,
 						addContentEncodingData,
@@ -349,7 +356,7 @@ loop:
 					if err != nil {
 						return motmedelErrors.New(
 							fmt.Errorf("endpoint specification from data path: %w", err),
-							suggestedEndpointPath,
+							path,
 							data,
 							lastModified,
 						)
