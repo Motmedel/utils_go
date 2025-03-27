@@ -14,4 +14,5 @@ require (
 	github.com/Motmedel/parsing_utils v0.0.3 // indirect
 	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/pandatix/go-abnf v0.1.7 // indirect
+	golang.org/x/sync v0.12.0 // indirect
 )

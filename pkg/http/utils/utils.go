@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -552,6 +553,12 @@ func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue stri
 	}
 
 	return ifModifiedSinceTimestamp.Equal(lastModifiedTimestamp) || lastModifiedTimestamp.Before(ifModifiedSinceTimestamp), nil
+}
+
+func MakeStrongEtag(data []byte) string {
+	h := sha256.New()
+	h.Write(data)
+	return fmt.Sprintf("\"%x\"", h.Sum(nil))
 }
 
 // NOTE: Copied from the standard library.

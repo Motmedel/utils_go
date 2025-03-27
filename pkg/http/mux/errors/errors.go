@@ -29,4 +29,8 @@ var (
 	ErrNilMux                        = errors.New("nil mux")
 	ErrNilVhostMux                   = errors.New("nil vhost mux")
 	ErrEmptyResponseErrorContentType = errors.New("empty response error content type")
+	ErrUnexpectedContentEncoding     = errors.New("unexpected content encoding")
+	ErrUnsupportedFileExtension      = errors.New("unsupported file extension")
+	ErrNilHeaderParameter            = errors.New("nil header parameter")
+	ErrEmptyContentType              = errors.New("empty content type")
 )
