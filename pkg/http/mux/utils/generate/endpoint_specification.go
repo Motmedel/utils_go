@@ -3,7 +3,6 @@ package generate
 import (
 	"archive/zip"
 	"context"
-	"crypto/sha256"
 	"fmt"
 	motmedelGzip "github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -11,6 +10,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	muxResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
+	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"golang.org/x/sync/errgroup"
 	"io"
 	"net/http"
@@ -19,12 +19,6 @@ import (
 	"strings"
 	"sync"
 )
-
-func MakeStrongEtag(data []byte) string {
-	h := sha256.New()
-	h.Write(data)
-	return fmt.Sprintf("\"%x\"", h.Sum(nil))
-}
 
 func makeStaticContentHeaders(
 	contentType string,
@@ -111,7 +105,7 @@ loop:
 							return nil
 						}
 
-						etag := MakeStrongEtag(gzipData)
+						etag := motmedelHttpUtils.MakeStrongEtag(gzipData)
 
 						headers := []*muxResponse.HeaderEntry{
 							{Name: "Content-Encoding", Value: contentEncoding},
@@ -191,7 +185,7 @@ func EndpointSpecificationFromDataPath(
 		resultPath = strings.TrimSuffix(resultPath, ".html")
 	}
 
-	etag := MakeStrongEtag(data)
+	etag := motmedelHttpUtils.MakeStrongEtag(data)
 
 	staticContent := &static_content.StaticContent{
 		StaticContentData: static_content.StaticContentData{
