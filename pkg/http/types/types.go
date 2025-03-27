@@ -216,3 +216,79 @@ type FetchOptions struct {
 	SkipErrorOnStatus    bool
 	RetryConfig          *RetryConfiguration
 }
+
+type RobotsTxt struct {
+	Groups []*RobotsTxtGroup
+}
+
+func (robotsTxt *RobotsTxt) String() string {
+	var nonEmptyGroupStrings []string
+
+	for _, group := range robotsTxt.Groups {
+		if group == nil {
+			continue
+		}
+
+		if groupString := group.String(); groupString != "" {
+			nonEmptyGroupStrings = append(nonEmptyGroupStrings, groupString)
+		}
+	}
+
+	return strings.Join(nonEmptyGroupStrings, "\n\n")
+}
+
+func makeLine(label string, value string) string {
+	trimmedValue := strings.TrimSpace(value)
+	if trimmedValue == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("%s: %s", label, trimmedValue)
+}
+
+func makePart(values []string, label string) string {
+	var parts []string
+	for _, value := range values {
+		if line := makeLine(label, value); line != "" {
+			parts = append(parts, line)
+		}
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+type RobotsTxtGroup struct {
+	UserAgents   []string
+	Disallowed   []string
+	Allowed      []string
+	OtherRecords [][2]string
+}
+
+func (robotsTxtGroup *RobotsTxtGroup) String() string {
+	if len(robotsTxtGroup.UserAgents) == 0 {
+		return ""
+	}
+
+	userAgentPart := makePart(robotsTxtGroup.UserAgents, "User-Agent")
+	if userAgentPart == "" {
+		return ""
+	}
+
+	parts := []string{userAgentPart}
+
+	if disallowedPart := makePart(robotsTxtGroup.Disallowed, "Disallowed"); disallowedPart != "" {
+		parts = append(parts, disallowedPart)
+	}
+
+	if allowedPart := makePart(robotsTxtGroup.Allowed, "Allowed"); allowedPart != "" {
+		parts = append(parts, allowedPart)
+	}
+
+	for _, otherRecord := range robotsTxtGroup.OtherRecords {
+		if line := makeLine(otherRecord[0], otherRecord[1]); line != "" {
+			parts = append(parts, line)
+		}
+	}
+
+	return strings.Join(parts, "\n")
+}
