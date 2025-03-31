@@ -204,6 +204,10 @@ func EndpointSpecificationFromDataPath(
 		path = strings.TrimSuffix(path, ".html")
 	}
 
+	if path == "/index" {
+		path = "/"
+	}
+
 	etag := motmedelHttpUtils.MakeStrongEtag(data)
 
 	staticContent := &static_content.StaticContent{
