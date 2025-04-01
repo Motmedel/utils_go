@@ -149,7 +149,7 @@ func TestMain(m *testing.M) {
 				d, ok := request.Context().Value(parsing.ParsedRequestBodyContextKey).(*bodyParserTestData)
 				if !ok || d == nil {
 					return nil, &response_error.ResponseError{
-						ServerError: motmedelErrors.MakeErrorWithStackTrace(
+						ServerError: motmedelErrors.NewWithTrace(
 							errors.New("could not obtain parsed request body"),
 						),
 					}

@@ -123,7 +123,7 @@ func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail
 	}
 
 	if responseError.ClientError != nil && responseError.ServerError != nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrMultipleResponseErrorErrors)
+		return nil, motmedelErrors.NewWithTrace(muxErrors.ErrMultipleResponseErrorErrors)
 	}
 
 	if responseError.ServerError != nil {
@@ -134,7 +134,7 @@ func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail
 		return problem_detail.MakeBadRequestProblemDetail("", nil), nil
 	}
 
-	return nil, motmedelErrors.MakeErrorWithStackTrace(
+	return nil, motmedelErrors.NewWithTrace(
 		fmt.Errorf(
 			"%w: %w, %w",
 			muxErrors.ErrUnusableResponseError,
@@ -149,14 +149,14 @@ func (responseError *ResponseError) MakeResponse(
 ) (*muxTypesResponse.Response, error) {
 	problemDetail := responseError.ProblemDetail
 	if problemDetail == nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("%w: %w", muxErrors.ErrUnusableResponseError, muxErrors.ErrNilProblemDetail),
 		)
 	}
 
 	statusCode := problemDetail.Status
 	if statusCode == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("%w: problem detail: %w", muxErrors.ErrUnusableResponseError, muxErrors.ErrEmptyStatus),
 		)
 	}

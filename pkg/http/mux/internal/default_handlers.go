@@ -28,7 +28,7 @@ func DefaultResponseErrorHandler(
 		slog.ErrorContext(
 			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilResponseWriter),
+				motmedelErrors.NewWithTrace(muxErrors.ErrNilResponseWriter),
 			),
 			"The response writer is nil.",
 		)
@@ -60,7 +60,7 @@ func DefaultResponseErrorHandler(
 		slog.ErrorContext(
 			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrUnusableResponseError, responseError),
+				motmedelErrors.NewWithTrace(muxErrors.ErrUnusableResponseError, responseError),
 			),
 			"An invalid response error type was encountered.",
 		)
@@ -69,7 +69,7 @@ func DefaultResponseErrorHandler(
 		slog.ErrorContext(
 			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.MakeErrorWithStackTrace(
+				motmedelErrors.NewWithTrace(
 					fmt.Errorf("%w: %v", muxErrors.ErrUnexpectedResponseErrorType, responseErrorType),
 				),
 			),
@@ -87,7 +87,7 @@ func DefaultResponseErrorHandler(
 		slog.ErrorContext(
 			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.MakeErrorWithStackTrace(
+				motmedelErrors.NewWithTrace(
 					fmt.Errorf("response error get effective problem detail: %w", err),
 					responseError,
 				),

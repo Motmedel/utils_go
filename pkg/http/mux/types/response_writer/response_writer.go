@@ -72,7 +72,7 @@ func (responseWriter *ResponseWriter) Write(data []byte) (int, error) {
 
 	n, err := responseWriter.ResponseWriter.Write(data)
 	if err != nil {
-		return n, motmedelErrors.MakeErrorWithStackTrace(
+		return n, motmedelErrors.NewWithTrace(
 			fmt.Errorf("http response writer write: %w", err),
 		)
 	}
@@ -179,7 +179,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			return motmedelErrors.MakeError(fmt.Errorf("parse content type: %w", err), contentTypeData)
 		}
 		if contentType == nil {
-			return motmedelErrors.MakeErrorWithStackTrace(content_type.ErrNilContentType, contentTypeData)
+			return motmedelErrors.NewWithTrace(content_type.ErrNilContentType, contentTypeData)
 		}
 
 		var useDocumentHeaders bool

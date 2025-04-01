@@ -34,7 +34,7 @@ func HandleRateLimiting(
 
 	if request == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
@@ -46,7 +46,7 @@ func HandleRateLimiting(
 	key, err := getKeyFunc(request)
 	if err != nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("get key func: %w", err)),
+			ServerError: motmedelErrors.NewWithTrace(fmt.Errorf("get key func: %w", err)),
 		}
 	}
 
@@ -105,7 +105,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 
 	if requestHeader == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
 		}
 	}
 
@@ -140,7 +140,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 	}
 	if contentType == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(content_type.ErrNilContentType),
+			ServerError: motmedelErrors.NewWithTrace(content_type.ErrNilContentType),
 		}
 	}
 
@@ -167,7 +167,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypesResponseError.ResponseError {
 	if requestHeader == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
 		}
 	}
 
@@ -186,7 +186,7 @@ func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypes
 					"Malformed Content-Length.",
 					nil,
 				),
-				ClientError: motmedelErrors.MakeErrorWithStackTrace(
+				ClientError: motmedelErrors.NewWithTrace(
 					fmt.Errorf("strconv parse uint: %w", err),
 					headerValue, 10, 64,
 				),
@@ -218,7 +218,7 @@ func ObtainRequestBody(
 ) ([]byte, *muxTypesResponseError.ResponseError) {
 	if bodyReader == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestBodyReader),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestBodyReader),
 		}
 	}
 
@@ -236,7 +236,7 @@ func ObtainRequestBody(
 		var err error
 		requestBody, err := io.ReadAll(bodyReader)
 		if err != nil {
-			wrappedErr := motmedelErrors.MakeErrorWithStackTrace(
+			wrappedErr := motmedelErrors.NewWithTrace(
 				fmt.Errorf("io read all (request body): %w", err),
 				bodyReader,
 			)
@@ -276,7 +276,7 @@ func ObtainEndpointSpecification(
 	}
 
 	if request == nil {
-		return nil, nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest)}
+		return nil, nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest)}
 	}
 
 	requestMethod := strings.ToUpper(request.Method)
@@ -340,13 +340,13 @@ func ObtainEndpointSpecification(
 func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestHeader http.Header) (bool, *muxTypesResponseError.ResponseError) {
 	if staticContent == nil {
 		return false, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilStaticContent),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilStaticContent),
 		}
 	}
 
 	if requestHeader == nil {
 		return false, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
 		}
 	}
 
@@ -386,13 +386,13 @@ func ObtainStaticContentResponse(
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if staticContent == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilStaticContent),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilStaticContent),
 		}
 	}
 
 	if requestHeader == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
 		}
 	}
 
@@ -444,19 +444,19 @@ func ObtainStaticContentResponse(
 			contentEncodingToData := staticContent.ContentEncodingToData
 			if contentEncodingToData == nil {
 				return nil, &muxTypesResponseError.ResponseError{
-					ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilContentEncodingToData),
+					ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilContentEncodingToData),
 				}
 			}
 
 			staticContentData, ok := contentEncodingToData[encoding]
 			if !ok {
 				return nil, &muxTypesResponseError.ResponseError{
-					ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrContentEncodingToDataNotOk),
+					ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrContentEncodingToDataNotOk),
 				}
 			}
 			if staticContent == nil {
 				return nil, &muxTypesResponseError.ResponseError{
-					ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilStaticContentData),
+					ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilStaticContentData),
 				}
 			}
 

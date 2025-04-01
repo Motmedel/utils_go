@@ -45,7 +45,7 @@ func (vhostMux *VhostMux) PatchHttpServer(httpServer *http.Server) {
 
 		hostToSpecification := vhostMux.HostToSpecification
 		if hostToSpecification == nil {
-			return nil, motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilHostToMuxSpecification)
+			return nil, motmedelErrors.NewWithTrace(muxErrors.ErrNilHostToMuxSpecification)
 		}
 
 		specification, ok := hostToSpecification[clientHello.ServerName]
@@ -64,13 +64,13 @@ func vhostMuxHandleRequest(
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if vhostMux == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilVhostMux),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilVhostMux),
 		}
 	}
 
 	if request == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
@@ -82,7 +82,7 @@ func vhostMuxHandleRequest(
 	hostToSpecification := vhostMux.HostToSpecification
 	if hostToSpecification == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilHostToMuxSpecification),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilHostToMuxSpecification),
 		}
 	}
 
@@ -98,7 +98,7 @@ func vhostMuxHandleRequest(
 	}
 	if muxSpecification == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilMuxSpecification),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilMuxSpecification),
 		}
 	}
 
@@ -115,7 +115,7 @@ func vhostMuxHandleRequest(
 	}
 
 	return nil, &muxTypesResponseError.ResponseError{
-		ServerError: motmedelErrors.MakeErrorWithStackTrace(
+		ServerError: motmedelErrors.NewWithTrace(
 			muxErrors.ErrUnusableMuxSpecification,
 			muxSpecification,
 		),

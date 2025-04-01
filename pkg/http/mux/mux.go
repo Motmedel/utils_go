@@ -43,7 +43,7 @@ type baseMux struct {
 func (bm *baseMux) getFirewallVerdict(request *http.Request) (muxTypesFirewall.Verdict, *muxTypesResponseError.ResponseError) {
 	if request == nil {
 		return muxTypesFirewall.VerdictReject, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
@@ -90,7 +90,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 		slog.WarnContext(
 			motmedelContext.WithErrorContextValue(
 				request.Context(),
-				motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("uuid new v7: %w", err)),
+				motmedelErrors.NewWithTrace(fmt.Errorf("uuid new v7: %w", err)),
 			),
 			"An error occurred when generating a request id.",
 		)
@@ -144,7 +144,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 				responseErrorHandler(
 					request.Context(),
 					&muxTypesResponseError.ResponseError{
-						ServerError: motmedelErrors.MakeErrorWithStackTrace(
+						ServerError: motmedelErrors.NewWithTrace(
 							fmt.Errorf("response writer hijacker hijack: %w", err),
 						),
 					},
@@ -156,7 +156,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 					slog.ErrorContext(
 						motmedelContext.WithErrorContextValue(
 							request.Context(),
-							motmedelErrors.MakeErrorWithStackTrace(
+							motmedelErrors.NewWithTrace(
 								fmt.Errorf("connection close: %w", err),
 							),
 						),
@@ -234,7 +234,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 		responseErrorHandler(
 			request.Context(),
 			&muxTypesResponseError.ResponseError{
-				ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNoResponseWritten),
+				ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNoResponseWritten),
 			},
 			responseWriter,
 		)
@@ -257,28 +257,32 @@ func muxHandleRequest(
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if mux == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilMux),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilMux),
 		}
 	}
 
 	if request == nil {
-		return nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequest)}
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+		}
 	}
 
 	requestHeader := request.Header
 	if requestHeader == nil {
-		return nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpRequestHeader)}
+		return nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+		}
 	}
 
 	httpContext, ok := request.Context().Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
 	if !ok {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrCouldNotObtainHttpContext),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrCouldNotObtainHttpContext),
 		}
 	}
 	if httpContext == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(motmedelHttpErrors.ErrNilHttpContext),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpContext),
 		}
 	}
 
@@ -293,7 +297,7 @@ func muxHandleRequest(
 	}
 	if endpointSpecification == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.MakeErrorWithStackTrace(muxErrors.ErrNilEndpointSpecification),
+			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilEndpointSpecification),
 		}
 	}
 
