@@ -10,5 +10,6 @@ type Url struct {
 
 type UrlSet struct {
 	XMLName xml.Name `xml:"urlset"`
+	Xmlns   string   `xml:"xmlns,attr"`
 	Urls    []*Url   `xml:"url"`
 }
