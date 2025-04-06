@@ -424,7 +424,6 @@ func muxHandleRequest(
 	}
 
 	return nil, nil
-
 }
 
 func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *http.Request) {
@@ -492,4 +491,37 @@ func (mux *Mux) Delete(specifications ...*muxTypesEnpointSpecification.EndpointS
 			delete(handlerSpecificationMap, specification.Path)
 		}
 	}
+}
+
+func (mux *Mux) GetDocumentEndpointSpecifications() []*muxTypesEnpointSpecification.EndpointSpecification {
+	var specifications []*muxTypesEnpointSpecification.EndpointSpecification
+
+	for _, methodMap := range mux.HandlerSpecificationMap {
+		for _, specification := range methodMap {
+			staticContent := specification.StaticContent
+			if staticContent == nil {
+				continue
+			}
+
+			var isDocument bool
+			for _, header := range staticContent.Headers {
+				if header == nil {
+					continue
+				}
+
+				if strings.ToLower(header.Name) == "content-type" && strings.ToLower(header.Value) == "text/html" {
+					isDocument = true
+					break
+				}
+			}
+
+			if !isDocument {
+				continue
+			}
+
+			specifications = append(specifications, specification)
+		}
+	}
+
+	return specifications
 }

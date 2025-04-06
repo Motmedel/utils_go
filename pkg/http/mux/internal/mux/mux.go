@@ -454,7 +454,7 @@ func ObtainStaticContentResponse(
 					ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrContentEncodingToDataNotOk),
 				}
 			}
-			if staticContent == nil {
+			if staticContentData == nil {
 				return nil, &muxTypesResponseError.ResponseError{
 					ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilStaticContentData),
 				}

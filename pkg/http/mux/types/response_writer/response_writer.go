@@ -72,9 +72,7 @@ func (responseWriter *ResponseWriter) Write(data []byte) (int, error) {
 
 	n, err := responseWriter.ResponseWriter.Write(data)
 	if err != nil {
-		return n, motmedelErrors.NewWithTrace(
-			fmt.Errorf("http response writer write: %w", err),
-		)
+		return n, motmedelErrors.NewWithTrace(fmt.Errorf("http response writer write: %w", err))
 	}
 
 	return n, nil
