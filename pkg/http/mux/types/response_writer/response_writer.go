@@ -29,6 +29,7 @@ var DefaultDocumentHeaders = map[string]string{
 	"Cross-Origin-Embedder-Policy": "require-corp",
 	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
 	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
+	"Referrer-Policy":              "same-origin",
 }
 
 type ResponseWriter struct {
