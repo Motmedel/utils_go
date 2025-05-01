@@ -22,7 +22,6 @@ import (
 	"time"
 )
 
-const staticCacheControl = "public, max-age=31356000, immutable"
 const robotsTxtCacheControl = "public, max-age=86400"
 
 func MakeStaticContentHeaders(
@@ -45,11 +44,9 @@ func MakeStaticContentHeaders(
 		entries = append(entries, &muxResponse.HeaderEntry{Name: "Last-Modified", Value: lastModified})
 	}
 
-	if cacheControl == "" {
-		cacheControl = staticCacheControl
+	if cacheControl != "" {
+		entries = append(entries, &muxResponse.HeaderEntry{Name: "Cache-Control", Value: cacheControl, Overwrite: true})
 	}
-
-	entries = append(entries, &muxResponse.HeaderEntry{Name: "Cache-Control", Value: cacheControl, Overwrite: true})
 
 	return entries
 }
@@ -175,6 +172,7 @@ func EndpointSpecificationFromDataPath(
 	data []byte,
 	lastModified string,
 	addContentEncodingData bool,
+	private bool,
 ) (*endpoint_specification.EndpointSpecification, error) {
 	if path == "" {
 		return nil, nil
@@ -210,6 +208,20 @@ func EndpointSpecificationFromDataPath(
 
 	etag := motmedelHttpUtils.MakeStrongEtag(data)
 
+	var visibility string
+	if private {
+		visibility = "private"
+	} else {
+		visibility = "public"
+	}
+
+	if parameter.CacheControl == "" {
+		parameter.CacheControl = strings.Join(
+			[]string{visibility, "max-age=31356000", "immutable"},
+			", ",
+		)
+	}
+
 	staticContent := &static_content.StaticContent{
 		StaticContentData: static_content.StaticContentData{
 			Data:         data,
@@ -238,6 +250,7 @@ func EndpointSpecificationFromDataPath(
 func EndpointSpecificationsFromDirectory(
 	rootPath string,
 	addContentEncodingData bool,
+	private bool,
 ) ([]*endpoint_specification.EndpointSpecification, error) {
 	if rootPath == "" {
 		return nil, nil
@@ -282,6 +295,7 @@ func EndpointSpecificationsFromDirectory(
 							data,
 							lastModified,
 							addContentEncodingData,
+							private,
 						)
 						if err != nil {
 							return motmedelErrors.New(
@@ -315,7 +329,11 @@ func EndpointSpecificationsFromDirectory(
 	return specifications, nil
 }
 
-func EndpointSpecificationsFromZip(reader *zip.Reader, addContentEncodingData bool) ([]*endpoint_specification.EndpointSpecification, error) {
+func EndpointSpecificationsFromZip(
+	reader *zip.Reader,
+	addContentEncodingData bool,
+	private bool,
+) ([]*endpoint_specification.EndpointSpecification, error) {
 	if reader == nil {
 		return nil, nil
 	}
@@ -359,6 +377,7 @@ loop:
 						data,
 						lastModified,
 						addContentEncodingData,
+						private,
 					)
 					if err != nil {
 						return motmedelErrors.New(
