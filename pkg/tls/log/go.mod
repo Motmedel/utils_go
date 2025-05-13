@@ -5,8 +5,8 @@ go 1.24.0
 toolchain go1.24.3
 
 require (
-	github.com/Motmedel/ecs_go v0.0.61
-	github.com/Motmedel/utils_go v0.0.201
+	github.com/Motmedel/ecs_go v0.0.62
+	github.com/Motmedel/utils_go v0.0.202
 )
 
 require (

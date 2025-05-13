@@ -23,7 +23,7 @@ func ParseTlsContext(tlsContext *motmedelTlsTypes.TlsContext) *ecs.Base {
 	}
 
 	var base ecs.Base
-	ecs.EnrichWithTlsConnectionState(&base, connectionState, tlsContext.ClientInitiated)
+	ecs.EnrichWithTlsContext(&base, tlsContext)
 
 	return &base
 }
