@@ -15,7 +15,7 @@ import (
 )
 
 type VhostMuxSpecification struct {
-	Mux         *Mux
+	Mux         http.Handler
 	RedirectTo  string
 	Certificate *tls.Certificate
 }
