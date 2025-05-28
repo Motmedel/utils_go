@@ -12,6 +12,7 @@ var (
 	ErrSyntaxError     = errors.New("syntax error")
 	ErrSemanticError   = errors.New("semantic error")
 	ErrValidationError = errors.New("validation error")
+	ErrConversionNotOk = errors.New("conversion not ok")
 )
 
 func CollectWrappedErrors(err error) []error {
