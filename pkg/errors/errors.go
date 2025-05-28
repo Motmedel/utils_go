@@ -3,6 +3,8 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"reflect"
 	"runtime"
 	"strings"
@@ -311,4 +313,17 @@ func IsAll(err error, targets ...error) bool {
 		}
 	}
 	return true
+}
+
+func IsClosedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errMsg := err.Error()
+
+	return errors.Is(err, io.EOF) ||
+		errors.Is(err, net.ErrClosed) ||
+		strings.HasSuffix(errMsg, "write: broken pipe") ||
+		strings.HasSuffix(errMsg, "use of closed network connection")
 }
