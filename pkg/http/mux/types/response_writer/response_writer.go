@@ -11,9 +11,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
-	motmedelIter "github.com/Motmedel/utils_go/pkg/iter"
 	"log/slog"
-	"maps"
 	"net/http"
 	"strings"
 )
@@ -92,24 +90,14 @@ func (responseWriter *ResponseWriter) WriteResponse(
 	if responseWriterDefaultHeaders := responseWriter.DefaultHeaders; responseWriterDefaultHeaders == nil {
 		defaultHeaders = DefaultHeaders
 	} else {
-		defaultHeaders = maps.Collect(
-			motmedelIter.Concat2(
-				maps.All(DefaultHeaders),
-				maps.All(responseWriterDefaultHeaders),
-			),
-		)
+		defaultHeaders = responseWriterDefaultHeaders
 	}
 
 	var defaultDocumentHeaders map[string]string
 	if responseWriterDefaultDocumentHeaders := responseWriter.DefaultDocumentHeaders; responseWriterDefaultDocumentHeaders == nil {
 		defaultDocumentHeaders = DefaultDocumentHeaders
 	} else {
-		defaultDocumentHeaders = maps.Collect(
-			motmedelIter.Concat2(
-				maps.All(DefaultDocumentHeaders),
-				maps.All(responseWriterDefaultDocumentHeaders),
-			),
-		)
+		defaultDocumentHeaders = responseWriterDefaultDocumentHeaders
 	}
 
 	skippedDefaultHeadersSet := make(map[string]struct{})
