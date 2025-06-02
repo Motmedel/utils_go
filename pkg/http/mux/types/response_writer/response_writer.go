@@ -150,7 +150,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			skippedDefaultHeadersSet[canonicalHeaderName] = struct{}{}
 		}
 
-		responseWriterHeader.Set(canonicalHeaderName, headerValue)
+		responseWriterHeader.Add(canonicalHeaderName, headerValue)
 	}
 	for headerName, headerValue := range defaultHeaders {
 		canonicalHeaderName := http.CanonicalHeaderKey(headerName)
@@ -163,7 +163,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			cacheControlString = headerValue
 		}
 
-		responseWriterHeader.Set(canonicalHeaderName, headerValue)
+		responseWriterHeader.Add(canonicalHeaderName, headerValue)
 	}
 
 	if contentTypeString != nil {
@@ -194,7 +194,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 				if _, ok := skippedDefaultHeadersSet[headerName]; ok {
 					continue
 				}
-				responseWriterHeader.Set(headerName, headerValue)
+				responseWriterHeader.Add(headerName, headerValue)
 			}
 		}
 	}

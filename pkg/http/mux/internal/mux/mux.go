@@ -1,8 +1,10 @@
 package mux
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -16,6 +18,7 @@ import (
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"io"
+	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -212,6 +215,7 @@ func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypes
 }
 
 func ObtainRequestBody(
+	ctx context.Context,
 	contentLength int64,
 	bodyReader io.ReadCloser,
 	maxBytes int64,
@@ -257,7 +261,17 @@ func ObtainRequestBody(
 
 			return nil, &muxTypesResponseError.ResponseError{ServerError: wrappedErr}
 		}
-		defer bodyReader.Close()
+		defer func() {
+			if err := bodyReader.Close(); err != nil {
+				slog.WarnContext(
+					motmedelContext.WithErrorContextValue(
+						ctx,
+						motmedelErrors.NewWithTrace(fmt.Errorf("body reader close: %w", err), bodyReader),
+					),
+					"An error occurred when closing the request body reader.",
+				)
+			}
+		}()
 
 		return requestBody, nil
 	}

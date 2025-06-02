@@ -371,7 +371,12 @@ func muxHandleRequest(
 	}
 
 	// Obtain the request body
-	requestBody, responseError := muxInternalMux.ObtainRequestBody(request.ContentLength, request.Body, maxBytes)
+	requestBody, responseError := muxInternalMux.ObtainRequestBody(
+		request.Context(),
+		request.ContentLength,
+		request.Body,
+		maxBytes,
+	)
 	if responseError != nil {
 		return nil, responseError
 	}
