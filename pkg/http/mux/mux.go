@@ -288,12 +288,12 @@ func muxHandleRequest(
 
 	// Locate the endpoint specification.
 
-	endpointSpecification, responseInfo, responseError := muxInternalMux.ObtainEndpointSpecification(
+	endpointSpecification, response, responseError := muxInternalMux.ObtainEndpointSpecification(
 		mux.HandlerSpecificationMap,
 		request,
 	)
-	if responseInfo != nil || responseError != nil {
-		return responseInfo, responseError
+	if response != nil || responseError != nil {
+		return response, responseError
 	}
 	if endpointSpecification == nil {
 		return nil, &muxTypesResponseError.ResponseError{
@@ -309,18 +309,11 @@ func muxHandleRequest(
 		}
 	}
 
+	// Examine fetch metadata
+
 	if !endpointSpecification.DisableFetchMedata {
-		// NOTE: This check is opinionated; embedding is not allowed. For custom fetch metadata logic, disable this
-		// check and implement your own in the firewall configuration e.g., plus add the `Vary` header.
-		fetchSite := requestHeader.Get("Sec-Fetch-Site")
-		if fetchSite != "" && fetchSite != "same-origin" && fetchSite != "same-site" && fetchSite != "none" {
-			return nil, &muxTypesResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-					http.StatusForbidden,
-					"Cross-site request blocked by Fetch-Metadata policy.",
-					nil,
-				),
-			}
+		if responseError := muxInternalMux.HandleFetchMetadata(requestHeader, request.Method); responseError != nil {
+			return nil, responseError
 		}
 	}
 
@@ -422,8 +415,6 @@ func muxHandleRequest(
 
 	// Obtain a response
 
-	var response *muxTypesResponse.Response
-
 	if staticContent := endpointSpecification.StaticContent; staticContent != nil {
 		// Respond with static content.
 
@@ -461,7 +452,10 @@ func muxHandleRequest(
 
 		response.Headers = append(
 			response.Headers,
-			&muxTypesResponse.HeaderEntry{Name: "Vary", Value: "Sec-Fetch-Site"},
+			&muxTypesResponse.HeaderEntry{
+				Name:  "Vary",
+				Value: "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site",
+			},
 		)
 	}
 

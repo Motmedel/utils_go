@@ -100,6 +100,43 @@ func HandleRateLimiting(
 	return nil
 }
 
+func HandleFetchMetadata(requestHeader http.Header, method string) *muxTypesResponseError.ResponseError {
+	if requestHeader == nil {
+		return &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+		}
+	}
+
+	if method == "" {
+		return &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyMethod),
+		}
+	}
+
+	// NOTE: This check is opinionated; embedding is not allowed. For custom fetch metadata logic, disable this
+	// check and implement your own in the firewall configuration e.g., plus add the `Vary` header.
+
+	fetchSite := requestHeader.Get("Sec-Fetch-Site")
+	fetchMode := requestHeader.Get("Sec-Fetch-Mode")
+	fetchDest := requestHeader.Get("Sec-Fetch-Dest")
+
+	if fetchSite == "" || fetchSite == "same-origin" || fetchSite == "same-site" || fetchSite == "none" {
+		return nil
+	}
+
+	if fetchMode == "navigate" && fetchDest == "document" && method == http.MethodGet {
+		return nil
+	}
+
+	return &muxTypesResponseError.ResponseError{
+		ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+			http.StatusForbidden,
+			"Cross-site request blocked by Fetch-Metadata policy.",
+			nil,
+		),
+	}
+}
+
 func ValidateContentType(expectedContentType string, requestHeader http.Header) *muxTypesResponseError.ResponseError {
 	// TODO: Error case?
 	if expectedContentType == "" {
