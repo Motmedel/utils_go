@@ -153,10 +153,17 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		responseWriterHeader.Set(canonicalHeaderName, headerValue)
 	}
 	for headerName, headerValue := range defaultHeaders {
-		if _, ok := skippedDefaultHeadersSet[headerName]; ok {
+		canonicalHeaderName := http.CanonicalHeaderKey(headerName)
+
+		if _, ok := skippedDefaultHeadersSet[canonicalHeaderName]; ok {
 			continue
 		}
-		responseWriterHeader.Set(headerName, headerValue)
+
+		if canonicalHeaderName == "Cache-Control" {
+			cacheControlString = headerValue
+		}
+
+		responseWriterHeader.Set(canonicalHeaderName, headerValue)
 	}
 
 	if contentTypeString != nil {
@@ -194,7 +201,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 
 	// Try to compress the body if it is of a decent size, and
 	shouldTryToCompressBody := len(body) > 1000 &&
-		// ... no content encoding is already applied
+		// ... no content encoding is applied
 		contentEncodingString == nil &&
 		// ... the client indicates that it supports encoded content
 		acceptEncoding != nil &&

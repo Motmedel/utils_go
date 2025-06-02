@@ -396,7 +396,7 @@ func ObtainStaticContentResponse(
 		}
 	}
 
-	// NOTE: It is up to the user provide the `Vary` header?
+	// NOTE: It is up to the user to provide the `Vary` header.
 	response := &muxTypesResponse.Response{Headers: staticContent.Headers}
 	if isCached {
 		response.StatusCode = http.StatusNotModified

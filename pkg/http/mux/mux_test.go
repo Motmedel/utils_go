@@ -252,6 +252,25 @@ func TestMux(t *testing.T) {
 			expectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
 		},
 		{
+			name:               "fetch metadata vary",
+			method:             http.MethodHead,
+			url:                "/hello-world",
+			expectedStatusCode: http.StatusOK,
+			expectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Site"}},
+		},
+		{
+			name:   "fetch metadata forbidden",
+			method: http.MethodGet,
+			url:    "/hello-world",
+			headers: [][2]string{
+				{"Sec-Fetch-Site", "cross-origin"},
+			},
+			expectedStatusCode: http.StatusForbidden,
+			expectedProblemDetail: &problem_detail.ProblemDetail{
+				Detail: "Cross-site request blocked by Fetch-Metadata policy.",
+			},
+		},
+		{
 			name:               "default headers",
 			method:             http.MethodGet,
 			url:                "/hello-world",

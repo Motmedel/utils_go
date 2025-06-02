@@ -18,4 +18,5 @@ type EndpointSpecification struct {
 	UrlParserConfiguration    *muxTypesParsing.UrlParserConfiguration
 	HeaderParserConfiguration *muxTypesParsing.HeaderParserConfiguration
 	BodyParserConfiguration   *muxTypesParsing.BodyParserConfiguration
+	DisableFetchMedata        bool
 }

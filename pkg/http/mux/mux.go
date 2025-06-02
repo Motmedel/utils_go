@@ -309,6 +309,19 @@ func muxHandleRequest(
 		}
 	}
 
+	if !endpointSpecification.DisableFetchMedata {
+		fetchSite := requestHeader.Get("Sec-Fetch-Site")
+		if fetchSite != "" && fetchSite != "same-origin" && fetchSite != "same-site" && fetchSite != "none" {
+			return nil, &muxTypesResponseError.ResponseError{
+				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+					http.StatusForbidden,
+					"Cross-site request blocked by Fetch-Metadata policy.",
+					nil,
+				),
+			}
+		}
+	}
+
 	// TODO: Obtain the parsed url.
 
 	// Obtain the parsed header.
@@ -326,7 +339,7 @@ func muxHandleRequest(
 		}
 	}
 
-	// Validate body parameters, and obtain and validate the body
+	// Validate body parameters and obtain and validate the body
 
 	allowEmptyBody := true
 	var expectedContentType string
@@ -400,9 +413,13 @@ func muxHandleRequest(
 		)
 	}
 
-	// Respond with static content.
+	// Obtain a response
+
+	var response *muxTypesResponse.Response
 
 	if staticContent := endpointSpecification.StaticContent; staticContent != nil {
+		// Respond with static content.
+
 		isCached, responseError := muxInternalMux.ObtainIsCached(staticContent, requestHeader)
 		if responseError != nil {
 			return nil, responseError
@@ -414,16 +431,34 @@ func muxHandleRequest(
 			acceptEncoding = contentNegotiation.AcceptEncoding
 		}
 
-		return muxInternalMux.ObtainStaticContentResponse(staticContent, isCached, requestHeader, acceptEncoding)
+		response, responseError = muxInternalMux.ObtainStaticContentResponse(
+			staticContent,
+			isCached,
+			requestHeader,
+			acceptEncoding,
+		)
+	} else if handler := endpointSpecification.Handler; handler != nil {
+		// Respond with dynamic content (via a handler).
+
+		response, responseError = handler(request, requestBody)
 	}
 
-	// Respond with dynamic content (via a handler).
-
-	if handler := endpointSpecification.Handler; handler != nil {
-		return handler(request, requestBody)
+	if responseError != nil {
+		return nil, responseError
 	}
 
-	return nil, nil
+	if !endpointSpecification.DisableFetchMedata {
+		if response == nil {
+			response = &muxTypesResponse.Response{}
+		}
+
+		response.Headers = append(
+			response.Headers,
+			&muxTypesResponse.HeaderEntry{Name: "Vary", Value: "Sec-Fetch-Site"},
+		)
+	}
+
+	return response, nil
 }
 
 func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *http.Request) {
