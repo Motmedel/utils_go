@@ -310,6 +310,8 @@ func muxHandleRequest(
 	}
 
 	if !endpointSpecification.DisableFetchMedata {
+		// NOTE: This check is opinionated; embedding is not allowed. For custom fetch metadata logic, disable this
+		// check and implement your ow in the firewall configuration e.g., plus add the `Vary` header.
 		fetchSite := requestHeader.Get("Sec-Fetch-Site")
 		if fetchSite != "" && fetchSite != "same-origin" && fetchSite != "same-site" && fetchSite != "none" {
 			return nil, &muxTypesResponseError.ResponseError{
