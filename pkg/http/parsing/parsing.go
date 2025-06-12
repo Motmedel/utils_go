@@ -3,7 +3,8 @@ package parsing
 import (
 	"bufio"
 	"bytes"
-	"github.com/Motmedel/utils_go/pkg/errors"
+	"fmt"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"net/http"
 )
 
@@ -12,14 +13,12 @@ func ParseHttpRequestData(requestBytes []byte) (*http.Request, error) {
 		return nil, nil
 	}
 
-	request, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(requestBytes)))
+	reader := bufio.NewReader(bytes.NewReader(requestBytes))
+	request, err := http.ReadRequest(reader)
 	if err != nil {
-		return nil, &errors.Error{
-			Message: "An error occurred when reading and parsing data as an HTTP request.",
-			Cause:   err,
-			Input:   requestBytes,
-		}
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("http read request: %w", err), reader)
 	}
+
 	return request, nil
 }
 
@@ -28,13 +27,11 @@ func ParseHttpResponseData(responseBytes []byte) (*http.Response, error) {
 		return nil, nil
 	}
 
-	response, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(responseBytes)), nil)
+	reader := bufio.NewReader(bytes.NewReader(responseBytes))
+	response, err := http.ReadResponse(reader, nil)
 	if err != nil {
-		return nil, &errors.Error{
-			Message: "An error occurred when reading and parsing data as an HTTP response.",
-			Cause:   err,
-			Input:   responseBytes,
-		}
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("http read response: %w", err), reader)
 	}
+
 	return response, nil
 }

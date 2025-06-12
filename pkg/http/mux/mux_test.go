@@ -256,7 +256,7 @@ func TestMux(t *testing.T) {
 			method:             http.MethodHead,
 			url:                "/hello-world",
 			expectedStatusCode: http.StatusOK,
-			expectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Site"}},
+			expectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"}},
 		},
 		{
 			name:   "fetch metadata forbidden",
