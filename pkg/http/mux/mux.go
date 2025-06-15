@@ -317,7 +317,20 @@ func muxHandleRequest(
 		}
 	}
 
-	// TODO: Obtain the parsed url.
+	// Obtain the parsed url.
+
+	if urlParserConfiguration := endpointSpecification.UrlParserConfiguration; urlParserConfiguration != nil {
+		if parser := urlParserConfiguration.Parser; parser != nil {
+			parsedUrl, responseError := parser(request)
+			if responseError != nil {
+				return nil, responseError
+			}
+
+			request = request.WithContext(
+				context.WithValue(request.Context(), parsing.ParsedRequestUrlContextKey, parsedUrl),
+			)
+		}
+	}
 
 	// Obtain the parsed header.
 

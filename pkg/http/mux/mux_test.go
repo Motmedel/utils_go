@@ -449,6 +449,8 @@ func TestMux(t *testing.T) {
 		},
 	}
 
+	// TODO: Write test for URL parsing.
+
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			var requestBody io.Reader
