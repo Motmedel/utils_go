@@ -11,4 +11,5 @@ var (
 	ErrNilConn               = errors.New("nil conn")
 	ErrEmptyPort             = errors.New("empty port")
 	ErrEmptyIp               = errors.New("empty ip")
+	ErrNilIpNet              = errors.New("nil ip net")
 )
