@@ -10,4 +10,5 @@ var (
 	ErrUnexpectedIpVersion   = errors.New("unexpected IP version")
 	ErrNilConn               = errors.New("nil conn")
 	ErrEmptyPort             = errors.New("empty port")
+	ErrEmptyIp               = errors.New("empty ip")
 )
