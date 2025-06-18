@@ -8,6 +8,7 @@ import (
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"net/http"
@@ -138,7 +139,7 @@ func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail
 		fmt.Errorf(
 			"%w: %w, %w",
 			muxErrors.ErrUnusableResponseError,
-			muxErrors.ErrNilProblemDetail,
+			problemDetailErrors.ErrNilProblemDetail,
 			muxErrors.ErrEmptyResponseErrorErrors,
 		),
 	)
@@ -150,7 +151,7 @@ func (responseError *ResponseError) MakeResponse(
 	problemDetail := responseError.ProblemDetail
 	if problemDetail == nil {
 		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: %w", muxErrors.ErrUnusableResponseError, muxErrors.ErrNilProblemDetail),
+			fmt.Errorf("%w: %w", muxErrors.ErrUnusableResponseError, problemDetailErrors.ErrNilProblemDetail),
 		)
 	}
 

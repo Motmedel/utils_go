@@ -200,7 +200,7 @@ func (problemDetail *ProblemDetail) String() (string, error) {
 			extensionText += "\n"
 		}
 
-		text += fmt.Sprintf("%s:%v", k, v)
+		extensionText += fmt.Sprintf("%s:%v", k, v)
 	}
 	if extensionText != "" {
 		if text != "" {

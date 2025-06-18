@@ -19,8 +19,6 @@ var (
 	ErrNilContentEncodingToData   = errors.New("nil content-encoding to data")
 	ErrContentEncodingToDataNotOk = errors.New("content encoding to data not ok")
 	ErrNilStaticContentData       = errors.New("nil static content data")
-	// TODO: Move to problem detail errors
-	ErrNilProblemDetail              = errors.New("nil problem detail")
 	ErrEmptyStatus                   = errors.New("empty status")
 	ErrUnusableResponseError         = errors.New("unusable response error")
 	ErrEmptyResponseErrorErrors      = errors.New("empty response error errors")

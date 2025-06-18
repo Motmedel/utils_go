@@ -431,7 +431,8 @@ func muxHandleRequest(
 	if staticContent := endpointSpecification.StaticContent; staticContent != nil {
 		// Respond with static content.
 
-		isCached, responseError := muxInternalMux.ObtainIsCached(staticContent, requestHeader)
+		var isCached bool
+		isCached, responseError = muxInternalMux.ObtainIsCached(staticContent, requestHeader)
 		if responseError != nil {
 			return nil, responseError
 		}

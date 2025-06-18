@@ -60,7 +60,7 @@ func Concat2[K any, V any](sequences ...iter.Seq2[K, V]) iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		for _, sequence := range sequences {
 			for kElement, vElement := range sequence {
-				if !yield(kElement, V(vElement)) {
+				if !yield(kElement, vElement) {
 					return
 				}
 			}
