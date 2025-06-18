@@ -13,4 +13,6 @@ var (
 	ErrEmptyIp               = errors.New("empty ip")
 	ErrNilIpNet              = errors.New("nil ip net")
 	ErrNilPacketConn         = errors.New("nil packet conn")
+	ErrUndeterminableIpVersion        = errors.New("undeterminable ip version")
+	ErrUndeterminableTargetFormat     = errors.New("undeterminable target format")
 )

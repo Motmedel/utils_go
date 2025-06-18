@@ -168,6 +168,42 @@ func IntToIpv4(ipNum uint32) net.IP {
 	return ip
 }
 
+func NetworkFromTarget(target string) (*net.IPNet, error) {
+	if target == "" {
+		return nil, nil
+	}
+
+	if _, network, _ := net.ParseCIDR(target); network != nil {
+		return network, nil
+	}
+
+	if ip := net.ParseIP(target); ip != nil {
+		useIpv4 := ip.To4() != nil
+		useIpv6 := ip.To16() != nil && ip.To4() == nil
+
+		var targetCidrString string
+
+		if useIpv6 {
+			targetCidrString = target + "/128"
+		} else if useIpv4 {
+			targetCidrString = target + "/32"
+		} else {
+			return nil, motmedelErrors.NewWithTrace(motmedelNetErrors.ErrUndeterminableIpVersion, ip)
+		}
+
+		_, network, _ := net.ParseCIDR(targetCidrString)
+		if network == nil {
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf("%w (single target)", motmedelNetErrors.ErrNilIpNet), targetCidrString,
+			)
+		}
+
+		return network, nil
+	}
+
+	return nil, motmedelErrors.NewWithTrace(motmedelNetErrors.ErrUndeterminableTargetFormat)
+}
+
 type DomainBreakdown struct {
 	RegisteredDomain string `json:"registered_domain,omitempty"`
 	Subdomain        string `json:"subdomain,omitempty"`
