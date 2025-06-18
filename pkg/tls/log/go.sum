@@ -1,8 +1,8 @@
-github.com/Motmedel/ecs_go v0.0.62 h1:zoS2l556+tDVd635T7OfP4JLVyA8mrfReaDOA9FyxvQ=
-github.com/Motmedel/ecs_go v0.0.62/go.mod h1:UwZhGtHYOtPrJ22s5hQTDpTbDPq9m+vfHItb8t++QKw=
-github.com/Motmedel/utils_go v0.0.202 h1:TuGgoYBL7gRgJ3IKhUU+Bj7k7EkVi8SIRY4ChNNs5ts=
-github.com/Motmedel/utils_go v0.0.202/go.mod h1:kKm8jM7GA8M7ICIImi5etOMixRgQfnStBPjEoCMTgbg=
-github.com/Motmedel/utils_go/pkg/net/domain_breakdown v0.0.4 h1:HKnAihmiXayMLJpTLHcZ+CDZwzm/gtHbG0O2z/Ula1I=
-github.com/Motmedel/utils_go/pkg/net/domain_breakdown v0.0.4/go.mod h1:9+oW16JZtqHOcJxe1J6BCZOtFFTi1a60LCESRZBq+Rg=
-golang.org/x/net v0.35.0 h1:T5GQRQb2y08kTAByq9L4/bz8cipCdA8FbRTXewonqY8=
-golang.org/x/net v0.35.0/go.mod h1:EglIi67kWsHKlRzzVMUD93VMSWGFOMSZgxFjparz1Qk=
+github.com/Motmedel/ecs_go v0.0.63 h1:nNtDZGrYIpt1EGyo34JiE97TJHZ58unsvZMwJaT63lk=
+github.com/Motmedel/ecs_go v0.0.63/go.mod h1:LBiQKqIHImB9hUAx6Ab7LcjbMFSxuU1ZFe9h5eCFs60=
+github.com/Motmedel/utils_go v0.0.213 h1:/QNezRCx1z+y/sfXc7yGwYXfrylQ2wiVu2TlyZapv44=
+github.com/Motmedel/utils_go v0.0.213/go.mod h1:kKm8jM7GA8M7ICIImi5etOMixRgQfnStBPjEoCMTgbg=
+github.com/Motmedel/utils_go/pkg/net/domain_breakdown v0.0.5 h1:57lx54tX6LbHjMNv0qGnwQB/eo7axhbDnd6rVWyWjxc=
+github.com/Motmedel/utils_go/pkg/net/domain_breakdown v0.0.5/go.mod h1:sRPKDiIl1+iQ0eT9amSQKzBdFWDFXtxi32mEvBPm4BU=
+golang.org/x/net v0.40.0 h1:79Xs7wF06Gbdcg4kdCCIQArK11Z1hr5POQ6+fIYHNuY=
+golang.org/x/net v0.40.0/go.mod h1:y0hY0exeL2Pku80/zKK7tpntoX23cqL3Oa6njdgRtds=
