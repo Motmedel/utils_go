@@ -77,7 +77,7 @@ func ParseAddressNet(addressNet string) (*net.IPNet, error) {
 		case 6:
 			mask = 128
 		default:
-			return nil, motmedelErrors.MakeErrorWithStackTrace(
+			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf("%w: %d", motmedelNetErrors.ErrUnexpectedIpVersion, ipVersion),
 				ipVersion,
 			)
@@ -88,7 +88,7 @@ func ParseAddressNet(addressNet string) (*net.IPNet, error) {
 
 	_, network, err := net.ParseCIDR(networkString)
 	if err != nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("net parse cidr: %w", err),
 			networkString,
 		)

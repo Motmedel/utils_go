@@ -510,7 +510,7 @@ func GetMatchingAccept(
 
 func ParseLastModifiedTimestamp(timestamp string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC1123, timestamp); err != nil {
-		return time.Time{}, motmedelErrors.MakeErrorWithStackTrace(
+		return time.Time{}, motmedelErrors.NewWithTrace(
 			fmt.Errorf(
 				"%w: time parse rfc1123: %w",
 				motmedelHttpErrors.ErrBadIfModifiedSinceTimestamp,
@@ -538,7 +538,7 @@ func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue stri
 
 	ifModifiedSinceTimestamp, err := ParseLastModifiedTimestamp(ifModifiedSinceValue)
 	if err != nil {
-		return false, motmedelErrors.MakeError(
+		return false, motmedelErrors.New(
 			fmt.Errorf("parse last modified timestamp (If-Modified-Since): %w", err),
 			ifModifiedSinceValue,
 		)
@@ -546,7 +546,7 @@ func IfModifiedSinceCacheHit(ifModifiedSinceValue string, lastModifiedValue stri
 
 	lastModifiedTimestamp, err := ParseLastModifiedTimestamp(lastModifiedValue)
 	if err != nil {
-		return false, motmedelErrors.MakeError(
+		return false, motmedelErrors.New(
 			fmt.Errorf("parse last modified timestamp (Last-Modified): %w", err),
 			lastModifiedValue,
 		)
