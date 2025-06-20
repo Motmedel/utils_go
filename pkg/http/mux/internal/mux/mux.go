@@ -165,7 +165,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 	contentTypeData := []byte(requestHeader.Get("Content-Type"))
 	contentType, err := content_type.ParseContentType(contentTypeData)
 	if err != nil {
-		wrappedErr := motmedelErrors.MakeError(fmt.Errorf("parse content type: %w", err), contentTypeData)
+		wrappedErr := motmedelErrors.New(fmt.Errorf("parse content type: %w", err), contentTypeData)
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrSyntaxError, motmedelErrors.ErrSemanticError) {
 			return &muxTypesResponseError.ResponseError{
 				ClientError: wrappedErr,
@@ -408,7 +408,7 @@ func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestH
 		lastModified := staticContent.LastModified
 		isCached, err = motmedelHttpUtils.IfModifiedSinceCacheHit(ifModifiedSince, lastModified)
 		if err != nil {
-			wrappedErr := motmedelErrors.MakeError(
+			wrappedErr := motmedelErrors.New(
 				fmt.Errorf("if modified since cache hit: %w", err),
 				ifModifiedSince,
 				lastModified,

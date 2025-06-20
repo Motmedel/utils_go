@@ -40,7 +40,7 @@ func DefaultResponseErrorHandler(
 	switch responseErrorType := responseError.Type(); responseErrorType {
 	case muxTypesResponseError.ResponseErrorType_ClientError:
 		defer func() {
-			clientError := motmedelErrors.MakeError(responseError.ClientError)
+			clientError := motmedelErrors.New(responseError.ClientError)
 			clientError.Id = errorId
 			slog.WarnContext(
 				motmedelContext.WithErrorContextValue(ctx, clientError),
@@ -49,7 +49,7 @@ func DefaultResponseErrorHandler(
 		}()
 	case muxTypesResponseError.ResponseErrorType_ServerError:
 		defer func() {
-			serverError := motmedelErrors.MakeError(responseError.ServerError)
+			serverError := motmedelErrors.New(responseError.ServerError)
 			serverError.Id = errorId
 			slog.ErrorContext(
 				motmedelContext.WithErrorContextValue(ctx, serverError),
@@ -105,7 +105,7 @@ func DefaultResponseErrorHandler(
 		slog.ErrorContext(
 			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.MakeError(fmt.Errorf("make response error response: %w", err), responseError),
+				motmedelErrors.New(fmt.Errorf("make response error response: %w", err), responseError),
 			),
 			"An error occurred when making a response from a response error.",
 		)
@@ -121,7 +121,7 @@ func DefaultResponseErrorHandler(
 		slog.ErrorContext(
 			motmedelContext.WithErrorContextValue(
 				ctx,
-				motmedelErrors.MakeError(fmt.Errorf("write response: %w", err), responseError),
+				motmedelErrors.New(fmt.Errorf("write response: %w", err), responseError),
 			),
 			"An error occurred when writing an error response.",
 		)

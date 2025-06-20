@@ -210,7 +210,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 					responseErrorHandler(
 						request.Context(),
 						&muxTypesResponseError.ResponseError{
-							ServerError: motmedelErrors.MakeError(
+							ServerError: motmedelErrors.New(
 								fmt.Errorf("write response: %w", err),
 								response,
 							),

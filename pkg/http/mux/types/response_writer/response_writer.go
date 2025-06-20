@@ -170,7 +170,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		contentTypeData := []byte(*contentTypeString)
 		contentType, err := content_type.ParseContentType(contentTypeData)
 		if err != nil {
-			return motmedelErrors.MakeError(fmt.Errorf("parse content type: %w", err), contentTypeData)
+			return motmedelErrors.New(fmt.Errorf("parse content type: %w", err), contentTypeData)
 		}
 		if contentType == nil {
 			return motmedelErrors.NewWithTrace(content_type.ErrNilContentType, contentTypeData)
@@ -220,7 +220,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 				slog.WarnContext(
 					motmedelContext.WithErrorContextValue(
 						ctx,
-						motmedelErrors.MakeError(fmt.Errorf("make gzip data: %w", err), body),
+						motmedelErrors.New(fmt.Errorf("make gzip data: %w", err), body),
 					),
 					"An error occurred when making Gzip data.",
 				)

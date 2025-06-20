@@ -196,7 +196,7 @@ func (responseError *ResponseError) MakeResponse(
 		var err error
 		body, contentType, err = converter.Convert(problemDetail, negotiation)
 		if err != nil {
-			return nil, motmedelErrors.MakeError(
+			return nil, motmedelErrors.New(
 				fmt.Errorf("convert: %w", err),
 				problemDetail, negotiation,
 			)

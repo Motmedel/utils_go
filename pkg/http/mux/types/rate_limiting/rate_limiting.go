@@ -52,7 +52,7 @@ func DefaultGetRateLimitingKey(request *http.Request) (string, error) {
 	remoteAddr := request.RemoteAddr
 	ipAddress, _, err := motmedelNet.SplitAddress(remoteAddr)
 	if err != nil {
-		return "", motmedelErrors.MakeError(fmt.Errorf("motmedel net split address: %w", err), remoteAddr)
+		return "", motmedelErrors.New(fmt.Errorf("motmedel net split address: %w", err), remoteAddr)
 	}
 
 	return ipAddress, nil
