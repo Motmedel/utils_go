@@ -6,6 +6,7 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"
+	motmedelJson "github.com/Motmedel/utils_go/pkg/json"
 	"github.com/google/uuid"
 	"net/http"
 	"reflect"
@@ -27,20 +28,9 @@ func (problemDetail *ProblemDetail) ExtensionMap() (map[string]any, error) {
 		return nil, nil
 	}
 
-	extensionBytes, err := json.Marshal(extension)
+	extensionMap, err := motmedelJson.ObjectToMap(extension)
 	if err != nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(
-			fmt.Errorf("json marshal (extension): %w", err),
-			extension,
-		)
-	}
-
-	var extensionMap map[string]any
-	if err := json.Unmarshal(extensionBytes, &extensionMap); err != nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(
-			fmt.Errorf("json unmarshal (extension map): %w", err),
-			extensionMap,
-		)
+		return nil, motmedelErrors.NewWithTrace("object to map: %w", err)
 	}
 
 	return extensionMap, nil
@@ -75,7 +65,7 @@ func (problemDetail *ProblemDetail) MarshalJSON() ([]byte, error) {
 
 	data, err := json.Marshal(base)
 	if err != nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("json marshal: %w", err), base)
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal: %w", err), base)
 	}
 
 	return data, nil
@@ -90,7 +80,7 @@ func (problemDetail *ProblemDetail) MarshalXML(encoder *xml.Encoder, start xml.S
 	start.Name.Space = "urn:ietf:rfc:7807"
 
 	if err := encoder.EncodeToken(start); err != nil {
-		return motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("encode token (start): %w", err), start)
+		return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (start): %w", err), start)
 	}
 
 	encode := func(localName string, value any) error {
@@ -133,7 +123,7 @@ func (problemDetail *ProblemDetail) MarshalXML(encoder *xml.Encoder, start xml.S
 	if extension := problemDetail.Extension; extension != nil {
 		extensionBytes, err := json.Marshal(problemDetail.Extension)
 		if err != nil {
-			return motmedelErrors.MakeErrorWithStackTrace(
+			return motmedelErrors.NewWithTrace(
 				fmt.Errorf("json marshal (extension): %w", err),
 				extension,
 			)
@@ -141,7 +131,7 @@ func (problemDetail *ProblemDetail) MarshalXML(encoder *xml.Encoder, start xml.S
 
 		var extensionMap map[string]any
 		if err := json.Unmarshal(extensionBytes, &extensionMap); err != nil {
-			return motmedelErrors.MakeErrorWithStackTrace(
+			return motmedelErrors.NewWithTrace(
 				fmt.Errorf("json unmarshal (extension map): %w", err),
 				extensionMap,
 			)
@@ -155,7 +145,7 @@ func (problemDetail *ProblemDetail) MarshalXML(encoder *xml.Encoder, start xml.S
 	}
 
 	if err := encoder.EncodeToken(xml.EndElement{Name: start.Name}); err != nil {
-		return motmedelErrors.MakeErrorWithStackTrace(fmt.Errorf("encode token (end): %w", err), start)
+		return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (end): %w", err), start)
 	}
 
 	return nil
