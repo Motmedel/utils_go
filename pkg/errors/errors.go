@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -109,6 +110,11 @@ type InputErrorI interface {
 	GetInput() any
 }
 
+type ContextErrorI interface {
+	Error() string
+	GetContext() *context.Context
+}
+
 type Error struct {
 	Message    string
 	Cause      error
@@ -157,6 +163,7 @@ type ExtendedError struct {
 	Code       string
 	Id         string
 	StackTrace string
+	Context    *context.Context
 }
 
 func (err *ExtendedError) Error() string {
@@ -234,6 +241,23 @@ func (err *ExtendedError) GetStackTrace() string {
 	return ""
 }
 
+func (err *ExtendedError) GetContext() *context.Context {
+	if contextPtr := err.Context; contextPtr != nil {
+		return contextPtr
+	}
+
+	includedErr := err.error
+	if includedErr == nil {
+		return nil
+	}
+
+	if contextError, ok := includedErr.(ContextErrorI); ok {
+		return contextError.GetContext()
+	}
+
+	return nil
+}
+
 func (err *ExtendedError) Unwrap() []error {
 	switch typedErr := err.error.(type) {
 	case interface{ Unwrap() error }:
@@ -257,7 +281,7 @@ func (err *ExtendedError) As(target any) bool {
 	return errors.As(err.error, target)
 }
 
-func MakeError(e any, input ...any) *ExtendedError {
+func New(e any, input ...any) *ExtendedError {
 	var err error
 
 	// Expecting `e` to be an `error` or a string. If not, make it a string.
@@ -283,19 +307,29 @@ func MakeError(e any, input ...any) *ExtendedError {
 	return &ExtendedError{error: err, Input: errInput}
 }
 
-var New = MakeError
+func NewCtx(ctx context.Context, e any, input ...any) *ExtendedError {
+	extendedErr := New(e, input...)
+	extendedErr.Context = &ctx
 
-func MakeErrorWithStackTrace(e any, input ...any) *ExtendedError {
-	extendedErr := MakeError(e, input...)
+	return extendedErr
+}
+
+func NewWithTrace(e any, input ...any) *ExtendedError {
+	extendedErr := New(e, input...)
 	extendedErr.StackTrace = removeFunctionFromStackTrace(
 		CaptureStackTrace(),
-		getFunctionName(MakeErrorWithStackTrace),
+		getFunctionName(NewWithTrace),
 	)
 
 	return extendedErr
 }
 
-var NewWithTrace = MakeErrorWithStackTrace
+func NewWithTraceCtx(ctx context.Context, e any, input ...any) *ExtendedError {
+	extendedErr := NewWithTrace(e, input...)
+	extendedErr.Context = &ctx
+
+	return extendedErr
+}
 
 func IsAny(err error, targets ...error) bool {
 	for _, target := range targets {

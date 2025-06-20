@@ -93,8 +93,6 @@ func merge(in *Group, stack []string, attr slog.Attr) {
 		newGroup.Merge(nil, attr.Value.Group()...)
 		l.Values = append(l.Values, &Value{Name: attr.Key, Group: newGroup})
 	}
-
-	return
 }
 
 func last(in *Group, stack []string) *Group {
@@ -108,5 +106,5 @@ func last(in *Group, stack []string) *Group {
 		}
 	}
 
-	panic("slog/meld: invalid or misconfigured stack")
+	panic("invalid or misconfigured stack")
 }

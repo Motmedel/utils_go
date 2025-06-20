@@ -54,10 +54,11 @@ func (contextHandler *ContextHandler) Handle(ctx context.Context, record slog.Re
 }
 
 type ErrorContextExtractor struct {
-	SkipCause      bool
-	SkipInput      bool
-	SkipStackTrace bool
-	SkipOutput     bool
+	SkipCause         bool
+	SkipInput         bool
+	SkipStackTrace    bool
+	SkipOutput        bool
+	ContextExtractors []ContextExtractor
 }
 
 func (extractor *ErrorContextExtractor) MakeErrorAttrs(err error) []any {
@@ -216,6 +217,33 @@ func (extractor *ErrorContextExtractor) Handle(ctx context.Context, record *slog
 
 	if logErr, ok := ctx.Value(motmedelContext.ErrorContextKey).(error); ok {
 		record.Add(slog.Group("error", extractor.MakeErrorAttrs(logErr)...))
+
+		if contextErr, ok := logErr.(motmedelErrors.ContextErrorI); ok {
+			if contextErrCtxPtr := contextErr.GetContext(); contextErrCtxPtr != nil {
+				contextErrCtx := *contextErrCtxPtr
+
+				var metadataRecord slog.Record
+
+				for _, contextExtractor := range extractor.ContextExtractors {
+					if err := contextExtractor.Handle(contextErrCtx, &metadataRecord); err != nil {
+						return fmt.Errorf("context extractor handle: %w", err)
+					}
+
+					var attrs []any
+					metadataRecord.Attrs(
+						func(attr slog.Attr) bool {
+							attrs = append(attrs, attr)
+							return true
+						},
+					)
+
+					if len(attrs) > 0 {
+						record.Add(slog.Group("error", slog.Group("context", attrs...)))
+						break
+					}
+				}
+			}
+		}
 	}
 
 	return nil
