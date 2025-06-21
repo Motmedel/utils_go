@@ -1,6 +1,8 @@
 package retry_after
 
 import (
+	"errors"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"testing"
 	"time"
 )
@@ -9,11 +11,8 @@ func TestRetryAfterBadInput(t *testing.T) {
 	data := []byte("so bad")
 
 	retryAfter, err := ParseRetryAfter(data)
-	if err != nil {
-		t.Fatalf("an error occurred when parsing the data: %v", err)
-	}
-	if retryAfter != nil {
-		t.Fatal("retry after parsing succeeded with bad input")
+	if retryAfter != nil && errors.Is(err, motmedelErrors.ErrSyntaxError) {
+		t.Error("expected nil retry after and syntax error")
 	}
 }
 

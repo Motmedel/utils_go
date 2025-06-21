@@ -33,10 +33,10 @@ var (
 func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(StrictTransportSecurityGrammar, data)
 	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	directiveNameSet := make(map[string]struct{})
@@ -80,11 +80,10 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 				quotedString := string(parsing_utils.ExtractPathValue(data, quotedStringPath))
 				directiveStringValue, err = strconv.Unquote(quotedString)
 				if err != nil {
-					return nil, &motmedelErrors.Error{
-						Message: "An error occurred when unquoting a quoted-string.",
-						Cause:   err,
-						Input:   quotedString,
-					}
+					return nil, motmedelErrors.NewWithTrace(
+						fmt.Errorf("strvconv unquote (quoted-string): %w", err),
+						quotedString,
+					)
 				}
 			} else {
 				directiveStringValue = string(parsing_utils.ExtractPathValue(data, directiveValuePath))
@@ -117,11 +116,10 @@ func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTranspo
 
 			maxAgeNumber, err := strconv.Atoi(directiveStringValue)
 			if err != nil {
-				return nil, &motmedelErrors.Error{
-					Message: "An error occurred when parsing a max-age value as an integer.",
-					Cause:   err,
-					Input:   directiveStringValue,
-				}
+				return nil, motmedelErrors.NewWithTrace(
+					fmt.Errorf("strvconv atoi (max-age): %w", err),
+					directiveStringValue,
+				)
 			}
 
 			strictTransportPolicy.MaxAga = maxAgeNumber

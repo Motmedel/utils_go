@@ -29,10 +29,10 @@ var (
 func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(RetryAfterGrammar, data)
 	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	retryAfter := &motmedelHttpTypes.RetryAfter{Raw: string(data)}
@@ -43,14 +43,14 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	if httpDatePath != nil {
 		httpDateString := string(parsing_utils.ExtractPathValue(data, httpDatePath))
 		if httpDateString == "" {
-			return nil, motmedelErrors.MakeErrorWithStackTrace(
+			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrEmptyHttpDate),
 			)
 		}
 
 		httpDate, err := time.Parse(time.RFC1123, httpDateString)
 		if err != nil {
-			return nil, motmedelErrors.MakeErrorWithStackTrace(
+			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf(
 					"%w: %w: time parse rfc1123: %w",
 					motmedelErrors.ErrSemanticError,
@@ -70,14 +70,14 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	if delaySecondsPath != nil {
 		delaySecondsString := string(parsing_utils.ExtractPathValue(data, delaySecondsPath))
 		if delaySecondsString == "" {
-			return nil, motmedelErrors.MakeErrorWithStackTrace(
+			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrEmptyDelaySeconds),
 			)
 		}
 
 		delaySeconds, err := strconv.Atoi(delaySecondsString)
 		if err != nil {
-			return nil, motmedelErrors.MakeErrorWithStackTrace(
+			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf(
 					"%w: %w: strconv atoi: %w",
 					motmedelErrors.ErrSemanticError,
@@ -93,7 +93,7 @@ func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 		return retryAfter, nil
 	}
 
-	return nil, motmedelErrors.MakeErrorWithStackTrace(ErrNoPathMatch)
+	return nil, motmedelErrors.NewWithTrace(ErrNoPathMatch)
 }
 
 func init() {

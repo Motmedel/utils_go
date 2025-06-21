@@ -25,10 +25,10 @@ var (
 func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(AcceptEncodingGrammar, data)
 	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	var acceptEncoding motmedelHttpTypes.AcceptEncoding
@@ -45,7 +45,7 @@ func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error)
 			false,
 		)
 		if codingsPath == nil {
-			return nil, motmedelErrors.MakeErrorWithStackTrace(
+			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilCodingsPath),
 			)
 		}
@@ -63,7 +63,7 @@ func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error)
 			bitSize := 32
 			parsedQualityValue, err := strconv.ParseFloat(qvalueString, bitSize)
 			if err != nil {
-				return nil, motmedelErrors.MakeErrorWithStackTrace(
+				return nil, motmedelErrors.NewWithTrace(
 					fmt.Errorf(
 						"%w: %w: strvconv parse float (qvalue): %w",
 						motmedelErrors.ErrSemanticError,

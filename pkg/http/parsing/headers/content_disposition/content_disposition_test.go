@@ -2,6 +2,7 @@ package content_disposition
 
 import (
 	"errors"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/google/go-cmp/cmp"
 	"testing"
@@ -18,7 +19,7 @@ func TestParseContentDisposition(t *testing.T) {
 			name:        "empty content disposition",
 			input:       nil,
 			expected:    nil,
-			expectedErr: nil,
+			expectedErr: motmedelErrors.ErrSyntaxError,
 		},
 		{
 			name:  "valid content disposition with custom disposition type",

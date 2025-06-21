@@ -25,10 +25,10 @@ var (
 func ParseContentType(data []byte) (*motmedelHttpTypes.ContentType, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(ContentTypeGrammar, data)
 	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	var contentType motmedelHttpTypes.ContentType
@@ -58,7 +58,7 @@ func ParseContentType(data []byte) (*motmedelHttpTypes.ContentType, error) {
 				quotedString := string(parsing_utils.ExtractPathValue(data, quotedStringPath))
 				parameterValue, err = strconv.Unquote(quotedString)
 				if err != nil {
-					return nil, motmedelErrors.MakeErrorWithStackTrace(
+					return nil, motmedelErrors.NewWithTrace(
 						fmt.Errorf(
 							"%w: %w: strvconv unquote: %w",
 							motmedelErrors.ErrSemanticError,

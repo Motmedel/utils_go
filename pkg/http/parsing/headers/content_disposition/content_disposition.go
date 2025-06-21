@@ -70,10 +70,10 @@ func getValue(data []byte, path *goabnf.Path) (string, error) {
 func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(ContentDispositionGrammar, data)
 	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	contentDisposition := motmedelHttpTypes.ContentDisposition{

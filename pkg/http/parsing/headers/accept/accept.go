@@ -28,10 +28,10 @@ var (
 func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(AcceptGrammar, data)
 	if err != nil {
-		return nil, motmedelErrors.MakeError(fmt.Errorf("get parsed data paths: %w", err), data)
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
 	if len(paths) == 0 {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(motmedelErrors.ErrSyntaxError, data)
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
 	accept := &motmedelHttpTypes.Accept{Raw: string(data)}
@@ -68,14 +68,14 @@ func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 		for i, parameterPath := range parameterPaths {
 			if parameterPath.MatchRule == "weight" {
 				if i != len(parameterPaths)-1 {
-					return nil, motmedelErrors.MakeErrorWithStackTrace(
+					return nil, motmedelErrors.NewWithTrace(
 						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrParameterNamedQ),
 					)
 				}
 
 				qValuePath := parsing_utils.SearchPathSingle(interestingPath, []string{"qvalue"}, 1, false)
 				if qValuePath == nil {
-					return nil, motmedelErrors.MakeErrorWithStackTrace(
+					return nil, motmedelErrors.NewWithTrace(
 						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilQValuePath),
 					)
 				}
@@ -84,7 +84,7 @@ func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 				bitSize := 32
 				parsedWeight, err := strconv.ParseFloat(qValueString, bitSize)
 				if err != nil {
-					return nil, motmedelErrors.MakeErrorWithStackTrace(
+					return nil, motmedelErrors.NewWithTrace(
 						fmt.Errorf(
 							"%w: %w: strvconv parse float: %w",
 							motmedelErrors.ErrSemanticError, ErrInvalidQvalue, err,
@@ -99,7 +99,7 @@ func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 				separator := "='"
 				key, value, found := strings.Cut(parameterString, "=")
 				if !found {
-					return nil, motmedelErrors.MakeErrorWithStackTrace(
+					return nil, motmedelErrors.NewWithTrace(
 						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrCouldNotSplitParameter),
 						parameterString,
 						separator,
