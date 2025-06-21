@@ -11,6 +11,7 @@ import (
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 	"io"
 	"log/slog"
 	"net/http"
@@ -80,6 +81,9 @@ func fetch(
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpResponse)
 	}
 	responseBody := response.Body
+	if responseBody == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpResponseBodyReader)
+	}
 
 	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
 	if httpContext != nil {
@@ -108,6 +112,17 @@ func fetch(
 		if httpContext != nil {
 			httpContext.ResponseBody = responseBodyData
 		}
+	}
+
+	if responseTls := response.TLS; httpContext != nil && responseTls != nil {
+		tlsContext := httpContext.TlsContext
+		if tlsContext == nil {
+			tlsContext = &motmedelTlsTypes.TlsContext{}
+			httpContext.TlsContext = tlsContext
+		}
+
+		tlsContext.ConnectionState = responseTls
+		tlsContext.ClientInitiated = true
 	}
 
 	return response, responseBodyData, nil
