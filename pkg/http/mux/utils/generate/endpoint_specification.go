@@ -89,19 +89,19 @@ func AddContentEncodingData(staticContent *static_content.StaticContent) error {
 	contentEncodingToData := make(map[string]*static_content.StaticContentData)
 	var contentEncodingToDataLock sync.Mutex
 
-	errGroup, cancelCtx := errgroup.WithContext(context.Background())
+	errGroup, errGroupCtx := errgroup.WithContext(context.Background())
 
 loop:
 	for _, contentEncoding := range supportedContentEncodings {
 		select {
-		case <-cancelCtx.Done():
+		case <-errGroupCtx.Done():
 			break loop
 		default:
 			errGroup.Go(
 				func() error {
 					switch contentEncoding {
 					case "gzip":
-						gzipData, err := motmedelGzip.MakeGzipData(data)
+						gzipData, err := motmedelGzip.MakeGzipData(context.Background(), data)
 						if err != nil {
 							return fmt.Errorf("make gzip data: %w", err)
 						}

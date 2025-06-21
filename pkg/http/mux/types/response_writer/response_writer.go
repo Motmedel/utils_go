@@ -215,7 +215,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		// NOTE: The case where `identify` effectively has a quality value of 0 should be handled elsewhere.
 		switch motmedelHttpUtils.GetMatchingContentEncoding(acceptEncoding.GetPriorityOrderedEncodings(), []string{"gzip"}) {
 		case "gzip":
-			gzipBody, err := motmedelGzip.MakeGzipData(body)
+			gzipBody, err := motmedelGzip.MakeGzipData(ctx, body)
 			if err != nil {
 				slog.WarnContext(
 					motmedelContext.WithErrorContextValue(
