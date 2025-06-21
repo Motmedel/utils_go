@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 	"net/http"
 	"sort"
 	"strings"
@@ -13,6 +14,7 @@ type HttpContext struct {
 	RequestBody  []byte
 	Response     *http.Response
 	ResponseBody []byte
+	TlsContext *motmedelTlsTypes.TlsContext
 }
 
 func getFullType(typeValue string, subtypeValue string, normalize bool) string {
