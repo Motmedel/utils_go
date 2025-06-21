@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/Motmedel/jsonschema v0.0.1
-	github.com/Motmedel/utils_go v0.0.146
+	github.com/Motmedel/utils_go v0.0.219
 	github.com/swaggest/jsonschema-go v0.3.73
 )
 

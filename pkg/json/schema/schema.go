@@ -28,7 +28,7 @@ func New[T any](t T) (*jsonschema.Schema, error) {
 
 	compiler := jsonschema.NewCompiler()
 	if compiler == nil {
-		return nil, motmedelErrors.MakeErrorWithStackTrace(ErrNilCompiler)
+		return nil, motmedelErrors.NewWithTrace(ErrNilCompiler)
 	}
 
 	schema, err := compiler.Compile(byteSchema)
