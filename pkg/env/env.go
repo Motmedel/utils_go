@@ -18,7 +18,7 @@ func GetEnvWithDefault(key string, defaultValue string) string {
 	return value
 }
 
-func ReadEnvFatal(ctx context.Context, name string) string {
+func ReadEnv(name string) (string, error) {
 	value, found := os.LookupEnv(name)
 
 	var err error
@@ -29,9 +29,18 @@ func ReadEnvFatal(ctx context.Context, name string) string {
 	}
 
 	if err != nil {
+		return "", err
+	}
+
+	return value, nil
+}
+
+func ReadEnvFatal(ctx context.Context, name string) string {
+	value, err := ReadEnv(name)
+	if err != nil {
 		slog.ErrorContext(
 			motmedelContext.WithErrorContextValue(ctx, err),
-			"An environment variable could not be read.",
+			"An environment variable could not be obtained.",
 		)
 		os.Exit(1)
 	}

@@ -15,6 +15,7 @@ type HttpContext struct {
 	Response     *http.Response
 	ResponseBody []byte
 	TlsContext *motmedelTlsTypes.TlsContext
+	Extra []*HttpContext
 }
 
 func getFullType(typeValue string, subtypeValue string, normalize bool) string {
