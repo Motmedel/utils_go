@@ -35,7 +35,7 @@ func ReadEnv(name string) (string, error) {
 	return value, nil
 }
 
-func ReadEnvFatal(ctx context.Context, name string) string {
+func ReadEnvFatalCtx(ctx context.Context, name string) string {
 	value, err := ReadEnv(name)
 	if err != nil {
 		slog.ErrorContext(
@@ -46,4 +46,8 @@ func ReadEnvFatal(ctx context.Context, name string) string {
 	}
 
 	return value
+}
+
+func ReadEnvFatal(name string) string {
+	return ReadEnvFatalCtx(context.Background(), name)
 }
