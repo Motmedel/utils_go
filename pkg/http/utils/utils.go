@@ -71,23 +71,34 @@ func fetch(
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
+	httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	if !ok || httpContext == nil {
+		httpContext = &motmedelHttpTypes.HttpContext{}
+	}
+	ctxWithHttpContext := motmedelHttpContext.WithHttpContextValue(context.Background(), httpContext)
+
+	httpContext.Request = request
+	if options != nil {
+		httpContext.RequestBody = options.Body
+	}
+	
 	response, err := httpClient.Do(request)
+	httpContext.Response = response
 	if err != nil {
-		return nil, nil, motmedelErrors.NewWithTrace(
-			motmedelErrors.NewWithTrace(fmt.Errorf("http client do: %w", err), request),
+		return nil, nil, motmedelErrors.NewWithTraceCtx(
+			ctxWithHttpContext,
+			fmt.Errorf("http client do: %w", err),
 		)
 	}
 	if response == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpResponse)
+		return nil, nil, motmedelErrors.NewWithTraceCtx(ctxWithHttpContext, motmedelHttpErrors.ErrNilHttpResponse)
 	}
 	responseBody := response.Body
 	if responseBody == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpResponseBodyReader)
-	}
-
-	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
-	if httpContext != nil {
-		httpContext.Response = response
+		return nil, nil, motmedelErrors.NewWithTraceCtx(
+			ctxWithHttpContext,
+			motmedelHttpErrors.ErrNilHttpResponseBodyReader,
+		)
 	}
 
 	var skipReadResponseBody bool
@@ -106,15 +117,16 @@ func fetch(
 		}()
 
 		if err != nil {
-			return response, nil, motmedelErrors.NewWithTrace(fmt.Errorf("io read all (response body): %w", err))
+			return response, nil, motmedelErrors.NewWithTraceCtx(
+				ctxWithHttpContext,
+				fmt.Errorf("io read all (response body): %w", err),
+			)
 		}
 
-		if httpContext != nil {
-			httpContext.ResponseBody = responseBodyData
-		}
+		httpContext.ResponseBody = responseBodyData
 	}
 
-	if responseTls := response.TLS; httpContext != nil && responseTls != nil {
+	if responseTls := response.TLS; responseTls != nil {
 		tlsContext := httpContext.TlsContext
 		if tlsContext == nil {
 			tlsContext = &motmedelTlsTypes.TlsContext{}
@@ -123,6 +135,20 @@ func fetch(
 
 		tlsContext.ConnectionState = responseTls
 		tlsContext.ClientInitiated = true
+	}
+
+	var skipErrorOnStatus bool
+	if options != nil {
+		skipErrorOnStatus = options.SkipErrorOnStatus
+	}
+
+	if !skipErrorOnStatus {
+		if !strings.HasPrefix(strconv.Itoa(response.StatusCode), "2") {
+			return response, responseBodyData, motmedelErrors.NewWithTraceCtx(
+				ctxWithHttpContext,
+				&motmedelHttpErrors.Non2xxStatusCodeError{StatusCode: response.StatusCode},
+			)
+		}
 	}
 
 	return response, responseBodyData, nil
@@ -164,6 +190,8 @@ func fetchWithRetryConfig(
 	var err error
 	var response *http.Response
 	var responseBody []byte
+
+	// TODO: Do something with http context and extra
 
 	for i := 0; i < (1 + retryCount); i++ {
 		if i != 0 {
@@ -229,7 +257,7 @@ func fetchWithRetryConfig(
 		}
 	}
 	if err != nil {
-		return nil, nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), request, httpClient)
+		return nil, nil, fmt.Errorf("fetch: %w", err)
 	}
 
 	return response, responseBody, nil
@@ -249,16 +277,9 @@ func FetchWithRequest(
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
-	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
-	if httpContext != nil {
-		httpContext.Request = request
-	}
-
-	var skipErrorOnStatus bool
 	var retryConfiguration *motmedelHttpTypes.RetryConfiguration
 
 	if options != nil {
-		skipErrorOnStatus = options.SkipErrorOnStatus
 		retryConfiguration = options.RetryConfig
 	}
 
@@ -278,15 +299,7 @@ func FetchWithRequest(
 		response, responseBody, err = fetch(ctx, request, httpClient, options)
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetch%s: %w", errString, err)
-	}
-
-	if !skipErrorOnStatus {
-		if !strings.HasPrefix(strconv.Itoa(response.StatusCode), "2") {
-			return nil, nil, motmedelErrors.NewWithTrace(
-				&motmedelHttpErrors.Non2xxStatusCodeError{StatusCode: response.StatusCode},
-			)
-		}
+		return response, responseBody, fmt.Errorf("fetch%s: %w", errString, err)
 	}
 
 	return response, responseBody, nil
@@ -321,16 +334,10 @@ func Fetch(
 
 	request, err := http.NewRequest(method, url, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method, url)
+		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method)
 	}
 	if request == nil {
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest)
-	}
-
-	httpContext, _ := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
-	if httpContext != nil {
-		httpContext.Request = request
-		httpContext.RequestBody = body
 	}
 
 	requestHeader := request.Header
