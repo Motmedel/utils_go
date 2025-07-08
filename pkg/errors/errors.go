@@ -16,6 +16,7 @@ var (
 	ErrSemanticError   = errors.New("semantic error")
 	ErrValidationError = errors.New("validation error")
 	ErrConversionNotOk = errors.New("conversion not ok")
+	ErrBadSplit = errors.New("bad split")
 )
 
 func CollectWrappedErrors(err error) []error {
