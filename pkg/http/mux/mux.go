@@ -428,9 +428,23 @@ func muxHandleRequest(
 
 	// Obtain a response
 
-	if staticContent := endpointSpecification.StaticContent; staticContent != nil {
-		// Respond with static content.
+	var handlerResponseHeaders []*muxTypesResponse.HeaderEntry
 
+	// Respond with dynamic content via a handler.
+	handler := endpointSpecification.Handler
+	if handler != nil {
+		response, responseError = handler(request, requestBody)
+		if responseError != nil {
+			return nil, responseError
+		}
+		if response != nil {
+			handlerResponseHeaders = response.Headers
+		}
+	}
+
+	// Respond with static content.
+	staticContent := endpointSpecification.StaticContent;
+	if staticContent != nil {
 		var isCached bool
 		isCached, responseError = muxInternalMux.ObtainIsCached(staticContent, requestHeader)
 		if responseError != nil {
@@ -449,21 +463,23 @@ func muxHandleRequest(
 			requestHeader,
 			acceptEncoding,
 		)
-	} else if handler := endpointSpecification.Handler; handler != nil {
-		// Respond with dynamic content (via a handler).
-
-		response, responseError = handler(request, requestBody)
 	}
 
 	if responseError != nil {
 		return nil, responseError
 	}
 
-	if !endpointSpecification.DisableFetchMedata {
-		if response == nil {
-			response = &muxTypesResponse.Response{}
-		}
+	if response == nil {
+		response = &muxTypesResponse.Response{}
+	}
 
+	// If both a handler and static content are specified, the handler response headers are added to the static content
+	// response headers.
+	if handler != nil && staticContent != nil {
+		response.Headers = append(response.Headers, handlerResponseHeaders...)
+	}
+
+	if !endpointSpecification.DisableFetchMedata {
 		response.Headers = append(
 			response.Headers,
 			&muxTypesResponse.HeaderEntry{

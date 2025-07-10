@@ -129,6 +129,19 @@ func TestMain(m *testing.M) {
 			},
 		},
 		&endpoint_specification.EndpointSpecification{
+			Path:   "/hello-world-fetch-metadata",
+			Method: http.MethodGet,
+			StaticContent: &muxTypesStaticContent.StaticContent{
+				StaticContentData: muxTypesStaticContent.StaticContentData{
+					Data: []byte("<html>hello world</html>"),
+					Headers: []*muxTypesResponse.HeaderEntry{
+						{Name: "Content-Type", Value: "text/html"},
+						{Name: "Cache-Control", Value: "no-cache", Overwrite: true},
+					},
+				},
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
 			Path:   "/push",
 			Method: http.MethodPost,
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
@@ -254,7 +267,7 @@ func TestMux(t *testing.T) {
 		{
 			name:               "fetch metadata vary",
 			method:             http.MethodHead,
-			url:                "/hello-world",
+			url:                "/hello-world-fetch-metadata",
 			expectedStatusCode: http.StatusOK,
 			expectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"}},
 		},

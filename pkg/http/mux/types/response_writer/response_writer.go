@@ -107,7 +107,9 @@ func (responseWriter *ResponseWriter) WriteResponse(
 
 	var contentTypeString *string
 	var contentEncodingString *string
-	var cacheControlString string
+
+	cacheControlSet := make(map[string]struct{})
+	var varyValues []string
 
 	responseWriterHeader := responseWriter.Header()
 	for _, header := range response.Headers {
@@ -133,7 +135,9 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		}
 
 		if canonicalHeaderName == "Cache-Control" {
-			cacheControlString = headerValue
+			for _, cacheControlValue := range strings.Split(headerValue, ",") {
+				cacheControlSet[strings.ToLower(strings.TrimSpace(cacheControlValue))] = struct{}{}
+			}
 		}
 
 		if _, ok := defaultHeaders[canonicalHeaderName]; ok {
@@ -150,6 +154,13 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			skippedDefaultHeadersSet[canonicalHeaderName] = struct{}{}
 		}
 
+		if canonicalHeaderName == "Vary" {
+			for _, varyValue := range strings.Split(headerValue, ",") {
+				varyValues = append(varyValues, strings.TrimSpace(varyValue))
+			}
+			continue
+		}
+
 		responseWriterHeader.Add(canonicalHeaderName, headerValue)
 	}
 	for headerName, headerValue := range defaultHeaders {
@@ -160,7 +171,16 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		}
 
 		if canonicalHeaderName == "Cache-Control" {
-			cacheControlString = headerValue
+			for _, cacheControlValue := range strings.Split(headerValue, ",") {
+				cacheControlSet[strings.ToLower(strings.TrimSpace(cacheControlValue))] = struct{}{}
+			}
+		}
+
+		if canonicalHeaderName == "Vary" {
+			for _, varyValue := range strings.Split(headerValue, ",") {
+				varyValues = append(varyValues, strings.TrimSpace(varyValue))
+			}
+			continue
 		}
 
 		responseWriterHeader.Add(canonicalHeaderName, headerValue)
@@ -199,6 +219,12 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		}
 	}
 
+	_, noStore := cacheControlSet["no-store"]
+
+	if !noStore && len(varyValues) > 0 {
+		responseWriterHeader.Add("Vary", strings.Join(varyValues, ", "))
+	}
+
 	// Try to compress the body if it is of a decent size, and
 	shouldTryToCompressBody := len(body) > 1000 &&
 		// ... no content encoding is applied
@@ -209,7 +235,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		!response.SensitiveBody &&
 		// ... the response concerns a non-static resource (static resources should provide encoded values explicitly,
 		// and I don't want to add a `Vary` header like this)
-		cacheControlString == "no-store"
+		noStore
 
 	if shouldTryToCompressBody {
 		// NOTE: The case where `identify` effectively has a quality value of 0 should be handled elsewhere.
