@@ -78,10 +78,34 @@ func GetNonZeroParsedRequestHeaders[T comparable](ctx context.Context) (T, error
 	return getNonZeroParsed[T](ctx, parsing.ParsedRequestHeaderContextKey)
 }
 
+func GetServerNonZeroParsedRequestHeaders[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
+	value, err := GetNonZeroParsedRequestHeaders[T](ctx)
+	if err != nil {
+		var zero T
+		return zero, &response_error.ResponseError{
+			ServerError: fmt.Errorf("get non zero parsed request headers: %w", err),
+		}
+	}
+
+	return value, nil
+}
+
 func GetParsedRequestUrl[T any](ctx context.Context) (T, error) {
 	return getParsed[T](ctx, parsing.ParsedRequestUrlContextKey)
 }
 
-func GetNoneZeroParsedRequestUrl[T comparable](ctx context.Context) (T, error) {
+func GetServerNonZeroParsedRequestUrl[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
+	value, err := GetNonZeroParsedRequestUrl[T](ctx)
+	if err != nil {
+		var zero T
+		return zero, &response_error.ResponseError{
+			ServerError: fmt.Errorf("get non zero parsed request url: %w", err),
+		}
+	}
+
+	return value, nil
+}
+
+func GetNonZeroParsedRequestUrl[T comparable](ctx context.Context) (T, error) {
 	return getNonZeroParsed[T](ctx, parsing.ParsedRequestUrlContextKey)
 }
