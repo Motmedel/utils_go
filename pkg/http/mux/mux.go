@@ -10,6 +10,7 @@ import (
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
 	muxInternal "github.com/Motmedel/utils_go/pkg/http/mux/internal"
 	muxInternalMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/mux"
 	muxTypesEnpointSpecification "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
@@ -19,7 +20,6 @@ import (
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
-	"github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -321,7 +321,7 @@ func muxHandleRequest(
 
 	if urlParserConfiguration := endpointSpecification.UrlParserConfiguration; urlParserConfiguration != nil {
 		if parser := urlParserConfiguration.Parser; parser != nil {
-			parsedUrl, responseError := parser(request)
+			parsedUrl, responseError := parser.Parse(request)
 			if responseError != nil {
 				return nil, responseError
 			}
@@ -336,7 +336,7 @@ func muxHandleRequest(
 
 	if headerParserConfiguration := endpointSpecification.HeaderParserConfiguration; headerParserConfiguration != nil {
 		if parser := headerParserConfiguration.Parser; parser != nil {
-			parsedHeader, responseError := parser(request)
+			parsedHeader, responseError := parser.Parse(request)
 			if responseError != nil {
 				return nil, responseError
 			}
@@ -443,7 +443,7 @@ func muxHandleRequest(
 	}
 
 	// Respond with static content.
-	staticContent := endpointSpecification.StaticContent;
+	staticContent := endpointSpecification.StaticContent
 	if staticContent != nil {
 		var isCached bool
 		isCached, responseError = muxInternalMux.ObtainIsCached(staticContent, requestHeader)

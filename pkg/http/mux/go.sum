@@ -1,7 +1,7 @@
 github.com/Motmedel/parsing_utils v0.0.4 h1:bO8LTo9HiIa9MYIKia1Jg5MMrCUVNCGj7eH2P3iipxk=
 github.com/Motmedel/parsing_utils v0.0.4/go.mod h1:HC0h9wnTMj7ToDdaYNyp7XnJYdfXx+izbTZ5IYWS1EY=
-github.com/Motmedel/utils_go v0.0.226 h1:UbXuFEdoO49B8EI1v69GWvvj2oGUO7l+HbuWJB5C5eQ=
-github.com/Motmedel/utils_go v0.0.226/go.mod h1:kKm8jM7GA8M7ICIImi5etOMixRgQfnStBPjEoCMTgbg=
+github.com/Motmedel/utils_go v0.0.228 h1:zcGWgHf1BMyyoXXoIjsZNOlWjQDreZLZSlKVcZ55MgU=
+github.com/Motmedel/utils_go v0.0.228/go.mod h1:kKm8jM7GA8M7ICIImi5etOMixRgQfnStBPjEoCMTgbg=
 github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.23 h1:kqfNrS9E8Wv1XIELbcK5BEEPPK26oB8XBPpK/QNd8OA=
 github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.23/go.mod h1:0NsaCYHhxB2yfbNg+LgC93AJu3XijlSLWUNL6QHUZ0A=
 github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5 h1:W10vCKqxk8wwxvlXDD7+PA57RKZx/oOXp7fvQ/a09ag=

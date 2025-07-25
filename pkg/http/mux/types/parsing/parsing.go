@@ -1,9 +1,8 @@
 package parsing
 
 import (
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
-	"net/http"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
 )
 
 type parsedRequestUrlContextType struct{}
@@ -15,11 +14,11 @@ var ParsedRequestHeaderContextKey parsedRequestHeaderContextType
 var ParsedRequestBodyContextKey parsedRequestBodyContextType
 
 type UrlParserConfiguration struct {
-	Parser func(*http.Request) (any, *response_error.ResponseError)
+	Parser request_parser.RequestParser[any]
 }
 
 type HeaderParserConfiguration struct {
-	Parser func(*http.Request) (any, *response_error.ResponseError)
+	Parser request_parser.RequestParser[any]
 }
 
 type BodyParserConfiguration struct {

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	"net/http"
 )
