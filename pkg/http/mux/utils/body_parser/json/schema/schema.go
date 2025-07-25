@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"github.com/Motmedel/jsonschema"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
 	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelInterfaces "github.com/Motmedel/utils_go/pkg/interfaces"
 	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
+	"github.com/Motmedel/utils_go/pkg/utils"
 	"maps"
 	"net/http"
 	"slices"
@@ -18,7 +20,6 @@ import (
 
 var (
 	ErrNilSchema               = errors.New("nil schema")
-	ErrNilDataMapPointer       = errors.New("nil data mad pointer")
 	ErrNilEvaluationResult     = errors.New("nil evaluation result")
 	ErrNilEvaluationResultList = errors.New("nil evaluation result list")
 )
@@ -54,24 +55,22 @@ func Validate(dataMap map[string]any, schema *jsonschema.Schema) error {
 type JsonSchemaBodyParser[T any] struct {
 	body_parser.BodyParser
 	Schema    *jsonschema.Schema
-	Processor body_parser.BodyProcessor[*T]
+	Processor body_processor.BodyProcessor[T]
 }
 
 func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []byte) (any, *response_error.ResponseError) {
-	if bodyParser.Schema == nil {
+	schema := bodyParser.Schema
+	if schema == nil {
 		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
 	}
 
-	dataMapPtr, responseError := bodyParserJson.ParseJsonBody[map[string]any](request, body)
+	dataMap, responseError := bodyParserJson.ParseJsonBody[map[string]any](request, body)
 	if responseError != nil {
 		return nil, responseError
 	}
-	if dataMapPtr == nil {
-		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilDataMapPointer)}
-	}
 
-	if err := Validate(*dataMapPtr, bodyParser.Schema); err != nil {
-		wrappedErr := motmedelErrors.New(fmt.Errorf("validate (input): %w", err), *dataMapPtr, bodyParser.Schema)
+	if err := Validate(dataMap, schema); err != nil {
+		wrappedErr := motmedelErrors.New(fmt.Errorf("validate (input): %w", err), dataMap, schema)
 
 		var validateError *ValidateError
 		if errors.As(err, &validateError) {
@@ -114,7 +113,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 		}
 	}
 
-	if processor := bodyParser.Processor; processor != nil {
+	if processor := bodyParser.Processor; !utils.IsNil(processor) {
 		result, responseError = processor.Process(result)
 		if responseError != nil {
 			return nil, responseError
@@ -131,7 +130,7 @@ func NewWithSchema[T any](schema *jsonschema.Schema) body_parser.BodyParser {
 func New[T any](t T) (body_parser.BodyParser, error) {
 	schema, err := motmedelJsonSchema.New[T](t)
 	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("schema new: %w", err), t)
+		return nil, fmt.Errorf("schema new: %w", err)
 	}
 
 	return NewWithSchema[T](schema), nil
