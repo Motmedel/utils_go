@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"reflect"
 )
 
 func GetConversionValue[T any](value any) (T, error) {
@@ -32,4 +33,6 @@ func GetNonZoneConversionValue[T comparable](value any) (T, error) {
 	return convertedValue, nil
 }
 
-// TODO: Add `nil` check for interfaces.
+func IsNil(value any) bool {
+	return value == nil || (reflect.ValueOf(value).Kind() == reflect.Ptr && reflect.ValueOf(value).IsNil())
+}
