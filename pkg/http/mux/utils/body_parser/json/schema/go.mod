@@ -7,7 +7,7 @@ require (
 	github.com/Motmedel/utils_go v0.0.229
 	github.com/Motmedel/utils_go/pkg/http/mux v0.0.82
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5
-	github.com/Motmedel/utils_go/pkg/json/schema v0.0.4
+	github.com/Motmedel/utils_go/pkg/json/schema v0.0.5
 )
 
 require (

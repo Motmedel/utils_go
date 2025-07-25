@@ -6,8 +6,8 @@ type BodyProcessor[T any] interface {
 	Process(any) (T, *response_error.ResponseError)
 }
 
-type BodyProcessorFunction[T any] func(any) (T, *response_error.ResponseError)
+type BodyProcessorFunction[T any, U any] func(U) (T, *response_error.ResponseError)
 
-func (bpf BodyProcessorFunction[T]) Process(input any) (T, *response_error.ResponseError) {
+func (bpf BodyProcessorFunction[T, U]) Process(input U) (T, *response_error.ResponseError) {
 	return bpf(input)
 }
