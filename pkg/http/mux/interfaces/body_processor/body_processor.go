@@ -2,8 +2,8 @@ package body_processor
 
 import "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 
-type BodyProcessor[T any] interface {
-	Process(any) (T, *response_error.ResponseError)
+type BodyProcessor[T any, U any] interface {
+	Process(U) (T, *response_error.ResponseError)
 }
 
 type BodyProcessorFunction[T any, U any] func(U) (T, *response_error.ResponseError)
