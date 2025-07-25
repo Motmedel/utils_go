@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func ParseJsonBody[T any](_ *http.Request, body []byte) (*T, *response_error.ResponseError) {
+func ParseJsonBody[T any](_ *http.Request, body []byte) (T, *response_error.ResponseError) {
 	var target T
 
 	if err := json.Unmarshal(body, &target); err != nil {
@@ -19,7 +19,7 @@ func ParseJsonBody[T any](_ *http.Request, body []byte) (*T, *response_error.Res
 
 		var unmarshalTypeError *json.UnmarshalTypeError
 		if errors.As(err, &unmarshalTypeError) {
-			return nil, &response_error.ResponseError{
+			return target, &response_error.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnprocessableEntity,
@@ -28,11 +28,11 @@ func ParseJsonBody[T any](_ *http.Request, body []byte) (*T, *response_error.Res
 				),
 			}
 		} else {
-			return nil, &response_error.ResponseError{ServerError: wrappedErr}
+			return target, &response_error.ResponseError{ServerError: wrappedErr}
 		}
 	}
 
-	return &target, nil
+	return target, nil
 }
 
 func New[T any]() body_parser.BodyParser {
