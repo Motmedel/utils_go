@@ -123,11 +123,11 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 	return result, nil
 }
 
-func NewWithSchema[T any](schema *jsonschema.Schema) body_parser.BodyParser {
+func NewWithSchema[T any](schema *jsonschema.Schema) *JsonSchemaBodyParser[T] {
 	return &JsonSchemaBodyParser[T]{BodyParser: bodyParserJson.New[T](), Schema: schema}
 }
 
-func New[T any](t T) (body_parser.BodyParser, error) {
+func New[T any](t T) (*JsonSchemaBodyParser[T], error) {
 	schema, err := motmedelJsonSchema.New[T](t)
 	if err != nil {
 		return nil, fmt.Errorf("schema new: %w", err)
