@@ -35,9 +35,9 @@ func ParseJsonBody[T any](body []byte) (T, *response_error.ResponseError) {
 	return target, nil
 }
 
-func New[T any]() body_parser.BodyParser[any] {
-	return body_parser.BodyParserFunction[any](
-		func(request *http.Request, body []byte) (any, *response_error.ResponseError) {
+func New[T any]() body_parser.BodyParser[T] {
+	return body_parser.BodyParserFunction[T](
+		func(request *http.Request, body []byte) (T, *response_error.ResponseError) {
 			return ParseJsonBody[T](body)
 		},
 	)

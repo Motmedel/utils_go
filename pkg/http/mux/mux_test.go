@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser/adapter"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
@@ -175,7 +176,7 @@ func TestMain(m *testing.M) {
 			},
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
 				ContentType: "application/json",
-				Parser:      bodyParserJson.New[*bodyParserTestData](),
+				Parser:      bodyParserAdapter.New(bodyParserJson.New[*bodyParserTestData]()),
 			},
 		},
 		&endpoint_specification.EndpointSpecification{
