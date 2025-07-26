@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/Motmedel/jsonschema"
@@ -12,9 +13,12 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelInterfaces "github.com/Motmedel/utils_go/pkg/interfaces"
 	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	"github.com/Motmedel/utils_go/pkg/utils"
+	"log/slog"
 	"maps"
 	"net/http"
+	"os"
 	"slices"
 )
 
@@ -154,4 +158,17 @@ func New[T any](t T) (*JsonSchemaBodyParser[T], error) {
 	}
 
 	return NewWithSchema[T](schema), nil
+}
+
+func NewFatal[T any](t T) (*JsonSchemaBodyParser[T], error) {
+	jsonSchemaBodyParser, err := New[T](t)
+	if err != nil {
+		slog.ErrorContext(
+			motmedelContext.WithErrorContextValue(context.Background(), fmt.Errorf("new: %w", err)),
+			"An error occured when creating a JSON schema body parser.",
+		)
+		os.Exit(1)
+	}
+
+	return jsonSchemaBodyParser, nil
 }
