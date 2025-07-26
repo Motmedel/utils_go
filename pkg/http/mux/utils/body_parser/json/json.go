@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func ParseJsonBody[T any](_ *http.Request, body []byte) (T, *response_error.ResponseError) {
+func ParseJsonBody[T any](body []byte) (T, *response_error.ResponseError) {
 	var target T
 
 	if err := json.Unmarshal(body, &target); err != nil {
@@ -35,10 +35,10 @@ func ParseJsonBody[T any](_ *http.Request, body []byte) (T, *response_error.Resp
 	return target, nil
 }
 
-func New[T any]() body_parser.BodyParser {
-	return body_parser.BodyParserFunction(
+func New[T any]() body_parser.BodyParser[any] {
+	return body_parser.BodyParserFunction[any](
 		func(request *http.Request, body []byte) (any, *response_error.ResponseError) {
-			return ParseJsonBody[T](request, body)
+			return ParseJsonBody[T](body)
 		},
 	)
 }

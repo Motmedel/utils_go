@@ -23,6 +23,7 @@ import (
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/utils"
 	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
@@ -320,7 +321,7 @@ func muxHandleRequest(
 	// Obtain the parsed url.
 
 	if urlParserConfiguration := endpointSpecification.UrlParserConfiguration; urlParserConfiguration != nil {
-		if parser := urlParserConfiguration.Parser; parser != nil {
+		if parser := urlParserConfiguration.Parser; !utils.IsNil(parser) {
 			parsedUrl, responseError := parser.Parse(request)
 			if responseError != nil {
 				return nil, responseError
@@ -335,7 +336,7 @@ func muxHandleRequest(
 	// Obtain the parsed header.
 
 	if headerParserConfiguration := endpointSpecification.HeaderParserConfiguration; headerParserConfiguration != nil {
-		if parser := headerParserConfiguration.Parser; parser != nil {
+		if parser := headerParserConfiguration.Parser; !utils.IsNil(parser) {
 			parsedHeader, responseError := parser.Parse(request)
 			if responseError != nil {
 				return nil, responseError
@@ -351,7 +352,7 @@ func muxHandleRequest(
 
 	allowEmptyBody := true
 	var expectedContentType string
-	var bodyParser body_parser.BodyParser
+	var bodyParser body_parser.BodyParser[any]
 	var maxBytes int64
 
 	// Obtain validation options from the handler specification configuration.
@@ -415,7 +416,7 @@ func muxHandleRequest(
 	}
 
 	// Parse the body.
-	if bodyParser != nil {
+	if !utils.IsNil(bodyParser) {
 		parsedBody, responseError := bodyParser.Parse(request, requestBody)
 		if responseError != nil {
 			return nil, responseError

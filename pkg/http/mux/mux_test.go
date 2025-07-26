@@ -14,6 +14,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
+	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
@@ -159,13 +160,9 @@ func TestMain(m *testing.M) {
 			Path:   "/body-parsing",
 			Method: http.MethodPost,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
-				d, ok := request.Context().Value(parsing.ParsedRequestBodyContextKey).(*bodyParserTestData)
-				if !ok || d == nil {
-					return nil, &response_error.ResponseError{
-						ServerError: motmedelErrors.NewWithTrace(
-							errors.New("could not obtain parsed request body"),
-						),
-					}
+				d, responseError := utils.GetServerNonZeroParsedRequestBody[*bodyParserTestData](request.Context())
+				if responseError != nil {
+					return nil, responseError
 				}
 
 				if d.Data != "hello world" {
@@ -178,7 +175,7 @@ func TestMain(m *testing.M) {
 			},
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
 				ContentType: "application/json",
-				Parser:      bodyParserJson.New[bodyParserTestData](),
+				Parser:      bodyParserJson.New[*bodyParserTestData](),
 			},
 		},
 		&endpoint_specification.EndpointSpecification{
