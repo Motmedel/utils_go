@@ -53,9 +53,8 @@ func Validate(dataMap map[string]any, schema *jsonschema.Schema) error {
 }
 
 type JsonSchemaBodyParser[T any] struct {
-	body_parser.BodyParser
-	Schema    *jsonschema.Schema
-	Processor body_processor.BodyProcessor[T]
+	body_parser.BodyParser[T]
+	Schema *jsonschema.Schema
 }
 
 func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []byte) (any, *response_error.ResponseError) {
@@ -64,7 +63,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
 	}
 
-	dataMap, responseError := bodyParserJson.ParseJsonBody[map[string]any](request, body)
+	dataMap, responseError := bodyParserJson.ParseJsonBody[map[string]any](body)
 	if responseError != nil {
 		return nil, responseError
 	}
@@ -94,6 +93,8 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 		return nil, responseError
 	}
 
+	// TODO: Not sure this is a nice solution.
+
 	if validator, ok := result.(motmedelInterfaces.Validator); ok {
 		if err := validator.Validate(); err != nil {
 			wrappedErr := fmt.Errorf("validate (result): %w", err)
@@ -113,10 +114,26 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 		}
 	}
 
+	return result, nil
+}
+
+type JsonSchemaBodyParserWithProcessor[T any, U any] struct {
+	JsonSchemaBodyParser[T]
+	Processor body_processor.BodyProcessor[U, T]
+}
+
+func (bodyParser *JsonSchemaBodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte) (U, *response_error.ResponseError) {
+	var zero U
+
+	result, responseError := bodyParser.JsonSchemaBodyParser.Parse(request, body)
+	if responseError != nil {
+		return zero, responseError
+	}
+
 	if processor := bodyParser.Processor; !utils.IsNil(processor) {
 		result, responseError = processor.Process(result)
 		if responseError != nil {
-			return nil, responseError
+			return zero, responseError
 		}
 	}
 
@@ -124,7 +141,10 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 }
 
 func NewWithSchema[T any](schema *jsonschema.Schema) *JsonSchemaBodyParser[T] {
-	return &JsonSchemaBodyParser[T]{BodyParser: bodyParserJson.New[T](), Schema: schema}
+	return &JsonSchemaBodyParser[T]{
+		BodyParser: bodyParserJson.New[T](),
+		Schema:     schema,
+	}
 }
 
 func New[T any](t T) (*JsonSchemaBodyParser[T], error) {
