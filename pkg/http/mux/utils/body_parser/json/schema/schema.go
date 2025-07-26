@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/Motmedel/jsonschema"
@@ -13,12 +12,9 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelInterfaces "github.com/Motmedel/utils_go/pkg/interfaces"
 	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
-	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"log/slog"
 	"maps"
 	"net/http"
-	"os"
 	"slices"
 )
 
@@ -151,7 +147,8 @@ func NewWithSchema[T any](schema *jsonschema.Schema) *JsonSchemaBodyParser[T] {
 	}
 }
 
-func New[T any](t T) (*JsonSchemaBodyParser[T], error) {
+func New[T any]() (*JsonSchemaBodyParser[T], error) {
+	var t T
 	schema, err := motmedelJsonSchema.New[T](t)
 	if err != nil {
 		return nil, fmt.Errorf("schema new: %w", err)
@@ -160,15 +157,14 @@ func New[T any](t T) (*JsonSchemaBodyParser[T], error) {
 	return NewWithSchema[T](schema), nil
 }
 
-func NewFatal[T any](t T) (*JsonSchemaBodyParser[T], error) {
-	jsonSchemaBodyParser, err := New[T](t)
+func NewWithProcessor[T any, U any](processor body_processor.BodyProcessor[U, T]) (*JsonSchemaBodyParserWithProcessor[T, U], error) {
+	jsonSchemaBodyParser, err := New[T]()
 	if err != nil {
-		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(context.Background(), fmt.Errorf("new: %w", err)),
-			"An error occured when creating a JSON schema body parser.",
-		)
-		os.Exit(1)
+		return nil, fmt.Errorf("new: %w", err)
 	}
 
-	return jsonSchemaBodyParser, nil
+	return &JsonSchemaBodyParserWithProcessor[T, U]{
+		JsonSchemaBodyParser: *jsonSchemaBodyParser,
+		Processor:            processor,
+	}, nil
 }
