@@ -1,0 +1,4 @@
+github.com/Motmedel/utils_go v0.0.230 h1:zLFxGQYLhB8+xlpE9S8r2+UkQbcZ37YPDj2O+IWPigM=
+github.com/Motmedel/utils_go v0.0.230/go.mod h1:kKm8jM7GA8M7ICIImi5etOMixRgQfnStBPjEoCMTgbg=
+github.com/golang-jwt/jwt/v5 v5.2.3 h1:kkGXqQOBSDDWRhWNXTFpqGSCMyh/PLnqUvMGJPDJDs0=
+github.com/golang-jwt/jwt/v5 v5.2.3/go.mod h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=
