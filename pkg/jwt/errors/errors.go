@@ -7,4 +7,5 @@ var (
 	ErrEmptyTokenString = errors.New("empty token string")
 	ErrEmptySigningKey  = errors.New("empty signing key")
 	ErrInvalidToken     = errors.New("invalid token")
+	ErrNilClaims        = errors.New("nil claims")
 )
