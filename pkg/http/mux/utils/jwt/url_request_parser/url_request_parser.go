@@ -1,4 +1,4 @@
-package cookie_request_parser
+package url_request_parser
 
 import (
 	"errors"
@@ -14,81 +14,74 @@ import (
 )
 
 var (
-	ErrEmptyCookieName = errors.New("empty cookie name")
+	ErrEmptyParameterName = errors.New("empty parameter name")
 )
 
-type CookieRequestParser struct {
-	CookieName string
-	SigningKey []byte
+type UrlRequestParser struct {
+	ParameterName string
+	SigningKey    []byte
 }
 
-func (c *CookieRequestParser) Parse(request *http.Request) (*jwt.RegisteredClaims, *muxResponseError.ResponseError) {
+func (u *UrlRequestParser) Parse(request *http.Request) (*jwt.RegisteredClaims, *muxResponseError.ResponseError) {
 	if request == nil {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
-	cookieName := c.CookieName
-	if cookieName == "" {
+	requestUrl := request.URL
+	if requestUrl == nil {
 		return nil, &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(ErrEmptyCookieName),
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestUrl),
 		}
 	}
 
-	// TODO: Not sure if `WWW-Authenticate` should be provided
-	tokenCookie, err := request.Cookie(cookieName)
-	if err != nil {
-		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("request cookie: %w", err), cookieName)
-		if errors.Is(err, http.ErrNoCookie) {
-			return nil, &muxResponseError.ResponseError{
-				ClientError: wrappedErr,
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-					http.StatusUnauthorized,
-					"Missing token cookie.",
-					nil,
-				),
-			}
-		}
-		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
-	}
-	if tokenCookie == nil {
+	parameterName := u.ParameterName
+	if parameterName == "" {
 		return nil, &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilCookie),
+			ServerError: motmedelErrors.NewWithTrace(ErrEmptyParameterName),
 		}
 	}
 
-	tokenString := tokenCookie.Value
-	if tokenString == "" {
+	requestUrlQuery := requestUrl.Query()
+
+	if !requestUrlQuery.Has(parameterName) {
 		return nil, &muxResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusUnauthorized,
-				"Empty token cookie.",
+				"Missing token query parameter.",
 				nil,
 			),
 		}
 	}
 
-	signingKey := c.SigningKey
+	tokenString := requestUrlQuery.Get(parameterName)
+	if tokenString == "" {
+		return nil, &muxResponseError.ResponseError{
+			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				http.StatusUnauthorized,
+				"Empty token query parameter.",
+				nil,
+			),
+		}
+	}
+
+	signingKey := u.SigningKey
 	if len(signingKey) == 0 {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrEmptySigningKey),
 		}
 	}
 
-	claims, err := motmedelJwt.Validate(tokenString, c.SigningKey)
+	claims, err := motmedelJwt.Validate(tokenString, signingKey)
 	if err != nil {
-		wrappedErr := motmedelErrors.NewWithTrace(
-			fmt.Errorf("validate token: %w", err),
-			tokenString,
-			c.SigningKey,
-		)
+		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("jwt validate: %w", err), tokenString, signingKey)
 		if errors.Is(err, motmedelErrors.ErrValidationError) {
 			return nil, &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnauthorized,
-					"Invalid token cookie.",
+					"Invalid token query parameter.",
 					nil,
 				),
 			}
