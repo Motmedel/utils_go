@@ -21,6 +21,7 @@ var (
 	ErrEmptyResponseBody           = errors.New("empty response body")
 	ErrReattemptFailedError        = errors.New("reattempt failed")
 	ErrBadIfModifiedSinceTimestamp = errors.New("bad If-Modified-Since timestamp")
+	ErrNilCookie = errors.New("nil cookie")
 )
 
 type Non2xxStatusCodeError struct {
