@@ -248,7 +248,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 type Mux struct {
 	baseMux
-	HandlerSpecificationMap map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification
+	EndpointSpecificationMap map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification
 }
 
 func muxHandleRequest(
@@ -289,8 +289,8 @@ func muxHandleRequest(
 
 	// Locate the endpoint specification.
 
-	endpointSpecification, response, responseError := muxInternalMux.ObtainEndpointSpecification(
-		mux.HandlerSpecificationMap,
+	endpointSpecification, response, responseError := muxInternalMux.GetEndpointSpecification(
+		mux.EndpointSpecificationMap,
 		request,
 	)
 	if response != nil || responseError != nil {
@@ -518,22 +518,22 @@ func (mux *Mux) Add(specifications ...*muxTypesEnpointSpecification.EndpointSpec
 		return
 	}
 
-	handlerSpecificationMap := mux.HandlerSpecificationMap
-	if handlerSpecificationMap == nil {
-		handlerSpecificationMap = make(map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification)
+	endpointSpecificationMap := mux.EndpointSpecificationMap
+	if endpointSpecificationMap == nil {
+		endpointSpecificationMap = make(map[string]map[string]*muxTypesEnpointSpecification.EndpointSpecification)
 	}
 
 	for _, specification := range specifications {
-		methodToHandlerSpecification, ok := handlerSpecificationMap[specification.Path]
+		methodToEndpointSpecification, ok := endpointSpecificationMap[specification.Path]
 		if !ok {
-			methodToHandlerSpecification = make(map[string]*muxTypesEnpointSpecification.EndpointSpecification)
-			handlerSpecificationMap[specification.Path] = methodToHandlerSpecification
+			methodToEndpointSpecification = make(map[string]*muxTypesEnpointSpecification.EndpointSpecification)
+			endpointSpecificationMap[specification.Path] = methodToEndpointSpecification
 		}
 
-		methodToHandlerSpecification[strings.ToUpper(specification.Method)] = specification
+		methodToEndpointSpecification[strings.ToUpper(specification.Method)] = specification
 	}
 
-	mux.HandlerSpecificationMap = handlerSpecificationMap
+	mux.EndpointSpecificationMap = endpointSpecificationMap
 }
 
 func (mux *Mux) Delete(specifications ...*muxTypesEnpointSpecification.EndpointSpecification) {
@@ -541,29 +541,43 @@ func (mux *Mux) Delete(specifications ...*muxTypesEnpointSpecification.EndpointS
 		return
 	}
 
-	handlerSpecificationMap := mux.HandlerSpecificationMap
-	if handlerSpecificationMap == nil {
+	endpointSpecificationMap := mux.EndpointSpecificationMap
+	if endpointSpecificationMap == nil {
 		return
 	}
 
 	for _, specification := range specifications {
-		methodToHandlerSpecification, ok := handlerSpecificationMap[specification.Path]
+		methodToEndpointSpecification, ok := endpointSpecificationMap[specification.Path]
 		if !ok {
 			return
 		}
 
-		delete(methodToHandlerSpecification, strings.ToUpper(specification.Method))
+		delete(methodToEndpointSpecification, strings.ToUpper(specification.Method))
 
-		if len(methodToHandlerSpecification) == 0 {
-			delete(handlerSpecificationMap, specification.Path)
+		if len(methodToEndpointSpecification) == 0 {
+			delete(endpointSpecificationMap, specification.Path)
 		}
 	}
+}
+
+func (mux *Mux) Get(path string, method string) *muxTypesEnpointSpecification.EndpointSpecification {
+	endpointSpecificationMap := mux.EndpointSpecificationMap
+	if endpointSpecificationMap == nil {
+		return nil
+	}
+
+	methodToEndpointSpecification, ok := endpointSpecificationMap[path]
+	if !ok || methodToEndpointSpecification == nil {
+		return nil
+	}
+
+	return methodToEndpointSpecification[strings.ToUpper(method)]
 }
 
 func (mux *Mux) GetDocumentEndpointSpecifications() []*muxTypesEnpointSpecification.EndpointSpecification {
 	var specifications []*muxTypesEnpointSpecification.EndpointSpecification
 
-	for _, methodMap := range mux.HandlerSpecificationMap {
+	for _, methodMap := range mux.EndpointSpecificationMap {
 		for _, specification := range methodMap {
 			staticContent := specification.StaticContent
 			if staticContent == nil {

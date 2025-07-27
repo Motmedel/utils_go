@@ -316,7 +316,7 @@ func ObtainRequestBody(
 	return nil, nil
 }
 
-func ObtainEndpointSpecification(
+func GetEndpointSpecification(
 	endpointSpecificationMap map[string]map[string]*muxTypes.EndpointSpecification,
 	request *http.Request,
 ) (*muxTypes.EndpointSpecification, *muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
@@ -345,24 +345,24 @@ func ObtainEndpointSpecification(
 		}
 	}
 
-	methodToHandlerSpecification, ok := endpointSpecificationMap[requestUrl.Path]
+	methodToEndpointSpecification, ok := endpointSpecificationMap[requestUrl.Path]
 	if !ok {
 		return nil, nil, &muxTypesResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
 		}
 	}
 
-	handlerSpecification, ok := methodToHandlerSpecification[effectiveLookupMethod]
+	endpointSpecification, ok := methodToEndpointSpecification[effectiveLookupMethod]
 	if !ok {
-		allowedMethods := slices.Collect(maps.Keys(methodToHandlerSpecification))
+		allowedMethods := slices.Collect(maps.Keys(methodToEndpointSpecification))
 
-		if _, ok := methodToHandlerSpecification[http.MethodHead]; !ok {
-			if _, ok := methodToHandlerSpecification[http.MethodGet]; ok {
+		if _, ok := methodToEndpointSpecification[http.MethodHead]; !ok {
+			if _, ok := methodToEndpointSpecification[http.MethodGet]; ok {
 				allowedMethods = append(allowedMethods, http.MethodHead)
 			}
 		}
 
-		if _, ok := methodToHandlerSpecification[http.MethodOptions]; !ok {
+		if _, ok := methodToEndpointSpecification[http.MethodOptions]; !ok {
 			allowedMethods = append(allowedMethods, http.MethodOptions)
 		}
 
@@ -385,7 +385,7 @@ func ObtainEndpointSpecification(
 		}
 	}
 
-	return handlerSpecification, nil, nil
+	return endpointSpecification, nil, nil
 }
 
 func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestHeader http.Header) (bool, *muxTypesResponseError.ResponseError) {
