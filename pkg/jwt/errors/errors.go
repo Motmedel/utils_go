@@ -8,4 +8,6 @@ var (
 	ErrEmptySigningKey  = errors.New("empty signing key")
 	ErrInvalidToken     = errors.New("invalid token")
 	ErrNilClaims        = errors.New("nil claims")
+	ErrNilMethod = errors.New("nil method")
+	ErrEmptyParameterName = errors.New("empty parameter name")
 )
