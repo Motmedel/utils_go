@@ -6,10 +6,10 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	muxUtilsJwt "github.com/Motmedel/utils_go/pkg/http/mux/utils/jwt"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 )
 
@@ -22,7 +22,7 @@ type UrlRequestParser struct {
 	SigningKey    []byte
 }
 
-func (u *UrlRequestParser) Parse(request *http.Request) (*jwt.RegisteredClaims, *muxResponseError.ResponseError) {
+func (u *UrlRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaims, *muxResponseError.ResponseError) {
 	if request == nil {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
@@ -89,5 +89,5 @@ func (u *UrlRequestParser) Parse(request *http.Request) (*jwt.RegisteredClaims, 
 		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
 	}
 
-	return claims, nil
+	return &muxUtilsJwt.TokenClaims{RegisteredClaims: claims, TokenString: tokenString}, nil
 }
