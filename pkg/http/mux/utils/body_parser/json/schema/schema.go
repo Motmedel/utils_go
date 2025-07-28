@@ -10,7 +10,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	motmedelInterfaces "github.com/Motmedel/utils_go/pkg/interfaces"
 	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"maps"
@@ -22,6 +21,9 @@ var (
 	ErrNilSchema               = errors.New("nil schema")
 	ErrNilEvaluationResult     = errors.New("nil evaluation result")
 	ErrNilEvaluationResultList = errors.New("nil evaluation result list")
+	// TODO: Move these two?
+	ErrNilProcessor            = errors.New("nil processor")
+	ErrNilBodyParser           = errors.New("nil body parser")
 )
 
 type ValidateError struct {
@@ -57,15 +59,17 @@ type JsonSchemaBodyParser[T any] struct {
 	Schema *jsonschema.Schema
 }
 
-func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []byte) (any, *response_error.ResponseError) {
+func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []byte) (T, *response_error.ResponseError) {
+	var zero T
+
 	schema := bodyParser.Schema
 	if schema == nil {
-		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
 	}
 
 	dataMap, responseError := bodyParserJson.ParseJsonBody[map[string]any](body)
 	if responseError != nil {
-		return nil, responseError
+		return zero, responseError
 	}
 
 	if err := Validate(dataMap, schema); err != nil {
@@ -73,7 +77,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 
 		var validateError *ValidateError
 		if errors.As(err, &validateError) {
-			return nil, &response_error.ResponseError{
+			return zero, &response_error.ResponseError{
 				// TODO: The error messages could be made nicer.
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnprocessableEntity,
@@ -84,35 +88,38 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 			}
 		}
 
-		return nil, &response_error.ResponseError{ServerError: wrappedErr}
+		return zero, &response_error.ResponseError{ServerError: wrappedErr}
 	}
 
-	var result any
-	result, responseError = bodyParser.BodyParser.Parse(request, body)
+	parser := bodyParser.BodyParser
+	if utils.IsNil(parser) {
+		return zero, &response_error.ResponseError{ServerError: ErrNilBodyParser}
+	}
+
+	var result T
+	result, responseError = parser.Parse(request, body)
 	if responseError != nil {
-		return nil, responseError
+		return zero, responseError
 	}
 
-	// TODO: Not sure this is a nice solution.
-
-	if validator, ok := result.(motmedelInterfaces.Validator); ok {
-		if err := validator.Validate(); err != nil {
-			wrappedErr := fmt.Errorf("validate (result): %w", err)
-
-			if errors.Is(err, motmedelErrors.ErrValidationError) {
-				return nil, &response_error.ResponseError{
-					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-						http.StatusUnprocessableEntity,
-						"Invalid body.",
-						map[string]string{"error": err.Error()},
-					),
-					ClientError: wrappedErr,
-				}
-			}
-
-			return nil, &response_error.ResponseError{ServerError: wrappedErr}
-		}
-	}
+	//if validator, ok := result.(motmedelInterfaces.Validator); ok {
+	//	if err := validator.Validate(); err != nil {
+	//		wrappedErr := fmt.Errorf("validate (result): %w", err)
+	//
+	//		if errors.Is(err, motmedelErrors.ErrValidationError) {
+	//			return zero, &response_error.ResponseError{
+	//				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+	//					http.StatusUnprocessableEntity,
+	//					"Invalid body.",
+	//					map[string]string{"error": err.Error()},
+	//				),
+	//				ClientError: wrappedErr,
+	//			}
+	//		}
+	//
+	//		return zero, &response_error.ResponseError{ServerError: wrappedErr}
+	//	}
+	//}
 
 	return result, nil
 }
@@ -125,19 +132,27 @@ type JsonSchemaBodyParserWithProcessor[T any, U any] struct {
 func (bodyParser *JsonSchemaBodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte) (U, *response_error.ResponseError) {
 	var zero U
 
-	result, responseError := bodyParser.JsonSchemaBodyParser.Parse(request, body)
+	parser := bodyParser.JsonSchemaBodyParser
+	if utils.IsNil(parser) {
+		return zero, &response_error.ResponseError{ServerError: ErrNilBodyParser}
+	}
+
+	result, responseError := parser.Parse(request, body)
 	if responseError != nil {
 		return zero, responseError
 	}
 
-	if processor := bodyParser.Processor; !utils.IsNil(processor) {
-		result, responseError = processor.Process(result)
-		if responseError != nil {
-			return zero, responseError
-		}
+	processor := bodyParser.Processor
+	if utils.IsNil(processor) {
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilProcessor)}
 	}
 
-	return result, nil
+	processedResult, responseError := processor.Process(result)
+	if responseError != nil {
+		return zero, responseError
+	}
+
+	return processedResult, nil
 }
 
 func NewWithSchema[T any](schema *jsonschema.Schema) *JsonSchemaBodyParser[T] {
