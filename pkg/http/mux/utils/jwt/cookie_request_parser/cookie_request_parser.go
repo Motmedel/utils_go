@@ -10,6 +10,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 )
 
@@ -20,16 +21,17 @@ var (
 type CookieRequestParser struct {
 	CookieName string
 	SigningKey []byte
+	Options []jwt.ParserOption
 }
 
-func (c *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaims, *muxResponseError.ResponseError) {
+func (parser *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaims, *muxResponseError.ResponseError) {
 	if request == nil {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
-	cookieName := c.CookieName
+	cookieName := parser.CookieName
 	if cookieName == "" {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(ErrEmptyCookieName),
@@ -69,19 +71,19 @@ func (c *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenCl
 		}
 	}
 
-	signingKey := c.SigningKey
+	signingKey := parser.SigningKey
 	if len(signingKey) == 0 {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrEmptySigningKey),
 		}
 	}
 
-	claims, err := motmedelJwt.Validate(tokenString, c.SigningKey)
+	claims, err := motmedelJwt.Validate(tokenString, parser.SigningKey, parser.Options...)
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(
 			fmt.Errorf("validate token: %w", err),
 			tokenString,
-			c.SigningKey,
+			parser.SigningKey,
 		)
 		if errors.Is(err, motmedelErrors.ErrValidationError) {
 			return nil, &muxResponseError.ResponseError{

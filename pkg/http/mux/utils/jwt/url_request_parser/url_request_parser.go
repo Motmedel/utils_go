@@ -10,6 +10,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 )
 
@@ -20,9 +21,10 @@ var (
 type UrlRequestParser struct {
 	ParameterName string
 	SigningKey    []byte
+	Options []jwt.ParserOption
 }
 
-func (u *UrlRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaims, *muxResponseError.ResponseError) {
+func (parser *UrlRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaims, *muxResponseError.ResponseError) {
 	if request == nil {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
@@ -36,7 +38,7 @@ func (u *UrlRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaim
 		}
 	}
 
-	parameterName := u.ParameterName
+	parameterName := parser.ParameterName
 	if parameterName == "" {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(ErrEmptyParameterName),
@@ -66,14 +68,14 @@ func (u *UrlRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaim
 		}
 	}
 
-	signingKey := u.SigningKey
+	signingKey := parser.SigningKey
 	if len(signingKey) == 0 {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrEmptySigningKey),
 		}
 	}
 
-	claims, err := motmedelJwt.Validate(tokenString, signingKey)
+	claims, err := motmedelJwt.Validate(tokenString, signingKey, parser.Options...)
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("jwt validate: %w", err), tokenString, signingKey)
 		if errors.Is(err, motmedelErrors.ErrValidationError) {
