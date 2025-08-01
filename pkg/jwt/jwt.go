@@ -9,16 +9,33 @@ import (
 	"net/url"
 )
 
-func Validate(tokenString string, key []byte) (*jwt.RegisteredClaims, error) {
+var (
+	BadRequestValidationErrors = []error{
+		jwt.ErrTokenSignatureInvalid,
+		jwt.ErrTokenExpired,
+		jwt.ErrTokenUsedBeforeIssued,
+		jwt.ErrTokenNotValidYet,
+		jwt.ErrTokenInvalidAudience,
+		jwt.ErrTokenInvalidIssuer,
+		jwt.ErrTokenInvalidSubject,
+	}
+)
+
+func Validate(tokenString string, key []byte, options ...jwt.ParserOption) (*jwt.RegisteredClaims, error) {
 	if len(key) == 0 {
 		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptySigningKey)
 	}
 
 	if tokenString == "" {
-		return nil, fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, jwtErrors.ErrEmptyTokenString)
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptyTokenString)
 	}
 
 	claims := &jwt.RegisteredClaims{}
+
+	var parserOptions []jwt.ParserOption
+	if len(options) > 0 {
+		parserOptions = append(parserOptions, jwt.WithoutClaimsValidation())
+	}
 
 	parsedToken, err := jwt.ParseWithClaims(
 		tokenString,
@@ -28,7 +45,6 @@ func Validate(tokenString string, key []byte) (*jwt.RegisteredClaims, error) {
 				return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
 			}
 
-			// TODO: Is this check necessary?
 			tokenMethod := token.Method
 			if _, ok := tokenMethod.(*jwt.SigningMethodHMAC); !ok {
 				return nil, motmedelErrors.NewWithTrace(
@@ -39,20 +55,27 @@ func Validate(tokenString string, key []byte) (*jwt.RegisteredClaims, error) {
 
 			return key, nil
 		},
+		parserOptions...,
 	)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"%w: %w",
-			motmedelErrors.ErrValidationError,
-			fmt.Errorf("jwt parse with claims: %w", err),
+		return nil, motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: jwt parse with claims: %w", motmedelErrors.ErrValidationError, err),
+			parserOptions,
 		)
 	}
 	if parsedToken == nil {
-		return nil, fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, jwtErrors.ErrNilToken)
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
 	}
 
-	if !parsedToken.Valid {
-		return nil, fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, jwtErrors.ErrInvalidToken)
+	if len(options) != 0 {
+		validator := jwt.NewValidator(options...)
+		if validator == nil {
+			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilValidator)
+		}
+
+		if err := validator.Validate(claims); err != nil {
+			return nil, fmt.Errorf("%w: jwt validator validate: %w", motmedelErrors.ErrValidationError, err)
+		}
 	}
 
 	return claims, nil
