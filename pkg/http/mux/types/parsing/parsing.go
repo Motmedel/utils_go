@@ -22,7 +22,7 @@ type HeaderParserConfiguration struct {
 }
 
 type AuthenticationConfiguration struct {
-	Parser request_parser.RequestParser[any]
+	Parser request_parser.RequestParser[bool]
 }
 
 type BodyParserConfiguration struct {

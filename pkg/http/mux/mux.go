@@ -322,9 +322,21 @@ func muxHandleRequest(
 
 	if configuration := endpointSpecification.AuthenticationConfiguration; configuration != nil {
 		if parser := configuration.Parser; !utils.IsNil(parser) {
-			if _, responseError := parser.Parse(request); responseError != nil {
+			ok, responseError := parser.Parse(request)
+			if responseError != nil {
 				return nil, responseError
 			}
+
+			if !ok {
+				return nil, &muxTypesResponseError.ResponseError{
+					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+						http.StatusUnauthorized,
+						"",
+						nil,
+					),
+				}
+			}
+
 		}
 	}
 
