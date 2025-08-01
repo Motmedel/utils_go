@@ -21,6 +21,10 @@ type HeaderParserConfiguration struct {
 	Parser request_parser.RequestParser[any]
 }
 
+type AuthenticationConfiguration struct {
+	Parser request_parser.RequestParser[any]
+}
+
 type BodyParserConfiguration struct {
 	ContentType string
 	AllowEmpty  bool

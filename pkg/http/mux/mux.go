@@ -318,10 +318,20 @@ func muxHandleRequest(
 		}
 	}
 
+	// Check authentication.
+
+	if configuration := endpointSpecification.AuthenticationConfiguration; configuration != nil {
+		if parser := configuration.Parser; !utils.IsNil(parser) {
+			if _, responseError := parser.Parse(request); responseError != nil {
+				return nil, responseError
+			}
+		}
+	}
+
 	// Obtain the parsed url.
 
-	if urlParserConfiguration := endpointSpecification.UrlParserConfiguration; urlParserConfiguration != nil {
-		if parser := urlParserConfiguration.Parser; !utils.IsNil(parser) {
+	if configuration := endpointSpecification.UrlParserConfiguration; configuration != nil {
+		if parser := configuration.Parser; !utils.IsNil(parser) {
 			parsedUrl, responseError := parser.Parse(request)
 			if responseError != nil {
 				return nil, responseError
@@ -335,8 +345,8 @@ func muxHandleRequest(
 
 	// Obtain the parsed header.
 
-	if headerParserConfiguration := endpointSpecification.HeaderParserConfiguration; headerParserConfiguration != nil {
-		if parser := headerParserConfiguration.Parser; !utils.IsNil(parser) {
+	if configuration := endpointSpecification.HeaderParserConfiguration; configuration != nil {
+		if parser := configuration.Parser; !utils.IsNil(parser) {
 			parsedHeader, responseError := parser.Parse(request)
 			if responseError != nil {
 				return nil, responseError

@@ -15,6 +15,7 @@ type EndpointSpecification struct {
 	Handler                   func(*http.Request, []byte) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError)
 	StaticContent             *muxTypesStaticContent.StaticContent
 	RateLimitingConfiguration *muxTypesRateLimiting.RateLimitingConfiguration
+	AuthenticationConfiguration *muxTypesParsing.AuthenticationConfiguration
 	UrlParserConfiguration    *muxTypesParsing.UrlParserConfiguration
 	HeaderParserConfiguration *muxTypesParsing.HeaderParserConfiguration
 	BodyParserConfiguration   *muxTypesParsing.BodyParserConfiguration
