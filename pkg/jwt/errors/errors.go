@@ -9,4 +9,5 @@ var (
 	ErrNilMethod = errors.New("nil method")
 	ErrEmptyParameterName = errors.New("empty parameter name")
 	ErrNilValidator = errors.New("nil validator")
+	ErrNilClaims = errors.New("nil claims")
 )
