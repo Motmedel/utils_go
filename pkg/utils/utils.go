@@ -18,12 +18,12 @@ func GetConversionValue[T any](value any) (T, error) {
 	return convertedValue, nil
 }
 
-func GetNonZoneConversionValue[T comparable](value any) (T, error) {
+func GetNonZeroConversionValue[T comparable](value any) (T, error) {
 	var zero T
 
 	convertedValue, err := GetConversionValue[T](value)
 	if err != nil {
-		return zero, fmt.Errorf("get context value: %w", err)
+		return zero, fmt.Errorf("get conversion value: %w", err)
 	}
 
 	if convertedValue == zero {
