@@ -18,7 +18,7 @@ var (
 	ErrEmptyCookieName = errors.New("empty cookie name")
 )
 
-type CookieRequestParser[T jwt.Claims] struct {
+type CookieRequestParser[T jwt.RegisteredClaims] struct {
 	CookieName string
 	SigningKey []byte
 	Options    []jwt.ParserOption

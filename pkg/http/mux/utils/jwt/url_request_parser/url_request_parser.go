@@ -18,7 +18,7 @@ var (
 	ErrEmptyParameterName = errors.New("empty parameter name")
 )
 
-type UrlRequestParser[T jwt.Claims] struct {
+type UrlRequestParser[T jwt.RegisteredClaims] struct {
 	ParameterName string
 	SigningKey    []byte
 	Options       []jwt.ParserOption
