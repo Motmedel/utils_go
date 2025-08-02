@@ -21,15 +21,13 @@ var (
 	}
 )
 
-func Validate[T jwt.RegisteredClaims](tokenString string, key []byte, options ...jwt.ParserOption) (T, error) {
-	var claims T
-
+func Validate[T jwt.Claims](tokenString string, key []byte, claims T, options ...jwt.ParserOption) (*jwt.Token, error) {
 	if len(key) == 0 {
-		return claims, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptySigningKey)
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptySigningKey)
 	}
 
 	if tokenString == "" {
-		return claims, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptyTokenString)
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptyTokenString)
 	}
 
 	var parserOptions []jwt.ParserOption
@@ -58,27 +56,28 @@ func Validate[T jwt.RegisteredClaims](tokenString string, key []byte, options ..
 		parserOptions...,
 	)
 	if err != nil {
-		return claims, motmedelErrors.NewWithTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("%w: jwt parse with claims: %w", motmedelErrors.ErrValidationError, err),
 			parserOptions,
 		)
 	}
 	if parsedToken == nil {
-		return claims, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
 	}
 
 	if len(options) != 0 {
 		validator := jwt.NewValidator(options...)
 		if validator == nil {
-			return claims, motmedelErrors.NewWithTrace(jwtErrors.ErrNilValidator)
+			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilValidator)
 		}
 
 		if err := validator.Validate(claims); err != nil {
-			return claims, fmt.Errorf("%w: jwt validator validate: %w", motmedelErrors.ErrValidationError, err)
+			return nil, fmt.Errorf("%w: jwt validator validate: %w", motmedelErrors.ErrValidationError, err)
 		}
 	}
 
-	return claims, nil
+	parsedToken.Valid = true
+	return parsedToken, nil
 }
 
 func MakeSignedUrlWithMethod(
