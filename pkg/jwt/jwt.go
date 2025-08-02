@@ -64,7 +64,7 @@ func Validate(tokenString string, key []byte, options ...jwt.ParserOption) (*jwt
 
 	parsedToken, err := jwt.ParseWithClaims(
 		tokenString,
-		claims,
+		&claims,
 		func(token *jwt.Token) (any, error) {
 			if token == nil {
 				return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
