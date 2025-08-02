@@ -18,22 +18,24 @@ var (
 	ErrEmptyCookieName = errors.New("empty cookie name")
 )
 
-type CookieRequestParser struct {
+type CookieRequestParser[T jwt.Claims] struct {
 	CookieName string
 	SigningKey []byte
-	Options []jwt.ParserOption
+	Options    []jwt.ParserOption
 }
 
-func (parser *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.TokenClaims, *muxResponseError.ResponseError) {
+func (parser *CookieRequestParser[T]) Parse(request *http.Request) (T, *muxResponseError.ResponseError) {
+	var zero T
+
 	if request == nil {
-		return nil, &muxResponseError.ResponseError{
+		return zero, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
 	cookieName := parser.CookieName
 	if cookieName == "" {
-		return nil, &muxResponseError.ResponseError{
+		return zero, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(ErrEmptyCookieName),
 		}
 	}
@@ -43,7 +45,7 @@ func (parser *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.To
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("request cookie: %w", err), cookieName)
 		if errors.Is(err, http.ErrNoCookie) {
-			return nil, &muxResponseError.ResponseError{
+			return zero, &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnauthorized,
@@ -52,17 +54,17 @@ func (parser *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.To
 				),
 			}
 		}
-		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
+		return zero, &muxResponseError.ResponseError{ServerError: wrappedErr}
 	}
 	if tokenCookie == nil {
-		return nil, &muxResponseError.ResponseError{
+		return zero, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilCookie),
 		}
 	}
 
 	tokenString := tokenCookie.Value
 	if tokenString == "" {
-		return nil, &muxResponseError.ResponseError{
+		return zero, &muxResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusUnauthorized,
 				"Empty token cookie.",
@@ -73,12 +75,12 @@ func (parser *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.To
 
 	signingKey := parser.SigningKey
 	if len(signingKey) == 0 {
-		return nil, &muxResponseError.ResponseError{
+		return zero, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrEmptySigningKey),
 		}
 	}
 
-	claims, err := motmedelJwt.Validate(tokenString, parser.SigningKey, parser.Options...)
+	claims, err := motmedelJwt.Validate[T](tokenString, parser.SigningKey, parser.Options...)
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(
 			fmt.Errorf("validate token: %w", err),
@@ -86,7 +88,7 @@ func (parser *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.To
 			parser.SigningKey,
 		)
 		if errors.Is(err, motmedelErrors.ErrValidationError) {
-			return nil, &muxResponseError.ResponseError{
+			return zero, &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnauthorized,
@@ -95,8 +97,12 @@ func (parser *CookieRequestParser) Parse(request *http.Request) (*muxUtilsJwt.To
 				),
 			}
 		}
-		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
+		return zero, &muxResponseError.ResponseError{ServerError: wrappedErr}
 	}
 
-	return &muxUtilsJwt.TokenClaims{RegisteredClaims: claims, TokenString: tokenString}, nil
+	if tokenStringClaims, ok := any(claims).(muxUtilsJwt.TokenStringClaims); ok {
+		tokenStringClaims.SetTokenString(tokenString)
+	}
+
+	return claims, nil
 }
