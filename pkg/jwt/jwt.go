@@ -21,19 +21,46 @@ var (
 	}
 )
 
-func Validate[T jwt.Claims](tokenString string, key []byte, claims T, options ...jwt.ParserOption) (*jwt.Token, error) {
+func ValidateWithValidator(tokenString string, key []byte, validator func(claims jwt.Claims) error) (*jwt.Token, error) {
 	if len(key) == 0 {
 		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptySigningKey)
 	}
 
+	if validator == nil {
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilValidator)
+	}
+
+	if tokenString == "" {
+		return nil, nil
+	}
+
+	token, err := Validate(tokenString, key, jwt.WithoutClaimsValidation())
+	if err != nil {
+		return nil, fmt.Errorf("validate: %w", err)
+	}
+	if token == nil {
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
+	}
+
+	if err := validator(token.Claims); err != nil {
+		return nil, motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: validator: %w", motmedelErrors.ErrValidationError, err),
+		)
+	}
+
+	return token, nil
+}
+
+func Validate(tokenString string, key []byte, options ...jwt.ParserOption) (*jwt.Token, error) {
 	if tokenString == "" {
 		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptyTokenString)
 	}
 
-	var parserOptions []jwt.ParserOption
-	if len(options) > 0 {
-		parserOptions = append(parserOptions, jwt.WithoutClaimsValidation())
+	if len(key) == 0 {
+		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrEmptySigningKey)
 	}
+
+	var claims jwt.RegisteredClaims
 
 	parsedToken, err := jwt.ParseWithClaims(
 		tokenString,
@@ -53,30 +80,14 @@ func Validate[T jwt.Claims](tokenString string, key []byte, claims T, options ..
 
 			return key, nil
 		},
-		parserOptions...,
+		options...,
 	)
 	if err != nil {
 		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("%w: jwt parse with claims: %w", motmedelErrors.ErrValidationError, err),
-			parserOptions,
 		)
 	}
-	if parsedToken == nil {
-		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
-	}
 
-	if len(options) != 0 {
-		validator := jwt.NewValidator(options...)
-		if validator == nil {
-			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilValidator)
-		}
-
-		if err := validator.Validate(claims); err != nil {
-			return nil, fmt.Errorf("%w: jwt validator validate: %w", motmedelErrors.ErrValidationError, err)
-		}
-	}
-
-	parsedToken.Valid = true
 	return parsedToken, nil
 }
 
