@@ -21,7 +21,7 @@ var (
 	}
 )
 
-func Validate[T jwt.Claims](tokenString string, key []byte, options ...jwt.ParserOption) (T, error) {
+func Validate[T *jwt.RegisteredClaims](tokenString string, key []byte, options ...jwt.ParserOption) (T, error) {
 	var claims T
 
 	if len(key) == 0 {
