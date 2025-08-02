@@ -17,5 +17,5 @@ func GetContextValue[T any](ctx context.Context, key any) (T, error) {
 }
 
 func GetNonZeroContextValue[T comparable](ctx context.Context, key any) (T, error) {
-	return utils.GetNonZoneConversionValue[T](ctx.Value(key))
+	return utils.GetNonZeroConversionValue[T](ctx.Value(key))
 }
