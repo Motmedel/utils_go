@@ -6,7 +6,6 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	muxUtilsJwt "github.com/Motmedel/utils_go/pkg/http/mux/utils/jwt"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
@@ -18,24 +17,23 @@ var (
 	ErrEmptyCookieName = errors.New("empty cookie name")
 )
 
-type CookieRequestParser[T jwt.RegisteredClaims] struct {
+type CookieRequestParser struct {
 	CookieName string
 	SigningKey []byte
 	Options    []jwt.ParserOption
+	Validator  func(jwt.Claims) error
 }
 
-func (parser *CookieRequestParser[T]) Parse(request *http.Request) (T, *muxResponseError.ResponseError) {
-	var zero T
-
+func (parser *CookieRequestParser) Parse(request *http.Request) (*jwt.Token, *muxResponseError.ResponseError) {
 	if request == nil {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
 	cookieName := parser.CookieName
 	if cookieName == "" {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(ErrEmptyCookieName),
 		}
 	}
@@ -45,7 +43,7 @@ func (parser *CookieRequestParser[T]) Parse(request *http.Request) (T, *muxRespo
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("request cookie: %w", err), cookieName)
 		if errors.Is(err, http.ErrNoCookie) {
-			return zero, &muxResponseError.ResponseError{
+			return nil, &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnauthorized,
@@ -54,17 +52,17 @@ func (parser *CookieRequestParser[T]) Parse(request *http.Request) (T, *muxRespo
 				),
 			}
 		}
-		return zero, &muxResponseError.ResponseError{ServerError: wrappedErr}
+		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
 	}
 	if tokenCookie == nil {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilCookie),
 		}
 	}
 
 	tokenString := tokenCookie.Value
 	if tokenString == "" {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusUnauthorized,
 				"Empty token cookie.",
@@ -75,20 +73,30 @@ func (parser *CookieRequestParser[T]) Parse(request *http.Request) (T, *muxRespo
 
 	signingKey := parser.SigningKey
 	if len(signingKey) == 0 {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrEmptySigningKey),
 		}
 	}
 
-	claims, err := motmedelJwt.Validate[T](tokenString, parser.SigningKey, parser.Options...)
+	var token *jwt.Token
+	var funcName string
+
+	if validator := parser.Validator; validator != nil {
+		token, err = motmedelJwt.ValidateWithValidator(tokenString, signingKey, validator)
+		funcName = "validate with validator"
+	} else {
+		token, err = motmedelJwt.Validate(tokenString, signingKey, parser.Options...)
+		funcName = "validate"
+	}
+
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(
-			fmt.Errorf("validate token: %w", err),
+			fmt.Errorf("%s: %w", funcName, err),
 			tokenString,
 			parser.SigningKey,
 		)
 		if errors.Is(err, motmedelErrors.ErrValidationError) {
-			return zero, &muxResponseError.ResponseError{
+			return nil, &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnauthorized,
@@ -97,12 +105,8 @@ func (parser *CookieRequestParser[T]) Parse(request *http.Request) (T, *muxRespo
 				),
 			}
 		}
-		return zero, &muxResponseError.ResponseError{ServerError: wrappedErr}
+		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
 	}
 
-	if tokenStringClaims, ok := any(claims).(muxUtilsJwt.TokenStringClaims); ok {
-		tokenStringClaims.SetTokenString(tokenString)
-	}
-
-	return claims, nil
+	return token, nil
 }

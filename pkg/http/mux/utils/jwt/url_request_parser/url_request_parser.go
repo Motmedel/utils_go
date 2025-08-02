@@ -6,7 +6,6 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	muxUtilsJwt "github.com/Motmedel/utils_go/pkg/http/mux/utils/jwt"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
@@ -18,31 +17,30 @@ var (
 	ErrEmptyParameterName = errors.New("empty parameter name")
 )
 
-type UrlRequestParser[T jwt.RegisteredClaims] struct {
+type UrlRequestParser struct {
 	ParameterName string
 	SigningKey    []byte
 	Options       []jwt.ParserOption
+	Validator     func(jwt.Claims) error
 }
 
-func (parser *UrlRequestParser[T]) Parse(request *http.Request) (T, *muxResponseError.ResponseError) {
-	var zero T
-
+func (parser *UrlRequestParser) Parse(request *http.Request) (*jwt.Token, *muxResponseError.ResponseError) {
 	if request == nil {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
 		}
 	}
 
 	requestUrl := request.URL
 	if requestUrl == nil {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestUrl),
 		}
 	}
 
 	parameterName := parser.ParameterName
 	if parameterName == "" {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(ErrEmptyParameterName),
 		}
 	}
@@ -50,7 +48,7 @@ func (parser *UrlRequestParser[T]) Parse(request *http.Request) (T, *muxResponse
 	requestUrlQuery := requestUrl.Query()
 
 	if !requestUrlQuery.Has(parameterName) {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusUnauthorized,
 				"Missing token query parameter.",
@@ -61,7 +59,7 @@ func (parser *UrlRequestParser[T]) Parse(request *http.Request) (T, *muxResponse
 
 	tokenString := requestUrlQuery.Get(parameterName)
 	if tokenString == "" {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 				http.StatusUnauthorized,
 				"Empty token query parameter.",
@@ -72,16 +70,30 @@ func (parser *UrlRequestParser[T]) Parse(request *http.Request) (T, *muxResponse
 
 	signingKey := parser.SigningKey
 	if len(signingKey) == 0 {
-		return zero, &muxResponseError.ResponseError{
+		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrEmptySigningKey),
 		}
 	}
 
-	claims, err := motmedelJwt.Validate[T](tokenString, signingKey, parser.Options...)
+	var token *jwt.Token
+	var funcName string
+	var err error
+
+	if validator := parser.Validator; validator != nil {
+		token, err = motmedelJwt.ValidateWithValidator(tokenString, signingKey, validator)
+		funcName = "validate with validator"
+	} else {
+		token, err = motmedelJwt.Validate(tokenString, signingKey, parser.Options...)
+		funcName = "validate"
+	}
+
 	if err != nil {
-		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("jwt validate: %w", err), tokenString, signingKey)
+		wrappedErr := motmedelErrors.NewWithTrace(
+			fmt.Errorf("%s: %w", funcName, err),
+			tokenString, signingKey,
+		)
 		if errors.Is(err, motmedelErrors.ErrValidationError) {
-			return zero, &muxResponseError.ResponseError{
+			return nil, &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnauthorized,
@@ -90,12 +102,8 @@ func (parser *UrlRequestParser[T]) Parse(request *http.Request) (T, *muxResponse
 				),
 			}
 		}
-		return zero, &muxResponseError.ResponseError{ServerError: wrappedErr}
+		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
 	}
 
-	if tokenStringClaims, ok := any(claims).(muxUtilsJwt.TokenStringClaims); ok {
-		tokenStringClaims.SetTokenString(tokenString)
-	}
-
-	return claims, nil
+	return token, nil
 }
