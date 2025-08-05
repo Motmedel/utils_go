@@ -21,6 +21,7 @@ var (
 	ErrContextZeroValue = errors.New("context zero value")
 	ErrNotInMap         = errors.New("not in map")
 	ErrMapZeroValue     = errors.New("map zero value")
+	ErrNilMap           = errors.New("nil map")
 )
 
 func CollectWrappedErrors(err error) []error {
