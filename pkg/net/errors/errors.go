@@ -15,4 +15,5 @@ var (
 	ErrNilPacketConn         = errors.New("nil packet conn")
 	ErrUndeterminableIpVersion        = errors.New("undeterminable ip version")
 	ErrUndeterminableTargetFormat     = errors.New("undeterminable target format")
+	ErrNilUrl = errors.New("nil url")
 )
