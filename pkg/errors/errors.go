@@ -19,6 +19,8 @@ var (
 	ErrBadSplit         = errors.New("bad split")
 	ErrNotInContext     = errors.New("not in context")
 	ErrContextZeroValue = errors.New("context zero value")
+	ErrNotInMap         = errors.New("not in map")
+	ErrMapZeroValue     = errors.New("map zero value")
 )
 
 func CollectWrappedErrors(err error) []error {
