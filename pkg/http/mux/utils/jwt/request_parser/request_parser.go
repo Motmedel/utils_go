@@ -22,13 +22,13 @@ var (
 	ErrEmptyName = errors.New("empty name")
 )
 
-type requestParser struct {
+type RequestParser struct {
 	Name              string
 	SignatureVerifier motmedelCryptoInterfaces.NamedVerifier
 	ClaimsValidator   validator.Validator[parsed_claims.ParsedClaims]
 }
 
-func (parser *requestParser) getToken(tokenString string) (*motmedelJwtToken.Token, *muxResponseError.ResponseError) {
+func (parser *RequestParser) getToken(tokenString string) (*motmedelJwtToken.Token, *muxResponseError.ResponseError) {
 	if tokenString == "" {
 		return nil, &muxResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
@@ -74,7 +74,7 @@ func (parser *requestParser) getToken(tokenString string) (*motmedelJwtToken.Tok
 }
 
 type UrlRequestParser struct {
-	requestParser
+	RequestParser
 }
 
 func (parser *UrlRequestParser) getTokenString(request *http.Request) (string, *muxResponseError.ResponseError) {
@@ -122,7 +122,7 @@ func (parser *UrlRequestParser) Parse(request *http.Request) (*motmedelJwtToken.
 }
 
 type CookieRequestParser struct {
-	requestParser
+	RequestParser
 }
 
 func (parser *CookieRequestParser) getTokenString(request *http.Request) (string, *muxResponseError.ResponseError) {
