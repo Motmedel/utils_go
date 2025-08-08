@@ -3,7 +3,7 @@ module github.com/Motmedel/utils_go/pkg/http/mux
 go 1.24.0
 
 require (
-	github.com/Motmedel/utils_go v0.0.231
+	github.com/Motmedel/utils_go v0.0.242
 	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.23
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5
 	github.com/google/go-cmp v0.7.0
