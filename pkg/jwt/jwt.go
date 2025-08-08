@@ -8,8 +8,8 @@ import (
 	motmedelValidator "github.com/Motmedel/utils_go/pkg/interfaces/validator"
 	jwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/raw_token"
-	jwtToken "github.com/Motmedel/utils_go/pkg/jwt/parsing/types/token"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
+	jwtToken "github.com/Motmedel/utils_go/pkg/jwt/types/token"
 	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/registered_claims_validator"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
