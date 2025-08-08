@@ -4,20 +4,16 @@ import "github.com/Motmedel/utils_go/pkg/errors"
 
 var (
 	ErrNilToken         = errors.New("nil token")
-	ErrEmptyTokenString = errors.New("empty token string")
-	ErrEmptySigningKey  = errors.New("empty signing key")
-	ErrNilMethod = errors.New("nil method")
-	ErrEmptyParameterName = errors.New("empty parameter name")
-	ErrNilValidator = errors.New("nil validator")
-	ErrNilClaims = errors.New("nil claims")
 	ErrNilTokenHeader = errors.New("nil token header")
 	ErrNilRawToken = errors.New("nil raw token")
 	ErrAlgorithmMismatch = errors.New("algorithm mismatch")
-	ErrUnexpectedType = errors.New("unexpected type")
 	ErrMissingRequiredClaim = errors.New("missing required claim")
 	ErrIssuerMismatch = errors.New("issuer mismatch")
 	ErrAudienceMismatch = errors.New("audience mismatch")
 	ErrSubjectMismatch = errors.New("subject mismatch")
+	ErrExpExpired = errors.New("exp expired")
+	ErrNbfBefore  = errors.New("nbf before")
+	ErrIatBefore = errors.New("iat before")
 )
 
 type MissingRequiredClaimError struct {

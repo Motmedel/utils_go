@@ -14,14 +14,17 @@ import (
 var (
 	ErrSyntaxError      = errors.New("syntax error")
 	ErrSemanticError    = errors.New("semantic error")
+	ErrParseError = errors.New("parse error")
+	ErrVerificationError = errors.New("verification error")
 	ErrValidationError  = errors.New("validation error")
 	ErrConversionNotOk  = errors.New("conversion not ok")
 	ErrBadSplit         = errors.New("bad split")
 	ErrNotInContext     = errors.New("not in context")
-	ErrContextZeroValue = errors.New("context zero value")
+	ErrZeroValue        = errors.New("zero value")
 	ErrNotInMap         = errors.New("not in map")
 	ErrMapZeroValue     = errors.New("map zero value")
 	ErrNilMap           = errors.New("nil map")
+	ErrUnexpectedType = errors.New("unexpected type")
 )
 
 func CollectWrappedErrors(err error) []error {

@@ -13,9 +13,9 @@ func WithErrorContextValue(ctx context.Context, err error) context.Context {
 	return context.WithValue(ctx, ErrorContextKey, err)
 }
 func GetContextValue[T any](ctx context.Context, key any) (T, error) {
-	return utils.GetConversionValue[T](ctx.Value(key))
+	return utils.Convert[T](ctx.Value(key))
 }
 
 func GetNonZeroContextValue[T comparable](ctx context.Context, key any) (T, error) {
-	return utils.GetNonZeroConversionValue[T](ctx.Value(key))
+	return utils.ConvertToNonZero[T](ctx.Value(key))
 }

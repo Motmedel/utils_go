@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-func GetConversionValue[T any](value any) (T, error) {
+func Convert[T any](value any) (T, error) {
 	convertedValue, ok := value.(T)
 	if !ok {
 		return convertedValue, motmedelErrors.NewWithTrace(
@@ -18,16 +18,16 @@ func GetConversionValue[T any](value any) (T, error) {
 	return convertedValue, nil
 }
 
-func GetNonZeroConversionValue[T comparable](value any) (T, error) {
+func ConvertToNonZero[T comparable](value any) (T, error) {
 	var zero T
 
-	convertedValue, err := GetConversionValue[T](value)
+	convertedValue, err := Convert[T](value)
 	if err != nil {
-		return zero, fmt.Errorf("get conversion value: %w", err)
+		return zero, fmt.Errorf("convert: %w", err)
 	}
 
 	if convertedValue == zero {
-		return zero, motmedelErrors.NewWithTrace(motmedelErrors.ErrContextZeroValue)
+		return zero, motmedelErrors.NewWithTrace(motmedelErrors.ErrZeroValue)
 	}
 
 	return convertedValue, nil
