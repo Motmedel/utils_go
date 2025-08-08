@@ -22,13 +22,18 @@ var (
 	ErrEmptyName = errors.New("empty name")
 )
 
+type TokenWithRaw struct {
+	motmedelJwtToken.Token
+	Raw string
+}
+
 type RequestParser struct {
 	Name              string
 	SignatureVerifier motmedelCryptoInterfaces.NamedVerifier
 	ClaimsValidator   validator.Validator[parsed_claims.ParsedClaims]
 }
 
-func (parser *RequestParser) getToken(tokenString string) (*motmedelJwtToken.Token, *muxResponseError.ResponseError) {
+func (parser *RequestParser) getToken(tokenString string) (*TokenWithRaw, *muxResponseError.ResponseError) {
 	if tokenString == "" {
 		return nil, &muxResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
@@ -70,7 +75,7 @@ func (parser *RequestParser) getToken(tokenString string) (*motmedelJwtToken.Tok
 		return nil, &muxResponseError.ResponseError{ServerError: wrappedErr}
 	}
 
-	return token, nil
+	return &TokenWithRaw{Token: *token, Raw: tokenString}, nil
 }
 
 type UrlRequestParser struct {
@@ -113,7 +118,7 @@ func (parser *UrlRequestParser) getTokenString(request *http.Request) (string, *
 	return requestUrlQuery.Get(name), nil
 }
 
-func (parser *UrlRequestParser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResponseError.ResponseError) {
+func (parser *UrlRequestParser) Parse(request *http.Request) (*TokenWithRaw, *muxResponseError.ResponseError) {
 	tokenString, responseError := parser.getTokenString(request)
 	if responseError != nil {
 		return nil, responseError
@@ -163,7 +168,7 @@ func (parser *CookieRequestParser) getTokenString(request *http.Request) (string
 	return tokenCookie.Value, nil
 }
 
-func (parser *CookieRequestParser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResponseError.ResponseError) {
+func (parser *CookieRequestParser) Parse(request *http.Request) (*TokenWithRaw, *muxResponseError.ResponseError) {
 	tokenString, responseError := parser.getTokenString(request)
 	if responseError != nil {
 		return nil, responseError
