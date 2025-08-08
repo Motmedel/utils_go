@@ -6,6 +6,7 @@ var (
 	ErrNilToken         = errors.New("nil token")
 	ErrNilTokenHeader = errors.New("nil token header")
 	ErrNilRawToken = errors.New("nil raw token")
+	ErrEmptyTokenString = errors.New("empty token string")
 	ErrAlgorithmMismatch = errors.New("algorithm mismatch")
 	ErrMissingRequiredClaim = errors.New("missing required claim")
 	ErrIssuerMismatch = errors.New("issuer mismatch")
