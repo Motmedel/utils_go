@@ -37,16 +37,17 @@ func ParseAndCheckWithConfiguration(
 			rawToken,
 		)
 	}
-	if token == nil {
-		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
-	}
-
-	tokenHeader := token.Header
-	if tokenHeader == nil {
-		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilTokenHeader)
-	}
 
 	if !utils.IsNil(signatureVerifier) {
+		if token == nil {
+			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
+		}
+
+		tokenHeader := token.Header
+		if tokenHeader == nil {
+			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilTokenHeader)
+		}
+
 		tokenHeaderAlgorithm, _ := tokenHeader["alg"].(string)
 		verifierMethodName := signatureVerifier.GetName()
 		if tokenHeaderAlgorithm != verifierMethodName {
@@ -64,24 +65,35 @@ func ParseAndCheckWithConfiguration(
 		}
 	}
 
-	if validator := validationConfig.HeaderValidator; !utils.IsNil(validator) {
-		if err := validator.Validate(tokenHeader); err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("header validator validate: %w", err), tokenHeader)
-		}
-	}
-
-	if validator := validationConfig.PayloadValidator; !utils.IsNil(validator) {
-		tokenPayload := token.Payload
-		parsedClaims, err := parsed_claims.FromMap(tokenPayload)
-		if err != nil {
-			return nil, motmedelErrors.New(
-				fmt.Errorf("%w: make parsed claims: %w", motmedelErrors.ErrParseError, err),
-				tokenPayload,
-			)
+	if config := validationConfig; config != nil {
+		if token == nil {
+			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
 		}
 
-		if err := validator.Validate(parsedClaims); err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("payload validator validate: %w", err), parsedClaims)
+		tokenHeader := token.Header
+		if tokenHeader == nil {
+			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilTokenHeader)
+		}
+
+		if validator := config.HeaderValidator; !utils.IsNil(validator) {
+			if err := validator.Validate(tokenHeader); err != nil {
+				return nil, motmedelErrors.New(fmt.Errorf("header validator validate: %w", err), tokenHeader)
+			}
+		}
+
+		if validator := config.PayloadValidator; !utils.IsNil(validator) {
+			tokenPayload := token.Payload
+			parsedClaims, err := parsed_claims.FromMap(tokenPayload)
+			if err != nil {
+				return nil, motmedelErrors.New(
+					fmt.Errorf("%w: make parsed claims: %w", motmedelErrors.ErrParseError, err),
+					tokenPayload,
+				)
+			}
+
+			if err := validator.Validate(parsedClaims); err != nil {
+				return nil, motmedelErrors.New(fmt.Errorf("payload validator validate: %w", err), parsedClaims)
+			}
 		}
 	}
 
