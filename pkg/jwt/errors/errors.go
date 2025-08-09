@@ -20,6 +20,7 @@ var (
 	ErrNilValidationConfiguration = errors.New("nil validation configuration")
 	ErrTypMismatch                = errors.New("typ mismatch")
 	ErrAlgMismatch                = errors.New("alg mismatch")
+	ErrNilNumericDate             = errors.New("nil numeric date")
 )
 
 type MissingRequiredFieldError struct {

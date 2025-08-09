@@ -31,6 +31,9 @@ func (token *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string,
 	var header map[string]any
 	if tokenHeader := token.Header; tokenHeader != nil {
 		header = maps.Clone(tokenHeader)
+		if header == nil {
+			return "", motmedelErrors.NewWithTrace(fmt.Errorf("%w (header clone)", motmedelErrors.ErrNilMap))
+		}
 	} else {
 		header = make(map[string]any)
 		header["typ"] = "JWT"
