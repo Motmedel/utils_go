@@ -5,7 +5,7 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	setting "github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
+	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 

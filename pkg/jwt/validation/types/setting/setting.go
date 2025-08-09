@@ -1,4 +1,4 @@
-package parsed_claims
+package setting
 
 type Setting int
 

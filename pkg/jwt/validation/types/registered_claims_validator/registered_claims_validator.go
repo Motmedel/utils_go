@@ -9,7 +9,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
 	"github.com/Motmedel/utils_go/pkg/jwt/validation"
-	setting "github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
+	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"time"
 )
