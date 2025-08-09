@@ -6,6 +6,7 @@ import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing"
+	"github.com/Motmedel/utils_go/pkg/jwt/verification"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"strings"
 )
@@ -24,15 +25,16 @@ func (rawToken *RawToken) Verify(verifier motmedelCryptoInterfaces.Verifier) err
 
 	rawSplit := strings.Split(rawToken.Raw, ".")
 	if len(rawSplit) != 3 {
-		return motmedelErrors.NewWithTrace(motmedelErrors.ErrBadSplit, rawToken.Raw)
+		return motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: %w", motmedelErrors.ErrParseError, motmedelErrors.ErrBadSplit),
+			rawToken.Raw,
+		)
 	}
 
-	err := verifier.Verify(
-		[]byte(strings.Join(rawSplit[:2], ".")),
-		rawToken.Signature,
-	)
-	if err != nil {
-		return fmt.Errorf("verifier verify: %w", err)
+	header := rawSplit[0]
+	payload := rawSplit[1]
+	if err := verification.Verify(header, payload, rawToken.Signature, verifier); err != nil {
+		return motmedelErrors.New(fmt.Errorf("verifier verify: %w", err), header, payload, rawToken.Signature)
 	}
 
 	return nil

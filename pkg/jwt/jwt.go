@@ -2,31 +2,22 @@ package jwt
 
 import (
 	"fmt"
-	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelValidator "github.com/Motmedel/utils_go/pkg/interfaces/validator"
 	jwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/raw_token"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
 	jwtToken "github.com/Motmedel/utils_go/pkg/jwt/types/token"
 	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/registered_claims_validator"
+	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/validation_configuration"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-func ParseAndValidateWithValidator(
+func ParseAndCheckWithConfiguration(
 	tokenString string,
 	signatureVerifier motmedelCryptoInterfaces.NamedVerifier,
-	claimsValidator motmedelValidator.Validator[parsed_claims.ParsedClaims],
+	validationConfig *validation_configuration.ValidationConfiguration,
 ) (*jwtToken.Token, error) {
-	if utils.IsNil(signatureVerifier) {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
-	}
-
-	if utils.IsNil(claimsValidator) {
-		return nil, motmedelErrors.NewWithTrace(motmedelValidator.ErrNilValidator)
-	}
-
 	if tokenString == "" {
 		return nil, nil
 	}
@@ -55,39 +46,54 @@ func ParseAndValidateWithValidator(
 		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilTokenHeader)
 	}
 
-	tokenHeaderAlgorithm, _ := tokenHeader["alg"].(string)
-	verifierMethodName := signatureVerifier.GetName()
-	if tokenHeaderAlgorithm != verifierMethodName {
-		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, jwtErrors.ErrAlgorithmMismatch),
-			jwtErrors.ErrAlgorithmMismatch, tokenHeaderAlgorithm, verifierMethodName,
-		)
+	if !utils.IsNil(signatureVerifier) {
+		tokenHeaderAlgorithm, _ := tokenHeader["alg"].(string)
+		verifierMethodName := signatureVerifier.GetName()
+		if tokenHeaderAlgorithm != verifierMethodName {
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, jwtErrors.ErrAlgorithmMismatch),
+				jwtErrors.ErrAlgorithmMismatch, tokenHeaderAlgorithm, verifierMethodName,
+			)
+		}
+
+		if err := rawToken.Verify(signatureVerifier); err != nil {
+			return nil, motmedelErrors.New(
+				fmt.Errorf("%w: raw token verify: %w", motmedelErrors.ErrVerificationError, err),
+				rawToken,
+			)
+		}
 	}
 
-	if err := rawToken.Verify(signatureVerifier); err != nil {
-		return nil, motmedelErrors.New(
-			fmt.Errorf("%w: raw token verify: %w", motmedelErrors.ErrVerificationError, err),
-			rawToken,
-		)
+	if validator := validationConfig.HeaderValidator; !utils.IsNil(validator) {
+		if err := validator.Validate(tokenHeader); err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("header validator validate: %w", err), tokenHeader)
+		}
 	}
 
-	tokenPayload := token.Payload
-	parsedClaims, err := parsed_claims.FromMap(tokenPayload)
-	if err != nil {
-		return nil, motmedelErrors.New(
-			fmt.Errorf("%w: make parsed claims: %w", motmedelErrors.ErrParseError, err),
-			tokenPayload,
-		)
-	}
+	if validator := validationConfig.PayloadValidator; !utils.IsNil(validator) {
+		tokenPayload := token.Payload
+		parsedClaims, err := parsed_claims.FromMap(tokenPayload)
+		if err != nil {
+			return nil, motmedelErrors.New(
+				fmt.Errorf("%w: make parsed claims: %w", motmedelErrors.ErrParseError, err),
+				tokenPayload,
+			)
+		}
 
-	if err := claimsValidator.Validate(parsedClaims); err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("validator validate: %w", err), parsedClaims)
+		if err := validator.Validate(parsedClaims); err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("payload validator validate: %w", err), parsedClaims)
+		}
 	}
 
 	return token, nil
 }
 
-func ParseAndValidate(tokenString string, signatureVerifier motmedelCryptoInterfaces.NamedVerifier) (*jwtToken.Token, error) {
-	var claimsValidator registered_claims_validator.RegisteredClaimsValidator
-	return ParseAndValidateWithValidator(tokenString, signatureVerifier, &claimsValidator)
+func ParseAndCheck(tokenString string, signatureVerifier motmedelCryptoInterfaces.NamedVerifier) (*jwtToken.Token, error) {
+	return ParseAndCheckWithConfiguration(
+		tokenString,
+		signatureVerifier,
+		&validation_configuration.ValidationConfiguration{
+			PayloadValidator: &registered_claims_validator.RegisteredClaimsValidator{},
+		},
+	)
 }

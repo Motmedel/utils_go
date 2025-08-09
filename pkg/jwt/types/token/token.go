@@ -4,9 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/raw_token"
+	"github.com/Motmedel/utils_go/pkg/utils"
 	"maps"
 	"strings"
 )
@@ -17,6 +19,15 @@ type Token struct {
 }
 
 func (token *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string, error) {
+	if utils.IsNil(signer) {
+		return "", motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilSigner)
+	}
+
+	payloadBytes, err := json.Marshal(token.Payload)
+	if err != nil {
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (payload): %w", err), token.Payload)
+	}
+
 	var header map[string]any
 	if tokenHeader := token.Header; tokenHeader != nil {
 		header = maps.Clone(tokenHeader)
@@ -30,11 +41,6 @@ func (token *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string,
 	headerBytes, err := json.Marshal(header)
 	if err != nil {
 		return "", motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (header): %w", err), header)
-	}
-
-	payloadBytes, err := json.Marshal(token.Payload)
-	if err != nil {
-		return "", motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (payload): %w", err), token.Payload)
 	}
 
 	headerBase64 := base64.RawURLEncoding.EncodeToString(headerBytes)

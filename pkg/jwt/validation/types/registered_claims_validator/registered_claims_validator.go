@@ -9,26 +9,20 @@ import (
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
 	"github.com/Motmedel/utils_go/pkg/jwt/validation"
+	setting "github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"time"
-)
-
-type Setting int
-
-const (
-	SettingOptional = Setting(iota)
-	SettingRequired
-	SettingSkip
 )
 
 type ExpectedRegisteredClaims struct {
 	Issuer   string
 	Subject  string
 	Audience string
+	Id       string
 }
 
 type RegisteredClaimsValidator struct {
-	Settings map[string]Setting
+	Settings map[string]setting.Setting
 	Expected *ExpectedRegisteredClaims
 }
 
@@ -45,16 +39,16 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 	var errs []error
 
 	for key, value := range validator.Settings {
-		if _, ok := parsedClaims[key]; value == SettingRequired && !ok {
+		if _, ok := parsedClaims[key]; value == setting.SettingRequired && !ok {
 			errs = append(
 				errs,
-				&motmedelJwtErrors.MissingRequiredClaimError{Name: key},
+				&motmedelJwtErrors.MissingRequiredFieldError{Name: key},
 			)
 		}
 	}
 
 	for key, value := range parsedClaims {
-		if claimSetting := validator.Settings[key]; claimSetting == SettingSkip {
+		if claimSetting := validator.Settings[key]; claimSetting == setting.SettingSkip {
 			continue
 		}
 
@@ -144,7 +138,6 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 					)
 				}
 			}
-
 		case "sub":
 			if expectedSubject := expected.Subject; expectedSubject != "" {
 				subject, err := utils.Convert[string](value)
@@ -156,6 +149,20 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 					errs = append(
 						errs,
 						motmedelErrors.New(motmedelJwtErrors.ErrSubjectMismatch, expectedSubject, subject),
+					)
+				}
+			}
+		case "jti":
+			if expectedId := expected.Id; expectedId != "" {
+				id, err := utils.Convert[string](value)
+				if err != nil {
+					return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				}
+
+				if id != expectedId {
+					errs = append(
+						errs,
+						motmedelErrors.New(motmedelJwtErrors.ErrIdMismatch, expectedId, id),
 					)
 				}
 			}
