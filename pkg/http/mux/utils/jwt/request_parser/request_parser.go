@@ -3,7 +3,6 @@ package request_parser
 import (
 	"errors"
 	"fmt"
-	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
@@ -13,8 +12,7 @@ import (
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
 	motmedelJwtToken "github.com/Motmedel/utils_go/pkg/jwt/types/token"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/registered_claims_validator"
-	"github.com/Motmedel/utils_go/pkg/utils"
+	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/validation_configuration"
 	"net/http"
 )
 
@@ -31,6 +29,7 @@ type RequestParser struct {
 	Name              string
 	SignatureVerifier motmedelCryptoInterfaces.NamedVerifier
 	ClaimsValidator   validator.Validator[parsed_claims.ParsedClaims]
+	HeaderValidator   validator.Validator[map[string]any]
 }
 
 func (parser *RequestParser) getToken(tokenString string) (*TokenWithRaw, *muxResponseError.ResponseError) {
@@ -45,22 +44,20 @@ func (parser *RequestParser) getToken(tokenString string) (*TokenWithRaw, *muxRe
 	}
 
 	signatureVerifier := parser.SignatureVerifier
-	if utils.IsNil(signatureVerifier) {
-		return nil, &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier),
-		}
+	validationConfiguration := &validation_configuration.ValidationConfiguration{
+		HeaderValidator:  parser.HeaderValidator,
+		PayloadValidator: parser.ClaimsValidator,
 	}
 
-	claimsValidator := parser.ClaimsValidator
-	if utils.IsNil(claimsValidator) {
-		claimsValidator = &registered_claims_validator.RegisteredClaimsValidator{}
-	}
-
-	token, err := motmedelJwt.ParseAndValidateWithValidator(tokenString, signatureVerifier, claimsValidator)
+	token, err := motmedelJwt.ParseAndCheckWithConfiguration(
+		tokenString,
+		signatureVerifier,
+		validationConfiguration,
+	)
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(
 			fmt.Errorf("parse and validate with validator: %w", err),
-			tokenString, signatureVerifier, claimsValidator,
+			tokenString, signatureVerifier, validationConfiguration,
 		)
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrValidationError, motmedelErrors.ErrVerificationError, motmedelErrors.ErrParseError) {
 			return nil, &muxResponseError.ResponseError{
