@@ -21,6 +21,7 @@ var (
 	ErrTypMismatch                = errors.New("typ mismatch")
 	ErrAlgMismatch                = errors.New("alg mismatch")
 	ErrNilNumericDate             = errors.New("nil numeric date")
+	ErrNilTokenPayload            = errors.New("nil token payload")
 )
 
 type MissingRequiredFieldError struct {

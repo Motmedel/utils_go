@@ -392,6 +392,8 @@ func muxHandleRequest(
 		}
 	}
 
+	// TODO: Require the body to be empty with `maxBytes == -1`?
+
 	if maxBytes > 0 {
 		request.Body = http.MaxBytesReader(responseWriter, request.Body, maxBytes)
 	}
