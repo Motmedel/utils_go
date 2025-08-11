@@ -12,7 +12,7 @@ type Comparer[T comparable] interface {
 
 type ComparerFunction[T comparable] func(T) (bool, error)
 
-func (cf ComparerFunction[T]) Parse(input T) (bool, error) {
+func (cf ComparerFunction[T]) Compare(input T) (bool, error) {
 	return cf(input)
 }
 
