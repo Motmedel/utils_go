@@ -25,10 +25,7 @@ func (rawToken *RawToken) Verify(verifier motmedelCryptoInterfaces.Verifier) err
 
 	rawSplit := strings.Split(rawToken.Raw, ".")
 	if len(rawSplit) != 3 {
-		return motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: %w", motmedelErrors.ErrParseError, motmedelErrors.ErrBadSplit),
-			rawToken.Raw,
-		)
+		return motmedelErrors.NewWithTrace(motmedelErrors.ErrBadSplit, rawToken.Raw)
 	}
 
 	header := rawSplit[0]

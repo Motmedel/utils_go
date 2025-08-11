@@ -4,14 +4,15 @@ import (
 	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 type ExpectedFields struct {
-	Alg string
-	Typ string
+	Alg comparer.Comparer[string]
+	Typ comparer.Comparer[string]
 }
 
 type HeaderValidator struct {
@@ -21,7 +22,7 @@ type HeaderValidator struct {
 
 func (validator *HeaderValidator) Validate(fields map[string]any) error {
 	if fields == nil {
-		return nil
+		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilTokenHeader)
 	}
 
 	expected := validator.Expected
@@ -47,30 +48,38 @@ func (validator *HeaderValidator) Validate(fields map[string]any) error {
 
 		switch key {
 		case "alg":
-			if expectedAlg := expected.Alg; expectedAlg != "" {
-				alg, err := utils.Convert[string](value)
-				if err != nil {
-					return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
-				}
+			alg, err := utils.Convert[string](value)
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+			}
 
-				if alg != expectedAlg {
+			if algComparer := expected.Alg; !utils.IsNil(algComparer) {
+				ok, err := algComparer.Compare(alg)
+				if err != nil {
+					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), alg)
+				}
+				if !ok {
 					errs = append(
 						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrAlgMismatch, expectedAlg, alg),
+						motmedelErrors.New(motmedelJwtErrors.ErrAlgMismatch, algComparer, alg),
 					)
 				}
 			}
 		case "typ":
-			if expectedTyp := expected.Typ; expectedTyp != "" {
-				typ, err := utils.Convert[string](value)
-				if err != nil {
-					return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
-				}
+			typ, err := utils.Convert[string](value)
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+			}
 
-				if typ != expectedTyp {
+			if typComparer := expected.Typ; !utils.IsNil(typComparer) {
+				ok, err := typComparer.Compare(typ)
+				if err != nil {
+					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), typ)
+				}
+				if !ok {
 					errs = append(
 						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrTypMismatch, expectedTyp, typ),
+						motmedelErrors.New(motmedelJwtErrors.ErrTypMismatch, typComparer, typ),
 					)
 				}
 			}

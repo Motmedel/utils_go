@@ -22,6 +22,13 @@ var (
 	ErrAlgMismatch                = errors.New("alg mismatch")
 	ErrNilNumericDate             = errors.New("nil numeric date")
 	ErrNilTokenPayload            = errors.New("nil token payload")
+	ErrAlgKtyMismatch             = errors.New("alg kty mismatch")
+	ErrEmptyEcCrv                 = errors.New("empty ec crv")
+	ErrEmptyEcX                   = errors.New("empty ec x")
+	ErrEmptyEcY                   = errors.New("empty ec y")
+	ErrUnsupportedCrv             = errors.New("unsupported crv")
+	ErrKtyMismatch                = errors.New("kty mismatch")
+	ErrUnsupportedKty             = errors.New("unsupported kty")
 )
 
 type MissingRequiredFieldError struct {

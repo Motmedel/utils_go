@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/claims_strings"
 	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/numeric_date"
@@ -15,10 +16,10 @@ import (
 )
 
 type ExpectedRegisteredClaims struct {
-	Issuer   string
-	Subject  string
-	Audience string
-	Id       string
+	IssuerComparer   comparer.Comparer[string]
+	SubjectComparer  comparer.Comparer[string]
+	AudienceComparer comparer.Comparer[string]
+	IdComparer       comparer.Comparer[string]
 }
 
 type RegisteredClaimsValidator struct {
@@ -28,7 +29,7 @@ type RegisteredClaimsValidator struct {
 
 func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.ParsedClaims) error {
 	if parsedClaims == nil {
-		return nil
+		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilTokenPayload)
 	}
 
 	expected := validator.Expected
@@ -102,16 +103,20 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				errs = append(errs, wrappedErr)
 			}
 		case "aud":
-			if expectedAudience := expected.Audience; expectedAudience != "" {
-				audiences, err := utils.Convert[claims_strings.ClaimStrings](value)
-				if err != nil {
-					return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
-				}
+			audiences, err := utils.Convert[claims_strings.ClaimStrings](value)
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+			}
 
+			if audienceComparer := expected.AudienceComparer; !utils.IsNil(audienceComparer) {
 				var audienceMatched bool
 
 				for _, audience := range audiences {
-					if audience == expectedAudience {
+					ok, err := audienceComparer.Compare(audience)
+					if err != nil {
+						return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), audience)
+					}
+					if ok {
 						audienceMatched = true
 						break
 					}
@@ -120,49 +125,61 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				if !audienceMatched {
 					errs = append(
 						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrAudienceMismatch, expectedAudience, audiences),
+						motmedelErrors.New(motmedelJwtErrors.ErrAudienceMismatch, audienceComparer, audiences),
 					)
 				}
 			}
 		case "iss":
-			if expectedIssuer := expected.Issuer; expectedIssuer != "" {
-				issuer, err := utils.Convert[string](value)
-				if err != nil {
-					return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
-				}
+			issuer, err := utils.Convert[string](value)
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+			}
 
-				if issuer != expectedIssuer {
+			if issuerComparer := expected.IssuerComparer; !utils.IsNil(issuerComparer) {
+				ok, err := issuerComparer.Compare(issuer)
+				if err != nil {
+					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), issuer)
+				}
+				if !ok {
 					errs = append(
 						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrIssuerMismatch, expectedIssuer, issuer),
+						motmedelErrors.New(motmedelJwtErrors.ErrIssuerMismatch, issuerComparer, issuer),
 					)
 				}
 			}
 		case "sub":
-			if expectedSubject := expected.Subject; expectedSubject != "" {
-				subject, err := utils.Convert[string](value)
-				if err != nil {
-					return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
-				}
+			subject, err := utils.Convert[string](value)
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+			}
 
-				if subject != expectedSubject {
+			if subjectComparer := expected.SubjectComparer; !utils.IsNil(subjectComparer) {
+				ok, err := subjectComparer.Compare(subject)
+				if err != nil {
+					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), subject)
+				}
+				if !ok {
 					errs = append(
 						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrSubjectMismatch, expectedSubject, subject),
+						motmedelErrors.New(motmedelJwtErrors.ErrSubjectMismatch, subjectComparer, subject),
 					)
 				}
 			}
 		case "jti":
-			if expectedId := expected.Id; expectedId != "" {
-				id, err := utils.Convert[string](value)
-				if err != nil {
-					return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
-				}
+			id, err := utils.Convert[string](value)
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+			}
 
-				if id != expectedId {
+			if idComparer := expected.IdComparer; !utils.IsNil(idComparer) {
+				ok, err := idComparer.Compare(id)
+				if err != nil {
+					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), id)
+				}
+				if !ok {
 					errs = append(
 						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrIdMismatch, expectedId, id),
+						motmedelErrors.New(motmedelJwtErrors.ErrIdMismatch, idComparer, id),
 					)
 				}
 			}
