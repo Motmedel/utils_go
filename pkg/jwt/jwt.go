@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -103,7 +104,7 @@ func ParseAndCheck(tokenString string, signatureVerifier motmedelCryptoInterface
 	)
 }
 
-func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.Validator[*jwtToken.Token]) (*jwtToken.Token, any, error) {
+func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.Validator[*jwtToken.Token]) (*jwtToken.Token, []byte, error) {
 	if tokenString == "" {
 		return nil, nil, nil
 	}
@@ -174,8 +175,9 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 		return token, nil, wrappedErr
 	}
 
-	var key any
 	var method motmedelCryptoInterfaces.Method
+
+	var key any
 
 	switch kty {
 	case "RSA":
@@ -197,7 +199,7 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
 			}
 
-			return token, rsaKey, wrappedErr
+			return token, nil, wrappedErr
 		}
 
 		method, err = rsa.New(alg, nil, publicKey)
@@ -206,7 +208,7 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 			if errors.Is(err, motmedelCryptoErrors.ErrUnsupportedAlgorithm) {
 				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
 			}
-			return token, rsaKey, wrappedErr
+			return token, nil, wrappedErr
 		}
 
 		key = rsaKey
@@ -229,7 +231,7 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
 			}
 
-			return token, ecKey, wrappedErr
+			return token, nil, wrappedErr
 		}
 
 		method, err = ecdsa.New(alg, nil, publicKey)
@@ -238,7 +240,7 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 			if motmedelErrors.IsAny(err, motmedelCryptoErrors.ErrCurveMismatch, motmedelCryptoErrors.ErrUnsupportedAlgorithm) {
 				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
 			}
-			return token, ecKey, wrappedErr
+			return token, nil, wrappedErr
 		}
 
 		key = ecKey
@@ -246,11 +248,19 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 		return token, nil, motmedelErrors.NewWithTrace(jwtErrors.ErrUnsupportedKty, kty)
 	}
 
-	if err := rawToken.Verify(method); err != nil {
-		return token, key, motmedelErrors.New(fmt.Errorf("raw token verify: %w", err), rawToken, method)
+	derEncodedKey, err := x509.MarshalPKIXPublicKey(key)
+	if err != nil {
+		return token, nil, motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: x509 marshal pkix public key: %w", motmedelErrors.ErrValidationError, err),
+			key,
+		)
 	}
 
-	return token, key, nil
+	if err := rawToken.Verify(method); err != nil {
+		return token, derEncodedKey, motmedelErrors.New(fmt.Errorf("raw token verify: %w", err), rawToken, method)
+	}
+
+	return token, derEncodedKey, nil
 }
 
 func ParseAndCheckJwk(tokenString string) (*jwtToken.Token, any, error) {
