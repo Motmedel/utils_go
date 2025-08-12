@@ -18,20 +18,32 @@ const (
 	CoseAlgPs256 = -37
 	CoseAlgPs384 = -38
 	CoseAlgPs512 = -39
+
+	AlgEs256 = "ES256"
+	AlgEs384 = "ES384"
+	AlgEs512 = "ES512"
+
+	AlgRs256 = "RS256"
+	AlgRs384 = "RS384"
+	AlgRs512 = "RS512"
+
+	AlgPs256 = "PS256"
+	AlgPs384 = "PS384"
+	AlgPs512 = "PS512"
 )
 
 var CoseAlgNames = map[int]string{
-	CoseAlgEs256: "Es256",
-	CoseAlgEs384: "Es384",
-	CoseAlgEs512: "Es512",
+	CoseAlgEs256: AlgEs256,
+	CoseAlgEs384: AlgEs384,
+	CoseAlgEs512: AlgEs512,
 
-	CoseAlgRs256: "Rs256",
-	CoseAlgRs384: "Rs384",
-	CoseAlgRs512: "Rs512",
+	CoseAlgRs256: AlgRs256,
+	CoseAlgRs384: AlgRs384,
+	CoseAlgRs512: AlgRs512,
 
-	CoseAlgPs256: "Ps256",
-	CoseAlgPs384: "Ps384",
-	CoseAlgPs512: "Ps512",
+	CoseAlgPs256: AlgPs256,
+	CoseAlgPs384: AlgPs384,
+	CoseAlgPs512: AlgPs512,
 }
 
 func MakeRawDerCertificateChain(certificates []*x509.Certificate) [][]byte {
