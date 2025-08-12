@@ -3,7 +3,7 @@ package rsa
 import (
 	"crypto"
 	"crypto/rand"
-	stdRSA "crypto/rsa"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
@@ -15,8 +15,8 @@ import (
 // NOTE: Not tested (AI-generated...)
 
 type Method struct {
-	PrivateKey *stdRSA.PrivateKey
-	PublicKey  *stdRSA.PublicKey
+	PrivateKey *rsa.PrivateKey
+	PublicKey  *rsa.PublicKey
 	HashFunc   func() hash.Hash
 	Hash       crypto.Hash
 	Name       string
@@ -43,7 +43,7 @@ func (m *Method) Sign(message []byte) ([]byte, error) {
 	}
 
 	if m.pss {
-		sig, err := stdRSA.SignPSS(rand.Reader, m.PrivateKey, m.Hash, digest, &stdRSA.PSSOptions{
+		sig, err := rsa.SignPSS(rand.Reader, m.PrivateKey, m.Hash, digest, &rsa.PSSOptions{
 			SaltLength: m.Hash.Size(), // per RFC 7518: salt length == hash length
 			Hash:       m.Hash,
 		})
@@ -53,7 +53,7 @@ func (m *Method) Sign(message []byte) ([]byte, error) {
 		return sig, nil
 	}
 
-	sig, err := stdRSA.SignPKCS1v15(rand.Reader, m.PrivateKey, m.Hash, digest)
+	sig, err := rsa.SignPKCS1v15(rand.Reader, m.PrivateKey, m.Hash, digest)
 	if err != nil {
 		return nil, motmedelErrors.NewWithTrace(err)
 	}
@@ -75,7 +75,7 @@ func (m *Method) Verify(message []byte, signature []byte) error {
 	}
 
 	if m.pss {
-		if err := stdRSA.VerifyPSS(pub, m.Hash, digest, signature, &stdRSA.PSSOptions{
+		if err := rsa.VerifyPSS(pub, m.Hash, digest, signature, &rsa.PSSOptions{
 			SaltLength: m.Hash.Size(),
 			Hash:       m.Hash,
 		}); err != nil {
@@ -84,7 +84,7 @@ func (m *Method) Verify(message []byte, signature []byte) error {
 		return nil
 	}
 
-	if err := stdRSA.VerifyPKCS1v15(pub, m.Hash, digest, signature); err != nil {
+	if err := rsa.VerifyPKCS1v15(pub, m.Hash, digest, signature); err != nil {
 		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrSignatureMismatch)
 	}
 	return nil
@@ -96,7 +96,7 @@ func (m *Method) GetName() string {
 
 // TODO: Derive from the keys
 
-func New(algorithm string, privateKey *stdRSA.PrivateKey, publicKey *stdRSA.PublicKey) (*Method, error) {
+func New(algorithm string, privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey) (*Method, error) {
 	var (
 		hashFunc func() hash.Hash
 		hash     crypto.Hash
