@@ -12,7 +12,7 @@ import (
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
 	motmedelJwtToken "github.com/Motmedel/utils_go/pkg/jwt/types/token"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/validation_configuration"
+	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/base_validator"
 	"net/http"
 )
 
@@ -44,20 +44,19 @@ func (parser *RequestParser) getToken(tokenString string) (*TokenWithRaw, *muxRe
 	}
 
 	signatureVerifier := parser.SignatureVerifier
-	validationConfiguration := &validation_configuration.ValidationConfiguration{
+	baseValidator := &base_validator.BaseValidator{
 		HeaderValidator:  parser.HeaderValidator,
 		PayloadValidator: parser.ClaimsValidator,
 	}
-
-	token, err := motmedelJwt.ParseAndCheckWithConfiguration(
+	token, err := motmedelJwt.ParseAndCheckWithValidator(
 		tokenString,
 		signatureVerifier,
-		validationConfiguration,
+		baseValidator,
 	)
 	if err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(
 			fmt.Errorf("parse and validate with validator: %w", err),
-			tokenString, signatureVerifier, validationConfiguration,
+			tokenString, signatureVerifier, baseValidator,
 		)
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrValidationError, motmedelErrors.ErrVerificationError, motmedelErrors.ErrParseError) {
 			return nil, &muxResponseError.ResponseError{
