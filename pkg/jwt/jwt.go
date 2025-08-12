@@ -234,9 +234,9 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 			return token, nil, wrappedErr
 		}
 
-		method, err = ecdsa.New(alg, nil, publicKey)
+		method, err = ecdsa.FromPublicKey(publicKey)
 		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ecdsa new: %w", err), alg)
+			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ecdsa from public key: %w", err), publicKey)
 			if motmedelErrors.IsAny(err, motmedelCryptoErrors.ErrCurveMismatch, motmedelCryptoErrors.ErrUnsupportedAlgorithm) {
 				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
 			}

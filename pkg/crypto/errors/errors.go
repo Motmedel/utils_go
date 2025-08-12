@@ -12,4 +12,7 @@ var (
 	ErrNilVerifier          = errors.New("nil verifier")
 	ErrNilMethod            = errors.New("nil method")
 	ErrCurveMismatch        = errors.New("curve mismatch")
+	ErrUnsupportedCurve     = errors.New("unsupported curve")
+	ErrNilCurve             = errors.New("nil curve")
+	ErrNilCurveParams       = errors.New("nil curve params")
 )

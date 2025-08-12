@@ -94,6 +94,8 @@ func (m *Method) GetName() string {
 	return m.Name
 }
 
+// TODO: Derive from the keys
+
 func New(algorithm string, privateKey *stdRSA.PrivateKey, publicKey *stdRSA.PublicKey) (*Method, error) {
 	var (
 		hashFunc func() hash.Hash

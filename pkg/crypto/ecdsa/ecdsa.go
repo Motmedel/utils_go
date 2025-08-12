@@ -1,14 +1,16 @@
 package ecdsa
 
 import (
-	stdECDSA "crypto/ecdsa"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/asn1"
 	"fmt"
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/utils"
 	"hash"
 	"math/big"
 )
@@ -31,8 +33,8 @@ func canonicalizeS(s, n *big.Int) *big.Int {
 }
 
 type Method struct {
-	PrivateKey *stdECDSA.PrivateKey
-	PublicKey  *stdECDSA.PublicKey
+	PrivateKey *ecdsa.PrivateKey
+	PublicKey  *ecdsa.PublicKey
 	HashFunc   func() hash.Hash
 	Name       string
 
@@ -58,7 +60,7 @@ func (m *Method) Sign(message []byte) ([]byte, error) {
 		return nil, motmedelErrors.NewWithTrace(err)
 	}
 
-	r, s, err := stdECDSA.Sign(rand.Reader, m.PrivateKey, digest)
+	r, s, err := ecdsa.Sign(rand.Reader, m.PrivateKey, digest)
 	if err != nil {
 		return nil, motmedelErrors.NewWithTrace(err)
 	}
@@ -94,69 +96,158 @@ func (m *Method) Verify(message []byte, signature []byte) error {
 
 	digest, err := m.hash(message)
 	if err != nil {
-		return motmedelErrors.NewWithTrace(err)
+		return motmedelErrors.NewWithTrace(fmt.Errorf("hash: %w", err))
 	}
 
-	if stdECDSA.Verify(pub, digest, r, s) {
-		return nil
+	if !ecdsa.Verify(pub, digest, r, s) {
+		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrSignatureMismatch)
 	}
-	return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrSignatureMismatch)
+
+	return nil
 }
 
 func (m *Method) GetName() string {
 	return m.Name
 }
 
-func New(algorithm string, privateKey *stdECDSA.PrivateKey, publicKey *stdECDSA.PublicKey) (*Method, error) {
-	var (
-		curve    elliptic.Curve
-		hashFunc func() hash.Hash
-		name     string
-	)
+func FromPublicKey(publicKey *ecdsa.PublicKey) (*Method, error) {
+	return New(nil, publicKey)
+}
 
-	switch algorithm {
-	case "ES256":
-		curve = elliptic.P256()
-		hashFunc = sha256.New
-		name = "ES256"
-	case "ES384":
-		curve = elliptic.P384()
-		hashFunc = sha512.New384
-		name = "ES384"
-	case "ES512":
-		curve = elliptic.P521()
-		hashFunc = sha512.New
-		name = "ES512"
+func FromPrivateKey(privateKey *ecdsa.PrivateKey) (*Method, error) {
+	return New(privateKey, nil)
+}
+
+// deriveAlgFromCurve picks the JOSE alg name and hash function based on the curve.
+func deriveAlgFromCurveParams(curveParams *elliptic.CurveParams) (name string, hashFunc func() hash.Hash, err error) {
+	if curveParams == nil {
+		return "", nil, nil
+	}
+
+	switch curveName := curveParams.Name; curveName {
+	case "P-256":
+		return "ES256", sha256.New, nil
+	case "P-384":
+		return "ES384", sha512.New384, nil
+	case "P-521":
+		return "ES512", sha512.New, nil
 	default:
+		return "", nil, motmedelErrors.NewWithTrace(
+			motmedelCryptoErrors.ErrUnsupportedCurve,
+			curveName,
+		)
+	}
+}
+
+func getCurveParams(curve elliptic.Curve) *elliptic.CurveParams {
+	if utils.IsNil(curve) {
+		return nil
+	}
+
+	return curve.Params()
+}
+
+func New(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) (*Method, error) {
+	if privateKey == nil && publicKey == nil {
+		return nil, nil
+	}
+
+	var curve elliptic.Curve
+	var privateKeyCurveParams *elliptic.CurveParams
+	var publicKeyCurveParams *elliptic.CurveParams
+
+	if privateKey != nil {
+		privateKeyCurveParams = getCurveParams(privateKey.Curve)
+
+		curve = privateKey.Curve
+	}
+
+	if publicKey != nil {
+		publicKeyCurve := publicKey.Curve
+		publicKeyCurveParams = getCurveParams(publicKeyCurve)
+
+		if utils.IsNil(curve) {
+			curve = publicKeyCurve
+		}
+	}
+
+	if utils.IsNil(curve) {
+		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilCurve)
+	}
+
+	if privateKeyCurveParams != nil && publicKeyCurveParams != nil && privateKeyCurveParams.Name != publicKeyCurveParams.Name {
 		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: %q", motmedelCryptoErrors.ErrUnsupportedAlgorithm, algorithm),
+			fmt.Errorf("%w (private/public)", motmedelCryptoErrors.ErrCurveMismatch),
+			privateKeyCurveParams.Name, publicKeyCurveParams.Name,
 		)
 	}
 
-	if privateKey != nil && privateKey.Curve != curve {
-		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w (private)", motmedelCryptoErrors.ErrCurveMismatch),
-			privateKey.Curve,
-			curve,
-		)
-	}
-
-	if publicKey != nil && publicKey.Curve != curve {
-		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w (public)", motmedelCryptoErrors.ErrCurveMismatch),
-			publicKey.Curve,
-			curve,
-		)
+	name, hashFunc, err := deriveAlgFromCurveParams(curve.Params())
+	if err != nil {
+		return nil, err
 	}
 
 	size := (curve.Params().BitSize + 7) / 8
 
-	return &Method{
-		PrivateKey: privateKey,
-		PublicKey:  publicKey,
-		HashFunc:   hashFunc,
-		Name:       name,
-		curve:      curve,
-		size:       size,
+	return &Method{PrivateKey: privateKey,
+		PublicKey: publicKey,
+		HashFunc:  hashFunc,
+		Name:      name,
+		curve:     curve,
+		size:      size,
 	}, nil
+}
+
+type Asn1DerEncodedMethod struct {
+	Method
+}
+
+func (m *Asn1DerEncodedMethod) Sign(message []byte) ([]byte, error) {
+	raw, err := m.Method.Sign(message)
+	if err != nil {
+		return nil, fmt.Errorf("method sign: %w", err)
+	}
+
+	if len(raw) != 2*m.size {
+		return nil, fmt.Errorf("invalid signature length: %d", len(raw))
+	}
+
+	r := new(big.Int).SetBytes(raw[:m.size])
+	s := new(big.Int).SetBytes(raw[m.size:])
+
+	data, err := asn1.Marshal(struct{ R, S *big.Int }{R: r, S: s})
+	if err != nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("asn1 marshal: %w", err), r, s)
+	}
+
+	return data, nil
+}
+
+func (m *Asn1DerEncodedMethod) Verify(message []byte, signature []byte) error {
+	publicKey := m.PublicKey
+	if publicKey == nil && m.PrivateKey != nil {
+		publicKey = &m.PrivateKey.PublicKey
+	}
+	if publicKey == nil {
+		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+	}
+
+	var decodedSignature struct {
+		R, S *big.Int
+	}
+
+	if _, err := asn1.Unmarshal(signature, &decodedSignature); err != nil {
+		return motmedelErrors.NewWithTrace(fmt.Errorf("asn1 unmarshal: %w", err))
+	}
+
+	digest, err := m.hash(message)
+	if err != nil {
+		return motmedelErrors.NewWithTrace(fmt.Errorf("hash: %w", err))
+	}
+
+	if !ecdsa.Verify(publicKey, digest, decodedSignature.R, decodedSignature.S) {
+		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrSignatureMismatch)
+	}
+
+	return nil
 }
