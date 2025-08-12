@@ -211,7 +211,7 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 			return token, nil, wrappedErr
 		}
 
-		key = rsaKey
+		key = publicKey
 	case "EC":
 		ecKey, err := jwtKey.EcKeyFromMap(keyMap)
 		if err != nil {
@@ -243,7 +243,7 @@ func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.
 			return token, nil, wrappedErr
 		}
 
-		key = ecKey
+		key = publicKey
 	default:
 		return token, nil, motmedelErrors.NewWithTrace(jwtErrors.ErrUnsupportedKty, kty)
 	}
