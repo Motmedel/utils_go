@@ -12,26 +12,30 @@ import (
 	"net/http"
 )
 
-var ValidatableProcessor = body_processor.BodyProcessorFunction[validatable.Validatable, validatable.Validatable](
-	func(v validatable.Validatable) (validatable.Validatable, *response_error.ResponseError) {
-		if utils.IsNil(v) {
-			return nil, nil
-		}
+func MakeValidatableBodyParser[T validatable.Validatable]() body_processor.BodyProcessor[T, T] {
+	return body_processor.BodyProcessorFunction[T, T](
+		func(v T) (T, *response_error.ResponseError) {
+			var zero T
 
-		if err := v.Validate(); err != nil {
-			wrappedErr := motmedelErrors.New(fmt.Errorf("validate: %w", err))
-			if errors.Is(wrappedErr, motmedelErrors.ErrValidationError) {
-				return nil, &response_error.ResponseError{
-					ClientError: err,
-					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-						http.StatusBadRequest,
-						"The input did not pass validation.",
-						nil,
-					),
+			if utils.IsNil(v) {
+				return zero, nil
+			}
+
+			if err := v.Validate(); err != nil {
+				wrappedErr := motmedelErrors.New(fmt.Errorf("validate: %w", err))
+				if errors.Is(wrappedErr, motmedelErrors.ErrValidationError) {
+					return zero, &response_error.ResponseError{
+						ClientError: err,
+						ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+							http.StatusBadRequest,
+							"The input did not pass validation.",
+							nil,
+						),
+					}
 				}
 			}
-		}
 
-		return v, nil
-	},
-)
+			return v, nil
+		},
+	)
+}
