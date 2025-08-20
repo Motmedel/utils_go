@@ -8,8 +8,10 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
+	muxUtilsBodyParser "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
+	muxUTilsBodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
 	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"maps"
@@ -22,8 +24,8 @@ var (
 	ErrNilEvaluationResult     = errors.New("nil evaluation result")
 	ErrNilEvaluationResultList = errors.New("nil evaluation result list")
 	// TODO: Move these two?
-	ErrNilProcessor            = errors.New("nil processor")
-	ErrNilBodyParser           = errors.New("nil body parser")
+	ErrNilProcessor  = errors.New("nil processor")
+	ErrNilBodyParser = errors.New("nil body parser")
 )
 
 type ValidateError struct {
@@ -67,7 +69,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
 	}
 
-	dataMap, responseError := bodyParserJson.ParseJsonBody[map[string]any](body)
+	dataMap, responseError := muxUTilsBodyParserJson.ParseJsonBody[map[string]any](body)
 	if responseError != nil {
 		return zero, responseError
 	}
@@ -101,25 +103,6 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 	if responseError != nil {
 		return zero, responseError
 	}
-
-	//if validator, ok := result.(motmedelInterfaces.Validator); ok {
-	//	if err := validator.Validate(); err != nil {
-	//		wrappedErr := fmt.Errorf("validate (result): %w", err)
-	//
-	//		if errors.Is(err, motmedelErrors.ErrValidationError) {
-	//			return zero, &response_error.ResponseError{
-	//				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-	//					http.StatusUnprocessableEntity,
-	//					"Invalid body.",
-	//					map[string]string{"error": err.Error()},
-	//				),
-	//				ClientError: wrappedErr,
-	//			}
-	//		}
-	//
-	//		return zero, &response_error.ResponseError{ServerError: wrappedErr}
-	//	}
-	//}
 
 	return result, nil
 }
@@ -155,9 +138,18 @@ func (bodyParser *JsonSchemaBodyParserWithProcessor[T, U]) Parse(request *http.R
 	return processedResult, nil
 }
 
+func FromValidatable[T validatable.Validatable]() (*JsonSchemaBodyParserWithProcessor[T, T], error) {
+	bodyParser, err := NewWithProcessor[T](muxUtilsBodyParser.MakeValidatableBodyParser[T]())
+	if err != nil {
+		return nil, fmt.Errorf("new with processor: %w", err)
+	}
+
+	return bodyParser, nil
+}
+
 func NewWithSchema[T any](schema *jsonschema.Schema) *JsonSchemaBodyParser[T] {
 	return &JsonSchemaBodyParser[T]{
-		BodyParser: bodyParserJson.New[T](),
+		BodyParser: muxUTilsBodyParserJson.New[T](),
 		Schema:     schema,
 	}
 }
