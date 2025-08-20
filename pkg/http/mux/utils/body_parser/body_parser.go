@@ -28,7 +28,7 @@ func MakeValidatableBodyParser[T validatable.Validatable]() body_processor.BodyP
 						ClientError: err,
 						ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 							http.StatusBadRequest,
-							"The input did not pass validation.",
+							"The body did not pass validation.",
 							nil,
 						),
 					}
