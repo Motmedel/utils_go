@@ -4,6 +4,14 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
 	motmedelGzip "github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -13,13 +21,6 @@ import (
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"golang.org/x/sync/errgroup"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
-	"time"
 )
 
 const robotsTxtCacheControl = "public, max-age=86400"
@@ -178,7 +179,7 @@ func EndpointSpecificationFromDataPath(
 		return nil, nil
 	}
 
-	if !strings.HasPrefix("/", path) {
+	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
 
