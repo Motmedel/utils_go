@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrNilHttpClient               = errors.New("nil client")
+	ErrNilServer                   = errors.New("nil server")
 	ErrNilHttpRequest              = errors.New("nil request")
 	ErrNilHttpResponse             = errors.New("nil response")
 	ErrNilHttpRequestHeader        = errors.New("nil request header")
@@ -21,7 +22,7 @@ var (
 	ErrEmptyResponseBody           = errors.New("empty response body")
 	ErrReattemptFailedError        = errors.New("reattempt failed")
 	ErrBadIfModifiedSinceTimestamp = errors.New("bad If-Modified-Since timestamp")
-	ErrNilCookie = errors.New("nil cookie")
+	ErrNilCookie                   = errors.New("nil cookie")
 )
 
 type Non2xxStatusCodeError struct {
