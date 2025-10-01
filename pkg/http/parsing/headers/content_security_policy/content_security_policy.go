@@ -5,11 +5,12 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	contentSecurityPolicyTypes "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 	goabnf "github.com/pandatix/go-abnf"
-	"strings"
 )
 
 //go:embed grammar.txt
@@ -224,7 +225,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 					)
 				}
 				if len(serializedSourceListPaths) == 0 {
-					return nil, nil
+					return nil, motmedelErrors.New(
+						fmt.Errorf("%w (serialized-source-list)", motmedelErrors.ErrSyntaxError),
+						directiveValue,
+					)
 				}
 
 				sources, err = makeSourcesFromPaths(
@@ -239,8 +243,12 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 						serializedSourceListPaths,
 					)
 				}
-				if sources == nil {
-					return nil, nil
+				if len(sources) == 0 {
+					return nil, motmedelErrors.New(
+						fmt.Errorf("%w (source-expression)", motmedelErrors.ErrSyntaxError),
+						directiveValue,
+						serializedSourceListPaths,
+					)
 				}
 			}
 		}
@@ -321,20 +329,26 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 				)
 			}
 			if len(sandboxDirectiveValuePaths) == 0 {
-				return nil, nil
+				return nil, motmedelErrors.New(
+					fmt.Errorf("%w (sandbox directive value root)", motmedelErrors.ErrSyntaxError),
+					directiveValue,
+				)
 			}
 
-			tokenPaths := parsing_utils.SearchPath(directiveValuePath, []string{"token"}, 2, false)
+			tokenPaths := parsing_utils.SearchPath(sandboxDirectiveValuePaths[0], []string{"token"}, 2, false)
 			for _, tokenPath := range tokenPaths {
 				sandboxDirective.Tokens = append(
 					sandboxDirective.Tokens,
-					string(parsing_utils.ExtractPathValue(data, tokenPath)),
+					string(parsing_utils.ExtractPathValue(directiveValue, tokenPath)),
 				)
 			}
 			directive = sandboxDirective
 		case "webrtc":
 			if innerDirective.RawValue != "allow" && innerDirective.RawValue != "block" {
-				return nil, nil
+				return nil, motmedelErrors.New(
+					fmt.Errorf("%w (webrtc directive)", motmedelErrors.ErrSyntaxError),
+					innerDirective.RawValue,
+				)
 			}
 			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{Directive: innerDirective}
 			directive = webrtcDirective
@@ -349,7 +363,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 				)
 			}
 			if len(reportUriDirectivePaths) == 0 {
-				return nil, nil
+				return nil, motmedelErrors.New(
+					fmt.Errorf("%w (report uri directive value root)", motmedelErrors.ErrSyntaxError),
+					directiveValue,
+				)
 			}
 
 			reportUriDirectivePath := reportUriDirectivePaths[0]
@@ -360,7 +377,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 				false,
 			)
 			if len(uriReferencePaths) == 0 {
-				return nil, nil
+				return nil, motmedelErrors.New(
+					fmt.Errorf("%w (uri-reference)", motmedelErrors.ErrSyntaxError),
+					directiveValue,
+				)
 			}
 
 			for _, uriReferencePath := range uriReferencePaths {
@@ -387,7 +407,10 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 					)
 				}
 				if len(ancestorSourceListPaths) == 0 {
-					return nil, nil
+					return nil, motmedelErrors.New(
+						fmt.Errorf("%w (ancestor source list root)", motmedelErrors.ErrSyntaxError),
+						directiveValue,
+					)
 				}
 
 				sources, err = makeSourcesFromPaths(directiveValue, ancestorSourceListPaths, "ancestor-source")
@@ -398,7 +421,11 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 					)
 				}
 				if sources == nil {
-					return nil, nil
+					return nil, motmedelErrors.New(
+						fmt.Errorf("%w (ancestor source)", motmedelErrors.ErrSyntaxError),
+						directiveValue,
+						ancestorSourceListPaths,
+					)
 				}
 			}
 

@@ -1,5 +1,10 @@
 package content_security_policy
 
+import (
+	"fmt"
+	"strings"
+)
+
 type SourceI interface {
 	GetRaw() string
 }
@@ -191,4 +196,146 @@ type ContentSecurityPolicy struct {
 	OtherDirectives       []DirectiveI `json:"other_directives"`
 	IneffectiveDirectives []DirectiveI `json:"ineffective_directives"`
 	Raw                   string       `json:"raw,omitempty"`
+}
+
+// String returns a serialized Content-Security-Policy header built from the instance.
+// Preference order:
+// - If Raw is present, return it as-is to preserve original formatting.
+// - Otherwise, serialize directives in the following order: Directives, OtherDirectives (exclude IneffectiveDirectives).
+func (csp *ContentSecurityPolicy) String() string {
+	if csp == nil {
+		return ""
+	}
+	if strings.TrimSpace(csp.Raw) != "" {
+		return csp.Raw
+	}
+	var parts []string
+	appendDirectives := func(list []DirectiveI) {
+		for _, d := range list {
+			if d == nil {
+				continue
+			}
+			if s := directiveToString(d); s != "" {
+				parts = append(parts, s)
+			}
+		}
+	}
+	appendDirectives(csp.Directives)
+	appendDirectives(csp.OtherDirectives)
+	return strings.Join(parts, "; ")
+}
+
+func directiveToString(d DirectiveI) string {
+	if d == nil {
+		return ""
+	}
+	name := d.GetRawName()
+	if strings.TrimSpace(name) == "" {
+		name = d.GetName()
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+
+	// If we have a raw value, prefer it (preserves exact spacing/quoting)
+	if v := strings.TrimSpace(d.GetRawValue()); v != "" {
+		return fmt.Sprintf("%s %s", name, v)
+	}
+
+	// Try to serialize based on concrete directive types
+	var value string
+
+	// Directives with sources
+	if sd, ok := d.(SourceDirectiveI); ok {
+		sources := sd.GetSources()
+		if len(sources) == 1 {
+			if _, isNone := sources[0].(*NoneSource); isNone {
+				value = "'none'"
+			}
+		}
+		if value == "" {
+			var srcParts []string
+			for _, s := range sources {
+				if s == nil {
+					continue
+				}
+				if ss := sourceToString(s); ss != "" {
+					srcParts = append(srcParts, ss)
+				}
+			}
+			value = strings.Join(srcParts, " ")
+		}
+	}
+
+	switch v := d.(type) {
+	case *SandboxDirective:
+		value = strings.Join(v.Tokens, " ")
+	case *ReportUriDirective:
+		value = strings.Join(v.UriReferences, " ")
+	case *ReportToDirective:
+		value = strings.TrimSpace(v.Token)
+	case *RequireSriForDirective:
+		value = strings.Join(v.ResourceTypes, " ")
+	case *UpgradeInsecureRequestDirective:
+		// no value
+	case *WebrtcDirective:
+		// if no raw value, cannot infer; keep empty
+	}
+
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return name
+	}
+	return fmt.Sprintf("%s %s", name, value)
+}
+
+func sourceToString(s SourceI) string {
+	if s == nil {
+		return ""
+	}
+	if raw := strings.TrimSpace(s.GetRaw()); raw != "" {
+		return raw
+	}
+	switch v := s.(type) {
+	case *NoneSource:
+		return "'none'"
+	case *SchemeSource:
+		if v.Scheme == "" {
+			return ""
+		}
+		return v.Scheme + ":"
+	case *HostSource:
+		if v.Host == "" && v.Scheme == "" && v.PortString == "" && v.Path == "" {
+			return ""
+		}
+		b := strings.Builder{}
+		if v.Scheme != "" {
+			b.WriteString(v.Scheme)
+			b.WriteString("://")
+		}
+		b.WriteString(v.Host)
+		if v.PortString != "" {
+			b.WriteString(":")
+			b.WriteString(v.PortString)
+		}
+		if v.Path != "" {
+			b.WriteString(v.Path)
+		}
+		return b.String()
+	case *KeywordSource:
+		return v.Keyword
+	case *NonceSource:
+		if v.Base64Value == "" {
+			return ""
+		}
+		return "'nonce-" + v.Base64Value + "'"
+	case *HashSource:
+		if v.HashAlgorithm == "" || v.Base64Value == "" {
+			return ""
+		}
+		return "'" + v.HashAlgorithm + "-" + v.Base64Value + "'"
+	default:
+		return ""
+	}
 }
