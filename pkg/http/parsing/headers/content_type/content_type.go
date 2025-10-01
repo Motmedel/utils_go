@@ -4,12 +4,13 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	goabnf "github.com/pandatix/go-abnf"
-	"strconv"
-	"strings"
 )
 
 //go:embed grammar.txt

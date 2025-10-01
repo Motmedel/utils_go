@@ -2,12 +2,15 @@ package retry_after
 
 import (
 	"errors"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"testing"
 	"time"
+
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
 func TestRetryAfterBadInput(t *testing.T) {
+	t.Parallel()
+
 	data := []byte("so bad")
 
 	retryAfter, err := ParseRetryAfter(data)
@@ -17,6 +20,8 @@ func TestRetryAfterBadInput(t *testing.T) {
 }
 
 func TestRetryAfterHttpDate(t *testing.T) {
+	t.Parallel()
+
 	data := []byte("Fri, 31 Dec 1999 23:59:59 GMT")
 
 	retryAfter, err := ParseRetryAfter(data)

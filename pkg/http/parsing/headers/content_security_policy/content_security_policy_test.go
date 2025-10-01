@@ -20,6 +20,8 @@ func findDirectiveByName(directives []contentSecurityPolicyTypes.DirectiveI, nam
 }
 
 func TestParseContentSecurityPolicy_ComprehensiveValidPolicies(t *testing.T) {
+	t.Parallel()
+
 	policy := strings.Join([]string{
 		"default-src 'self' https://cdn.example.com",
 		"script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http: 'nonce-dGVzdA==' 'sha256-AbCd012+/_-=='",
@@ -299,6 +301,8 @@ func TestParseContentSecurityPolicy_ComprehensiveValidPolicies(t *testing.T) {
 }
 
 func Test_makeSourcesFromPaths(t *testing.T) {
+	t.Parallel()
+	
 	value := "https: http: 'self' 'unsafe-inline' 'nonce-dGVzdA==' 'sha384-AAAABBBBCCCCDDDD' example.com:8443/path https://sub.example.com"
 	paths, err := goabnf.Parse([]byte(value), ContentSecurityPolicyGrammar, "serialized-source-list")
 	if err != nil {
@@ -351,6 +355,8 @@ func Test_makeSourcesFromPaths(t *testing.T) {
 }
 
 func TestParseContentSecurityPolicy_AdditionalValidCoverage(t *testing.T) {
+	t.Parallel()
+
 	policy := strings.Join([]string{
 		"script-src-attr 'unsafe-hashes' 'nonce-QUJD' 'sha384-AAAA' https:",
 		"script-src-elem https: 'strict-dynamic'",
@@ -567,6 +573,8 @@ func TestParseContentSecurityPolicy_AdditionalValidCoverage(t *testing.T) {
 }
 
 func TestParseContentSecurityPolicy_UnknownAndDuplicates(t *testing.T) {
+	t.Parallel()
+
 	policy := strings.Join([]string{
 		"unknown-directive foo",
 		"default-src 'self'",

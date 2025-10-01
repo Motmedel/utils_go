@@ -2,13 +2,16 @@ package content_disposition
 
 import (
 	"errors"
+	"testing"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/google/go-cmp/cmp"
-	"testing"
 )
 
 func TestParseContentDisposition(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		input       []byte
@@ -86,6 +89,8 @@ func TestParseContentDisposition(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			contentDisposition, err := ParseContentDisposition(testCase.input)
 			if !errors.Is(err, testCase.expectedErr) {
 				t.Fatalf("expected error: %v, got: %v", testCase.expectedErr, err)
