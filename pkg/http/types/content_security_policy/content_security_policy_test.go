@@ -1,19 +1,10 @@
 package content_security_policy
 
 import (
+	"reflect"
 	"strings"
 	"testing"
-
 )
-
-func TestContentSecurityPolicy_String_UsesRaw(t *testing.T) {
-	policy := "default-src 'self' https: cdn.example.com; upgrade-insecure-request"
-
-	csp := &ContentSecurityPolicy{Raw: policy}
-	if got := csp.String(); got != policy {
-		t.Fatalf("String() mismatch.\nexpected: %q\n     got: %q", policy, got)
-	}
-}
 
 func TestContentSecurityPolicy_String_Constructed(t *testing.T) {
 	csp := &ContentSecurityPolicy{
@@ -53,7 +44,6 @@ func TestContentSecurityPolicy_String_IncludesOtherButNotIneffective(t *testing.
 		t.Fatalf("String() should include other but not ineffective directives. expected %q, got %q", expected, got)
 	}
 }
-
 
 func TestContentSecurityPolicy_String_Constructed_Comprehensive(t *testing.T) {
 	csp := &ContentSecurityPolicy{
@@ -129,5 +119,71 @@ func TestContentSecurityPolicy_String_Constructed_Comprehensive(t *testing.T) {
 
 	if got := csp.String(); got != expected {
 		t.Fatalf("constructed comprehensive String() mismatch.\nexpected: %q\n     got: %q", expected, got)
+	}
+}
+
+func TestContentSecurityPolicy_GetDirective(t *testing.T) {
+	type fields struct {
+		Directives            []DirectiveI
+		OtherDirectives       []DirectiveI
+		IneffectiveDirectives []DirectiveI
+		Raw                   string
+	}
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   DirectiveI
+		want1  bool
+	}{
+		{
+			name: "found in Directives",
+			fields: fields{
+				Directives: []DirectiveI{
+					&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}}},
+				},
+			},
+			args:  args{name: "default-src"},
+			want:  &DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}}},
+			want1: true,
+		},
+		{
+			name: "found in OtherDirectives",
+			fields: fields{
+				OtherDirectives: []DirectiveI{
+					&Directive{Name: "foo", RawName: "foo", RawValue: "bar"},
+				},
+			},
+			args:  args{name: "foo"},
+			want:  &Directive{Name: "foo", RawName: "foo", RawValue: "bar"},
+			want1: true,
+		},
+		{
+			name: "not found",
+			fields: fields{},
+			args:  args{name: "nope"},
+			want:  nil,
+			want1: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			csp := &ContentSecurityPolicy{
+				Directives:            tt.fields.Directives,
+				OtherDirectives:       tt.fields.OtherDirectives,
+				IneffectiveDirectives: tt.fields.IneffectiveDirectives,
+				Raw:                   tt.fields.Raw,
+			}
+			got, got1 := csp.GetDirective(tt.args.name)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetDirective() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("GetDirective() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
 	}
 }

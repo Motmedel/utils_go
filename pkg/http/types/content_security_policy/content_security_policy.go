@@ -198,17 +198,25 @@ type ContentSecurityPolicy struct {
 	Raw                   string       `json:"raw,omitempty"`
 }
 
+func (csp *ContentSecurityPolicy) GetDirective(name string) (DirectiveI, bool) {
+	for _, directive := range csp.Directives {
+		if directive.GetName() == name {
+			return directive, true
+		}
+	}
+
+	for _, directive := range csp.OtherDirectives {
+		if directive.GetName() == name {
+			return directive, true
+		}
+	}
+
+	return nil, false
+}
+
 // String returns a serialized Content-Security-Policy header built from the instance.
-// Preference order:
-// - If Raw is present, return it as-is to preserve original formatting.
-// - Otherwise, serialize directives in the following order: Directives, OtherDirectives (exclude IneffectiveDirectives).
+// Serialize directives in the following order: Directives, OtherDirectives (exclude IneffectiveDirectives).
 func (csp *ContentSecurityPolicy) String() string {
-	if csp == nil {
-		return ""
-	}
-	if strings.TrimSpace(csp.Raw) != "" {
-		return csp.Raw
-	}
 	var parts []string
 	appendDirectives := func(list []DirectiveI) {
 		for _, d := range list {
