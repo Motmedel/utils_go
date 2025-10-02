@@ -65,3 +65,12 @@ sandbox-directive-value-root = sandbox-directive-value
 sandbox-directive-value = "" / token *( required-ascii-whitespace token )
 report-uri-directive-value-root = report-uri-directive-value
 report-uri-directive-value = uri-reference *( required-ascii-whitespace uri-reference )
+require-trusted-types-for-directive-value-root = trusted-types-sink-group-keyword
+trusted-types-sink-group-keyword = "'" trusted-types-sink-group "'"
+trusted-types-sink-group = "script"
+trusted-types-directive-value-root = serialized-tt-configuration
+serialized-tt-configuration = ( tt-expression *( required-ascii-whitespace tt-expression ) )
+tt-expression = tt-policy-name  / tt-keyword / tt-wildcard
+tt-wildcard = "*"
+tt-policy-name = 1*( ALPHA / DIGIT / "-" / "#" / "=" / "_" / "/" / "@" / "." / "%")
+tt-keyword = "'allow-duplicates'" / "'none'"

@@ -434,6 +434,82 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 		case "report-to":
 			reportToDirective := &contentSecurityPolicyTypes.ReportToDirective{Directive: innerDirective, Token: innerDirective.RawValue}
 			directive = reportToDirective
+		case "require-trusted-types-for":
+			requireTrustedTypesForDirective := &contentSecurityPolicyTypes.RequireTrustedTypesForDirective{
+				Directive: innerDirective,
+			}
+
+			requireTrustedTypesForDirectiveValuePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "require-trusted-types-for-directive-value-root")
+			if err != nil {
+				return nil, motmedelErrors.New(
+					fmt.Errorf("goabnf parse (require trusted types for directive value root): %w", err),
+					directiveValue,
+				)
+			}
+			if len(requireTrustedTypesForDirectiveValuePaths) == 0 {
+				return nil, motmedelErrors.New(
+					fmt.Errorf("%w (require trusted types for directive value root)", motmedelErrors.ErrSyntaxError),
+				)
+			}
+
+			sinkGroupPaths := parsing_utils.SearchPath(requireTrustedTypesForDirectiveValuePaths[0], []string{"sink-group"}, 2, false)
+			for _, path := range sinkGroupPaths {
+				requireTrustedTypesForDirective.SinkGroups = append(
+					requireTrustedTypesForDirective.SinkGroups,
+					string(parsing_utils.ExtractPathValue(directiveValue, path)),
+				)
+			}
+			directive = requireTrustedTypesForDirective
+		case "trusted-types":
+			trustedTypesDirective := &contentSecurityPolicyTypes.TrustedTypesDirective{Directive: innerDirective}
+
+			trustedTypesDirectiveValuePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "trusted-types-directive-value-root")
+			if err != nil {
+				return nil, motmedelErrors.New(
+					fmt.Errorf("goabnf parse (trusted types directive value root): %w", err),
+					directiveValue,
+				)
+			}
+			if len(trustedTypesDirectiveValuePaths) == 0 {
+				return nil, motmedelErrors.New(
+					fmt.Errorf("%w (trusted types directive value root)", motmedelErrors.ErrSyntaxError),
+				)
+			}
+
+			ttExpressionPaths := parsing_utils.SearchPath(trustedTypesDirectiveValuePaths[0], []string{"tt-expression"}, 2, false)
+			for _, ttExpressionPath := range ttExpressionPaths {
+				concreteTTPath := ttExpressionPath.Subpaths[0]
+				switch concreteTTPath.MatchRule {
+				case "tt-policy-name":
+					trustedTypesDirective.Expressions = append(
+						trustedTypesDirective.Expressions,
+						contentSecurityPolicyTypes.TrustedTypeExpression{
+							Kind:  "policy-name",
+							Value: string(parsing_utils.ExtractPathValue(directiveValue, concreteTTPath)),
+						},
+					)
+				case "tt-keyword":
+					val := string(parsing_utils.ExtractPathValue(directiveValue, concreteTTPath))
+					trustedTypesDirective.Expressions = append(
+						trustedTypesDirective.Expressions,
+						contentSecurityPolicyTypes.TrustedTypeExpression{
+							Kind:  "keyword",
+							Value: strings.Trim(val, "'"),
+						},
+					)
+				case "tt-wildcard":
+					trustedTypesDirective.Expressions = append(
+						trustedTypesDirective.Expressions,
+						contentSecurityPolicyTypes.TrustedTypeExpression{
+							Kind:  "wildcard",
+							Value: string(parsing_utils.ExtractPathValue(directiveValue, concreteTTPath)),
+						},
+					)
+				}
+			}
+
+			directive = trustedTypesDirective
+
 		default:
 			directive = &innerDirective
 			isOtherDirective = true

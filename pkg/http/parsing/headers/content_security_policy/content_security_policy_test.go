@@ -33,7 +33,7 @@ func TestParseContentSecurityPolicy_ComprehensiveValidPolicies(t *testing.T) {
 		"report-uri /csp /csp2 https://report.example.com/endpoint",
 		"report-to csp-endpoint",
 		"require-sri-for script style",
-		"trusted-types default policy1 'allow-duplicates' 'require-csp'",
+		"trusted-types default policy1 'allow-duplicates' 'none'",
 		"require-trusted-types-for 'script'",
 		"upgrade-insecure-request",
 		"webrtc allow",
@@ -269,22 +269,50 @@ func TestParseContentSecurityPolicy_ComprehensiveValidPolicies(t *testing.T) {
 		t.Errorf("unexpected require-sri-for resources: %v", rs.ResourceTypes)
 	}
 
-	// trusted-types and require-trusted-types-for should be parsed as OtherDirectives, preserving raw value
-	tt := findDirectiveByName(csp.OtherDirectives, "trusted-types")
-	if tt == nil {
-		t.Fatalf("trusted-types not found among other directives")
+	// trusted-types should be parsed with expressions; keywords have no quotes
+	ttdDir := findDirectiveByName(csp.Directives, "trusted-types")
+	if ttdDir == nil {
+		t.Fatalf("trusted-types not found among directives")
 	}
-	if tt.GetRawValue() != "default policy1 'allow-duplicates' 'require-csp'" {
-		t.Errorf("unexpected trusted-types raw value: %q", tt.GetRawValue())
+	ttd, ok := ttdDir.(*contentSecurityPolicyTypes.TrustedTypesDirective)
+	if !ok {
+		t.Fatalf("trusted-types type mismatch: %T", ttdDir)
 	}
-	rttf := findDirectiveByName(csp.OtherDirectives, "require-trusted-types-for")
-	if rttf == nil {
-		t.Fatalf("require-trusted-types-for not found among other directives")
+	if ttdDir.GetRawValue() != "default policy1 'allow-duplicates' 'none'" {
+		t.Errorf("unexpected trusted-types raw value: %q", ttdDir.GetRawValue())
 	}
-	if rttf.GetRawValue() != "'script'" {
-		t.Errorf("unexpected require-trusted-types-for raw value: %q", rttf.GetRawValue())
+	var haveDefault, havePolicy1, haveAllowDup, haveNone bool
+	for _, expr := range ttd.Expressions {
+		switch expr.Kind {
+		case "policy-name":
+			if expr.Value == "default" {
+				haveDefault = true
+			}
+			if expr.Value == "policy1" {
+				havePolicy1 = true
+			}
+		case "keyword":
+			if expr.Value == "allow-duplicates" {
+				haveAllowDup = true
+			}
+			if expr.Value == "none" {
+				haveNone = true
+			}
+		}
 	}
-	
+	if !(haveDefault && havePolicy1 && haveAllowDup && haveNone) {
+		t.Errorf("trusted-types expressions missing: default=%v policy1=%v allow-duplicates=%v none=%v", haveDefault, havePolicy1, haveAllowDup, haveNone)
+	}
+
+	// require-trusted-types-for parsed and preserved raw value
+	rttfDir := findDirectiveByName(csp.Directives, "require-trusted-types-for")
+	if rttfDir == nil {
+		t.Fatalf("require-trusted-types-for not found among directives")
+	}
+	if rttfDir.GetRawValue() != "'script'" {
+		t.Errorf("unexpected require-trusted-types-for raw value: %q", rttfDir.GetRawValue())
+	}
+
 	// upgrade-insecure-request
 	uid := findDirectiveByName(csp.Directives, "upgrade-insecure-request")
 	if uid == nil {
@@ -320,7 +348,7 @@ func TestParseContentSecurityPolicy_ComprehensiveValidPolicies(t *testing.T) {
 
 func Test_makeSourcesFromPaths(t *testing.T) {
 	t.Parallel()
-	
+
 	value := "https: http: 'self' 'unsafe-inline' 'nonce-dGVzdA==' 'sha384-AAAABBBBCCCCDDDD' example.com:8443/path https://sub.example.com"
 	paths, err := goabnf.Parse([]byte(value), ContentSecurityPolicyGrammar, "serialized-source-list")
 	if err != nil {
