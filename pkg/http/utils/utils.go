@@ -7,17 +7,18 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
-	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
-	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
+	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 )
 
 const AcceptContentIdentity = "identity"
@@ -81,7 +82,7 @@ func fetch(
 	if options != nil {
 		httpContext.RequestBody = options.Body
 	}
-	
+
 	response, err := httpClient.Do(request)
 	httpContext.Response = response
 	if err != nil {

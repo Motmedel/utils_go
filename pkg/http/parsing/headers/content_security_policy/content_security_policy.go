@@ -452,11 +452,11 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 				)
 			}
 
-			sinkGroupPaths := parsing_utils.SearchPath(requireTrustedTypesForDirectiveValuePaths[0], []string{"sink-group"}, 2, false)
+			sinkGroupPaths := parsing_utils.SearchPath(requireTrustedTypesForDirectiveValuePaths[0], []string{"trusted-types-sink-group"}, 2, false)
 			for _, path := range sinkGroupPaths {
 				requireTrustedTypesForDirective.SinkGroups = append(
 					requireTrustedTypesForDirective.SinkGroups,
-					string(parsing_utils.ExtractPathValue(directiveValue, path)),
+					strings.Trim(string(parsing_utils.ExtractPathValue(directiveValue, path)), "'"),
 				)
 			}
 			directive = requireTrustedTypesForDirective
