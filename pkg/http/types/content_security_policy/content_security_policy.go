@@ -191,6 +191,21 @@ type RequireSriForDirective struct {
 	ResourceTypes []string `json:"resource_types,omitempty"`
 }
 
+type TrustedTypeExpression struct {
+	Kind  string `json:"kind,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+type TrustedTypesDirective struct {
+	Directive
+	Expressions []TrustedTypeExpression `json:"expressions,omitempty"`
+}
+
+type RequireTrustedTypesForDirective struct {
+	Directive
+	SinkGroups []string `json:"sink_groups,omitempty"`
+}
+
 type ContentSecurityPolicy struct {
 	Directives            []DirectiveI `json:"directives"`
 	OtherDirectives       []DirectiveI `json:"other_directives"`

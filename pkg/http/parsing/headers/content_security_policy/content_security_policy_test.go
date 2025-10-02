@@ -33,6 +33,8 @@ func TestParseContentSecurityPolicy_ComprehensiveValidPolicies(t *testing.T) {
 		"report-uri /csp /csp2 https://report.example.com/endpoint",
 		"report-to csp-endpoint",
 		"require-sri-for script style",
+		"trusted-types default policy1 'allow-duplicates' 'require-csp'",
+		"require-trusted-types-for 'script'",
 		"upgrade-insecure-request",
 		"webrtc allow",
 		"base-uri 'self'",
@@ -267,6 +269,22 @@ func TestParseContentSecurityPolicy_ComprehensiveValidPolicies(t *testing.T) {
 		t.Errorf("unexpected require-sri-for resources: %v", rs.ResourceTypes)
 	}
 
+	// trusted-types and require-trusted-types-for should be parsed as OtherDirectives, preserving raw value
+	tt := findDirectiveByName(csp.OtherDirectives, "trusted-types")
+	if tt == nil {
+		t.Fatalf("trusted-types not found among other directives")
+	}
+	if tt.GetRawValue() != "default policy1 'allow-duplicates' 'require-csp'" {
+		t.Errorf("unexpected trusted-types raw value: %q", tt.GetRawValue())
+	}
+	rttf := findDirectiveByName(csp.OtherDirectives, "require-trusted-types-for")
+	if rttf == nil {
+		t.Fatalf("require-trusted-types-for not found among other directives")
+	}
+	if rttf.GetRawValue() != "'script'" {
+		t.Errorf("unexpected require-trusted-types-for raw value: %q", rttf.GetRawValue())
+	}
+	
 	// upgrade-insecure-request
 	uid := findDirectiveByName(csp.Directives, "upgrade-insecure-request")
 	if uid == nil {

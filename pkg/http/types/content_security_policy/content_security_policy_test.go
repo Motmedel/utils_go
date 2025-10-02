@@ -79,7 +79,9 @@ func TestContentSecurityPolicy_String_Constructed_Comprehensive(t *testing.T) {
 			&SandboxDirective{Directive: Directive{Name: "sandbox", RawName: "sandbox"}, Tokens: []string{"allow-same-origin", "allow-scripts"}},
 			&ReportUriDirective{Directive: Directive{Name: "report-uri", RawName: "report-uri"}, UriReferences: []string{"/csp", "/csp2", "https://report.example.com/endpoint"}},
 			&ReportToDirective{Directive: Directive{Name: "report-to", RawName: "report-to"}, Token: "csp-endpoint"},
-			&RequireSriForDirective{Directive: Directive{Name: "require-sri-for", RawName: "require-sri-for"}, ResourceTypes: []string{"script", "style"}},
+			&RequireSriForDirective{Directive: Directive{Name: "require-sri-for", RawName: "require-sri-for"}, ResourceTypes: []string{"script"}},
+			&TrustedTypesDirective{Directive: Directive{Name: "trusted-types", RawName: "trusted-types", RawValue: "default policy1 'allow-duplicates' 'none'"}},
+			&RequireTrustedTypesForDirective{Directive: Directive{Name: "require-trusted-types-for", RawName: "require-trusted-types-for", RawValue: "'script'"}},
 			&UpgradeInsecureRequestDirective{Directive: Directive{Name: "upgrade-insecure-request", RawName: "upgrade-insecure-request"}},
 			&WebrtcDirective{Directive: Directive{Name: "webrtc", RawName: "webrtc", RawValue: "allow"}},
 			&BaseUriDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
@@ -108,7 +110,9 @@ func TestContentSecurityPolicy_String_Constructed_Comprehensive(t *testing.T) {
 		"sandbox allow-same-origin allow-scripts",
 		"report-uri /csp /csp2 https://report.example.com/endpoint",
 		"report-to csp-endpoint",
-		"require-sri-for script style",
+		"require-sri-for script",
+		"trusted-types default policy1 'allow-duplicates' 'none'",
+		"require-trusted-types-for 'script'",
 		"upgrade-insecure-request",
 		"webrtc allow",
 		"base-uri 'self'",
@@ -162,11 +166,11 @@ func TestContentSecurityPolicy_GetDirective(t *testing.T) {
 			want1: true,
 		},
 		{
-			name: "not found",
+			name:   "not found",
 			fields: fields{},
-			args:  args{name: "nope"},
-			want:  nil,
-			want1: false,
+			args:   args{name: "nope"},
+			want:   nil,
+			want1:  false,
 		},
 	}
 	for _, tt := range tests {
