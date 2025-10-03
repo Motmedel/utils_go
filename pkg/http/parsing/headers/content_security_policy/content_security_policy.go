@@ -256,12 +256,12 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			}
 		}
 
-		innerDirective := contentSecurityPolicyTypes.Directive{
-			Name:     lowercaseDirectiveName,
-			RawName:  directiveName,
-			RawValue: string(directiveValue),
+		parsedDirective := contentSecurityPolicyTypes.ParsedDirective{
+			Name:    lowercaseDirectiveName,
+			Value:   string(directiveValue),
+			RawName: directiveName,
 		}
-		sourceDirective := contentSecurityPolicyTypes.SourceDirective{Directive: innerDirective, Sources: sources}
+		sourceDirective := contentSecurityPolicyTypes.SourceDirective{ParsedDirective: parsedDirective, Sources: sources}
 
 		switch lowercaseDirectiveName {
 		case "base-uri":
@@ -298,8 +298,8 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			}
 
 			directive = &contentSecurityPolicyTypes.RequireSriForDirective{
-				Directive:     innerDirective,
-				ResourceTypes: trimmedResourceTypes,
+				ParsedDirective: parsedDirective,
+				ResourceTypes:   trimmedResourceTypes,
 			}
 		case "script-src":
 			directive = &contentSecurityPolicyTypes.ScriptSrcDirective{SourceDirective: sourceDirective}
@@ -313,12 +313,12 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			directive = &contentSecurityPolicyTypes.StyleSrcAttrDirective{SourceDirective: sourceDirective}
 		case "style-src-elem":
 			directive = &contentSecurityPolicyTypes.StyleSrcElemDirective{SourceDirective: sourceDirective}
-		case "upgrade-insecure-request":
-			directive = &contentSecurityPolicyTypes.UpgradeInsecureRequestDirective{Directive: innerDirective}
+		case "upgrade-insecure-requests":
+			directive = &contentSecurityPolicyTypes.UpgradeInsecureRequestsDirective{ParsedDirective: parsedDirective}
 		case "worker-src":
 			directive = &contentSecurityPolicyTypes.WorkerSrcDirective{SourceDirective: sourceDirective}
 		case "sandbox":
-			sandboxDirective := &contentSecurityPolicyTypes.SandboxDirective{Directive: innerDirective}
+			sandboxDirective := &contentSecurityPolicyTypes.SandboxDirective{ParsedDirective: parsedDirective}
 
 			sandboxDirectiveValuePaths, err := goabnf.Parse(
 				directiveValue,
@@ -347,17 +347,17 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			}
 			directive = sandboxDirective
 		case "webrtc":
-			rawValue := innerDirective.RawValue
+			rawValue := parsedDirective.Value
 			if rawValue != "allow" && rawValue != "block" {
 				return nil, motmedelErrors.New(
 					fmt.Errorf("%w (webrtc directive)", motmedelErrors.ErrSyntaxError),
 					rawValue,
 				)
 			}
-			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{Directive: innerDirective, Value: rawValue}
+			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{ParsedDirective: parsedDirective, Value: rawValue}
 			directive = webrtcDirective
 		case "report-uri":
-			reportUriDirective := &contentSecurityPolicyTypes.ReportUriDirective{Directive: innerDirective}
+			reportUriDirective := &contentSecurityPolicyTypes.ReportUriDirective{ParsedDirective: parsedDirective}
 
 			reportUriDirectivePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "report-uri-directive-value-root")
 			if err != nil {
@@ -436,11 +436,11 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			frameAncestorsDirective.Sources = sources
 			directive = frameAncestorsDirective
 		case "report-to":
-			reportToDirective := &contentSecurityPolicyTypes.ReportToDirective{Directive: innerDirective, Token: innerDirective.RawValue}
+			reportToDirective := &contentSecurityPolicyTypes.ReportToDirective{ParsedDirective: parsedDirective, Token: parsedDirective.Value}
 			directive = reportToDirective
 		case "require-trusted-types-for":
 			requireTrustedTypesForDirective := &contentSecurityPolicyTypes.RequireTrustedTypesForDirective{
-				Directive: innerDirective,
+				ParsedDirective: parsedDirective,
 			}
 
 			requireTrustedTypesForDirectiveValuePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "require-trusted-types-for-directive-value-root")
@@ -465,7 +465,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			}
 			directive = requireTrustedTypesForDirective
 		case "trusted-types":
-			trustedTypesDirective := &contentSecurityPolicyTypes.TrustedTypesDirective{Directive: innerDirective}
+			trustedTypesDirective := &contentSecurityPolicyTypes.TrustedTypesDirective{ParsedDirective: parsedDirective}
 
 			trustedTypesDirectiveValuePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "trusted-types-directive-value-root")
 			if err != nil {
@@ -515,7 +515,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			directive = trustedTypesDirective
 
 		default:
-			directive = &innerDirective
+			directive = &parsedDirective
 			isOtherDirective = true
 		}
 

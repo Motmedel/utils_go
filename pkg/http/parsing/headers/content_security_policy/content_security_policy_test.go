@@ -173,11 +173,11 @@ func TestParseContentSecurityPolicy_Directives_TableDriven(t *testing.T) {
 			},
 		},
 		{
-			name: "upgrade-insecure-request",
-			args: args{data: []byte("upgrade-insecure-request")},
+			name: "upgrade-insecure-requests",
+			args: args{data: []byte("upgrade-insecure-requests")},
 			check: func(t *testing.T, csp *contentSecurityPolicyTypes.ContentSecurityPolicy) {
-				if findDirectiveByName(csp.Directives, "upgrade-insecure-request") == nil {
-					t.Fatalf("upgrade-insecure-request not found")
+				if findDirectiveByName(csp.Directives, "upgrade-insecure-requests") == nil {
+					t.Fatalf("upgrade-insecure-requests not found")
 				}
 			},
 		},
