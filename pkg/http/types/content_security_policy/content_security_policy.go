@@ -2,6 +2,7 @@ package content_security_policy
 
 import (
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 
@@ -9,20 +10,19 @@ import (
 )
 
 type SourceI interface {
-	GetRaw() string
 	String() string
 }
 
-type Source struct {
+type ParsedSource struct {
 	Raw string `json:"raw,omitempty"`
 }
 
-func (source *Source) GetRaw() string {
-	return source.Raw
+func (parsedSource *ParsedSource) String() string {
+	return parsedSource.Raw
 }
 
 type NoneSource struct {
-	Source
+	ParsedSource
 }
 
 func (noneSource *NoneSource) String() string {
@@ -30,7 +30,7 @@ func (noneSource *NoneSource) String() string {
 }
 
 type SchemeSource struct {
-	Source
+	ParsedSource
 	Scheme string `json:"scheme,omitempty"`
 }
 
@@ -42,11 +42,24 @@ func (schemeSource *SchemeSource) String() string {
 }
 
 type HostSource struct {
-	Source
+	ParsedSource
 	Scheme     string `json:"scheme,omitempty"`
 	Host       string `json:"host,omitempty"`
 	PortString string `json:"port_string,omitempty"`
 	Path       string `json:"path,omitempty"`
+}
+
+func HostSourceFromUrl(url *url.URL) *HostSource {
+	if url == nil {
+		return nil
+	}
+
+	return &HostSource{
+		Scheme:     url.Scheme,
+		Host:       url.Host,
+		PortString: url.Port(),
+		Path:       url.Path,
+	}
 }
 
 func (hostSource *HostSource) String() string {
@@ -79,7 +92,7 @@ func (hostSource *HostSource) String() string {
 }
 
 type KeywordSource struct {
-	Source
+	ParsedSource
 	Keyword string `json:"keyword,omitempty"`
 }
 
@@ -91,7 +104,7 @@ func (keywordSource *KeywordSource) String() string {
 }
 
 type NonceSource struct {
-	Source
+	ParsedSource
 	Base64Value string `json:"base64_value,omitempty"`
 }
 
@@ -103,7 +116,7 @@ func (nonceSource *NonceSource) String() string {
 }
 
 type HashSource struct {
-	Source
+	ParsedSource
 	HashAlgorithm string `json:"hash_algorithm,omitempty"`
 	Base64Value   string `json:"base64_value,omitempty"`
 }
