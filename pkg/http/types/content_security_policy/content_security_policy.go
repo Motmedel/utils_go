@@ -125,9 +125,9 @@ type DirectiveI interface {
 }
 
 type ParsedDirective struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
-	Raw   string `json:"raw,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Value   string `json:"value,omitempty"`
+	RawName string `json:"raw_name,omitempty"`
 }
 
 func (directive *ParsedDirective) GetName() string {
