@@ -63,7 +63,7 @@ func makeSourcesFromPaths(
 	for _, sourceExpressionPath := range sourceExpressionPaths {
 		concreteSourcePath := sourceExpressionPath.Subpaths[0]
 
-		innerSource := contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, concreteSourcePath))}
+		parsedSource := contentSecurityPolicyTypes.ParsedSource{Raw: string(parsing_utils.ExtractPathValue(data, concreteSourcePath))}
 
 		matchRuleName := concreteSourcePath.MatchRule
 		switch matchRuleName {
@@ -71,12 +71,12 @@ func makeSourcesFromPaths(
 			sources = append(
 				sources,
 				&contentSecurityPolicyTypes.SchemeSource{
-					Source: innerSource,
-					Scheme: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[0])),
+					ParsedSource: parsedSource,
+					Scheme:       string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[0])),
 				},
 			)
 		case "host-source":
-			hostSource := &contentSecurityPolicyTypes.HostSource{Source: innerSource}
+			hostSource := &contentSecurityPolicyTypes.HostSource{ParsedSource: parsedSource}
 
 			schemePartPath := parsing_utils.SearchPathSingleName(
 				concreteSourcePath,
@@ -127,7 +127,7 @@ func makeSourcesFromPaths(
 			sources = append(
 				sources,
 				&contentSecurityPolicyTypes.KeywordSource{
-					Source: innerSource,
+					ParsedSource: parsedSource,
 					Keyword: strings.Trim(
 						string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[0])),
 						"'",
@@ -138,15 +138,15 @@ func makeSourcesFromPaths(
 			sources = append(
 				sources,
 				&contentSecurityPolicyTypes.NonceSource{
-					Source:      innerSource,
-					Base64Value: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[1])),
+					ParsedSource: parsedSource,
+					Base64Value:  string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[1])),
 				},
 			)
 		case "hash-source":
 			sources = append(
 				sources,
 				&contentSecurityPolicyTypes.HashSource{
-					Source:        innerSource,
+					ParsedSource:  parsedSource,
 					HashAlgorithm: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[1])),
 					Base64Value:   string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[3])),
 				},
@@ -216,7 +216,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			if bytes.Equal(directiveValue, []byte("'none'")) {
 				sources = []contentSecurityPolicyTypes.SourceI{
 					&contentSecurityPolicyTypes.NoneSource{
-						Source: contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
+						ParsedSource: contentSecurityPolicyTypes.ParsedSource{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
 					},
 				}
 			} else {
@@ -399,7 +399,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			if bytes.Equal(directiveValue, []byte("'none'")) {
 				sources = []contentSecurityPolicyTypes.SourceI{
 					&contentSecurityPolicyTypes.NoneSource{
-						Source: contentSecurityPolicyTypes.Source{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
+						ParsedSource: contentSecurityPolicyTypes.ParsedSource{Raw: string(parsing_utils.ExtractPathValue(data, directiveValuePath))},
 					},
 				}
 			} else {
