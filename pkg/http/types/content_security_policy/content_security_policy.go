@@ -654,6 +654,222 @@ func (csp *ContentSecurityPolicy) GetDirective(name string) (DirectiveI, bool) {
 	return nil, false
 }
 
+func (csp *ContentSecurityPolicy) GetDefaultSrc() *DefaultSrcDirective {
+	directive, found := csp.GetDirective("default-src")
+	if !found {
+		return nil
+	}
+	return directive.(*DefaultSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetBaseUri() *BaseUriDirective {
+	directive, found := csp.GetDirective("base-uri")
+	if !found {
+		return nil
+	}
+	return directive.(*BaseUriDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetChildSrc() *ChildSrcDirective {
+	directive, found := csp.GetDirective("child-src")
+	if !found {
+		return nil
+	}
+	return directive.(*ChildSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetConnectSrc() *ConnectSrcDirective {
+	directive, found := csp.GetDirective("connect-src")
+	if !found {
+		return nil
+	}
+	return directive.(*ConnectSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetFontSrc() *FontSrcDirective {
+	directive, found := csp.GetDirective("font-src")
+	if !found {
+		return nil
+	}
+	return directive.(*FontSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetFormAction() *FormActionDirective {
+	directive, found := csp.GetDirective("form-action")
+	if !found {
+		return nil
+	}
+	return directive.(*FormActionDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetFrameSrc() *FrameSrcDirective {
+	directive, found := csp.GetDirective("frame-src")
+	if !found {
+		return nil
+	}
+	return directive.(*FrameSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetImgSrc() *ImgSrcDirective {
+	directive, found := csp.GetDirective("img-src")
+	if !found {
+		return nil
+	}
+	return directive.(*ImgSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetManifestSrc() *ManifestSrcDirective {
+	directive, found := csp.GetDirective("manifest-src")
+	if !found {
+		return nil
+	}
+	return directive.(*ManifestSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetMediaSrc() *MediaSrcDirective {
+	directive, found := csp.GetDirective("media-src")
+	if !found {
+		return nil
+	}
+	return directive.(*MediaSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetObjectSrc() *ObjectSrcDirective {
+	directive, found := csp.GetDirective("object-src")
+	if !found {
+		return nil
+	}
+	return directive.(*ObjectSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetScriptSrcAttr() *ScriptSrcAttrDirective {
+	directive, found := csp.GetDirective("script-src-attr")
+	if !found {
+		return nil
+	}
+	return directive.(*ScriptSrcAttrDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetScriptSrc() *ScriptSrcDirective {
+	directive, found := csp.GetDirective("script-src")
+	if !found {
+		return nil
+	}
+	return directive.(*ScriptSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetScriptSrcElem() *ScriptSrcElemDirective {
+	directive, found := csp.GetDirective("script-src-elem")
+	if !found {
+		return nil
+	}
+	return directive.(*ScriptSrcElemDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetStyleSrcAttr() *StyleSrcAttrDirective {
+	directive, found := csp.GetDirective("style-src-attr")
+	if !found {
+		return nil
+	}
+	return directive.(*StyleSrcAttrDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetStyleSrc() *StyleSrcDirective {
+	directive, found := csp.GetDirective("style-src")
+	if !found {
+		return nil
+	}
+	return directive.(*StyleSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetStyleSrcElem() *StyleSrcElemDirective {
+	directive, found := csp.GetDirective("style-src-elem")
+	if !found {
+		return nil
+	}
+	return directive.(*StyleSrcElemDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetWorkerSrc() *WorkerSrcDirective {
+	directive, found := csp.GetDirective("worker-src")
+	if !found {
+		return nil
+	}
+	return directive.(*WorkerSrcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetSandbox() *SandboxDirective {
+	directive, found := csp.GetDirective("sandbox")
+	if !found {
+		return nil
+	}
+	return directive.(*SandboxDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetWebrtc() *WebrtcDirective {
+	directive, found := csp.GetDirective("webrtc")
+	if !found {
+		return nil
+	}
+	return directive.(*WebrtcDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetReportUri() *ReportUriDirective {
+	directive, found := csp.GetDirective("report-uri")
+	if !found {
+		return nil
+	}
+	return directive.(*ReportUriDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetReportTo() *ReportToDirective {
+	directive, found := csp.GetDirective("report-to")
+	if !found {
+		return nil
+	}
+	return directive.(*ReportToDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetFrameAncestors() *FrameAncestorsDirective {
+	directive, found := csp.GetDirective("frame-ancestors")
+	if !found {
+		return nil
+	}
+	return directive.(*FrameAncestorsDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetUpgradeInsecureRequests() *UpgradeInsecureRequestsDirective {
+	directive, found := csp.GetDirective("upgrade-insecure-requests")
+	if !found {
+		return nil
+	}
+	return directive.(*UpgradeInsecureRequestsDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetRequireSriFor() *RequireSriForDirective {
+	directive, found := csp.GetDirective("require-sri-for")
+	if !found {
+		return nil
+	}
+	return directive.(*RequireSriForDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetTrustedTypes() *TrustedTypesDirective {
+	directive, found := csp.GetDirective("trusted-types")
+	if !found {
+		return nil
+	}
+	return directive.(*TrustedTypesDirective)
+}
+
+func (csp *ContentSecurityPolicy) GetRequireTrustedTypesFor() *RequireTrustedTypesForDirective {
+	directive, found := csp.GetDirective("require-trusted-types-for")
+	if !found {
+		return nil
+	}
+	return directive.(*RequireTrustedTypesForDirective)
+}
+
 func (csp *ContentSecurityPolicy) String() string {
 	directives := csp.Directives
 	otherDirectives := csp.OtherDirectives
