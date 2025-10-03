@@ -127,8 +127,11 @@ func makeSourcesFromPaths(
 			sources = append(
 				sources,
 				&contentSecurityPolicyTypes.KeywordSource{
-					Source:  innerSource,
-					Keyword: string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[0])),
+					Source: innerSource,
+					Keyword: strings.Trim(
+						string(parsing_utils.ExtractPathValue(data, concreteSourcePath.Subpaths[0])),
+						"'",
+					),
 				},
 			)
 		case "nonce-source":
@@ -344,13 +347,14 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 			}
 			directive = sandboxDirective
 		case "webrtc":
-			if innerDirective.RawValue != "allow" && innerDirective.RawValue != "block" {
+			rawValue := innerDirective.RawValue
+			if rawValue != "allow" && rawValue != "block" {
 				return nil, motmedelErrors.New(
 					fmt.Errorf("%w (webrtc directive)", motmedelErrors.ErrSyntaxError),
-					innerDirective.RawValue,
+					rawValue,
 				)
 			}
-			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{Directive: innerDirective}
+			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{Directive: innerDirective, Value: rawValue}
 			directive = webrtcDirective
 		case "report-uri":
 			reportUriDirective := &contentSecurityPolicyTypes.ReportUriDirective{Directive: innerDirective}
