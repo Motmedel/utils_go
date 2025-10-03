@@ -157,7 +157,7 @@ type SourceDirective struct {
 	Sources []SourceI `json:"sources,omitempty"`
 }
 
-func (sourceDirective *SourceDirective) String() string {
+func (sourceDirective *SourceDirective) SourcesString() string {
 	var sourceStrings []string
 
 	for _, source := range sourceDirective.Sources {
@@ -169,11 +169,7 @@ func (sourceDirective *SourceDirective) String() string {
 		}
 	}
 
-	if len(sourceStrings) == 0 {
-		return ""
-	}
-
-	return fmt.Sprintf("%s %s", sourceDirective.GetName(), strings.Join(sourceStrings, " "))
+	return strings.Join(sourceStrings, " ")
 }
 
 func (sourceDirective *SourceDirective) GetSources() []SourceI {
@@ -188,12 +184,26 @@ func (*BaseUriDirective) GetName() string {
 	return "base-uri"
 }
 
+func (baseUriDirective *BaseUriDirective) String() string {
+	if sourcesString := baseUriDirective.SourcesString(); sourcesString != "" {
+		return baseUriDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type ChildSrcDirective struct {
 	SourceDirective
 }
 
 func (*ChildSrcDirective) GetName() string {
 	return "child-src"
+}
+
+func (childSrcDirective *ChildSrcDirective) String() string {
+	if sourcesString := childSrcDirective.SourcesString(); sourcesString != "" {
+		return childSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type ConnectSrcDirective struct {
@@ -204,12 +214,26 @@ func (*ConnectSrcDirective) GetName() string {
 	return "connect-src"
 }
 
+func (connectSrcDirective *ConnectSrcDirective) String() string {
+	if sourcesString := connectSrcDirective.SourcesString(); sourcesString != "" {
+		return connectSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type DefaultSrcDirective struct {
 	SourceDirective
 }
 
 func (*DefaultSrcDirective) GetName() string {
 	return "default-src"
+}
+
+func (defaultSrcDirective *DefaultSrcDirective) String() string {
+	if sourcesString := defaultSrcDirective.SourcesString(); sourcesString != "" {
+		return defaultSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type FontSrcDirective struct {
@@ -220,12 +244,26 @@ func (*FontSrcDirective) GetName() string {
 	return "font-src"
 }
 
+func (fontSrcDirective *FontSrcDirective) String() string {
+	if sourcesString := fontSrcDirective.SourcesString(); sourcesString != "" {
+		return fontSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type FormActionDirective struct {
 	SourceDirective
 }
 
 func (*FormActionDirective) GetName() string {
 	return "form-action"
+}
+
+func (formActionDirective *FormActionDirective) String() string {
+	if sourcesString := formActionDirective.SourcesString(); sourcesString != "" {
+		return formActionDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type FrameSrcDirective struct {
@@ -236,12 +274,26 @@ func (*FrameSrcDirective) GetName() string {
 	return "frame-src"
 }
 
+func (frameSrcDirective *FrameSrcDirective) String() string {
+	if sourcesString := frameSrcDirective.SourcesString(); sourcesString != "" {
+		return frameSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type ImgSrcDirective struct {
 	SourceDirective
 }
 
 func (*ImgSrcDirective) GetName() string {
 	return "img-src"
+}
+
+func (imgSrcDirective *ImgSrcDirective) String() string {
+	if sourcesString := imgSrcDirective.SourcesString(); sourcesString != "" {
+		return imgSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type ManifestSrcDirective struct {
@@ -252,12 +304,26 @@ func (*ManifestSrcDirective) GetName() string {
 	return "manifest-src"
 }
 
+func (manifestSrcDirective *ManifestSrcDirective) String() string {
+	if sourcesString := manifestSrcDirective.SourcesString(); sourcesString != "" {
+		return manifestSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type MediaSrcDirective struct {
 	SourceDirective
 }
 
 func (*MediaSrcDirective) GetName() string {
 	return "media-src"
+}
+
+func (mediaSrcDirective *MediaSrcDirective) String() string {
+	if sourcesString := mediaSrcDirective.SourcesString(); sourcesString != "" {
+		return mediaSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type ObjectSrcDirective struct {
@@ -268,12 +334,26 @@ func (*ObjectSrcDirective) GetName() string {
 	return "object-src"
 }
 
+func (objectSrcDirective *ObjectSrcDirective) String() string {
+	if sourcesString := objectSrcDirective.SourcesString(); sourcesString != "" {
+		return objectSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type ScriptSrcAttrDirective struct {
 	SourceDirective
 }
 
 func (*ScriptSrcAttrDirective) GetName() string {
 	return "script-src-attr"
+}
+
+func (scriptSrcAttrDirective *ScriptSrcAttrDirective) String() string {
+	if sourcesString := scriptSrcAttrDirective.SourcesString(); sourcesString != "" {
+		return scriptSrcAttrDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type ScriptSrcDirective struct {
@@ -284,12 +364,26 @@ func (*ScriptSrcDirective) GetName() string {
 	return "script-src"
 }
 
+func (scriptSrcDirective *ScriptSrcDirective) String() string {
+	if sourcesString := scriptSrcDirective.SourcesString(); sourcesString != "" {
+		return scriptSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type ScriptSrcElemDirective struct {
 	SourceDirective
 }
 
 func (*ScriptSrcElemDirective) GetName() string {
 	return "script-src-elem"
+}
+
+func (scriptSrcElemDirective *ScriptSrcElemDirective) String() string {
+	if sourcesString := scriptSrcElemDirective.SourcesString(); sourcesString != "" {
+		return scriptSrcElemDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type StyleSrcAttrDirective struct {
@@ -300,12 +394,26 @@ func (*StyleSrcAttrDirective) GetName() string {
 	return "style-src-attr"
 }
 
+func (styleSrcAttrDirective *StyleSrcAttrDirective) String() string {
+	if sourcesString := styleSrcAttrDirective.SourcesString(); sourcesString != "" {
+		return styleSrcAttrDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type StyleSrcDirective struct {
 	SourceDirective
 }
 
 func (*StyleSrcDirective) GetName() string {
 	return "style-src"
+}
+
+func (styleSrcDirective *StyleSrcDirective) String() string {
+	if sourcesString := styleSrcDirective.SourcesString(); sourcesString != "" {
+		return styleSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type StyleSrcElemDirective struct {
@@ -316,12 +424,26 @@ func (*StyleSrcElemDirective) GetName() string {
 	return "style-src-elem"
 }
 
+func (styleSrcElemDirective *StyleSrcElemDirective) String() string {
+	if sourcesString := styleSrcElemDirective.SourcesString(); sourcesString != "" {
+		return styleSrcElemDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
 type WorkerSrcDirective struct {
 	SourceDirective
 }
 
 func (*WorkerSrcDirective) GetName() string {
 	return "worker-src"
+}
+
+func (workerSrcDirective *WorkerSrcDirective) String() string {
+	if sourcesString := workerSrcDirective.SourcesString(); sourcesString != "" {
+		return workerSrcDirective.GetName() + " " + sourcesString
+	}
+	return ""
 }
 
 type SandboxDirective struct {
@@ -408,15 +530,22 @@ func (*FrameAncestorsDirective) GetName() string {
 	return "frame-ancestors"
 }
 
-type UpgradeInsecureRequestDirective struct {
+func (frameAncestorsDirective *FrameAncestorsDirective) String() string {
+	if sourcesString := frameAncestorsDirective.SourcesString(); sourcesString != "" {
+		return frameAncestorsDirective.GetName() + " " + sourcesString
+	}
+	return ""
+}
+
+type UpgradeInsecureRequestsDirective struct {
 	ParsedDirective
 }
 
-func (*UpgradeInsecureRequestDirective) GetName() string {
+func (*UpgradeInsecureRequestsDirective) GetName() string {
 	return "upgrade-insecure-requests"
 }
 
-func (upgradeInsecureRequestDirective *UpgradeInsecureRequestDirective) String() string {
+func (upgradeInsecureRequestDirective *UpgradeInsecureRequestsDirective) String() string {
 	return upgradeInsecureRequestDirective.GetName()
 }
 
@@ -479,6 +608,10 @@ func (trustedTypesDirective *TrustedTypesDirective) String() string {
 type RequireTrustedTypesForDirective struct {
 	ParsedDirective
 	SinkGroups []string `json:"sink_groups,omitempty"`
+}
+
+func (*RequireTrustedTypesForDirective) GetName() string {
+	return "require-trusted-types-for"
 }
 
 func (requireTrustedTypesForDirective *RequireTrustedTypesForDirective) String() string {
