@@ -121,36 +121,31 @@ func (hashSource *HashSource) String() string {
 
 type DirectiveI interface {
 	GetName() string
-	GetRawName() string
-	GetRawValue() string
 	String() string
 }
 
-type Directive struct {
-	Name     string `json:"name,omitempty"`
-	RawName  string `json:"raw_name,omitempty"`
-	RawValue string `json:"raw_value,omitempty"`
+type ParsedDirective struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+	Raw   string `json:"raw,omitempty"`
 }
 
-func (directive *Directive) GetName() string {
+func (directive *ParsedDirective) GetName() string {
 	return directive.Name
 }
 
-func (directive *Directive) GetRawName() string {
-	return directive.RawName
-}
+func (directive *ParsedDirective) String() string {
+	name := directive.Name
+	if name == "" {
+		return ""
+	}
 
-func (directive *Directive) GetRawValue() string {
-	return directive.RawValue
-}
-
-func (directive *Directive) String() string {
-	value := directive.GetRawValue()
+	value := directive.Value
 	if value == "" {
 		return ""
 	}
 
-	return directive.RawName + " " + value
+	return fmt.Sprintf("%s %s", name, value)
 }
 
 type SourceDirectiveI interface {
@@ -158,7 +153,7 @@ type SourceDirectiveI interface {
 }
 
 type SourceDirective struct {
-	Directive
+	ParsedDirective
 	Sources []SourceI `json:"sources,omitempty"`
 }
 
@@ -189,77 +184,153 @@ type BaseUriDirective struct {
 	SourceDirective
 }
 
+func (*BaseUriDirective) GetName() string {
+	return "base-uri"
+}
+
 type ChildSrcDirective struct {
 	SourceDirective
+}
+
+func (*ChildSrcDirective) GetName() string {
+	return "child-src"
 }
 
 type ConnectSrcDirective struct {
 	SourceDirective
 }
 
+func (*ConnectSrcDirective) GetName() string {
+	return "connect-src"
+}
+
 type DefaultSrcDirective struct {
 	SourceDirective
+}
+
+func (*DefaultSrcDirective) GetName() string {
+	return "default-src"
 }
 
 type FontSrcDirective struct {
 	SourceDirective
 }
 
+func (*FontSrcDirective) GetName() string {
+	return "font-src"
+}
+
 type FormActionDirective struct {
 	SourceDirective
+}
+
+func (*FormActionDirective) GetName() string {
+	return "form-action"
 }
 
 type FrameSrcDirective struct {
 	SourceDirective
 }
 
+func (*FrameSrcDirective) GetName() string {
+	return "frame-src"
+}
+
 type ImgSrcDirective struct {
 	SourceDirective
+}
+
+func (*ImgSrcDirective) GetName() string {
+	return "img-src"
 }
 
 type ManifestSrcDirective struct {
 	SourceDirective
 }
 
+func (*ManifestSrcDirective) GetName() string {
+	return "manifest-src"
+}
+
 type MediaSrcDirective struct {
 	SourceDirective
+}
+
+func (*MediaSrcDirective) GetName() string {
+	return "media-src"
 }
 
 type ObjectSrcDirective struct {
 	SourceDirective
 }
 
+func (*ObjectSrcDirective) GetName() string {
+	return "object-src"
+}
+
 type ScriptSrcAttrDirective struct {
 	SourceDirective
+}
+
+func (*ScriptSrcAttrDirective) GetName() string {
+	return "script-src-attr"
 }
 
 type ScriptSrcDirective struct {
 	SourceDirective
 }
 
+func (*ScriptSrcDirective) GetName() string {
+	return "script-src"
+}
+
 type ScriptSrcElemDirective struct {
 	SourceDirective
+}
+
+func (*ScriptSrcElemDirective) GetName() string {
+	return "script-src-elem"
 }
 
 type StyleSrcAttrDirective struct {
 	SourceDirective
 }
 
+func (*StyleSrcAttrDirective) GetName() string {
+	return "style-src-attr"
+}
+
 type StyleSrcDirective struct {
 	SourceDirective
+}
+
+func (*StyleSrcDirective) GetName() string {
+	return "style-src"
 }
 
 type StyleSrcElemDirective struct {
 	SourceDirective
 }
 
+func (*StyleSrcElemDirective) GetName() string {
+	return "style-src-elem"
+}
+
 type WorkerSrcDirective struct {
 	SourceDirective
 }
 
+func (*WorkerSrcDirective) GetName() string {
+	return "worker-src"
+}
+
 type SandboxDirective struct {
-	Directive
+	ParsedDirective
 	Tokens []string `json:"tokens,omitempty"`
+}
+
+func (*SandboxDirective) GetName() string {
+	return "sandbox"
 }
 
 func (sandboxDirective *SandboxDirective) String() string {
@@ -273,8 +344,12 @@ func (sandboxDirective *SandboxDirective) String() string {
 }
 
 type WebrtcDirective struct {
-	Directive
+	ParsedDirective
 	Value string `json:"value,omitempty"`
+}
+
+func (*WebrtcDirective) GetName() string {
+	return "webrtc"
 }
 
 func (webrtcDirective *WebrtcDirective) String() string {
@@ -287,8 +362,12 @@ func (webrtcDirective *WebrtcDirective) String() string {
 }
 
 type ReportUriDirective struct {
-	Directive
+	ParsedDirective
 	UriReferences []string `json:"uri_references,omitempty"`
+}
+
+func (*ReportUriDirective) GetName() string {
+	return "report-uri"
 }
 
 func (reportUriDirective *ReportUriDirective) String() string {
@@ -304,8 +383,12 @@ func (reportUriDirective *ReportUriDirective) String() string {
 }
 
 type ReportToDirective struct {
-	Directive
+	ParsedDirective
 	Token string `json:"token,omitempty"`
+}
+
+func (*ReportToDirective) GetName() string {
+	return "report-to"
 }
 
 func (reportToDirective *ReportToDirective) String() string {
@@ -321,8 +404,16 @@ type FrameAncestorsDirective struct {
 	SourceDirective
 }
 
+func (*FrameAncestorsDirective) GetName() string {
+	return "frame-ancestors"
+}
+
 type UpgradeInsecureRequestDirective struct {
-	Directive
+	ParsedDirective
+}
+
+func (*UpgradeInsecureRequestDirective) GetName() string {
+	return "upgrade-insecure-requests"
 }
 
 func (upgradeInsecureRequestDirective *UpgradeInsecureRequestDirective) String() string {
@@ -330,8 +421,12 @@ func (upgradeInsecureRequestDirective *UpgradeInsecureRequestDirective) String()
 }
 
 type RequireSriForDirective struct {
-	Directive
+	ParsedDirective
 	ResourceTypes []string `json:"resource_types,omitempty"`
+}
+
+func (*RequireSriForDirective) GetName() string {
+	return "require-sri-for"
 }
 
 func (requireSriForDirective *RequireSriForDirective) String() string {
@@ -349,8 +444,12 @@ type TrustedTypeExpression struct {
 }
 
 type TrustedTypesDirective struct {
-	Directive
+	ParsedDirective
 	Expressions []TrustedTypeExpression `json:"expressions,omitempty"`
+}
+
+func (*TrustedTypesDirective) GetName() string {
+	return "trusted-types"
 }
 
 func (trustedTypesDirective *TrustedTypesDirective) String() string {
@@ -378,7 +477,7 @@ func (trustedTypesDirective *TrustedTypesDirective) String() string {
 }
 
 type RequireTrustedTypesForDirective struct {
-	Directive
+	ParsedDirective
 	SinkGroups []string `json:"sink_groups,omitempty"`
 }
 

@@ -13,7 +13,7 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 	}{
 		{
 			name: "default-src with keyword, scheme and host",
-			directive: &DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
+			directive: &DefaultSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
 				&KeywordSource{Keyword: "self"},
 				&SchemeSource{Scheme: "https"},
 				&HostSource{Host: "cdn.example.com"},
@@ -22,7 +22,7 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name: "script-src with keywords, schemes, nonce and hash",
-			directive: &ScriptSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "script-src", RawName: "script-src"}, Sources: []SourceI{
+			directive: &ScriptSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "script-src", RawName: "script-src"}, Sources: []SourceI{
 				&KeywordSource{Keyword: "unsafe-inline"},
 				&KeywordSource{Keyword: "unsafe-eval"},
 				&KeywordSource{Keyword: "strict-dynamic"},
@@ -35,7 +35,7 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name: "style-src with report-sample and host",
-			directive: &StyleSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "style-src", RawName: "style-src"}, Sources: []SourceI{
+			directive: &StyleSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "style-src", RawName: "style-src"}, Sources: []SourceI{
 				&KeywordSource{Keyword: "report-sample"},
 				&HostSource{Scheme: "https", Host: "styles.example.com"},
 			}}},
@@ -43,7 +43,7 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name: "img-src with host and data scheme",
-			directive: &ImgSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "img-src", RawName: "img-src"}, Sources: []SourceI{
+			directive: &ImgSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "img-src", RawName: "img-src"}, Sources: []SourceI{
 				&HostSource{Scheme: "https", Host: "example.com", PortString: "443", Path: "/path"},
 				&SchemeSource{Scheme: "data"},
 			}}},
@@ -51,14 +51,14 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name: "connect-src with wildcard port",
-			directive: &ConnectSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "connect-src", RawName: "connect-src"}, Sources: []SourceI{
+			directive: &ConnectSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "connect-src", RawName: "connect-src"}, Sources: []SourceI{
 				&HostSource{Host: "*.example.com", PortString: "*"},
 			}}},
 			want: "connect-src *.example.com:*",
 		},
 		{
 			name: "frame-ancestors with self and https parent",
-			directive: &FrameAncestorsDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "frame-ancestors", RawName: "frame-ancestors"}, Sources: []SourceI{
+			directive: &FrameAncestorsDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "frame-ancestors", RawName: "frame-ancestors"}, Sources: []SourceI{
 				&KeywordSource{Keyword: "self"},
 				&HostSource{Scheme: "https", Host: "parent.example.com"},
 			}}},
@@ -66,32 +66,32 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name:      "sandbox with tokens",
-			directive: &SandboxDirective{Directive: Directive{Name: "sandbox", RawName: "sandbox"}, Tokens: []string{"allow-same-origin", "allow-scripts"}},
+			directive: &SandboxDirective{ParsedDirective: ParsedDirective{Name: "sandbox", RawName: "sandbox"}, Tokens: []string{"allow-same-origin", "allow-scripts"}},
 			want:      "sandbox allow-same-origin allow-scripts",
 		},
 		{
 			name:      "sandbox without tokens",
-			directive: &SandboxDirective{Directive: Directive{Name: "sandbox", RawName: "sandbox"}},
+			directive: &SandboxDirective{ParsedDirective: ParsedDirective{Name: "sandbox", RawName: "sandbox"}},
 			want:      "sandbox",
 		},
 		{
 			name:      "report-uri with multiple endpoints",
-			directive: &ReportUriDirective{Directive: Directive{Name: "report-uri", RawName: "report-uri"}, UriReferences: []string{"/csp", "/csp2", "https://report.example.com/endpoint"}},
+			directive: &ReportUriDirective{ParsedDirective: ParsedDirective{Name: "report-uri", RawName: "report-uri"}, UriReferences: []string{"/csp", "/csp2", "https://report.example.com/endpoint"}},
 			want:      "report-uri /csp /csp2 https://report.example.com/endpoint",
 		},
 		{
 			name:      "report-to with token",
-			directive: &ReportToDirective{Directive: Directive{Name: "report-to", RawName: "report-to"}, Token: "csp-endpoint"},
+			directive: &ReportToDirective{ParsedDirective: ParsedDirective{Name: "report-to", RawName: "report-to"}, Token: "csp-endpoint"},
 			want:      "report-to csp-endpoint",
 		},
 		{
 			name:      "require-sri-for script",
-			directive: &RequireSriForDirective{Directive: Directive{Name: "require-sri-for", RawName: "require-sri-for"}, ResourceTypes: []string{"script"}},
+			directive: &RequireSriForDirective{ParsedDirective: ParsedDirective{Name: "require-sri-for", RawName: "require-sri-for"}, ResourceTypes: []string{"script"}},
 			want:      "require-sri-for script",
 		},
 		{
 			name: "trusted-types with expressions",
-			directive: &TrustedTypesDirective{Directive: Directive{Name: "trusted-types", RawName: "trusted-types"}, Expressions: []TrustedTypeExpression{
+			directive: &TrustedTypesDirective{ParsedDirective: ParsedDirective{Name: "trusted-types", RawName: "trusted-types"}, Expressions: []TrustedTypeExpression{
 				{Kind: "policy-name", Value: "default"},
 				{Kind: "policy-name", Value: "policy1"},
 				{Kind: "keyword", Value: "allow-duplicates"},
@@ -101,36 +101,36 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name:      "require-trusted-types-for script",
-			directive: &RequireTrustedTypesForDirective{Directive: Directive{Name: "require-trusted-types-for", RawName: "require-trusted-types-for"}, SinkGroups: []string{"script"}},
+			directive: &RequireTrustedTypesForDirective{ParsedDirective: ParsedDirective{Name: "require-trusted-types-for", RawName: "require-trusted-types-for"}, SinkGroups: []string{"script"}},
 			want:      "require-trusted-types-for 'script'",
 		},
 		{
 			name:      "upgrade-insecure-request",
-			directive: &UpgradeInsecureRequestDirective{Directive: Directive{Name: "upgrade-insecure-request", RawName: "upgrade-insecure-request"}},
+			directive: &UpgradeInsecureRequestDirective{ParsedDirective: ParsedDirective{Name: "upgrade-insecure-request", RawName: "upgrade-insecure-request"}},
 			want:      "upgrade-insecure-request",
 		},
 		{
 			name:      "webrtc allow",
-			directive: &WebrtcDirective{Directive: Directive{Name: "webrtc", RawName: "webrtc"}, Value: "allow"},
+			directive: &WebrtcDirective{ParsedDirective: ParsedDirective{Name: "webrtc", RawName: "webrtc"}, Value: "allow"},
 			want:      "webrtc 'allow'",
 		},
 		{
 			name: "base-uri self",
-			directive: &BaseUriDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
+			directive: &BaseUriDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
 				&KeywordSource{Keyword: "self"},
 			}}},
 			want: "base-uri 'self'",
 		},
 		{
 			name: "object-src none",
-			directive: &ObjectSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "object-src", RawName: "object-src"}, Sources: []SourceI{
+			directive: &ObjectSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "object-src", RawName: "object-src"}, Sources: []SourceI{
 				&NoneSource{},
 			}}},
 			want: "object-src 'none'",
 		},
 		{
 			name: "worker-src data and blob",
-			directive: &WorkerSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "worker-src", RawName: "worker-src"}, Sources: []SourceI{
+			directive: &WorkerSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "worker-src", RawName: "worker-src"}, Sources: []SourceI{
 				&SchemeSource{Scheme: "data"},
 				&SchemeSource{Scheme: "blob"},
 			}}},
@@ -138,7 +138,7 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name: "child-src https host",
-			directive: &ChildSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "child-src", RawName: "child-src"}, Sources: []SourceI{
+			directive: &ChildSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "child-src", RawName: "child-src"}, Sources: []SourceI{
 				&HostSource{Scheme: "https", Host: "child.example.com"},
 			}}},
 			want: "child-src https://child.example.com",
@@ -176,22 +176,22 @@ func TestContentSecurityPolicy_GetDirective(t *testing.T) {
 			name: "found in Directives",
 			fields: fields{
 				Directives: []DirectiveI{
-					&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}}},
+					&DefaultSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "default-src", RawName: "default-src"}}},
 				},
 			},
 			args:  args{name: "default-src"},
-			want:  &DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}}},
+			want:  &DefaultSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "default-src", RawName: "default-src"}}},
 			want1: true,
 		},
 		{
 			name: "found in OtherDirectives",
 			fields: fields{
 				OtherDirectives: []DirectiveI{
-					&Directive{Name: "foo", RawName: "foo", RawValue: "bar"},
+					&ParsedDirective{Name: "foo", RawName: "foo", Value: "bar"},
 				},
 			},
 			args:  args{name: "foo"},
-			want:  &Directive{Name: "foo", RawName: "foo", RawValue: "bar"},
+			want:  &ParsedDirective{Name: "foo", RawName: "foo", Value: "bar"},
 			want1: true,
 		},
 		{
@@ -226,20 +226,20 @@ func TestContentSecurityPolicy_String_SpecificPolicy(t *testing.T) {
 
 	csp := &ContentSecurityPolicy{
 		Directives: []DirectiveI{
-			&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
+			&DefaultSrcDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
 				&KeywordSource{Keyword: "self"},
 			}}},
-			&FrameAncestorsDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "frame-ancestors", RawName: "frame-ancestors"}, Sources: []SourceI{
+			&FrameAncestorsDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "frame-ancestors", RawName: "frame-ancestors"}, Sources: []SourceI{
 				&NoneSource{},
 			}}},
-			&BaseUriDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
+			&BaseUriDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
 				&NoneSource{},
 			}}},
-			&FormActionDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "form-action", RawName: "form-action"}, Sources: []SourceI{
+			&FormActionDirective{SourceDirective: SourceDirective{ParsedDirective: ParsedDirective{Name: "form-action", RawName: "form-action"}, Sources: []SourceI{
 				&NoneSource{},
 			}}},
-			&RequireTrustedTypesForDirective{Directive: Directive{Name: "require-trusted-types-for", RawName: "require-trusted-types-for"}, SinkGroups: []string{"script"}},
-			&TrustedTypesDirective{Directive: Directive{Name: "trusted-types", RawName: "trusted-types"}, Expressions: []TrustedTypeExpression{
+			&RequireTrustedTypesForDirective{ParsedDirective: ParsedDirective{Name: "require-trusted-types-for", RawName: "require-trusted-types-for"}, SinkGroups: []string{"script"}},
+			&TrustedTypesDirective{ParsedDirective: ParsedDirective{Name: "trusted-types", RawName: "trusted-types"}, Expressions: []TrustedTypeExpression{
 				{Kind: "policy-name", Value: "lit-html"},
 			}},
 		},
