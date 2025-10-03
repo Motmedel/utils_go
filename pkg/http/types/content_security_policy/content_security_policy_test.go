@@ -2,127 +2,156 @@ package content_security_policy
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 )
 
-func TestContentSecurityPolicy_String_Constructed(t *testing.T) {
-	csp := &ContentSecurityPolicy{
-		Directives: []DirectiveI{
-			&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
-				&KeywordSource{Keyword: "'self'"},
+func TestContentSecurityPolicy_String_Directives(t *testing.T) {
+	tests := []struct {
+		name      string
+		directive DirectiveI
+		want      string
+	}{
+		{
+			name: "default-src with keyword, scheme and host",
+			directive: &DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
+				&KeywordSource{Keyword: "self"},
 				&SchemeSource{Scheme: "https"},
 				&HostSource{Host: "cdn.example.com"},
 			}}},
-			&UpgradeInsecureRequestDirective{Directive: Directive{Name: "upgrade-insecure-request", RawName: "upgrade-insecure-request"}},
+			want: "default-src 'self' https: cdn.example.com",
 		},
-	}
-
-	expected := "default-src 'self' https: cdn.example.com; upgrade-insecure-request"
-	if got := csp.String(); got != expected {
-		t.Fatalf("constructed String() mismatch.\nexpected: %q\n     got: %q", expected, got)
-	}
-}
-
-func TestContentSecurityPolicy_String_IncludesOtherButNotIneffective(t *testing.T) {
-	csp := &ContentSecurityPolicy{
-		Directives: []DirectiveI{
-			&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
-				&KeywordSource{Keyword: "'self'"},
-			}}},
-		},
-		OtherDirectives: []DirectiveI{
-			&Directive{Name: "foo", RawName: "foo", RawValue: "bar"},
-		},
-		IneffectiveDirectives: []DirectiveI{
-			&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src", RawValue: "https://other.example.com"}}},
-		},
-	}
-
-	expected := "default-src 'self'; foo bar"
-	if got := csp.String(); got != expected {
-		t.Fatalf("String() should include other but not ineffective directives. expected %q, got %q", expected, got)
-	}
-}
-
-func TestContentSecurityPolicy_String_Constructed_Comprehensive(t *testing.T) {
-	csp := &ContentSecurityPolicy{
-		Directives: []DirectiveI{
-			&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
-				&KeywordSource{Keyword: "'self'"},
-				&HostSource{Scheme: "https", Host: "cdn.example.com"},
-			}}},
-			&ScriptSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "script-src", RawName: "script-src"}, Sources: []SourceI{
-				&KeywordSource{Keyword: "'unsafe-inline'"},
-				&KeywordSource{Keyword: "'unsafe-eval'"},
-				&KeywordSource{Keyword: "'strict-dynamic'"},
+		{
+			name: "script-src with keywords, schemes, nonce and hash",
+			directive: &ScriptSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "script-src", RawName: "script-src"}, Sources: []SourceI{
+				&KeywordSource{Keyword: "unsafe-inline"},
+				&KeywordSource{Keyword: "unsafe-eval"},
+				&KeywordSource{Keyword: "strict-dynamic"},
 				&SchemeSource{Scheme: "https"},
 				&SchemeSource{Scheme: "http"},
 				&NonceSource{Base64Value: "dGVzdA=="},
 				&HashSource{HashAlgorithm: "sha256", Base64Value: "AbCd012+/_-=="},
 			}}},
-			&StyleSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "style-src", RawName: "style-src"}, Sources: []SourceI{
-				&KeywordSource{Keyword: "'report-sample'"},
+			want: "script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http: 'nonce-dGVzdA==' 'sha256-AbCd012+/_-=='",
+		},
+		{
+			name: "style-src with report-sample and host",
+			directive: &StyleSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "style-src", RawName: "style-src"}, Sources: []SourceI{
+				&KeywordSource{Keyword: "report-sample"},
 				&HostSource{Scheme: "https", Host: "styles.example.com"},
 			}}},
-			&ImgSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "img-src", RawName: "img-src"}, Sources: []SourceI{
+			want: "style-src 'report-sample' https://styles.example.com",
+		},
+		{
+			name: "img-src with host and data scheme",
+			directive: &ImgSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "img-src", RawName: "img-src"}, Sources: []SourceI{
 				&HostSource{Scheme: "https", Host: "example.com", PortString: "443", Path: "/path"},
 				&SchemeSource{Scheme: "data"},
 			}}},
-			&ConnectSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "connect-src", RawName: "connect-src"}, Sources: []SourceI{
+			want: "img-src https://example.com:443/path data:",
+		},
+		{
+			name: "connect-src with wildcard port",
+			directive: &ConnectSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "connect-src", RawName: "connect-src"}, Sources: []SourceI{
 				&HostSource{Host: "*.example.com", PortString: "*"},
 			}}},
-			&FrameAncestorsDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "frame-ancestors", RawName: "frame-ancestors"}, Sources: []SourceI{
-				&KeywordSource{Keyword: "'self'"},
+			want: "connect-src *.example.com:*",
+		},
+		{
+			name: "frame-ancestors with self and https parent",
+			directive: &FrameAncestorsDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "frame-ancestors", RawName: "frame-ancestors"}, Sources: []SourceI{
+				&KeywordSource{Keyword: "self"},
 				&HostSource{Scheme: "https", Host: "parent.example.com"},
 			}}},
-			&SandboxDirective{Directive: Directive{Name: "sandbox", RawName: "sandbox"}, Tokens: []string{"allow-same-origin", "allow-scripts"}},
-			&ReportUriDirective{Directive: Directive{Name: "report-uri", RawName: "report-uri"}, UriReferences: []string{"/csp", "/csp2", "https://report.example.com/endpoint"}},
-			&ReportToDirective{Directive: Directive{Name: "report-to", RawName: "report-to"}, Token: "csp-endpoint"},
-			&RequireSriForDirective{Directive: Directive{Name: "require-sri-for", RawName: "require-sri-for"}, ResourceTypes: []string{"script"}},
-			&TrustedTypesDirective{Directive: Directive{Name: "trusted-types", RawName: "trusted-types", RawValue: "default policy1 'allow-duplicates' 'none'"}},
-			&RequireTrustedTypesForDirective{Directive: Directive{Name: "require-trusted-types-for", RawName: "require-trusted-types-for", RawValue: "'script'"}},
-			&UpgradeInsecureRequestDirective{Directive: Directive{Name: "upgrade-insecure-request", RawName: "upgrade-insecure-request"}},
-			&WebrtcDirective{Directive: Directive{Name: "webrtc", RawName: "webrtc", RawValue: "allow"}},
-			&BaseUriDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
-				&KeywordSource{Keyword: "'self'"},
+			want: "frame-ancestors 'self' https://parent.example.com",
+		},
+		{
+			name:      "sandbox with tokens",
+			directive: &SandboxDirective{Directive: Directive{Name: "sandbox", RawName: "sandbox"}, Tokens: []string{"allow-same-origin", "allow-scripts"}},
+			want:      "sandbox allow-same-origin allow-scripts",
+		},
+		{
+			name:      "sandbox without tokens",
+			directive: &SandboxDirective{Directive: Directive{Name: "sandbox", RawName: "sandbox"}},
+			want:      "sandbox",
+		},
+		{
+			name:      "report-uri with multiple endpoints",
+			directive: &ReportUriDirective{Directive: Directive{Name: "report-uri", RawName: "report-uri"}, UriReferences: []string{"/csp", "/csp2", "https://report.example.com/endpoint"}},
+			want:      "report-uri /csp /csp2 https://report.example.com/endpoint",
+		},
+		{
+			name:      "report-to with token",
+			directive: &ReportToDirective{Directive: Directive{Name: "report-to", RawName: "report-to"}, Token: "csp-endpoint"},
+			want:      "report-to csp-endpoint",
+		},
+		{
+			name:      "require-sri-for script",
+			directive: &RequireSriForDirective{Directive: Directive{Name: "require-sri-for", RawName: "require-sri-for"}, ResourceTypes: []string{"script"}},
+			want:      "require-sri-for script",
+		},
+		{
+			name: "trusted-types with expressions",
+			directive: &TrustedTypesDirective{Directive: Directive{Name: "trusted-types", RawName: "trusted-types"}, Expressions: []TrustedTypeExpression{
+				{Kind: "policy-name", Value: "default"},
+				{Kind: "policy-name", Value: "policy1"},
+				{Kind: "keyword", Value: "allow-duplicates"},
+				{Kind: "keyword", Value: "none"},
+			}},
+			want: "trusted-types default policy1 'allow-duplicates' 'none'",
+		},
+		{
+			name:      "require-trusted-types-for script",
+			directive: &RequireTrustedTypesForDirective{Directive: Directive{Name: "require-trusted-types-for", RawName: "require-trusted-types-for"}, SinkGroups: []string{"script"}},
+			want:      "require-trusted-types-for 'script'",
+		},
+		{
+			name:      "upgrade-insecure-request",
+			directive: &UpgradeInsecureRequestDirective{Directive: Directive{Name: "upgrade-insecure-request", RawName: "upgrade-insecure-request"}},
+			want:      "upgrade-insecure-request",
+		},
+		{
+			name:      "webrtc allow",
+			directive: &WebrtcDirective{Directive: Directive{Name: "webrtc", RawName: "webrtc"}, Value: "allow"},
+			want:      "webrtc 'allow'",
+		},
+		{
+			name: "base-uri self",
+			directive: &BaseUriDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
+				&KeywordSource{Keyword: "self"},
 			}}},
-			&ObjectSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "object-src", RawName: "object-src"}, Sources: []SourceI{
+			want: "base-uri 'self'",
+		},
+		{
+			name: "object-src none",
+			directive: &ObjectSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "object-src", RawName: "object-src"}, Sources: []SourceI{
 				&NoneSource{},
 			}}},
-			&WorkerSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "worker-src", RawName: "worker-src"}, Sources: []SourceI{
+			want: "object-src 'none'",
+		},
+		{
+			name: "worker-src data and blob",
+			directive: &WorkerSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "worker-src", RawName: "worker-src"}, Sources: []SourceI{
 				&SchemeSource{Scheme: "data"},
 				&SchemeSource{Scheme: "blob"},
 			}}},
-			&ChildSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "child-src", RawName: "child-src"}, Sources: []SourceI{
+			want: "worker-src data: blob:",
+		},
+		{
+			name: "child-src https host",
+			directive: &ChildSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "child-src", RawName: "child-src"}, Sources: []SourceI{
 				&HostSource{Scheme: "https", Host: "child.example.com"},
 			}}},
+			want: "child-src https://child.example.com",
 		},
 	}
 
-	expected := strings.Join([]string{
-		"default-src 'self' https://cdn.example.com",
-		"script-src 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http: 'nonce-dGVzdA==' 'sha256-AbCd012+/_-=='",
-		"style-src 'report-sample' https://styles.example.com",
-		"img-src https://example.com:443/path data:",
-		"connect-src *.example.com:*",
-		"frame-ancestors 'self' https://parent.example.com",
-		"sandbox allow-same-origin allow-scripts",
-		"report-uri /csp /csp2 https://report.example.com/endpoint",
-		"report-to csp-endpoint",
-		"require-sri-for script",
-		"trusted-types default policy1 'allow-duplicates' 'none'",
-		"require-trusted-types-for 'script'",
-		"upgrade-insecure-request",
-		"webrtc allow",
-		"base-uri 'self'",
-		"object-src 'none'",
-		"worker-src data: blob:",
-		"child-src https://child.example.com",
-	}, "; ")
-
-	if got := csp.String(); got != expected {
-		t.Fatalf("constructed comprehensive String() mismatch.\nexpected: %q\n     got: %q", expected, got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			csp := &ContentSecurityPolicy{Directives: []DirectiveI{tt.directive}}
+			if got := csp.String(); got != tt.want {
+				t.Errorf("String() got = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -189,5 +218,36 @@ func TestContentSecurityPolicy_GetDirective(t *testing.T) {
 				t.Errorf("GetDirective() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
+	}
+}
+
+func TestContentSecurityPolicy_String_SpecificPolicy(t *testing.T) {
+	expected := "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'; trusted-types lit-html"
+
+	csp := &ContentSecurityPolicy{
+		Directives: []DirectiveI{
+			&DefaultSrcDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "default-src", RawName: "default-src"}, Sources: []SourceI{
+				&KeywordSource{Keyword: "self"},
+			}}},
+			&FrameAncestorsDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "frame-ancestors", RawName: "frame-ancestors"}, Sources: []SourceI{
+				&NoneSource{},
+			}}},
+			&BaseUriDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "base-uri", RawName: "base-uri"}, Sources: []SourceI{
+				&NoneSource{},
+			}}},
+			&FormActionDirective{SourceDirective: SourceDirective{Directive: Directive{Name: "form-action", RawName: "form-action"}, Sources: []SourceI{
+				&NoneSource{},
+			}}},
+			&RequireTrustedTypesForDirective{Directive: Directive{Name: "require-trusted-types-for", RawName: "require-trusted-types-for"}, SinkGroups: []string{"script"}},
+			&TrustedTypesDirective{Directive: Directive{Name: "trusted-types", RawName: "trusted-types"}, Expressions: []TrustedTypeExpression{
+				{Kind: "policy-name", Value: "lit-html"},
+			}},
+		},
+	}
+
+	if got := csp.String(); got != expected {
+		to := got
+		want := expected
+		t.Errorf("String() got = %q, want %q", to, want)
 	}
 }
