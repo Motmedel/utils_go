@@ -4,6 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"strings"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
@@ -25,9 +29,6 @@ import (
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"github.com/google/uuid"
-	"log/slog"
-	"net/http"
-	"strings"
 )
 
 type baseMux struct {
@@ -629,4 +630,19 @@ func (mux *Mux) GetDocumentEndpointSpecifications() []*muxTypesEnpointSpecificat
 	}
 
 	return specifications
+}
+
+func (mux *Mux) DuplicateEndpointSpecification(endpointSpecification *muxTypesEnpointSpecification.EndpointSpecification, routes ...string) error {
+	if endpointSpecification == nil {
+		return motmedelErrors.NewWithTrace(muxErrors.ErrNilEndpointSpecification)
+	}
+
+	for _, route := range routes {
+		specification := *endpointSpecification
+		specification.Path = route
+
+		mux.Add(&specification)
+	}
+
+	return nil
 }
