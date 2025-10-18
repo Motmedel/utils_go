@@ -2,11 +2,12 @@ package types
 
 import (
 	"fmt"
-	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
+
+	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 )
 
 type HttpContext struct {
@@ -14,8 +15,8 @@ type HttpContext struct {
 	RequestBody  []byte
 	Response     *http.Response
 	ResponseBody []byte
-	TlsContext *motmedelTlsTypes.TlsContext
-	Extra []*HttpContext
+	TlsContext   *motmedelTlsTypes.TlsContext
+	Extra        []*HttpContext
 }
 
 func getFullType(typeValue string, subtypeValue string, normalize bool) string {
@@ -127,6 +128,12 @@ func (accept *Accept) GetPriorityOrderedEncodings() []*MediaRange {
 	})
 
 	return mediaRanges
+}
+
+type Authorization struct {
+	Scheme  string
+	Token68 string
+	Params  map[string]string
 }
 
 type MediaType struct {
