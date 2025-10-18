@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -14,7 +15,7 @@ func TestParseAuthorization(t *testing.T) {
 	testCases := []struct {
 		name        string
 		input       []byte
-		expected    *Authorization
+		expected    *motmedelHttpTypes.Authorization
 		expectedErr error
 	}{
 		{
@@ -32,7 +33,7 @@ func TestParseAuthorization(t *testing.T) {
 		{
 			name:  "scheme only",
 			input: []byte("Basic"),
-			expected: &Authorization{
+			expected: &motmedelHttpTypes.Authorization{
 				Scheme: "Basic",
 			},
 			expectedErr: nil,
@@ -40,7 +41,7 @@ func TestParseAuthorization(t *testing.T) {
 		{
 			name:  "scheme with token68",
 			input: []byte("Bearer abc123=="),
-			expected: &Authorization{
+			expected: &motmedelHttpTypes.Authorization{
 				Scheme:  "Bearer",
 				Token68: "abc123==",
 			},
@@ -49,7 +50,7 @@ func TestParseAuthorization(t *testing.T) {
 		{
 			name:  "scheme with single token parameter (key lowercased)",
 			input: []byte("Digest Realm=foo"),
-			expected: &Authorization{
+			expected: &motmedelHttpTypes.Authorization{
 				Scheme: "Digest",
 				Params: map[string]string{
 					"realm": "foo",
@@ -60,7 +61,7 @@ func TestParseAuthorization(t *testing.T) {
 		{
 			name:  "scheme with quoted parameter",
 			input: []byte(`Digest realm="hello world"`),
-			expected: &Authorization{
+			expected: &motmedelHttpTypes.Authorization{
 				Scheme: "Digest",
 				Params: map[string]string{
 					"realm": "hello world",
@@ -71,7 +72,7 @@ func TestParseAuthorization(t *testing.T) {
 		{
 			name:  "scheme with multiple parameters and whitespace around equals and commas",
 			input: []byte(`Digest realm="hello world", nonce=abc123 , opaque = "xyz"`),
-			expected: &Authorization{
+			expected: &motmedelHttpTypes.Authorization{
 				Scheme: "Digest",
 				Params: map[string]string{
 					"realm":  "hello world",
@@ -99,7 +100,7 @@ func TestParseAuthorization(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			authorization, err := ParseAuthorization(testCase.input)
+			authorization, err := Parse(testCase.input)
 			if !errors.Is(err, testCase.expectedErr) {
 				t.Fatalf("expected error: %v, got: %v", testCase.expectedErr, err)
 			}
