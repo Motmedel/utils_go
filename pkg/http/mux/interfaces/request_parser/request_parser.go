@@ -1,8 +1,9 @@
 package request_parser
 
 import (
-	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"net/http"
+
+	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 )
 
 type RequestParser[T any] interface {

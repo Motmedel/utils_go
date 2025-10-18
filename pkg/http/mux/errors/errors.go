@@ -31,4 +31,5 @@ var (
 	ErrUnsupportedFileExtension      = errors.New("unsupported file extension")
 	ErrNilHeaderParameter            = errors.New("nil header parameter")
 	ErrEmptyContentType              = errors.New("empty content type")
+	ErrNilRequestParser              = errors.New("nil request parser")
 )
