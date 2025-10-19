@@ -31,6 +31,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type muxHttpContextContextType struct{}
+
+var MuxHttpContextContextKey muxHttpContextContextType
+
 type baseMux struct {
 	SetContextKeyValuePairs [][2]any
 	ResponseErrorHandler    func(context.Context, *muxTypesResponseError.ResponseError, *muxTypesResponseWriter.ResponseWriter)
@@ -80,11 +84,11 @@ func (bm *baseMux) ServeHttpWithCallback(
 		responseErrorHandler = muxInternal.DefaultResponseErrorHandler
 	}
 
-	// Populate the request context.
+	// Create an HTTP context and populate it with the request and put it in the request context.
 
 	httpContext := &motmedelHttpTypes.HttpContext{Request: request}
 	request = request.WithContext(
-		context.WithValue(request.Context(), motmedelHttpContext.HttpContextContextKey, httpContext),
+		context.WithValue(request.Context(), MuxHttpContextContextKey, httpContext),
 	)
 
 	requestId, err := uuid.NewV7()
@@ -144,7 +148,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 			connection, _, err := hijacker.Hijack()
 			if err != nil {
 				responseErrorHandler(
-					request.Context(),
+					motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext),
 					&muxTypesResponseError.ResponseError{
 						ServerError: motmedelErrors.NewWithTrace(
 							fmt.Errorf("response writer hijacker hijack: %w", err),
@@ -177,7 +181,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusForbidden, "", nil),
 			}
 		}
-		responseErrorHandler(request.Context(), firewallResponseError, responseWriter)
+		responseErrorHandler(motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext), firewallResponseError, responseWriter)
 	} else {
 		for _, middleware := range bm.Middleware {
 			if middleware != nil {
@@ -202,7 +206,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 		if !responseWriter.WriteHeaderCalled {
 			if responseError != nil {
-				responseErrorHandler(request.Context(), responseError, responseWriter)
+				responseErrorHandler(motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext), responseError, responseWriter)
 			} else {
 				if response == nil {
 					response = &muxTypesResponse.Response{}
@@ -210,7 +214,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 				if err := responseWriter.WriteResponse(request.Context(), response, acceptEncoding); err != nil {
 					responseErrorHandler(
-						request.Context(),
+						motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext),
 						&muxTypesResponseError.ResponseError{
 							ServerError: motmedelErrors.New(
 								fmt.Errorf("write response: %w", err),
@@ -234,7 +238,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 	if !responseWriter.WriteHeaderCalled {
 		responseErrorHandler(
-			request.Context(),
+			motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext),
 			&muxTypesResponseError.ResponseError{
 				ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNoResponseWritten),
 			},
@@ -276,7 +280,7 @@ func muxHandleRequest(
 		}
 	}
 
-	httpContext, ok := request.Context().Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
+	httpContext, ok := request.Context().Value(MuxHttpContextContextKey).(*motmedelHttpTypes.HttpContext)
 	if !ok {
 		return nil, &muxTypesResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrCouldNotObtainHttpContext),

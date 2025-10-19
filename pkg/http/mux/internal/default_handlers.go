@@ -3,6 +3,9 @@ package internal
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net/http"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
@@ -11,8 +14,6 @@ import (
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
-	"log/slog"
-	"net/http"
 )
 
 func DefaultResponseErrorHandler(
