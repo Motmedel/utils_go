@@ -247,7 +247,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 	}
 
 	if doneCallback := bm.DoneCallback; doneCallback != nil {
-		doneCallback(request.Context())
+		doneCallback(motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext))
 	}
 }
 
