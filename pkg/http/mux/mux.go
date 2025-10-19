@@ -373,14 +373,14 @@ func muxHandleRequest(
 
 	// Validate body parameters and obtain and validate the body
 
-	allowEmptyBody := true
+	emptyOption := parsing.BodyOptional
 	var expectedContentType string
 	var bodyParser body_parser.BodyParser[any]
 	var maxBytes int64
 
 	// Obtain validation options from the handler specification configuration.
 	if bodyParserConfiguration := endpointSpecification.BodyParserConfiguration; bodyParserConfiguration != nil {
-		allowEmptyBody = bodyParserConfiguration.AllowEmpty
+		emptyOption = bodyParserConfiguration.EmptyOption
 		expectedContentType = bodyParserConfiguration.ContentType
 		bodyParser = bodyParserConfiguration.Parser
 		maxBytes = bodyParserConfiguration.MaxBytes
@@ -393,11 +393,13 @@ func muxHandleRequest(
 		}
 	}
 
-	// TODO: Require the body to be empty with `maxBytes == -1`?
-
-	if maxBytes > 0 {
+	if emptyOption == parsing.BodyForbidden {
+		request.Body = http.MaxBytesReader(responseWriter, request.Body, 0)
+	} else if maxBytes > 0 {
 		request.Body = http.MaxBytesReader(responseWriter, request.Body, maxBytes)
 	}
+
+	allowEmptyBody := emptyOption == parsing.BodyOptional
 
 	// Validate Content-Length (parse and check if empty is accepted)
 	if responseError := muxInternalMux.ValidateContentLength(allowEmptyBody, requestHeader); responseError != nil {

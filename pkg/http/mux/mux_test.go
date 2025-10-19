@@ -5,6 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"slices"
+	"testing"
+	"time"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser/adapter"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
@@ -24,13 +32,6 @@ import (
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"slices"
-	"testing"
-	"time"
 )
 
 var httpServer *httptest.Server
@@ -188,6 +189,16 @@ func TestMain(m *testing.M) {
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
 				ContentType: "application/octet-stream",
 				MaxBytes:    2,
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/forbidden-body",
+			Method: http.MethodPost,
+			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
+				return nil, nil
+			},
+			BodyParserConfiguration: &parsing.BodyParserConfiguration{
+				EmptyOption: parsing.BodyForbidden,
 			},
 		},
 		&endpoint_specification.EndpointSpecification{
@@ -457,6 +468,14 @@ func TestMux(t *testing.T) {
 			headers:            [][2]string{{"Content-Type", "application/octet-stream"}},
 			body:               []byte("12"),
 			expectedStatusCode: http.StatusNoContent,
+		},
+		{
+			name:                  "forbidden body",
+			method:                http.MethodPost,
+			url:                   "/forbidden-body",
+			body:                  []byte("12"),
+			expectedStatusCode:    http.StatusRequestEntityTooLarge,
+			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 0 bytes"},
 		},
 	}
 

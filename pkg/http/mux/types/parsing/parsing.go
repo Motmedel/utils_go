@@ -5,6 +5,14 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
 )
 
+type EmptyOption int
+
+const (
+	BodyRequired EmptyOption = iota
+	BodyOptional
+	BodyForbidden
+)
+
 type parsedRequestUrlContextType struct{}
 type parsedRequestHeaderContextType struct{}
 type parsedRequestBodyContextType struct{}
@@ -27,7 +35,7 @@ type AuthenticationConfiguration struct {
 
 type BodyParserConfiguration struct {
 	ContentType string
-	AllowEmpty  bool
+	EmptyOption EmptyOption
 	MaxBytes    int64
 	Parser      body_parser.BodyParser[any]
 }
