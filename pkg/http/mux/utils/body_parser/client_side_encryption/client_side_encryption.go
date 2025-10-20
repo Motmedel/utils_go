@@ -18,6 +18,7 @@ type HeaderRequestParser struct {
 	Header            string
 	KeyAlgorithm      jose.KeyAlgorithm
 	ContentEncryption jose.ContentEncryption
+	EncrypterOptions  *jose.EncrypterOptions
 }
 
 func (parser *HeaderRequestParser) Parse(request *http.Request) (jose.Encrypter, *response_error.ResponseError) {
@@ -84,7 +85,7 @@ func (parser *HeaderRequestParser) Parse(request *http.Request) (jose.Encrypter,
 			Key:       clientJwkKey,
 			KeyID:     clientJwkKeyId,
 		},
-		nil,
+		parser.EncrypterOptions,
 	)
 	if err != nil {
 		return nil, &response_error.ResponseError{
