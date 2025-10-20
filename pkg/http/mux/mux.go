@@ -382,6 +382,10 @@ func muxHandleRequest(
 	var bodyParser body_parser.BodyParser[any]
 	var maxBytes int64
 
+	if request.Method == http.MethodGet || request.Method == http.MethodHead || request.Method == http.MethodTrace {
+		emptyOption = parsing.BodyForbidden
+	}
+
 	// Obtain validation options from the handler specification configuration.
 	if bodyParserConfiguration := endpointSpecification.BodyParserConfiguration; bodyParserConfiguration != nil {
 		emptyOption = bodyParserConfiguration.EmptyOption

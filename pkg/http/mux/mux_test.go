@@ -477,6 +477,14 @@ func TestMux(t *testing.T) {
 			expectedStatusCode:    http.StatusRequestEntityTooLarge,
 			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 0 bytes"},
 		},
+		{
+			name:                  "forbidden body get",
+			method:                http.MethodGet,
+			url:                   "/hello-world",
+			body:                  []byte("12"),
+			expectedStatusCode:    http.StatusRequestEntityTooLarge,
+			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 0 bytes"},
+		},
 	}
 
 	// TODO: Write test for URL parsing.
