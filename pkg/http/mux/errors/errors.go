@@ -32,4 +32,6 @@ var (
 	ErrNilHeaderParameter            = errors.New("nil header parameter")
 	ErrEmptyContentType              = errors.New("empty content type")
 	ErrNilRequestParser              = errors.New("nil request parser")
+	ErrNilProcessor                  = errors.New("nil processor")
+	ErrNilBodyParser                 = errors.New("nil body parser")
 )
