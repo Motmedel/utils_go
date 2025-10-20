@@ -3,15 +3,17 @@ package body_parser
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"net/http"
 )
 
+// TODO: Why does it say `BodyParser` when it is a `BodyProcessor`?'
 func MakeValidatableBodyParser[T validatable.Validatable]() body_processor.BodyProcessor[T, T] {
 	return body_processor.BodyProcessorFunction[T, T](
 		func(v T) (T, *response_error.ResponseError) {
