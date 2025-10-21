@@ -23,6 +23,7 @@ var (
 	ErrReattemptFailedError        = errors.New("reattempt failed")
 	ErrBadIfModifiedSinceTimestamp = errors.New("bad If-Modified-Since timestamp")
 	ErrNilCookie                   = errors.New("nil cookie")
+	ErrNilCorsConfiguration        = errors.New("nil cors configuration")
 )
 
 type Non2xxStatusCodeError struct {
