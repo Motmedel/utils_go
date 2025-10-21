@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strings"
 
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
@@ -27,6 +28,7 @@ import (
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelIter "github.com/Motmedel/utils_go/pkg/iter"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"github.com/google/uuid"
 )
@@ -295,16 +297,178 @@ func muxHandleRequest(
 
 	// Locate the endpoint specification.
 
-	endpointSpecification, response, responseError := muxInternalMux.GetEndpointSpecification(
+	endpointSpecification, methodToEndpointSpecification, responseError := muxInternalMux.GetEndpointSpecification(
 		mux.EndpointSpecificationMap,
 		request,
 	)
-	if response != nil || responseError != nil {
-		return response, responseError
+	if responseError != nil {
+		return nil, responseError
 	}
+
+	// There exists no endpoint specification for the given method,
 	if endpointSpecification == nil {
+		// and for no other methods either, which is an error (as 404 should be produced by `GetEndpointSpecification`)
+		if len(methodToEndpointSpecification) == 0 {
+			return nil, &muxTypesResponseError.ResponseError{
+				ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilEndpointSpecification),
+			}
+		}
+
+		// Produce an OPTIONS response (list allowed methods and/or CORS configuration).
+
+		var allowedMethods []string
+		var corsEndpointSpecifications []*muxTypesEnpointSpecification.EndpointSpecification
+
+		for method, otherEndpointSpecification := range methodToEndpointSpecification {
+			if otherEndpointSpecification == nil {
+				continue
+			}
+
+			allowedMethods = append(allowedMethods, method)
+
+			if corsRequestParser := otherEndpointSpecification.CorsRequestParser; !utils.IsNil(corsRequestParser) {
+				corsEndpointSpecifications = append(corsEndpointSpecifications, otherEndpointSpecification)
+			}
+		}
+
+		if _, ok := methodToEndpointSpecification[http.MethodHead]; !ok {
+			if _, ok := methodToEndpointSpecification[http.MethodGet]; ok {
+				allowedMethods = append(allowedMethods, http.MethodHead)
+			}
+		}
+		if _, ok := methodToEndpointSpecification[http.MethodOptions]; !ok {
+			allowedMethods = append(allowedMethods, http.MethodOptions)
+		}
+		slices.Sort(allowedMethods)
+
+		expectedMethodsString := strings.Join(allowedMethods, ", ")
+		headerEntries := []*muxTypesResponse.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}
+
+		if strings.ToUpper(request.Method) == http.MethodOptions {
+			if len(corsEndpointSpecifications) > 0 {
+				var corsConfiguration motmedelHttpTypes.CorsConfiguration
+				accessControlRequestMethod := strings.ToUpper(requestHeader.Get("Access-Control-Request-Method"))
+				accessControlRequestHeaders := requestHeader.Get("Access-Control-Request-Headers")
+
+				for _, corsEndpointSpecification := range corsEndpointSpecifications {
+					method := strings.ToUpper(corsEndpointSpecification.Method)
+
+					corsConfiguration.Methods = append(corsConfiguration.Methods, strings.ToUpper(method))
+					if method == http.MethodGet {
+						corsConfiguration.Methods = append(corsConfiguration.Methods, http.MethodHead)
+					}
+
+					if method != accessControlRequestMethod {
+						continue
+					}
+
+					corsRequestParser := corsEndpointSpecification.CorsRequestParser
+					// Sanity check. Should not be `nil` based on the previous check.
+					if utils.IsNil(corsRequestParser) {
+						return nil, &muxTypesResponseError.ResponseError{
+							ServerError: motmedelErrors.NewWithTrace(
+								fmt.Errorf("%w (cors)", muxErrors.ErrNilRequestParser),
+							),
+						}
+					}
+
+					endpointCorsConfiguration, responseError := corsRequestParser.Parse(request)
+					if responseError != nil {
+						return nil, responseError
+					}
+					if endpointCorsConfiguration == nil {
+						return nil, &muxTypesResponseError.ResponseError{
+							ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilCorsConfiguration),
+						}
+					}
+
+					corsConfiguration.Origin = endpointCorsConfiguration.Origin
+					corsConfiguration.Headers = endpointCorsConfiguration.Headers
+					corsConfiguration.Credentials = endpointCorsConfiguration.Credentials
+					corsConfiguration.MaxAge = endpointCorsConfiguration.MaxAge
+				}
+
+				if origin := corsConfiguration.Origin; origin != "" {
+					headerEntries = append(
+						headerEntries,
+						&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Origin", Value: origin},
+					)
+				}
+
+				if methods := corsConfiguration.Methods; len(methods) > 0 {
+					uniqueMethods := motmedelIter.Set(methods)
+					slices.Sort(uniqueMethods)
+
+					headerEntries = append(
+						headerEntries,
+						&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Methods", Value: strings.Join(uniqueMethods, ", ")},
+					)
+				}
+
+				if headers := corsConfiguration.Headers; len(headers) > 0 && accessControlRequestHeaders != "" {
+					headerEntries = append(
+						headerEntries,
+						&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Headers", Value: strings.Join(headers, ", ")},
+					)
+				}
+
+				if credentials := corsConfiguration.Credentials; credentials {
+					headerEntries = append(
+						headerEntries,
+						&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Credentials", Value: "true"},
+					)
+				}
+
+				if maxAge := corsConfiguration.MaxAge; maxAge > 0 {
+					headerEntries = append(
+						headerEntries,
+						&muxTypesResponse.HeaderEntry{Name: "Access-Control-Max-Age", Value: fmt.Sprintf("%d", maxAge)},
+					)
+				}
+			}
+
+			return &muxTypesResponse.Response{Headers: headerEntries}, nil
+		}
+
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilEndpointSpecification),
+			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				http.StatusMethodNotAllowed,
+				fmt.Sprintf("Expected %s.", expectedMethodsString),
+				nil,
+			),
+			Headers: headerEntries,
+		}
+	}
+
+	var corsHeaderEntries []*muxTypesResponse.HeaderEntry
+	if corsRequestParser := endpointSpecification.CorsRequestParser; !utils.IsNil(corsRequestParser) {
+		corsConfiguration, responseError := corsRequestParser.Parse(request)
+		if responseError != nil {
+			return nil, responseError
+		}
+
+		if origin := corsConfiguration.Origin; origin != "" {
+			corsHeaderEntries = append(
+				corsHeaderEntries,
+				&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Origin", Value: origin},
+			)
+		}
+
+		if credentials := corsConfiguration.Credentials; credentials {
+			corsHeaderEntries = append(
+				corsHeaderEntries,
+				&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Credentials", Value: "true"},
+			)
+		}
+
+		if exposeHeaders := corsConfiguration.ExposeHeaders; len(exposeHeaders) > 0 {
+			corsHeaderEntries = append(
+				corsHeaderEntries,
+				&muxTypesResponse.HeaderEntry{
+					Name:  "Access-Control-Expose-Headers",
+					Value: strings.Join(exposeHeaders, ", "),
+				},
+			)
 		}
 	}
 
@@ -312,6 +476,7 @@ func muxHandleRequest(
 
 	if rateLimitingConfiguration := endpointSpecification.RateLimitingConfiguration; rateLimitingConfiguration != nil {
 		if responseError := muxInternalMux.HandleRateLimiting(rateLimitingConfiguration, request); responseError != nil {
+			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 			return nil, responseError
 		}
 	}
@@ -320,6 +485,7 @@ func muxHandleRequest(
 
 	if !endpointSpecification.DisableFetchMedata {
 		if responseError := muxInternalMux.HandleFetchMetadata(requestHeader, request.Method); responseError != nil {
+			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 			return nil, responseError
 		}
 	}
@@ -330,6 +496,7 @@ func muxHandleRequest(
 		if parser := configuration.Parser; !utils.IsNil(parser) {
 			ok, responseError := parser.Parse(request)
 			if responseError != nil {
+				responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 				return nil, responseError
 			}
 
@@ -340,9 +507,9 @@ func muxHandleRequest(
 						"",
 						nil,
 					),
+					Headers: corsHeaderEntries,
 				}
 			}
-
 		}
 	}
 
@@ -352,6 +519,7 @@ func muxHandleRequest(
 		if parser := configuration.Parser; !utils.IsNil(parser) {
 			parsedUrl, responseError := parser.Parse(request)
 			if responseError != nil {
+				responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 				return nil, responseError
 			}
 
@@ -367,6 +535,7 @@ func muxHandleRequest(
 		if parser := configuration.Parser; !utils.IsNil(parser) {
 			parsedHeader, responseError := parser.Parse(request)
 			if responseError != nil {
+				responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 				return nil, responseError
 			}
 
@@ -398,6 +567,7 @@ func muxHandleRequest(
 	// Validate Content-Type (parse and match header value against accepted value)
 	if expectedContentType != "" {
 		if responseError = muxInternalMux.ValidateContentType(expectedContentType, requestHeader); responseError != nil {
+			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 			return nil, responseError
 		}
 	}
@@ -408,10 +578,11 @@ func muxHandleRequest(
 		request.Body = http.MaxBytesReader(responseWriter, request.Body, maxBytes)
 	}
 
-	allowEmptyBody := emptyOption == parsing.BodyOptional
+	allowEmptyBody := emptyOption == parsing.BodyOptional || emptyOption == parsing.BodyForbidden
 
 	// Validate Content-Length (parse and check if empty is accepted)
 	if responseError := muxInternalMux.ValidateContentLength(allowEmptyBody, requestHeader); responseError != nil {
+		responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 		return nil, responseError
 	}
 
@@ -423,6 +594,7 @@ func muxHandleRequest(
 		maxBytes,
 	)
 	if responseError != nil {
+		responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 		return nil, responseError
 	}
 	httpContext.RequestBody = requestBody
@@ -434,6 +606,7 @@ func muxHandleRequest(
 				"A body is expected.",
 				nil,
 			),
+			Headers: corsHeaderEntries,
 		}
 	}
 
@@ -447,6 +620,7 @@ func muxHandleRequest(
 					"Invalid JSON body.",
 					nil,
 				),
+				Headers: corsHeaderEntries,
 			}
 		}
 	}
@@ -455,6 +629,7 @@ func muxHandleRequest(
 	if !utils.IsNil(bodyParser) {
 		parsedBody, responseError := bodyParser.Parse(request, requestBody)
 		if responseError != nil {
+			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 			return nil, responseError
 		}
 
@@ -466,12 +641,14 @@ func muxHandleRequest(
 	// Obtain a response
 
 	var handlerResponseHeaders []*muxTypesResponse.HeaderEntry
+	var response *muxTypesResponse.Response
 
 	// Respond with dynamic content via a handler.
 	handler := endpointSpecification.Handler
 	if handler != nil {
 		response, responseError = handler(request, requestBody)
 		if responseError != nil {
+			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 			return nil, responseError
 		}
 		if response != nil {
@@ -485,6 +662,7 @@ func muxHandleRequest(
 		var isCached bool
 		isCached, responseError = muxInternalMux.ObtainIsCached(staticContent, requestHeader)
 		if responseError != nil {
+			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 			return nil, responseError
 		}
 
@@ -503,6 +681,7 @@ func muxHandleRequest(
 	}
 
 	if responseError != nil {
+		responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 		return nil, responseError
 	}
 
@@ -526,6 +705,7 @@ func muxHandleRequest(
 		)
 	}
 
+	response.Headers = append(response.Headers, corsHeaderEntries...)
 	return response, nil
 }
 

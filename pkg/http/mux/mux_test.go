@@ -15,6 +15,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser/adapter"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
@@ -216,6 +217,47 @@ func TestMain(m *testing.M) {
 			RateLimitingConfiguration: &rate_limiting.RateLimitingConfiguration{
 				NumRequests:          3,
 				NumSecondsExpiration: 5,
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/cors",
+			Method: http.MethodGet,
+			CorsRequestParser: request_parser.RequestParserFunction[*motmedelHttpTypes.CorsConfiguration](
+				func(r *http.Request) (*motmedelHttpTypes.CorsConfiguration, *response_error.ResponseError) {
+					return &motmedelHttpTypes.CorsConfiguration{
+						Origin:        "*",
+						Credentials:   true,
+						Headers:       []string{"X-Custom-Header", "X-Custom-Header-2"},
+						ExposeHeaders: []string{"X-Secret"},
+					}, nil
+				},
+			),
+			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
+				return nil, nil
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/cors",
+			Method: http.MethodPost,
+			CorsRequestParser: request_parser.RequestParserFunction[*motmedelHttpTypes.CorsConfiguration](
+				func(r *http.Request) (*motmedelHttpTypes.CorsConfiguration, *response_error.ResponseError) {
+					return &motmedelHttpTypes.CorsConfiguration{
+						Origin:        "*",
+						Credentials:   true,
+						Headers:       []string{"X-Custom-Header-3", "X-Custom-Header-4"},
+						ExposeHeaders: []string{"X-Secret-2"},
+					}, nil
+				},
+			),
+			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
+				return nil, nil
+			},
+		},
+		&endpoint_specification.EndpointSpecification{
+			Path:   "/cors",
+			Method: http.MethodPatch,
+			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
+				return nil, nil
 			},
 		},
 	)
@@ -484,6 +526,38 @@ func TestMux(t *testing.T) {
 			body:                  []byte("12"),
 			expectedStatusCode:    http.StatusRequestEntityTooLarge,
 			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 0 bytes"},
+		},
+		{
+			name:   "cors preflight",
+			method: http.MethodOptions,
+			headers: [][2]string{
+				{"Origin", "https://example.com"},
+				{"Access-Control-Request-Method", "POST"},
+				{"Access-Control-Request-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
+			},
+			url:                "/cors",
+			expectedStatusCode: http.StatusNoContent,
+			expectedHeaders: [][2]string{
+				{"Access-Control-Allow-Methods", "GET, HEAD, POST"},
+				{"Access-Control-Allow-Origin", "*"},
+				{"Access-Control-Allow-Credentials", "true"},
+				{"Access-Control-Allow-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
+				{"Allow", "GET, HEAD, OPTIONS, PATCH, POST"},
+			},
+		},
+		{
+			name:   "cors post",
+			method: http.MethodPost,
+			headers: [][2]string{
+				{"Origin", "https://example.com"},
+			},
+			url:                "/cors",
+			expectedStatusCode: http.StatusNoContent,
+			expectedHeaders: [][2]string{
+				{"Access-Control-Allow-Origin", "*"},
+				{"Access-Control-Allow-Credentials", "true"},
+				{"Access-Control-Expose-Headers", "X-Secret-2"},
+			},
 		},
 	}
 

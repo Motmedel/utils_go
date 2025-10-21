@@ -320,7 +320,7 @@ func ObtainRequestBody(
 func GetEndpointSpecification(
 	endpointSpecificationMap map[string]map[string]*muxTypes.EndpointSpecification,
 	request *http.Request,
-) (*muxTypes.EndpointSpecification, *muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
+) (*muxTypes.EndpointSpecification, map[string]*muxTypes.EndpointSpecification, *muxTypesResponseError.ResponseError) {
 	if len(endpointSpecificationMap) == 0 {
 		return nil, nil, &muxTypesResponseError.ResponseError{
 			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
@@ -333,19 +333,18 @@ func GetEndpointSpecification(
 		}
 	}
 
-	requestMethod := strings.ToUpper(request.Method)
+	requestUrl := request.URL
+	if requestUrl == nil {
+		return nil, nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestUrl),
+		}
+	}
 
+	requestMethod := strings.ToUpper(request.Method)
 	effectiveLookupMethod := requestMethod
 	if requestMethod == http.MethodHead {
 		// A HEAD request is to be processed as if it were a GET request. But signal not to write a body.
 		effectiveLookupMethod = http.MethodGet
-	}
-
-	requestUrl := request.URL
-	if requestUrl == nil {
-		return nil, nil, &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
-		}
 	}
 
 	methodToEndpointSpecification, ok := endpointSpecificationMap[requestUrl.Path]
@@ -357,38 +356,10 @@ func GetEndpointSpecification(
 
 	endpointSpecification, ok := methodToEndpointSpecification[effectiveLookupMethod]
 	if !ok {
-		allowedMethods := slices.Collect(maps.Keys(methodToEndpointSpecification))
-
-		if _, ok := methodToEndpointSpecification[http.MethodHead]; !ok {
-			if _, ok := methodToEndpointSpecification[http.MethodGet]; ok {
-				allowedMethods = append(allowedMethods, http.MethodHead)
-			}
-		}
-
-		if _, ok := methodToEndpointSpecification[http.MethodOptions]; !ok {
-			allowedMethods = append(allowedMethods, http.MethodOptions)
-		}
-
-		slices.Sort(allowedMethods)
-
-		expectedMethodsString := strings.Join(allowedMethods, ", ")
-		headerEntries := []*muxTypesResponse.HeaderEntry{{Name: "Allow", Value: expectedMethodsString}}
-
-		if effectiveLookupMethod == http.MethodOptions {
-			return nil, &muxTypesResponse.Response{Headers: headerEntries}, nil
-		}
-
-		return nil, nil, &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-				http.StatusMethodNotAllowed,
-				fmt.Sprintf("Expected %s.", expectedMethodsString),
-				nil,
-			),
-			Headers: headerEntries,
-		}
+		return nil, methodToEndpointSpecification, nil
 	}
 
-	return endpointSpecification, nil, nil
+	return endpointSpecification, methodToEndpointSpecification, nil
 }
 
 func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestHeader http.Header) (bool, *muxTypesResponseError.ResponseError) {
