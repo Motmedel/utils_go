@@ -4,6 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
+	"maps"
+	"net/http"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
@@ -17,14 +26,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
-	"io"
-	"log/slog"
-	"maps"
-	"net/http"
-	"slices"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func HandleRateLimiting(
@@ -327,7 +328,9 @@ func GetEndpointSpecification(
 	}
 
 	if request == nil {
-		return nil, nil, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest)}
+		return nil, nil, &muxTypesResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+		}
 	}
 
 	requestMethod := strings.ToUpper(request.Method)

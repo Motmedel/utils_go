@@ -305,3 +305,12 @@ func (robotsTxtGroup *RobotsTxtGroup) String() string {
 
 type SecurityTxt struct {
 }
+
+type CorsConfiguration struct {
+	Origin        string
+	Methods       []string
+	Headers       []string
+	Credentials   bool
+	MaxAge        int
+	ExposeHeaders []string
+}

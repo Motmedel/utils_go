@@ -35,6 +35,7 @@ type muxHttpContextContextType struct{}
 
 var MuxHttpContextContextKey muxHttpContextContextType
 
+// TODO: Do all of these need to be here, or can they be moved the the `Mux` struct?t
 type baseMux struct {
 	SetContextKeyValuePairs [][2]any
 	ResponseErrorHandler    func(context.Context, *muxTypesResponseError.ResponseError, *muxTypesResponseWriter.ResponseWriter)
