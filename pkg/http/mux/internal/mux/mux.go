@@ -117,13 +117,15 @@ func HandleFetchMetadata(requestHeader http.Header, method string) *muxTypesResp
 	// NOTE: This check is opinionated; embedding is not allowed. For custom fetch metadata logic, disable this
 	// check and implement your own in the firewall configuration e.g., plus add the `Vary` header.
 
+	// Optimization: Read Sec-Fetch-Site first and return early for most common cases
 	fetchSite := requestHeader.Get("Sec-Fetch-Site")
-	fetchMode := requestHeader.Get("Sec-Fetch-Mode")
-	fetchDest := requestHeader.Get("Sec-Fetch-Dest")
-
 	if fetchSite == "" || fetchSite == "same-origin" || fetchSite == "same-site" || fetchSite == "none" {
 		return nil
 	}
+
+	// Only read the other headers if we need them (when fetchSite indicates cross-origin)
+	fetchMode := requestHeader.Get("Sec-Fetch-Mode")
+	fetchDest := requestHeader.Get("Sec-Fetch-Dest")
 
 	if fetchMode == "navigate" && fetchDest == "document" && method == http.MethodGet {
 		return nil

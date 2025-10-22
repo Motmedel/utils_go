@@ -37,6 +37,12 @@ type muxHttpContextContextType struct{}
 
 var MuxHttpContextContextKey muxHttpContextContextType
 
+// Pre-allocated Vary header for fetch metadata to avoid allocation on every request
+var fetchMetadataVaryHeader = &muxTypesResponse.HeaderEntry{
+	Name:  "Vary",
+	Value: "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site",
+}
+
 // TODO: Do all of these need to be here, or can they be moved the the `Mux` struct?t
 type baseMux struct {
 	SetContextKeyValuePairs [][2]any
@@ -696,13 +702,7 @@ func muxHandleRequest(
 	}
 
 	if !endpointSpecification.DisableFetchMedata {
-		response.Headers = append(
-			response.Headers,
-			&muxTypesResponse.HeaderEntry{
-				Name:  "Vary",
-				Value: "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site",
-			},
-		)
+		response.Headers = append(response.Headers, fetchMetadataVaryHeader)
 	}
 
 	response.Headers = append(response.Headers, corsHeaderEntries...)
