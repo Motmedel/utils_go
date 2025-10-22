@@ -377,9 +377,7 @@ func muxHandleRequest(
 						return nil, responseError
 					}
 					if endpointCorsConfiguration == nil {
-						return nil, &muxTypesResponseError.ResponseError{
-							ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilCorsConfiguration),
-						}
+						continue
 					}
 
 					corsConfiguration.Origin = endpointCorsConfiguration.Origin
@@ -447,28 +445,30 @@ func muxHandleRequest(
 			return nil, responseError
 		}
 
-		if origin := corsConfiguration.Origin; origin != "" {
-			corsHeaderEntries = append(
-				corsHeaderEntries,
-				&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Origin", Value: origin},
-			)
-		}
+		if corsConfiguration != nil {
+			if origin := corsConfiguration.Origin; origin != "" {
+				corsHeaderEntries = append(
+					corsHeaderEntries,
+					&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Origin", Value: origin},
+				)
+			}
 
-		if credentials := corsConfiguration.Credentials; credentials {
-			corsHeaderEntries = append(
-				corsHeaderEntries,
-				&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Credentials", Value: "true"},
-			)
-		}
+			if credentials := corsConfiguration.Credentials; credentials {
+				corsHeaderEntries = append(
+					corsHeaderEntries,
+					&muxTypesResponse.HeaderEntry{Name: "Access-Control-Allow-Credentials", Value: "true"},
+				)
+			}
 
-		if exposeHeaders := corsConfiguration.ExposeHeaders; len(exposeHeaders) > 0 {
-			corsHeaderEntries = append(
-				corsHeaderEntries,
-				&muxTypesResponse.HeaderEntry{
-					Name:  "Access-Control-Expose-Headers",
-					Value: strings.Join(exposeHeaders, ", "),
-				},
-			)
+			if exposeHeaders := corsConfiguration.ExposeHeaders; len(exposeHeaders) > 0 {
+				corsHeaderEntries = append(
+					corsHeaderEntries,
+					&muxTypesResponse.HeaderEntry{
+						Name:  "Access-Control-Expose-Headers",
+						Value: strings.Join(exposeHeaders, ", "),
+					},
+				)
+			}
 		}
 	}
 
