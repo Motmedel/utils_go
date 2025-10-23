@@ -19,6 +19,7 @@ import (
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
+	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 const AcceptContentIdentity = "identity"
@@ -358,13 +359,15 @@ func FetchJson[U any](
 	url string,
 	httpClient *http.Client,
 	options *motmedelHttpTypes.FetchOptions,
-) (*http.Response, *U, error) {
+) (*http.Response, U, error) {
+	var zero U
+
 	if url == "" {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
 	}
 
 	if httpClient == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
 	if options == nil {
@@ -387,15 +390,15 @@ func FetchJson[U any](
 
 	response, responseBody, err := Fetch(ctx, url, httpClient, options)
 	if err != nil {
-		return response, nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), url, httpClient, options)
+		return response, zero, motmedelErrors.New(fmt.Errorf("fetch: %w", err), url, httpClient, options)
 	}
 	if len(responseBody) == 0 {
-		return response, nil, nil
+		return response, zero, nil
 	}
 
-	var responseValue *U
+	var responseValue U
 	if err = json.Unmarshal(responseBody, &responseValue); err != nil {
-		return response, nil, motmedelErrors.NewWithTrace(
+		return response, zero, motmedelErrors.NewWithTrace(
 			fmt.Errorf("json unmarshal (response body): %w", err),
 			responseBody,
 		)
@@ -408,23 +411,25 @@ func FetchJsonWithBody[U any, T any](
 	ctx context.Context,
 	url string,
 	httpClient *http.Client,
-	bodyValue *T,
+	bodyValue T,
 	options *motmedelHttpTypes.FetchOptions,
-) (*http.Response, *U, error) {
+) (*http.Response, U, error) {
+	var zero U
+
 	if url == "" {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
 	}
 
 	if httpClient == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
 	var requestBody []byte
-	if bodyValue != nil {
+	if !utils.IsNil(bodyValue) {
 		var err error
 		requestBody, err = json.Marshal(bodyValue)
 		if err != nil {
-			return nil, nil, motmedelErrors.NewWithTrace(
+			return nil, zero, motmedelErrors.NewWithTrace(
 				fmt.Errorf("json marshal (body value): %w", err),
 				bodyValue,
 			)
