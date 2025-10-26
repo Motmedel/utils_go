@@ -3,8 +3,9 @@ package json
 import (
 	"encoding/json"
 	"fmt"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"io"
+
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
 func DecodeJson[T any](reader io.Reader) (T, error) {

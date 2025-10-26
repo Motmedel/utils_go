@@ -118,13 +118,12 @@ func HandleFetchMetadata(requestHeader http.Header, method string) *muxTypesResp
 	// check and implement your own in the firewall configuration e.g., plus add the `Vary` header.
 
 	fetchSite := requestHeader.Get("Sec-Fetch-Site")
-	fetchMode := requestHeader.Get("Sec-Fetch-Mode")
-	fetchDest := requestHeader.Get("Sec-Fetch-Dest")
-
 	if fetchSite == "" || fetchSite == "same-origin" || fetchSite == "same-site" || fetchSite == "none" {
 		return nil
 	}
 
+	fetchMode := requestHeader.Get("Sec-Fetch-Mode")
+	fetchDest := requestHeader.Get("Sec-Fetch-Dest")
 	if fetchMode == "navigate" && fetchDest == "document" && method == http.MethodGet {
 		return nil
 	}
