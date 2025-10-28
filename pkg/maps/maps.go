@@ -2,6 +2,7 @@ package maps
 
 import (
 	"fmt"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -28,7 +29,7 @@ func MapGetNonZero[T comparable, U comparable](m map[T]U, key T) (U, error) {
 	if err != nil {
 		return v, fmt.Errorf("map get: %w", err)
 	}
-	if v == zero {
+	if v == zero || utils.IsNil(v) {
 		return zero, motmedelErrors.NewWithTrace(motmedelErrors.ErrMapZeroValue)
 	}
 
@@ -58,7 +59,7 @@ func MapGetConvertNonZero[U comparable, T comparable](m map[T]any, key T) (U, er
 	if err != nil {
 		return zero, fmt.Errorf("map get convert: %w", err)
 	}
-	if v == zero {
+	if v == zero || utils.IsNil(v) {
 		return zero, motmedelErrors.NewWithTrace(motmedelErrors.ErrMapZeroValue)
 	}
 
