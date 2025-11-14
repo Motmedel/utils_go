@@ -1,4 +1,4 @@
-module github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json/schema
+module github.com/Motmedel/utils_go/pkg/http/mux/utils/json/schema
 
 go 1.24.0
 

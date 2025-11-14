@@ -3,6 +3,10 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"net/http"
+	"slices"
+
 	"github.com/Motmedel/jsonschema"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
@@ -14,9 +18,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
 	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"maps"
-	"net/http"
-	"slices"
 )
 
 var (

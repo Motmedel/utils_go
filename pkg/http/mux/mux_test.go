@@ -25,7 +25,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
-	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
+	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"

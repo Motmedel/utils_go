@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 )
@@ -34,12 +33,4 @@ func ParseJsonBody[T any](body []byte) (T, *response_error.ResponseError) {
 	}
 
 	return target, nil
-}
-
-func New[T any]() body_parser.BodyParser[T] {
-	return body_parser.BodyParserFunction[T](
-		func(request *http.Request, body []byte) (T, *response_error.ResponseError) {
-			return ParseJsonBody[T](body)
-		},
-	)
 }

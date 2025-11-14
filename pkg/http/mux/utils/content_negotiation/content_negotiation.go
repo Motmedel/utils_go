@@ -2,11 +2,12 @@ package content_negotiation
 
 import (
 	"fmt"
+	"net/http"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpHeadersParsingAccept "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept"
 	motmedelHttpHeadersParsingAcceptEncoding "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
-	"net/http"
 )
 
 func GetContentNegotiation(requestHeader http.Header, strict bool) (*motmedelHttpTypes.ContentNegotiation, error) {

@@ -1,4 +1,4 @@
-module github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/client_side_encryption
+module github.com/Motmedel/utils_go/pkg/http/mux/utils/client_side_encryption
 
 go 1.25
 

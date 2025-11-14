@@ -1,8 +1,10 @@
-package request_parser
+package jwt
 
 import (
 	"errors"
 	"fmt"
+	"net/http"
+
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
@@ -13,7 +15,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
 	motmedelJwtToken "github.com/Motmedel/utils_go/pkg/jwt/types/token"
 	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/base_validator"
-	"net/http"
 )
 
 var (
