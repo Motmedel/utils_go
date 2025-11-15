@@ -168,3 +168,34 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 
 	return processedResult, nil
 }
+
+type BodyParserWithProcessor[T any, U any] struct {
+	BodyParser body_parser.BodyParser[T]
+	Processor  processorPkg.Processor[U, T]
+}
+
+func (p *BodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte) (U, *response_error.ResponseError) {
+	var zero U
+
+	bodyParser := p.BodyParser
+	if motmedelUtils.IsNil(bodyParser) {
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
+	}
+
+	processor := p.Processor
+	if motmedelUtils.IsNil(processor) {
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilProcessor)}
+	}
+
+	result, responseError := bodyParser.Parse(request, body)
+	if responseError != nil {
+		return zero, responseError
+	}
+
+	processedResult, responseError := processor.Process(result)
+	if responseError != nil {
+		return zero, responseError
+	}
+
+	return processedResult, nil
+}

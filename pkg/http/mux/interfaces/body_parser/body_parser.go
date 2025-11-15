@@ -1,8 +1,9 @@
 package body_parser
 
 import (
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"net/http"
+
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 )
 
 type BodyParser[T any] interface {
