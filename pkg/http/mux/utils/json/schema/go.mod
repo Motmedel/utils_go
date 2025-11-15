@@ -1,11 +1,11 @@
 module github.com/Motmedel/utils_go/pkg/http/mux/utils/json/schema
 
-go 1.24.0
+go 1.25
 
 require (
 	github.com/Motmedel/jsonschema v0.0.1
-	github.com/Motmedel/utils_go v0.0.257
-	github.com/Motmedel/utils_go/pkg/http/mux v0.0.96
+	github.com/Motmedel/utils_go v0.0.285
+	github.com/Motmedel/utils_go/pkg/http/mux v0.0.113
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5
 	github.com/Motmedel/utils_go/pkg/json/schema v0.0.5
 )

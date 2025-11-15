@@ -9,13 +9,12 @@ import (
 
 	"github.com/Motmedel/jsonschema"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	muxUtilsBodyParser "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser"
-	muxUTilsBodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/body_parser/json"
+	muxUtils "github.com/Motmedel/utils_go/pkg/http/mux/utils"
+	muxUtilsJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
 	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -24,9 +23,6 @@ var (
 	ErrNilSchema               = errors.New("nil schema")
 	ErrNilEvaluationResult     = errors.New("nil evaluation result")
 	ErrNilEvaluationResultList = errors.New("nil evaluation result list")
-	// TODO: Move these two?
-	ErrNilProcessor  = errors.New("nil processor")
-	ErrNilBodyParser = errors.New("nil body parser")
 )
 
 type ValidateError struct {
@@ -70,7 +66,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilSchema)}
 	}
 
-	dataMap, responseError := muxUTilsBodyParserJson.ParseJsonBody[map[string]any](body)
+	dataMap, responseError := muxUtilsJson.ParseJsonBody[map[string]any](body)
 	if responseError != nil {
 		return zero, responseError
 	}
@@ -96,7 +92,7 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 
 	parser := bodyParser.BodyParser
 	if utils.IsNil(parser) {
-		return zero, &response_error.ResponseError{ServerError: ErrNilBodyParser}
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
 	}
 
 	var result T
@@ -108,51 +104,8 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 	return result, nil
 }
 
-type JsonSchemaBodyParserWithProcessor[T any, U any] struct {
-	JsonSchemaBodyParser[T]
-	Processor body_processor.BodyProcessor[U, T]
-}
-
-func (bodyParser *JsonSchemaBodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte) (U, *response_error.ResponseError) {
-	var zero U
-
-	parser := bodyParser.JsonSchemaBodyParser
-	if utils.IsNil(parser) {
-		return zero, &response_error.ResponseError{ServerError: ErrNilBodyParser}
-	}
-
-	result, responseError := parser.Parse(request, body)
-	if responseError != nil {
-		return zero, responseError
-	}
-
-	processor := bodyParser.Processor
-	if utils.IsNil(processor) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrNilProcessor)}
-	}
-
-	processedResult, responseError := processor.Process(result)
-	if responseError != nil {
-		return zero, responseError
-	}
-
-	return processedResult, nil
-}
-
-func FromValidatable[T validatable.Validatable]() (*JsonSchemaBodyParserWithProcessor[T, T], error) {
-	bodyParser, err := NewWithProcessor[T](muxUtilsBodyParser.MakeValidatableBodyParser[T]())
-	if err != nil {
-		return nil, fmt.Errorf("new with processor: %w", err)
-	}
-
-	return bodyParser, nil
-}
-
 func NewWithSchema[T any](schema *jsonschema.Schema) *JsonSchemaBodyParser[T] {
-	return &JsonSchemaBodyParser[T]{
-		BodyParser: muxUTilsBodyParserJson.New[T](),
-		Schema:     schema,
-	}
+	return &JsonSchemaBodyParser[T]{BodyParser: muxUtils.MakeJsonBodyParser[T](), Schema: schema}
 }
 
 func New[T any]() (*JsonSchemaBodyParser[T], error) {
@@ -163,16 +116,4 @@ func New[T any]() (*JsonSchemaBodyParser[T], error) {
 	}
 
 	return NewWithSchema[T](schema), nil
-}
-
-func NewWithProcessor[T any, U any](processor body_processor.BodyProcessor[U, T]) (*JsonSchemaBodyParserWithProcessor[T, U], error) {
-	jsonSchemaBodyParser, err := New[T]()
-	if err != nil {
-		return nil, fmt.Errorf("new: %w", err)
-	}
-
-	return &JsonSchemaBodyParserWithProcessor[T, U]{
-		JsonSchemaBodyParser: *jsonSchemaBodyParser,
-		Processor:            processor,
-	}, nil
 }
