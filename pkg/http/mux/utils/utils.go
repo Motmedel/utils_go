@@ -20,6 +20,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
 	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
+	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -172,45 +173,37 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 	return processedResult, nil
 }
 
-type RequestParserWithUrlProcessor[T urler.StringURLer, U *url.URL] struct {
-	request_parser.RequestParser[T]
+type RequestParserWithUrlProcessor struct {
+	request_parser.RequestParser[urler.StringURLer]
 	AllowLocalhost bool
 }
 
-func (p *RequestParserWithUrlProcessor[T, U]) Parse(request *http.Request) (U, *response_error.ResponseError) {
-	var zero U
-
+func (p *RequestParserWithUrlProcessor) Parse(request *http.Request) (*url.URL, *response_error.ResponseError) {
 	requestParser := p.RequestParser
 	if motmedelUtils.IsNil(requestParser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
+		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
 	}
 
 	result, responseError := requestParser.Parse(request)
 	if responseError != nil {
-		return zero, responseError
+		return nil, responseError
 	}
 	if motmedelUtils.IsNil(result) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(urler.ErrNilStringUrler)}
+		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(urler.ErrNilStringUrler)}
 	}
 
 	urlString := result.URL()
 	if urlString == "" {
 		return nil, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-				"Empty url.",
-				nil,
-			),
+			ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Empty url.", nil),
 		}
 	}
 
 	parsedUrl, err := url.Parse(urlString)
 	if err != nil {
 		return nil, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-				"Malformed url.",
-				nil,
-			),
-			ClientError: motmedelErrors.New(err, urlString),
+			ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Malformed url.", nil),
+			ClientError:   motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err), urlString),
 		}
 	}
 
@@ -222,6 +215,7 @@ func (p *RequestParserWithUrlProcessor[T, U]) Parse(request *http.Request) (U, *
 					"Malformed url hostname; not a domain.",
 					nil,
 				),
+				ClientError: motmedelErrors.NewWithTrace(motmedelNetErrors.ErrNilDomainBreakdown),
 			}
 		}
 	}
