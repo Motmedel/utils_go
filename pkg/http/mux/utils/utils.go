@@ -173,14 +173,14 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 	return processedResult, nil
 }
 
-type RequestParserWithUrlProcessor struct {
-	request_parser.RequestParser[urler.StringURLer]
+type RequestParserWithUrlProcessor[T urler.StringURLer] struct {
+	request_parser.RequestParser[T]
 	AllowLocalhost           bool
 	AllowedDomains           []string
 	AllowedRegisteredDomains []string
 }
 
-func (p *RequestParserWithUrlProcessor) Parse(request *http.Request) (*url.URL, *response_error.ResponseError) {
+func (p *RequestParserWithUrlProcessor[T]) Parse(request *http.Request) (*url.URL, *response_error.ResponseError) {
 	requestParser := p.RequestParser
 	if motmedelUtils.IsNil(requestParser) {
 		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
