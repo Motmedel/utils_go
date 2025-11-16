@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -16,6 +17,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxUtilsJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
 	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -167,6 +169,50 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 	}
 
 	return processedResult, nil
+}
+
+type RequestParserWithUrlProcessor[T urler.StringURLer, U *url.URL] struct {
+	request_parser.RequestParser[T]
+}
+
+func (p *RequestParserWithUrlProcessor[T, U]) Parse(request *http.Request) (U, *response_error.ResponseError) {
+	var zero U
+
+	requestParser := p.RequestParser
+	if motmedelUtils.IsNil(requestParser) {
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
+	}
+
+	result, responseError := requestParser.Parse(request)
+	if responseError != nil {
+		return zero, responseError
+	}
+	if motmedelUtils.IsNil(result) {
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(urler.ErrNilStringUrler)}
+	}
+
+	urlString := result.URL()
+	if urlString == "" {
+		return nil, &response_error.ResponseError{
+			ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
+				"Empty url.",
+				nil,
+			),
+		}
+	}
+
+	parsedUrl, err := url.Parse(urlString)
+	if err != nil {
+		return nil, &response_error.ResponseError{
+			ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
+				"Malformed url.",
+				nil,
+			),
+			ClientError: motmedelErrors.New(err, urlString),
+		}
+	}
+
+	return parsedUrl, nil
 }
 
 type BodyParserWithProcessor[T any, U any] struct {
