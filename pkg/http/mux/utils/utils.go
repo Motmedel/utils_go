@@ -19,6 +19,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
+	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
 	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -173,6 +174,7 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 
 type RequestParserWithUrlProcessor[T urler.StringURLer, U *url.URL] struct {
 	request_parser.RequestParser[T]
+	AllowLocalhost bool
 }
 
 func (p *RequestParserWithUrlProcessor[T, U]) Parse(request *http.Request) (U, *response_error.ResponseError) {
@@ -209,6 +211,18 @@ func (p *RequestParserWithUrlProcessor[T, U]) Parse(request *http.Request) (U, *
 				nil,
 			),
 			ClientError: motmedelErrors.New(err, urlString),
+		}
+	}
+
+	parsedUrlHostname := parsedUrl.Hostname()
+	if !(p.AllowLocalhost && parsedUrlHostname == "localhost") {
+		if domainBreakdown := domain_breakdown.GetDomainBreakdown(parsedUrlHostname); domainBreakdown == nil {
+			return nil, &response_error.ResponseError{
+				ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
+					"Malformed url hostname; not a domain.",
+					nil,
+				),
+			}
 		}
 	}
 
