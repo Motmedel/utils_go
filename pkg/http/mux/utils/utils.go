@@ -175,7 +175,9 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 
 type RequestParserWithUrlProcessor struct {
 	request_parser.RequestParser[urler.StringURLer]
-	AllowLocalhost bool
+	AllowLocalhost           bool
+	AllowedDomains           []string
+	AllowedRegisteredDomains []string
 }
 
 func (p *RequestParserWithUrlProcessor) Parse(request *http.Request) (*url.URL, *response_error.ResponseError) {
@@ -209,13 +211,44 @@ func (p *RequestParserWithUrlProcessor) Parse(request *http.Request) (*url.URL, 
 
 	parsedUrlHostname := parsedUrl.Hostname()
 	if !(p.AllowLocalhost && parsedUrlHostname == "localhost") {
-		if domainBreakdown := domain_breakdown.GetDomainBreakdown(parsedUrlHostname); domainBreakdown == nil {
+		domainBreakdown := domain_breakdown.GetDomainBreakdown(parsedUrlHostname)
+		if domainBreakdown == nil {
 			return nil, &response_error.ResponseError{
 				ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
 					"Malformed url hostname; not a domain.",
 					nil,
 				),
 				ClientError: motmedelErrors.NewWithTrace(motmedelNetErrors.ErrNilDomainBreakdown),
+			}
+		}
+
+		if len(p.AllowedDomains) > 0 || len(p.AllowedRegisteredDomains) > 0 {
+			var allowed bool
+
+			registeredDomain := domainBreakdown.RegisteredDomain
+			for _, domain := range p.AllowedRegisteredDomains {
+				if registeredDomain == domain {
+					allowed = true
+					break
+				}
+			}
+
+			if !allowed {
+				for _, domain := range p.AllowedDomains {
+					if domain == parsedUrlHostname {
+						allowed = true
+						break
+					}
+				}
+			}
+
+			if !allowed {
+				return nil, &response_error.ResponseError{
+					ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
+						"The url hostname does not match any allowed domain.",
+						nil,
+					),
+				}
 			}
 		}
 	}
