@@ -34,4 +34,5 @@ var (
 	ErrNilRequestParser              = errors.New("nil request parser")
 	ErrNilProcessor                  = errors.New("nil processor")
 	ErrNilBodyParser                 = errors.New("nil body parser")
+	ErrNilHeaderEntry                = errors.New("nil header entry")
 )
