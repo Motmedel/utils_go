@@ -15,4 +15,5 @@ var (
 	ErrUnsupportedCurve     = errors.New("unsupported curve")
 	ErrNilCurve             = errors.New("nil curve")
 	ErrNilCurveParams       = errors.New("nil curve params")
+	ErrNilBlock             = errors.New("nil block")
 )

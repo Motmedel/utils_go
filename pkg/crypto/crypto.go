@@ -4,6 +4,12 @@ import (
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+
+	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
 
 const (
@@ -71,4 +77,25 @@ func MakeTlsCertificateFromX509Certificates(certificates []*x509.Certificate, ke
 		PrivateKey:  key,
 		Leaf:        certificates[0],
 	}
+}
+
+func PrivateKeyFromPem[T any](pemKey string) (T, error) {
+	var zero T
+	block, _ := pem.Decode([]byte(pemKey))
+	if block == nil {
+		return zero, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilBlock)
+	}
+
+	blockBytes := block.Bytes
+	privateKey, err := x509.ParsePKCS8PrivateKey(blockBytes)
+	if err != nil {
+		return zero, motmedelErrors.NewWithTrace(fmt.Errorf("x509 parse pkcs8 private key: %w", err), blockBytes)
+	}
+
+	convertedPrivateKey, err := motmedelUtils.Convert[T](privateKey)
+	if err != nil {
+		return zero, motmedelErrors.New(fmt.Errorf("convert (private key): %w", err), privateKey)
+	}
+
+	return convertedPrivateKey, nil
 }

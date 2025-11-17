@@ -3,9 +3,11 @@ package eddsa
 import (
 	"crypto/ed25519"
 	"fmt"
+
+	motmedelCrypto "github.com/Motmedel/utils_go/pkg/crypto"
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/utils"
+	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
 
 const Name = "EdDSA"
@@ -30,7 +32,7 @@ func (method *Method) Verify(message []byte, signature []byte) error {
 	if privateKey := method.PrivateKey; len(publicKey) == 0 && len(privateKey) != 0 {
 		var err error
 		privateKeyPublic := privateKey.Public()
-		publicKey, err = utils.Convert[ed25519.PublicKey](privateKeyPublic)
+		publicKey, err = motmedelUtils.Convert[ed25519.PublicKey](privateKeyPublic)
 		if err != nil {
 			return motmedelErrors.NewWithTrace(
 				fmt.Errorf("convert (private key public): %w", err),
@@ -52,4 +54,22 @@ func (method *Method) Verify(message []byte, signature []byte) error {
 
 func (method *Method) GetName() string {
 	return Name
+}
+
+func FromPem(pemKey string) (*Method, error) {
+	privateKey, err := motmedelCrypto.PrivateKeyFromPem[ed25519.PrivateKey](pemKey)
+	if err != nil {
+		return nil, fmt.Errorf("private key from pem: %w", err)
+	}
+	if len(privateKey) == 0 {
+		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPrivateKey)
+	}
+
+	publicKey := privateKey.Public()
+	eddsaPublicKey, err := motmedelUtils.Convert[ed25519.PublicKey](publicKey)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("convert (public key): %w", err), publicKey)
+	}
+
+	return &Method{PrivateKey: privateKey, PublicKey: eddsaPublicKey}, nil
 }
