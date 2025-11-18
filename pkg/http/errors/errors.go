@@ -24,6 +24,7 @@ var (
 	ErrBadIfModifiedSinceTimestamp = errors.New("bad If-Modified-Since timestamp")
 	ErrNilCookie                   = errors.New("nil cookie")
 	ErrNilCorsConfiguration        = errors.New("nil cors configuration")
+	ErrEmptyCookieName             = errors.New("empty cookie name")
 )
 
 type Non2xxStatusCodeError struct {
