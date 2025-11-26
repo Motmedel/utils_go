@@ -6,13 +6,16 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
+	"crypto/x509"
 	"encoding/asn1"
+	"encoding/pem"
 	"fmt"
+	"hash"
+	"math/big"
+
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"hash"
-	"math/big"
 )
 
 func copyWithLeftPad(dst []byte, x *big.Int, size int) {
@@ -189,12 +192,13 @@ func New(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) (*Method, err
 
 	size := (curve.Params().BitSize + 7) / 8
 
-	return &Method{PrivateKey: privateKey,
-		PublicKey: publicKey,
-		HashFunc:  hashFunc,
-		Name:      name,
-		curve:     curve,
-		size:      size,
+	return &Method{
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+		HashFunc:   hashFunc,
+		Name:       name,
+		curve:      curve,
+		size:       size,
 	}, nil
 }
 
@@ -250,4 +254,27 @@ func (m *Asn1DerEncodedMethod) Verify(message []byte, signature []byte) error {
 	}
 
 	return nil
+}
+
+func FromPem(pemKey string) (*Method, error) {
+	block, _ := pem.Decode([]byte(pemKey))
+	if block == nil {
+		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilBlock)
+	}
+
+	blockBytes := block.Bytes
+	privateKey, err := x509.ParseECPrivateKey(blockBytes)
+	if err != nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("x509 parse pkcs8 private key: %w", err), blockBytes)
+	}
+	if privateKey == nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (private)", motmedelCryptoErrors.ErrNilKey))
+	}
+
+	method, err := New(privateKey, &privateKey.PublicKey)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("new method: %w", err), privateKey)
+	}
+
+	return method, nil
 }

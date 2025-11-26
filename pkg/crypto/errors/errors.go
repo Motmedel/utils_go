@@ -4,6 +4,7 @@ import "github.com/Motmedel/utils_go/pkg/errors"
 
 var (
 	ErrEmptyPrivateKey      = errors.New("empty private key")
+	ErrNilKey               = errors.New("nil key")
 	ErrEmptyPublicKey       = errors.New("empty public key")
 	ErrEmptySecret          = errors.New("empty secret")
 	ErrSignatureMismatch    = errors.New("signature mismatch")
