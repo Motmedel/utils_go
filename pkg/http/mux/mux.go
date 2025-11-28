@@ -494,22 +494,15 @@ func muxHandleRequest(
 
 	if configuration := endpointSpecification.AuthenticationConfiguration; configuration != nil {
 		if parser := configuration.Parser; !utils.IsNil(parser) {
-			ok, responseError := parser.Parse(request)
+			parsedAuthentication, responseError := parser.Parse(request)
 			if responseError != nil {
 				responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 				return nil, responseError
 			}
 
-			if !ok {
-				return nil, &muxTypesResponseError.ResponseError{
-					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-						http.StatusUnauthorized,
-						"",
-						nil,
-					),
-					Headers: corsHeaderEntries,
-				}
-			}
+			request = request.WithContext(
+				context.WithValue(request.Context(), parsing.ParsedRequestAuthenticationContextKey, parsedAuthentication),
+			)
 		}
 	}
 

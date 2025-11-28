@@ -106,6 +106,14 @@ func GetNonZeroParsedRequestUrl[T comparable](ctx context.Context) (T, error) {
 	return getNonZeroParsed[T](ctx, parsing.ParsedRequestUrlContextKey)
 }
 
+func GetParsedRequestAuthentication[T any](ctx context.Context) (T, error) {
+	return getParsed[T](ctx, parsing.ParsedRequestAuthenticationContextKey)
+}
+
+func GetServerNonZeroParsedRequestAuthentication[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
+	return GetServerNonZeroContextValue[T](ctx, parsing.ParsedRequestAuthenticationContextKey)
+}
+
 func MakeValidatableProcessor[T validatable.Validatable]() processorPkg.Processor[T, T] {
 	return processorPkg.ProcessorFunction[T, T](
 		func(v T) (T, *response_error.ResponseError) {

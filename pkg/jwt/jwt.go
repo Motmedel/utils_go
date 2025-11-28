@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/Motmedel/utils_go/pkg/crypto/ecdsa"
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
@@ -22,7 +24,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
 	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"io"
 )
 
 func ParseAndCheckWithValidator(
@@ -83,6 +84,7 @@ func ParseAndCheckWithValidator(
 	}
 
 	if !utils.IsNil(tokenValidator) {
+		// TODO: Should I really add `ErrValidationError` here?
 		if err := tokenValidator.Validate(token); err != nil {
 			return nil, motmedelErrors.New(
 				fmt.Errorf("%w: token validator validate: %w", motmedelErrors.ErrValidationError, err),

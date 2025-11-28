@@ -17,9 +17,12 @@ type parsedRequestUrlContextType struct{}
 type parsedRequestHeaderContextType struct{}
 type parsedRequestBodyContextType struct{}
 
+var parsedRequestAuthenticationContextType struct{}
+
 var ParsedRequestUrlContextKey = parsedRequestUrlContextType{}
 var ParsedRequestHeaderContextKey parsedRequestHeaderContextType
 var ParsedRequestBodyContextKey parsedRequestBodyContextType
+var ParsedRequestAuthenticationContextKey = parsedRequestAuthenticationContextType
 
 type UrlParserConfiguration struct {
 	Parser request_parser.RequestParser[any]
@@ -30,7 +33,7 @@ type HeaderParserConfiguration struct {
 }
 
 type AuthenticationConfiguration struct {
-	Parser request_parser.RequestParser[bool]
+	Parser request_parser.RequestParser[any]
 }
 
 type BodyParserConfiguration struct {
