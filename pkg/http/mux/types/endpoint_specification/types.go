@@ -12,11 +12,15 @@ import (
 	httpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 )
 
+type Hint struct {
+	InputType                 any
+	OutputType                any
+	ExpectedOutputContentType string
+}
+
 type EndpointSpecification struct {
 	Path                        string
 	Method                      string
-	Handler                     func(*http.Request, []byte) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError)
-	StaticContent               *muxTypesStaticContent.StaticContent
 	RateLimitingConfiguration   *muxTypesRateLimiting.RateLimitingConfiguration
 	AuthenticationConfiguration *muxTypesParsing.AuthenticationConfiguration
 	UrlParserConfiguration      *muxTypesParsing.UrlParserConfiguration
@@ -24,4 +28,7 @@ type EndpointSpecification struct {
 	BodyParserConfiguration     *muxTypesParsing.BodyParserConfiguration
 	CorsRequestParser           request_parser.RequestParser[*httpTypes.CorsConfiguration]
 	DisableFetchMedata          bool
+	Hint                        *Hint
+	Handler                     func(*http.Request, []byte) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError)
+	StaticContent               *muxTypesStaticContent.StaticContent
 }
