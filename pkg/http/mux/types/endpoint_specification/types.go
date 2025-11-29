@@ -16,6 +16,7 @@ type Hint struct {
 	InputType                 any
 	OutputType                any
 	ExpectedOutputContentType string
+	OutputOptional            bool
 }
 
 type EndpointSpecification struct {
