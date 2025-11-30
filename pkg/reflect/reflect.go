@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+func TypeOf[T any]() reflect.Type {
+	return reflect.TypeOf((*T)(nil)).Elem()
+}
+
 func RemoveIndirection(reflectType reflect.Type) reflect.Type {
 	kind := reflectType.Kind()
 	for kind == reflect.Ptr {
