@@ -14,10 +14,10 @@ import (
 )
 
 type Hint struct {
-	InputType                 reflect.Type
-	OutputType                reflect.Type
-	ExpectedOutputContentType string
-	OutputOptional            bool
+	InputType         reflect.Type
+	OutputType        reflect.Type
+	OutputContentType string
+	OutputOptional    bool
 }
 
 type EndpointSpecification struct {
