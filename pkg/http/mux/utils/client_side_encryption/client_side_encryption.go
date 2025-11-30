@@ -102,6 +102,7 @@ func (parser *HeaderRequestParser) Parse(request *http.Request) (jose.Encrypter,
 
 type BodyParser struct {
 	PrivateKey        any
+	KeyIdentifier     string
 	KeyAlgorithm      jose.KeyAlgorithm
 	ContentEncryption jose.ContentEncryption
 }
@@ -118,6 +119,18 @@ func (bodyParser *BodyParser) Parse(_ *http.Request, body []byte) ([]byte, *resp
 				fmt.Errorf("jose parse encrypted: %w", err),
 				body, bodyParser.KeyAlgorithm, bodyParser.ContentEncryption,
 			),
+		}
+	}
+
+	if keyIdentifier := bodyParser.KeyIdentifier; keyIdentifier != "" {
+		jweKeyIdentifier := jwe.Header.KeyID
+		if jweKeyIdentifier != keyIdentifier {
+			return nil, &response_error.ResponseError{
+				ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
+					"The key identifier (KID) in the JWE header does not match the identifier of the key in use.",
+					map[string]string{"kid": jweKeyIdentifier},
+				),
+			}
 		}
 	}
 
