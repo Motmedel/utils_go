@@ -2,6 +2,7 @@ package endpoint_specification
 
 import (
 	"net/http"
+	"reflect"
 
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
 	muxTypesParsing "github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
@@ -13,8 +14,8 @@ import (
 )
 
 type Hint struct {
-	InputType                 any
-	OutputType                any
+	InputType                 reflect.Type
+	OutputType                reflect.Type
 	ExpectedOutputContentType string
 	OutputOptional            bool
 }
