@@ -493,17 +493,24 @@ func muxHandleRequest(
 	// Check authentication.
 
 	if configuration := endpointSpecification.AuthenticationConfiguration; configuration != nil {
-		if parser := configuration.Parser; !utils.IsNil(parser) {
-			parsedAuthentication, responseError := parser.Parse(request)
-			if responseError != nil {
-				responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
-				return nil, responseError
+		parser := configuration.Parser
+		// Special case. For the authentication configuration, not having a parser is an error.
+		if utils.IsNil(parser) {
+			return nil, &muxTypesResponseError.ResponseError{
+				ServerError: motmedelErrors.NewWithTrace(fmt.Errorf("%w (authentication)", muxErrors.ErrNilRequestParser)),
+				Headers:     corsHeaderEntries,
 			}
-
-			request = request.WithContext(
-				context.WithValue(request.Context(), parsing.ParsedRequestAuthenticationContextKey, parsedAuthentication),
-			)
 		}
+
+		parsedAuthentication, responseError := parser.Parse(request)
+		if responseError != nil {
+			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
+			return nil, responseError
+		}
+
+		request = request.WithContext(
+			context.WithValue(request.Context(), parsing.ParsedRequestAuthenticationContextKey, parsedAuthentication),
+		)
 	}
 
 	// Obtain the parsed url.
@@ -733,6 +740,9 @@ func (mux *Mux) Add(specifications ...*muxTypesEnpointSpecification.EndpointSpec
 	}
 
 	for _, specification := range specifications {
+		if specification == nil {
+			continue
+		}
 		methodToEndpointSpecification, ok := endpointSpecificationMap[specification.Path]
 		if !ok {
 			methodToEndpointSpecification = make(map[string]*muxTypesEnpointSpecification.EndpointSpecification)
