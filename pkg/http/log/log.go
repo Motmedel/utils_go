@@ -3,13 +3,14 @@ package log
 import (
 	"context"
 	"fmt"
+	"log/slog"
+
 	"github.com/Motmedel/ecs_go/ecs"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelJson "github.com/Motmedel/utils_go/pkg/json"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
-	"log/slog"
 )
 
 var DefaultHeaderExtractor = ecs.DefaultMaskedHeaderExtractor
