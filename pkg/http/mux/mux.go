@@ -15,6 +15,7 @@ import (
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
+	muxInterfaces "github.com/Motmedel/utils_go/pkg/http/mux/interfaces"
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
 	muxInternal "github.com/Motmedel/utils_go/pkg/http/mux/internal"
 	muxInternalMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/mux"
@@ -511,6 +512,14 @@ func muxHandleRequest(
 		request = request.WithContext(
 			context.WithValue(request.Context(), parsing.ParsedRequestAuthenticationContextKey, parsedAuthentication),
 		)
+
+		if usererAuthenticationData, ok := parsedAuthentication.(muxInterfaces.Userer); ok {
+			if !utils.IsNil(usererAuthenticationData) {
+				request = request.WithContext(
+					context.WithValue(request.Context(), parsing.UserContextKey, usererAuthenticationData.GetUser()),
+				)
+			}
+		}
 	}
 
 	// Obtain the parsed url.

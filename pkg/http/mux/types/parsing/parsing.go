@@ -16,13 +16,14 @@ const (
 type parsedRequestUrlContextType struct{}
 type parsedRequestHeaderContextType struct{}
 type parsedRequestBodyContextType struct{}
-
-var parsedRequestAuthenticationContextType struct{}
+type parsedRequestAuthenticationContextType struct{}
+type userContextType struct{}
 
 var ParsedRequestUrlContextKey = parsedRequestUrlContextType{}
-var ParsedRequestHeaderContextKey parsedRequestHeaderContextType
-var ParsedRequestBodyContextKey parsedRequestBodyContextType
-var ParsedRequestAuthenticationContextKey = parsedRequestAuthenticationContextType
+var ParsedRequestHeaderContextKey = parsedRequestHeaderContextType{}
+var ParsedRequestBodyContextKey = parsedRequestBodyContextType{}
+var ParsedRequestAuthenticationContextKey = parsedRequestAuthenticationContextType{}
+var UserContextKey = userContextType{}
 
 type UrlParserConfiguration struct {
 	Parser request_parser.RequestParser[any]
