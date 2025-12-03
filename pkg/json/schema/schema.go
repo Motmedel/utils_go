@@ -1,39 +1,23 @@
 package schema
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/Motmedel/jsonschema"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	jsonSchemaStruct "github.com/swaggest/jsonschema-go"
+	motmedelReflect "github.com/Motmedel/utils_go/pkg/reflect"
+	"github.com/altshiftab/jsonschema/pkg/jsonschema"
+	jsonschemaTypeGeneration "github.com/vphpersson/type_generation/pkg/producers/jsonschema"
 )
 
-var (
-	ErrNilCompiler = errors.New("nil compiler")
-)
-
-func New[T any](t T) (*jsonschema.Schema, error) {
-	var reflector jsonSchemaStruct.Reflector
-
-	structSchema, err := reflector.Reflect(t)
+func New[T any]() (*jsonschema.Schema, error) {
+	schemaData, err := jsonschemaTypeGeneration.Convert(motmedelReflect.TypeOf[T]())
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("reflect: %w", err), t)
+		return nil, motmedelErrors.New(fmt.Errorf("jsonschema convert: %w", err))
 	}
 
-	byteSchema, err := json.Marshal(structSchema)
+	schema, err := jsonschema.New([]byte(schemaData))
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal: %w", err), t)
-	}
-
-	compiler := jsonschema.NewCompiler()
-	if compiler == nil {
-		return nil, motmedelErrors.NewWithTrace(ErrNilCompiler)
-	}
-
-	schema, err := compiler.Compile(byteSchema)
-	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("compile: %w", err), byteSchema)
+		return nil, motmedelErrors.New(fmt.Errorf("jsonschema new: %w", err))
 	}
 
 	return schema, nil
