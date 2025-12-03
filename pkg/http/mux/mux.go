@@ -515,9 +515,7 @@ func muxHandleRequest(
 
 		if usererAuthenticationData, ok := parsedAuthentication.(muxInterfaces.Userer); ok {
 			if !utils.IsNil(usererAuthenticationData) {
-				request = request.WithContext(
-					context.WithValue(request.Context(), parsing.UserContextKey, usererAuthenticationData.GetUser()),
-				)
+				httpContext.User = usererAuthenticationData.GetUser()
 			}
 		}
 	}
