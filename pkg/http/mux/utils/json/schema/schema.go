@@ -1,13 +1,11 @@
 package schema
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"net/http"
-	"slices"
 
-	"github.com/Motmedel/jsonschema"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
@@ -15,19 +13,18 @@ import (
 	muxUtils "github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	muxUtilsJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 	"github.com/Motmedel/utils_go/pkg/utils"
+	jsonschemaErrors "github.com/altshiftab/jsonschema/pkg/errors"
+	"github.com/altshiftab/jsonschema/pkg/jsonschema"
 )
 
 var (
-	ErrNilSchema               = errors.New("nil schema")
-	ErrNilEvaluationResult     = errors.New("nil evaluation result")
-	ErrNilEvaluationResultList = errors.New("nil evaluation result list")
+	ErrNilSchema = errors.New("nil schema")
 )
 
 type ValidateError struct {
 	error
-	ListErrors map[string]string
+	Errors []*jsonschemaErrors.ValidationError
 }
 
 func Validate(dataMap map[string]any, schema *jsonschema.Schema) error {
@@ -35,22 +32,28 @@ func Validate(dataMap map[string]any, schema *jsonschema.Schema) error {
 		return motmedelErrors.NewWithTrace(ErrNilSchema)
 	}
 
-	evaluationResult := schema.Validate(dataMap)
-	if evaluationResult == nil {
-		return motmedelErrors.NewWithTrace(ErrNilEvaluationResult)
+	err := schema.Validate(dataMap)
+	if err == nil {
+		return nil
 	}
 
-	evaluationResultList := evaluationResult.ToList()
-	if evaluationResultList == nil {
-		return motmedelErrors.NewWithTrace(ErrNilEvaluationResultList)
+	var collected []*jsonschemaErrors.ValidationError
+
+	var validationErrors *jsonschemaErrors.ValidationErrors
+	if errors.As(err, &validationErrors) {
+		collected = append(collected, validationErrors.Errs...)
+	} else {
+		var validationError *jsonschemaErrors.ValidationError
+		if errors.As(err, &validationError) {
+			collected = append(collected, validationError)
+		}
 	}
 
-	errorsMap := evaluationResultList.Errors
-	if len(errorsMap) != 0 {
-		return &ValidateError{error: motmedelErrors.ErrValidationError, ListErrors: errorsMap}
+	if len(collected) == 0 {
+		return fmt.Errorf("schema validate: %w", err)
 	}
 
-	return nil
+	return &ValidateError{error: err, Errors: collected}
 }
 
 type JsonSchemaBodyParser[T any] struct {
@@ -76,12 +79,22 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 
 		var validateError *ValidateError
 		if errors.As(err, &validateError) {
+			errorsData, jsonMarshalErr := json.Marshal(validateError.Errors)
+			if jsonMarshalErr != nil {
+				return zero, &response_error.ResponseError{
+					ServerError: motmedelErrors.NewWithTrace(
+						fmt.Errorf("json marshal (validate errors): %w", jsonMarshalErr),
+						validateError.Errors,
+					),
+				}
+			}
+
 			return zero, &response_error.ResponseError{
 				// TODO: The error messages could be made nicer.
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnprocessableEntity,
 					"Invalid body.",
-					map[string][]string{"errors": slices.Collect(maps.Values(validateError.ListErrors))},
+					map[string]any{"errors": errorsData},
 				),
 				ClientError: wrappedErr,
 			}
@@ -109,8 +122,7 @@ func NewWithSchema[T any](schema *jsonschema.Schema) *JsonSchemaBodyParser[T] {
 }
 
 func New[T any]() (*JsonSchemaBodyParser[T], error) {
-	var t T
-	schema, err := motmedelJsonSchema.New[T](t)
+	schema, err := jsonschema.FromType[T]()
 	if err != nil {
 		return nil, fmt.Errorf("schema new: %w", err)
 	}
