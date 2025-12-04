@@ -23,7 +23,7 @@ type HttpContextUser struct {
 	Hash     string            `json:"hash,omitempty"`
 	Id       string            `json:"id,omitempty"`
 	Name     string            `json:"name,omitempty"`
-	Roles    string            `json:"roles,omitempty"`
+	Roles    []string          `json:"roles,omitempty"`
 	Group    *HttpContextGroup `json:"group,omitempty"`
 }
 
