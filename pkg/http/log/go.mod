@@ -1,12 +1,10 @@
 module github.com/Motmedel/utils_go/pkg/http/log
 
-go 1.24.0
-
-toolchain go1.24.4
+go 1.25
 
 require (
-	github.com/Motmedel/ecs_go v0.0.64
-	github.com/Motmedel/utils_go v0.0.217
+	github.com/Motmedel/ecs_go v0.0.67
+	github.com/Motmedel/utils_go v0.0.301
 )
 
 require (
