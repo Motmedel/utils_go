@@ -99,3 +99,24 @@ func PrivateKeyFromPem[T any](pemKey string) (T, error) {
 
 	return convertedPrivateKey, nil
 }
+
+func PublicKeyFromPem[T any](pemKey string) (T, error) {
+	var zero T
+	block, _ := pem.Decode([]byte(pemKey))
+	if block == nil {
+		return zero, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilBlock)
+	}
+
+	blockBytes := block.Bytes
+	publicKey, err := x509.ParsePKIXPublicKey(blockBytes)
+	if err != nil {
+		return zero, motmedelErrors.NewWithTrace(fmt.Errorf("x509 parse pkcs8 private key: %w", err), blockBytes)
+	}
+
+	convertedPublicKey, err := motmedelUtils.Convert[T](publicKey)
+	if err != nil {
+		return zero, motmedelErrors.New(fmt.Errorf("convert (public key): %w", err), publicKey)
+	}
+
+	return convertedPublicKey, nil
+}
