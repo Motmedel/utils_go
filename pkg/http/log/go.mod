@@ -3,8 +3,8 @@ module github.com/Motmedel/utils_go/pkg/http/log
 go 1.25
 
 require (
-	github.com/Motmedel/ecs_go v0.0.67
-	github.com/Motmedel/utils_go v0.0.301
+	github.com/Motmedel/ecs_go v0.0.68
+	github.com/Motmedel/utils_go v0.0.302
 )
 
 require (
