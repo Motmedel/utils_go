@@ -25,6 +25,7 @@ var (
 	ErrNilCookie                   = errors.New("nil cookie")
 	ErrNilCorsConfiguration        = errors.New("nil cors configuration")
 	ErrEmptyCookieName             = errors.New("empty cookie name")
+	ErrEmptyHost                   = errors.New("empty host")
 )
 
 type Non2xxStatusCodeError struct {
