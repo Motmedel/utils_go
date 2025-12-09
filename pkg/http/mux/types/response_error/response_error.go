@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"net/http"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
@@ -11,7 +13,6 @@ import (
 	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
-	"net/http"
 )
 
 type ResponseErrorType int
@@ -169,9 +170,15 @@ func (responseError *ResponseError) MakeResponse(
 				continue
 			}
 
-			// Clear any pre-existing Content-Type header.
-			if http.CanonicalHeaderKey(header.Name) == "Content-Type" {
+			switch http.CanonicalHeaderKey(header.Name) {
+			case "Content-Type":
+				// Clear any pre-existing Content-Type header.
 				headers[i] = nil
+			case "Location":
+				// Use a redirect status code if a Location header is present.
+				// It is the responsibility of the setter of the header to make sure it is present only in navigation
+				// responses.
+				statusCode = http.StatusSeeOther
 			}
 		}
 	}
