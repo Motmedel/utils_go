@@ -36,6 +36,10 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	contentSecurityPolicyHeaderName = "Content-Security-Policy"
+)
+
 type muxHttpContextContextType struct{}
 
 var MuxHttpContextContextKey muxHttpContextContextType
@@ -850,16 +854,31 @@ func (mux *Mux) DuplicateEndpointSpecification(endpointSpecification *muxTypesEn
 	return nil
 }
 
-func (mux *Mux) ContentSecurityPolicy() (*content_security_policy.ContentSecurityPolicy, error) {
-	contentSecurityPolicyString := mux.DefaultDocumentHeaders["Content-Security-Policy"]
+func (mux *Mux) GetContentSecurityPolicy() (*content_security_policy.ContentSecurityPolicy, error) {
+	contentSecurityPolicyString := mux.DefaultDocumentHeaders[contentSecurityPolicyHeaderName]
 	if contentSecurityPolicyString == "" {
 		return nil, nil
 	}
 
-	csp, err := contentSecurityPolicyParsing.ParseContentSecurityPolicy([]byte(contentSecurityPolicyString))
+	csp, err := contentSecurityPolicyParsing.Parse([]byte(contentSecurityPolicyString))
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}
 
 	return csp, nil
+}
+
+func (mux *Mux) SetContentSecurityPolicy(csp *content_security_policy.ContentSecurityPolicy) error {
+	defaultDocumentHeaders := mux.DefaultDocumentHeaders
+	if defaultDocumentHeaders == nil {
+		return motmedelErrors.NewWithTrace(fmt.Errorf("%w (default document headers)", motmedelErrors.ErrNilMap))
+	}
+
+	if csp == nil {
+		defaultDocumentHeaders[contentSecurityPolicyHeaderName] = ""
+	} else {
+		defaultDocumentHeaders[contentSecurityPolicyHeaderName] = csp.String()
+	}
+
+	return nil
 }

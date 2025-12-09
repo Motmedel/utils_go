@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/Motmedel/utils_go v0.0.305
-	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.31
+	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.32
 	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5
 	github.com/Motmedel/utils_go/pkg/net/domain_breakdown v0.0.5
 	github.com/google/go-cmp v0.7.0
