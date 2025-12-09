@@ -101,6 +101,7 @@ func (parser *RequestParser[T]) Parse(request *http.Request) (T, *response_error
 	}
 
 	currentUrl := *request.URL
+	currentUrl.Host = host
 	currentUrl.Scheme = scheme
 
 	redirectUrl := *parser.RedirectUrl

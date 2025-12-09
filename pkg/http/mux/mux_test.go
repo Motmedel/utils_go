@@ -14,7 +14,7 @@ import (
 	"time"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser/adapter"
+	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
@@ -178,7 +178,11 @@ func TestMain(m *testing.M) {
 			},
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
 				ContentType: "application/json",
-				Parser:      bodyParserAdapter.New(bodyParserJson.New[*bodyParserTestData]()),
+				Parser: body_parser.BodyParserFunction[any](
+					func(_ *http.Request, body []byte) (any, *response_error.ResponseError) {
+						return bodyParserJson.ParseJsonBody[*bodyParserTestData](body)
+					},
+				),
 			},
 		},
 		&endpoint_specification.EndpointSpecification{
@@ -663,7 +667,7 @@ func TestRateLimiting(t *testing.T) {
 	if retryAfterValue == "" {
 		t.Error("no Retry-After header")
 	} else {
-		retryAfter, err := retry_after.ParseRetryAfter([]byte(retryAfterValue))
+		retryAfter, err := retry_after.Parse([]byte(retryAfterValue))
 		if err != nil {
 			t.Errorf("invalid Retry-After: %v", err)
 		} else {
