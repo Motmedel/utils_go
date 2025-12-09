@@ -19,7 +19,7 @@ func GetContentNegotiation(requestHeader http.Header, strict bool) (*motmedelHtt
 
 	if acceptValue := requestHeader.Get("Accept"); acceptValue != "" {
 		acceptData := []byte(acceptValue)
-		accept, err := motmedelHttpHeadersParsingAccept.ParseAccept(acceptData)
+		accept, err := motmedelHttpHeadersParsingAccept.Parse(acceptData)
 		if err != nil && strict {
 			return nil, motmedelErrors.New(fmt.Errorf("parse accept: %w", err), acceptData)
 		}
@@ -28,7 +28,7 @@ func GetContentNegotiation(requestHeader http.Header, strict bool) (*motmedelHtt
 
 	if acceptEncodingValue := requestHeader.Get("Accept-Encoding"); acceptEncodingValue != "" {
 		acceptEncodingData := []byte(acceptEncodingValue)
-		acceptEncoding, err := motmedelHttpHeadersParsingAcceptEncoding.ParseAcceptEncoding(acceptEncodingData)
+		acceptEncoding, err := motmedelHttpHeadersParsingAcceptEncoding.Parse(acceptEncodingData)
 		if err != nil && strict {
 			return nil, motmedelErrors.New(fmt.Errorf("parse accept encoding: %w", err), acceptEncodingData)
 		}
