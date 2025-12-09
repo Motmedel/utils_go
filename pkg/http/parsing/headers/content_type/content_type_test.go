@@ -29,7 +29,7 @@ func TestParseContentTypeCorpus(t *testing.T) {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := ParseContentType([]byte(c))
+			p, err := Parse([]byte(c))
 			if err != nil {
 				t.Logf("ParseContentType error for %q: %v", c, err)
 				return
@@ -94,7 +94,7 @@ func TestParseContentTypeCorrectness(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := ParseContentType([]byte(c.header))
+			p, err := Parse([]byte(c.header))
 			if err != nil {
 				t.Fatalf("ParseContentType error: %v (header=%q)", err, c.header)
 			}

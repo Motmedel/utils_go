@@ -15,14 +15,14 @@ func TestParseStrictTransportSecurityCorpus(t *testing.T) {
 		"max-age=10886400;includeSubDomains",
 		"includeSubDomains; max-age=31536000", // order variation
 		"Max-Age=31536000; IncludeSubDomains", // mixed casing
-		"max-age=\"31536000\"",           // quoted numeric value
+		"max-age=\"31536000\"",                // quoted numeric value
 	}
 
 	for _, c := range cases {
 		c := c
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
-			p, err := ParseStrictTransportSecurity([]byte(c))
+			p, err := Parse([]byte(c))
 			if err != nil {
 				// Per instructions, don't fail suite for corpus; log and continue
 				t.Logf("ParseStrictTransportSecurity error for %q: %v", c, err)
@@ -42,8 +42,8 @@ func TestParseStrictTransportSecurityCorrectness(t *testing.T) {
 
 	type exp struct {
 		maxAge int
-		incl  bool
-		raw   string
+		incl   bool
+		raw    string
 	}
 
 	cases := []struct {
@@ -78,7 +78,7 @@ func TestParseStrictTransportSecurityCorrectness(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := ParseStrictTransportSecurity([]byte(c.header))
+			p, err := Parse([]byte(c.header))
 			if err != nil {
 				t.Fatalf("ParseStrictTransportSecurity error: %v (header=%q)", err, c.header)
 			}

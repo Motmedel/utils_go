@@ -23,7 +23,7 @@ var (
 	ErrInvalidQuotedParameterValue = errors.New("invalid quoted parameter value")
 )
 
-func ParseContentType(data []byte) (*motmedelHttpTypes.ContentType, error) {
+func Parse(data []byte) (*motmedelHttpTypes.ContentType, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(ContentTypeGrammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)

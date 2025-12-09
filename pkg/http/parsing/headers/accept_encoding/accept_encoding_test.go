@@ -27,7 +27,7 @@ func TestParseAcceptEncodingCorpus(t *testing.T) {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := ParseAcceptEncoding([]byte(c))
+			p, err := Parse([]byte(c))
 			if err != nil {
 				t.Logf("ParseAcceptEncoding error for %q: %v", c, err)
 				return
@@ -86,7 +86,7 @@ func TestParseAcceptEncodingCorrectness(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := ParseAcceptEncoding([]byte(c.header))
+			p, err := Parse([]byte(c.header))
 			if err != nil {
 				t.Fatalf("ParseAcceptEncoding error: %v (header=%q)", err, c.header)
 			}

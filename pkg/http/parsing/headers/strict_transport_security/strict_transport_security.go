@@ -31,7 +31,7 @@ var (
 
 // TODO: Update to use proper errors
 
-func ParseStrictTransportSecurity(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error) {
+func Parse(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(StrictTransportSecurityGrammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)

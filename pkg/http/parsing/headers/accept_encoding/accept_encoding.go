@@ -15,7 +15,7 @@ import (
 //go:embed grammar.txt
 var grammar []byte
 
-var AcceptEncodingGrammar *goabnf.Grammar
+var Grammar *goabnf.Grammar
 
 var (
 	ErrNilAcceptEncoding = errors.New("nil accept encoding")
@@ -23,8 +23,8 @@ var (
 	ErrNilCodingsPath    = errors.New("nil codings path")
 )
 
-func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error) {
-	paths, err := parsing_utils.GetParsedDataPaths(AcceptEncodingGrammar, data)
+func Parse(data []byte) (*motmedelHttpTypes.AcceptEncoding, error) {
+	paths, err := parsing_utils.GetParsedDataPaths(Grammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
@@ -91,7 +91,7 @@ func ParseAcceptEncoding(data []byte) (*motmedelHttpTypes.AcceptEncoding, error)
 
 func init() {
 	var err error
-	AcceptEncodingGrammar, err = goabnf.ParseABNF(grammar)
+	Grammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
 		panic(fmt.Sprintf("goabnf parse abnf (accept encoding grammar): %v", err))
 	}

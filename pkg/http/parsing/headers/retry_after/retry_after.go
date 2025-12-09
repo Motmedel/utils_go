@@ -4,12 +4,13 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	goabnf "github.com/pandatix/go-abnf"
-	"strconv"
-	"time"
 )
 
 //go:embed grammar.txt
@@ -26,7 +27,7 @@ var (
 	ErrNoPathMatch         = errors.New("neither HTTP-date or delay-seconds matched")
 )
 
-func ParseRetryAfter(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
+func Parse(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(RetryAfterGrammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)

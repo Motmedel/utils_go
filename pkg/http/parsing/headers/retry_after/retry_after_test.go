@@ -13,7 +13,7 @@ func TestRetryAfterBadInput(t *testing.T) {
 
 	data := []byte("so bad")
 
-	retryAfter, err := ParseRetryAfter(data)
+	retryAfter, err := Parse(data)
 	if retryAfter != nil && errors.Is(err, motmedelErrors.ErrSyntaxError) {
 		t.Error("expected nil retry after and syntax error")
 	}
@@ -24,7 +24,7 @@ func TestRetryAfterHttpDate(t *testing.T) {
 
 	data := []byte("Fri, 31 Dec 1999 23:59:59 GMT")
 
-	retryAfter, err := ParseRetryAfter(data)
+	retryAfter, err := Parse(data)
 	if err != nil {
 		t.Fatalf("an error occurred when parsing the data: %v", err)
 	}
@@ -45,7 +45,7 @@ func TestRetryAfterHttpDate(t *testing.T) {
 func TestRetryAfterDelay(t *testing.T) {
 	data := []byte("120")
 
-	retryAfter, err := ParseRetryAfter(data)
+	retryAfter, err := Parse(data)
 	if err != nil {
 		t.Fatalf("an error occurred when parsing the data: %v", err)
 	}

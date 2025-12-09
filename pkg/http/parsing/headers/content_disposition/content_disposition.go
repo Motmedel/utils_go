@@ -13,7 +13,7 @@ import (
 	goabnf "github.com/pandatix/go-abnf"
 )
 
-var ContentDispositionGrammar *goabnf.Grammar
+var Grammar *goabnf.Grammar
 
 //go:embed grammar.txt
 var grammar []byte
@@ -68,8 +68,8 @@ func getValue(data []byte, path *goabnf.Path) (string, error) {
 
 // TODO: Handle all errors properly.
 
-func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
-	paths, err := parsing_utils.GetParsedDataPaths(ContentDispositionGrammar, data)
+func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
+	paths, err := parsing_utils.GetParsedDataPaths(Grammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
@@ -89,7 +89,6 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 	)
 
 	for _, interestingPath := range interestingPaths {
-
 		interestingPathMatchRule := interestingPath.MatchRule
 		switch interestingPathMatchRule {
 		case "disposition-type":
@@ -238,7 +237,6 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 						Input:   label,
 					},
 				)
-
 			}
 
 			valuePath := subpaths[2]
@@ -290,7 +288,7 @@ func ParseContentDisposition(data []byte) (*motmedelHttpTypes.ContentDisposition
 
 func init() {
 	var err error
-	ContentDispositionGrammar, err = goabnf.ParseABNF(grammar)
+	Grammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
 		panic(fmt.Sprintf("An error occurred when parsing the grammar: %v", err))
 	}

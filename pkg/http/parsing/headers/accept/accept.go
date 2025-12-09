@@ -16,7 +16,7 @@ import (
 //go:embed grammar.txt
 var grammar []byte
 
-var AcceptGrammar *goabnf.Grammar
+var Grammar *goabnf.Grammar
 
 var (
 	ErrNilAccept              = errors.New("nil accept")
@@ -26,8 +26,8 @@ var (
 	ErrCouldNotSplitParameter = errors.New("could not split parameter")
 )
 
-func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
-	paths, err := parsing_utils.GetParsedDataPaths(AcceptGrammar, data)
+func Parse(data []byte) (*motmedelHttpTypes.Accept, error) {
+	paths, err := parsing_utils.GetParsedDataPaths(Grammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
@@ -119,7 +119,7 @@ func ParseAccept(data []byte) (*motmedelHttpTypes.Accept, error) {
 
 func init() {
 	var err error
-	AcceptGrammar, err = goabnf.ParseABNF(grammar)
+	Grammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
 		panic(fmt.Sprintf("goabnf parse abnf (accept grammar): %v", err))
 	}

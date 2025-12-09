@@ -56,7 +56,7 @@ func TestParseAcceptCorpus(t *testing.T) {
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := ParseAccept([]byte(c))
+			p, err := Parse([]byte(c))
 			if err != nil {
 				// We log errors but do not fail the test suite per the instructions.
 				t.Logf("ParseAccept error for %q: %v", c, err)
@@ -146,7 +146,7 @@ func TestParseAcceptCorrectness(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			p, err := ParseAccept([]byte(c.header))
+			p, err := Parse([]byte(c.header))
 			if err != nil {
 				t.Fatalf("ParseAccept error: %v (header=%q)", err, c.header)
 			}

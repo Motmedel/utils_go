@@ -91,7 +91,7 @@ func TestParseContentDisposition(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			contentDisposition, err := ParseContentDisposition(testCase.input)
+			contentDisposition, err := Parse(testCase.input)
 			if !errors.Is(err, testCase.expectedErr) {
 				t.Fatalf("expected error: %v, got: %v", testCase.expectedErr, err)
 			}

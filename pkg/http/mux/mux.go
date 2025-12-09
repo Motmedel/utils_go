@@ -27,8 +27,10 @@ import (
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
+	contentSecurityPolicyParsing "github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_security_policy"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 	motmedelIter "github.com/Motmedel/utils_go/pkg/iter"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"github.com/google/uuid"
@@ -846,4 +848,18 @@ func (mux *Mux) DuplicateEndpointSpecification(endpointSpecification *muxTypesEn
 	}
 
 	return nil
+}
+
+func (mux *Mux) ContentSecurityPolicy() (*content_security_policy.ContentSecurityPolicy, error) {
+	contentSecurityPolicyString := mux.DefaultDocumentHeaders["Content-Security-Policy"]
+	if contentSecurityPolicyString == "" {
+		return nil, nil
+	}
+
+	csp, err := contentSecurityPolicyParsing.ParseContentSecurityPolicy([]byte(contentSecurityPolicyString))
+	if err != nil {
+		return nil, fmt.Errorf("parse: %w", err)
+	}
+
+	return csp, nil
 }

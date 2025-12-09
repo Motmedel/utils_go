@@ -37,7 +37,7 @@ var sourceListDirectiveNames = map[string]struct{}{
 	"worker-src":      {},
 }
 
-var ContentSecurityPolicyGrammar *goabnf.Grammar
+var Grammar *goabnf.Grammar
 
 var (
 	ErrNilContentSecurityPolicy = errors.New("nil content security policy")
@@ -162,8 +162,8 @@ func makeSourcesFromPaths(
 	return sources, nil
 }
 
-func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.ContentSecurityPolicy, error) {
-	paths, err := parsing_utils.GetParsedDataPaths(ContentSecurityPolicyGrammar, data)
+func Parse(data []byte) (*contentSecurityPolicyTypes.ContentSecurityPolicy, error) {
+	paths, err := parsing_utils.GetParsedDataPaths(Grammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
@@ -220,7 +220,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 					},
 				}
 			} else {
-				serializedSourceListPaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "serialized-source-list")
+				serializedSourceListPaths, err := goabnf.Parse(directiveValue, Grammar, "serialized-source-list")
 				if err != nil {
 					return nil, motmedelErrors.New(
 						fmt.Errorf("goabnf parse (serialized source list): %w", err),
@@ -322,7 +322,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 
 			sandboxDirectiveValuePaths, err := goabnf.Parse(
 				directiveValue,
-				ContentSecurityPolicyGrammar,
+				Grammar,
 				"sandbox-directive-value-root",
 			)
 			if err != nil {
@@ -359,7 +359,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 		case "report-uri":
 			reportUriDirective := &contentSecurityPolicyTypes.ReportUriDirective{ParsedDirective: parsedDirective}
 
-			reportUriDirectivePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "report-uri-directive-value-root")
+			reportUriDirectivePaths, err := goabnf.Parse(directiveValue, Grammar, "report-uri-directive-value-root")
 			if err != nil {
 				return nil, motmedelErrors.New(
 					fmt.Errorf("goabnf parse (report uri directive value root): %w", err),
@@ -403,7 +403,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 					},
 				}
 			} else {
-				ancestorSourceListPaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "ancestor-source-list-root")
+				ancestorSourceListPaths, err := goabnf.Parse(directiveValue, Grammar, "ancestor-source-list-root")
 				if err != nil {
 					return nil, motmedelErrors.New(
 						fmt.Errorf("goabnf parse (ancestor soruce list root): %w", err),
@@ -443,7 +443,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 				ParsedDirective: parsedDirective,
 			}
 
-			requireTrustedTypesForDirectiveValuePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "require-trusted-types-for-directive-value-root")
+			requireTrustedTypesForDirectiveValuePaths, err := goabnf.Parse(directiveValue, Grammar, "require-trusted-types-for-directive-value-root")
 			if err != nil {
 				return nil, motmedelErrors.New(
 					fmt.Errorf("goabnf parse (require trusted types for directive value root): %w", err),
@@ -467,7 +467,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 		case "trusted-types":
 			trustedTypesDirective := &contentSecurityPolicyTypes.TrustedTypesDirective{ParsedDirective: parsedDirective}
 
-			trustedTypesDirectiveValuePaths, err := goabnf.Parse(directiveValue, ContentSecurityPolicyGrammar, "trusted-types-directive-value-root")
+			trustedTypesDirectiveValuePaths, err := goabnf.Parse(directiveValue, Grammar, "trusted-types-directive-value-root")
 			if err != nil {
 				return nil, motmedelErrors.New(
 					fmt.Errorf("goabnf parse (trusted types directive value root): %w", err),
@@ -533,7 +533,7 @@ func ParseContentSecurityPolicy(data []byte) (*contentSecurityPolicyTypes.Conten
 
 func init() {
 	var err error
-	ContentSecurityPolicyGrammar, err = goabnf.ParseABNF(grammar)
+	Grammar, err = goabnf.ParseABNF(grammar)
 	if err != nil {
 		panic(fmt.Sprintf("colud not parse content security policy grammar: %v", err))
 	}

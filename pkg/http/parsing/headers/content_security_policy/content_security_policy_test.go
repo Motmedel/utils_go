@@ -236,7 +236,7 @@ func TestParseContentSecurityPolicy_Directives_TableDriven(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			csp, err := ParseContentSecurityPolicy(tt.args.data)
+			csp, err := Parse(tt.args.data)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ParseContentSecurityPolicy() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -284,7 +284,7 @@ func TestParseContentSecurityPolicy_FullCSP_TableDriven(t *testing.T) {
 		"default-src https://other.example.com",
 	}, "; ")
 
-	csp, err := ParseContentSecurityPolicy([]byte(policy))
+	csp, err := Parse([]byte(policy))
 	if err != nil {
 		t.Fatalf("ParseContentSecurityPolicy error: %v", err)
 	}
