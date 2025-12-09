@@ -163,9 +163,9 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 	}
 
 	contentTypeData := []byte(requestHeader.Get("Content-Type"))
-	contentType, err := content_type.ParseContentType(contentTypeData)
+	contentType, err := content_type.Parse(contentTypeData)
 	if err != nil {
-		wrappedErr := motmedelErrors.New(fmt.Errorf("parse content type: %w", err), contentTypeData)
+		wrappedErr := motmedelErrors.New(fmt.Errorf("content type parse: %w", err), contentTypeData)
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrSyntaxError, motmedelErrors.ErrSemanticError) {
 			return &muxTypesResponseError.ResponseError{
 				ClientError: wrappedErr,

@@ -3,6 +3,10 @@ package response_writer
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"strings"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelGzip "github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -11,9 +15,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
-	"log/slog"
-	"net/http"
-	"strings"
 )
 
 var DefaultHeaders = map[string]string{
@@ -188,7 +189,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 
 	if contentTypeString != nil {
 		contentTypeData := []byte(*contentTypeString)
-		contentType, err := content_type.ParseContentType(contentTypeData)
+		contentType, err := content_type.Parse(contentTypeData)
 		if err != nil {
 			return motmedelErrors.New(fmt.Errorf("parse content type: %w", err), contentTypeData)
 		}
