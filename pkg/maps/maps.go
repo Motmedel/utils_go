@@ -52,6 +52,20 @@ func MapGetConvert[U any, T comparable](m map[T]any, key T) (U, error) {
 	return cv, nil
 }
 
+func MapGetConvertSlice[U any, T comparable](m map[T]any, key T) ([]U, error) {
+	v, err := MapGet[T, any](m, key)
+	if err != nil {
+		return nil, fmt.Errorf("map get: %w", err)
+	}
+
+	cv, err := utils.ConvertSlice[U](v)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("convert slice: %w", err), v)
+	}
+
+	return cv, nil
+}
+
 func MapGetConvertNonZero[U comparable, T comparable](m map[T]any, key T) (U, error) {
 	var zero U
 
