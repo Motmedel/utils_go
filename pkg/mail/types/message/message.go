@@ -25,7 +25,7 @@ type Message struct {
 	Bcc     []*mail.Address
 	Subject string
 	Body    *Body
-	ReplyTo *mail.Address
+	ReplyTo []*mail.Address
 	Domain  string
 }
 
@@ -44,8 +44,13 @@ func (message *Message) String() (string, error) {
 		}
 	}
 	builder.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(toStrings, ", ")))
-	if replyTo := message.ReplyTo; replyTo != nil {
-		builder.WriteString(fmt.Sprintf("Reply-To: %s\r\n", replyTo.String()))
+
+	if replyTo := message.ReplyTo; len(replyTo) > 0 {
+		var replyToStrings []string
+		for _, replyToAddress := range replyTo {
+			replyToStrings = append(replyToStrings, replyToAddress.String())
+		}
+		builder.WriteString(fmt.Sprintf("Reply-To: %s\r\n", strings.Join(replyToStrings, ", ")))
 	}
 	if cc := message.Cc; len(cc) > 0 {
 		var ccStrings []string
@@ -147,7 +152,7 @@ func WithBcc(bcc []*mail.Address) Option {
 	}
 }
 
-func WithReplyTo(replyTo *mail.Address) Option {
+func WithReplyTo(replyTo []*mail.Address) Option {
 	return func(config *Message) {
 		config.ReplyTo = replyTo
 	}
