@@ -17,4 +17,6 @@ var (
 	ErrUndeterminableTargetFormat = errors.New("undeterminable target format")
 	ErrNilUrl                     = errors.New("nil url")
 	ErrEmptyUrl                   = errors.New("empty url")
+	ErrNilListener                = errors.New("nil listener")
+	ErrNilAddr                    = errors.New("nil addr")
 )
