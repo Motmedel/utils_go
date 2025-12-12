@@ -19,28 +19,47 @@ type Body struct {
 }
 
 type Message struct {
-	From     string
-	To       string
-	Subject  string
-	Body     *Body
-	FromName string
-	ReplyTo  string
-	Domain   string
+	From    *mail.Address
+	To      []*mail.Address
+	Cc      []*mail.Address
+	Bcc     []*mail.Address
+	Subject string
+	Body    *Body
+	ReplyTo *mail.Address
+	Domain  string
 }
 
 func (message *Message) String() (string, error) {
 	var builder strings.Builder
 	timeNow := time.Now()
 
-	fromMailAddress := mail.Address{Address: message.From}
-	if fromName := message.FromName; fromName != "" {
-		fromMailAddress.Name = fromName
-	}
+	fromMailAddress := message.From
 
 	builder.WriteString(fmt.Sprintf("From: %s\r\n", fromMailAddress.String()))
-	builder.WriteString(fmt.Sprintf("To: %s\r\n", message.To))
-	if replyTo := message.ReplyTo; replyTo != "" {
-		builder.WriteString(fmt.Sprintf("Reply-To: %s\r\n", replyTo))
+
+	var toStrings []string
+	for _, to := range message.To {
+		if to != nil {
+			toStrings = append(toStrings, to.String())
+		}
+	}
+	builder.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(toStrings, ", ")))
+	if replyTo := message.ReplyTo; replyTo != nil {
+		builder.WriteString(fmt.Sprintf("Reply-To: %s\r\n", replyTo.String()))
+	}
+	if cc := message.Cc; len(cc) > 0 {
+		var ccStrings []string
+		for _, ccAddress := range cc {
+			ccStrings = append(ccStrings, ccAddress.String())
+		}
+		builder.WriteString(fmt.Sprintf("Cc: %s\r\n", strings.Join(ccStrings, ", ")))
+	}
+	if bcc := message.Bcc; len(bcc) > 0 {
+		var bccStrings []string
+		for _, bccAddress := range bcc {
+			bccStrings = append(bccStrings, bccAddress.String())
+		}
+		builder.WriteString(fmt.Sprintf("Bcc: %s\r\n", strings.Join(bccStrings, ", ")))
 	}
 	builder.WriteString(fmt.Sprintf("Subject: %s\r\n", message.Subject))
 	builder.WriteString(fmt.Sprintf("Date: %s\r\n", timeNow.Format(time.RFC1123Z)))
@@ -83,12 +102,12 @@ func (message *Message) String() (string, error) {
 	return builder.String(), nil
 }
 
-func New(from, to, subject string, body *Body, options ...Option) (*Message, error) {
-	if from == "" {
-		return nil, motmedelErrors.NewWithTrace(motmedelMailErrors.ErrEmptyFrom)
+func New(from *mail.Address, to []*mail.Address, subject string, body *Body, options ...Option) (*Message, error) {
+	if from == nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (from)", motmedelMailErrors.ErrNilAddress))
 	}
 
-	if to == "" {
+	if len(to) == 0 {
 		return nil, motmedelErrors.NewWithTrace(motmedelMailErrors.ErrEmptyTo)
 	}
 
@@ -116,13 +135,19 @@ func New(from, to, subject string, body *Body, options ...Option) (*Message, err
 	return config, nil
 }
 
-func WithFromName(fromName string) Option {
+func WithCc(cc []*mail.Address) Option {
 	return func(config *Message) {
-		config.FromName = fromName
+		config.Cc = cc
 	}
 }
 
-func WithReplyTo(replyTo string) Option {
+func WithBcc(bcc []*mail.Address) Option {
+	return func(config *Message) {
+		config.Bcc = bcc
+	}
+}
+
+func WithReplyTo(replyTo *mail.Address) Option {
 	return func(config *Message) {
 		config.ReplyTo = replyTo
 	}

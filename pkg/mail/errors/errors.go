@@ -10,4 +10,5 @@ var (
 	ErrBadFromAddress   = errors.New("bad from address")
 	ErrEmptyDomain      = errors.New("empty domain")
 	ErrNilMessage       = errors.New("nil message")
+	ErrNilAddress       = errors.New("nil address")
 )
