@@ -565,7 +565,7 @@ func muxHandleRequest(
 	var bodyParser body_parser.BodyParser[any]
 	var maxBytes int64
 
-	if request.Method == http.MethodGet || request.Method == http.MethodHead || request.Method == http.MethodTrace {
+	if request.Method == http.MethodGet || request.Method == http.MethodHead || request.Method == http.MethodTrace || request.Method == http.MethodDelete {
 		emptyOption = parsing.BodyForbidden
 	}
 

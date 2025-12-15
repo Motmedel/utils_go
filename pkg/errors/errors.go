@@ -25,6 +25,7 @@ var (
 	ErrMapZeroValue      = errors.New("map zero value")
 	ErrNilMap            = errors.New("nil map")
 	ErrUnexpectedType    = errors.New("unexpected type")
+	ErrUnauthorized      = errors.New("unauthorized")
 )
 
 func CollectWrappedErrors(err error) []error {
