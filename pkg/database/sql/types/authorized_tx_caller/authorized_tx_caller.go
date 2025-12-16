@@ -21,10 +21,12 @@ func (c *AuthorizedTxCaller[T]) Call(ctx context.Context, tx *sql.Tx) (T, error)
 	var zero T
 
 	if utils.IsNil(c.TxCaller) {
+		// TODO: Fix error
 		return zero, motmedelErrors.NewWithTrace(errors.New("nil tx caller"))
 	}
 
 	if utils.IsNil(c.TxAuthorizer) {
+		// TODO: Fix error
 		return zero, motmedelErrors.NewWithTrace(errors.New("nil tx caller"))
 	}
 

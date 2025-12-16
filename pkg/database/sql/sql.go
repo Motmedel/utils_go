@@ -8,9 +8,10 @@ import (
 	"log/slog"
 
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
+	sqlErrors "github.com/Motmedel/utils_go/pkg/database/sql/errors"
 	"github.com/Motmedel/utils_go/pkg/database/sql/types/tx_caller"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	sqlErrors "github.com/Motmedel/utils_go/pkg/sql/errors"
+	"github.com/Motmedel/utils_go/pkg/interfaces/parser"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -58,6 +59,44 @@ func WithTx[T any](
 
 	if err := transaction.Commit(); err != nil {
 		return zero, motmedelErrors.NewWithTrace(fmt.Errorf("tx commit: %w", err), transaction)
+	}
+
+	return out, nil
+}
+
+func QueryReturningById[T any](
+	ctx context.Context,
+	id string,
+	query string,
+	database *sql.DB,
+	rowParser parser.ParserCtx[T, *sql.Row],
+) (T, error) {
+	var zero T
+
+	if err := ctx.Err(); err != nil {
+		return zero, fmt.Errorf("context err: %w", err)
+	}
+
+	if query == "" {
+		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrEmptyQuery)
+	}
+
+	if database == nil {
+		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilSqlDatabase)
+	}
+
+	if utils.IsNil(rowParser) {
+		return zero, motmedelErrors.NewWithTrace(parser.ErrNilParser)
+	}
+
+	if id == "" {
+		return zero, nil
+	}
+
+	row := database.QueryRowContext(ctx, query, id)
+	out, err := rowParser.Parse(ctx, row)
+	if err != nil {
+		return zero, err
 	}
 
 	return out, nil
