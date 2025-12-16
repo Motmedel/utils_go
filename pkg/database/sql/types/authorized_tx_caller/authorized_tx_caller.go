@@ -25,16 +25,14 @@ func (c *AuthorizedTxCaller[T]) Call(ctx context.Context, tx *sql.Tx) (T, error)
 		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilTxCaller)
 	}
 
-	if utils.IsNil(c.TxAuthorizer) {
-		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilTxCaller)
-	}
-
-	authorized, err := c.TxAuthorizer.Authorized(ctx, c.Id, tx)
-	if err != nil {
-		return zero, fmt.Errorf("tx authorizer authorized: %w", err)
-	}
-	if !authorized {
-		return zero, motmedelErrors.ErrUnauthorized
+	if !utils.IsNil(c.TxAuthorizer) {
+		authorized, err := c.TxAuthorizer.Authorized(ctx, c.Id, tx)
+		if err != nil {
+			return zero, fmt.Errorf("tx authorizer authorized: %w", err)
+		}
+		if !authorized {
+			return zero, motmedelErrors.ErrUnauthorized
+		}
 	}
 
 	out, err := c.TxCaller.Call(ctx, tx)
