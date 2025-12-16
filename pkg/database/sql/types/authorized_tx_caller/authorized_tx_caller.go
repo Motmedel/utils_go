@@ -3,9 +3,9 @@ package authorized_tx_caller
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 
+	sqlErrors "github.com/Motmedel/utils_go/pkg/database/sql/errors"
 	"github.com/Motmedel/utils_go/pkg/database/sql/types/tx_authorizer"
 	"github.com/Motmedel/utils_go/pkg/database/sql/types/tx_caller"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -13,6 +13,7 @@ import (
 )
 
 type AuthorizedTxCaller[T any] struct {
+	Id string
 	tx_caller.TxCaller[T]
 	tx_authorizer.TxAuthorizer
 }
@@ -21,16 +22,14 @@ func (c *AuthorizedTxCaller[T]) Call(ctx context.Context, tx *sql.Tx) (T, error)
 	var zero T
 
 	if utils.IsNil(c.TxCaller) {
-		// TODO: Fix error
-		return zero, motmedelErrors.NewWithTrace(errors.New("nil tx caller"))
+		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilTxCaller)
 	}
 
 	if utils.IsNil(c.TxAuthorizer) {
-		// TODO: Fix error
-		return zero, motmedelErrors.NewWithTrace(errors.New("nil tx caller"))
+		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilTxCaller)
 	}
 
-	authorized, err := c.TxAuthorizer.Authorized(ctx, tx)
+	authorized, err := c.TxAuthorizer.Authorized(ctx, c.Id, tx)
 	if err != nil {
 		return zero, fmt.Errorf("tx authorizer authorized: %w", err)
 	}
