@@ -45,6 +45,6 @@ func (c *AuthorizedTxCaller[T]) Call(ctx context.Context, tx *sql.Tx) (T, error)
 	return out, nil
 }
 
-func New[T any](txCaller tx_caller.TxCaller[T], txAuthorizer tx_authorizer.TxAuthorizer) *AuthorizedTxCaller[T] {
-	return &AuthorizedTxCaller[T]{TxCaller: txCaller, TxAuthorizer: txAuthorizer}
+func New[T any](id string, txCaller tx_caller.TxCaller[T], txAuthorizer tx_authorizer.TxAuthorizer) *AuthorizedTxCaller[T] {
+	return &AuthorizedTxCaller[T]{Id: id, TxCaller: txCaller, TxAuthorizer: txAuthorizer}
 }
