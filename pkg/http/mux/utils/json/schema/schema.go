@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -79,22 +78,12 @@ func (bodyParser *JsonSchemaBodyParser[T]) Parse(request *http.Request, body []b
 
 		var validateError *ValidateError
 		if errors.As(err, &validateError) {
-			errorsData, jsonMarshalErr := json.Marshal(validateError.Errors)
-			if jsonMarshalErr != nil {
-				return zero, &response_error.ResponseError{
-					ServerError: motmedelErrors.NewWithTrace(
-						fmt.Errorf("json marshal (validate errors): %w", jsonMarshalErr),
-						validateError.Errors,
-					),
-				}
-			}
-
 			return zero, &response_error.ResponseError{
 				// TODO: The error messages could be made nicer.
 				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
 					http.StatusUnprocessableEntity,
 					"Invalid body.",
-					map[string]any{"errors": errorsData},
+					map[string]any{"errors": validateError.Errors},
 				),
 				ClientError: wrappedErr,
 			}
