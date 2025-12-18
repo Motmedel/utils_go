@@ -32,6 +32,7 @@ var (
 	ErrNilExpiresAt               = errors.New("nil expires at")
 	ErrNilNotBefore               = errors.New("nil not before")
 	ErrEmptySubject               = errors.New("empty subject")
+	ErrEmptyIssuer                = errors.New("empty issuer")
 )
 
 type MissingRequiredFieldError struct {
