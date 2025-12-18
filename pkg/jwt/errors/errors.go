@@ -31,6 +31,7 @@ var (
 	ErrUnsupportedKty             = errors.New("unsupported kty")
 	ErrNilExpiresAt               = errors.New("nil expires at")
 	ErrNilNotBefore               = errors.New("nil not before")
+	ErrEmptySubject               = errors.New("empty subject")
 )
 
 type MissingRequiredFieldError struct {
