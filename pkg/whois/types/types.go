@@ -1,6 +1,9 @@
 package types
 
+import "time"
+
 type WhoisContext struct {
+	Time            *time.Time
 	ServerAddress   string
 	ServerIpAddress string
 	ServerPort      int
