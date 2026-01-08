@@ -75,6 +75,7 @@ var ExtensionToParameter = map[string]*StaticContentParameter{
 	".woff2": {ContentType: "font/woff2"},
 	".txt":   {ContentType: "text/plain", CandidateForCompression: true},
 	".xml":   {ContentType: "text/xml", CandidateForCompression: true},
+	".pdf":   {ContentType: "application/pdf", CandidateForCompression: true},
 }
 
 func AddContentEncodingData(staticContent *static_content.StaticContent) error {
