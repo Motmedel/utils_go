@@ -28,6 +28,8 @@ var (
 	ErrEmptyHost                   = errors.New("empty host")
 	ErrNilFetchConfig              = errors.New("nil fetch config")
 	ErrNilFetchRetryConfig         = errors.New("nil fetch retry config")
+	ErrMissingHeader               = errors.New("missing header")
+	ErrMissingQueryParameter       = errors.New("missing query parameter")
 )
 
 type Non2xxStatusCodeError struct {
