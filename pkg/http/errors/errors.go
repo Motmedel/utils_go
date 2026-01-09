@@ -26,6 +26,7 @@ var (
 	ErrNilCorsConfiguration         = errors.New("nil cors configuration")
 	ErrEmptyCookieName              = errors.New("empty cookie name")
 	ErrEmptyHost                    = errors.New("empty host")
+	ErrEmptyLocation                = errors.New("empty location")
 	ErrNilFetchConfig               = errors.New("nil fetch config")
 	ErrNilFetchRetryConfig          = errors.New("nil fetch retry config")
 	ErrMissingHeader                = errors.New("missing header")
