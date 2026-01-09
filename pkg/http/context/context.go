@@ -2,6 +2,7 @@ package context
 
 import (
 	"context"
+
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 )
 
@@ -19,12 +20,4 @@ func WithHttpContextValue(parent context.Context, httpContext *motmedelHttpTypes
 
 func WithHttpContext(parent context.Context) context.Context {
 	return WithHttpContextValue(parent, &motmedelHttpTypes.HttpContext{})
-}
-
-type retryConfigurationContextType struct{}
-
-var RetryConfigurationContextKey retryConfigurationContextType
-
-func WithRetryConfiguration(parent context.Context, retryConfiguration *motmedelHttpTypes.RetryConfiguration) context.Context {
-	return context.WithValue(parent, HttpContextContextKey, retryConfiguration)
 }
