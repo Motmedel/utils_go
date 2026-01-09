@@ -18,23 +18,12 @@ import (
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 const AcceptContentIdentity = "identity"
-
-func DefaultRetryResponseChecker(response *http.Response, err error) bool {
-	if response != nil {
-		return response.StatusCode == 429 || response.StatusCode >= 500
-	}
-
-	if err != nil {
-		return true
-	}
-
-	return false
-}
 
 func getRetryAfterTime(retryAfterValue string, referenceTime *time.Time) *time.Time {
 	if retryAfterValue == "" {
@@ -59,18 +48,13 @@ func getRetryAfterTime(retryAfterValue string, referenceTime *time.Time) *time.T
 	return nil
 }
 
-func fetch(
-	ctx context.Context,
-	request *http.Request,
-	httpClient *http.Client,
-	options *motmedelHttpTypes.FetchOptions,
-) (*http.Response, []byte, error) {
+func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config.Config) (*http.Response, []byte, error) {
 	if request == nil {
 		return nil, nil, nil
 	}
 
-	if httpClient == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+	if fetchConfig == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilFetchConfig)
 	}
 
 	httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
@@ -80,11 +64,9 @@ func fetch(
 	ctxWithHttpContext := motmedelHttpContext.WithHttpContextValue(context.Background(), httpContext)
 
 	httpContext.Request = request
-	if options != nil {
-		httpContext.RequestBody = options.Body
-	}
+	httpContext.RequestBody = fetchConfig.Body
 
-	response, err := httpClient.Do(request)
+	response, err := fetchConfig.HttpClient.Do(request)
 	httpContext.Response = response
 	if err != nil {
 		return nil, nil, motmedelErrors.NewWithTraceCtx(
@@ -103,14 +85,8 @@ func fetch(
 		)
 	}
 
-	var skipReadResponseBody bool
-	if options != nil {
-		skipReadResponseBody = options.SkipReadResponseBody
-	}
-
 	var responseBodyData []byte
-
-	if !skipReadResponseBody {
+	if !fetchConfig.SkipReadResponseBody {
 		responseBodyData, err = io.ReadAll(responseBody)
 		defer func() {
 			if err := responseBody.Close(); err != nil {
@@ -139,12 +115,7 @@ func fetch(
 		tlsContext.ClientInitiated = true
 	}
 
-	var skipErrorOnStatus bool
-	if options != nil {
-		skipErrorOnStatus = options.SkipErrorOnStatus
-	}
-
-	if !skipErrorOnStatus {
+	if !fetchConfig.SkipErrorOnStatus {
 		if !strings.HasPrefix(strconv.Itoa(response.StatusCode), "2") {
 			return response, responseBodyData, motmedelErrors.NewWithTraceCtx(
 				ctxWithHttpContext,
@@ -159,35 +130,22 @@ func fetch(
 func fetchWithRetryConfig(
 	ctx context.Context,
 	request *http.Request,
-	httpClient *http.Client,
-	options *motmedelHttpTypes.FetchOptions,
+	fetchConfig *fetch_config.Config,
 ) (*http.Response, []byte, error) {
 	if request == nil {
 		return nil, nil, nil
 	}
 
-	if httpClient == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+	if fetchConfig == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilFetchConfig)
 	}
 
-	var retryConfiguration *motmedelHttpTypes.RetryConfiguration
-	if options != nil {
-		retryConfiguration = options.RetryConfig
-	}
-	if retryConfiguration == nil {
-		retryConfiguration = ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration)
+	retryConfig := fetchConfig.RetryConfig
+	if retryConfig == nil {
+		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilFetchRetryConfig)
 	}
 
-	var retryCount int
-	var baseDelay time.Duration
-	var maximumWaitTime time.Duration
-	var checkRetryResponse func(*http.Response, error) bool
-	if retryConfiguration != nil {
-		retryCount = max(retryCount, retryConfiguration.Count)
-		baseDelay = retryConfiguration.BaseDelay
-		maximumWaitTime = retryConfiguration.MaximumWaitTime
-		checkRetryResponse = retryConfiguration.CheckResponse
-	}
+	maximumWaitTime := retryConfig.MaximumWaitTime
 
 	var err error
 	var response *http.Response
@@ -195,7 +153,7 @@ func fetchWithRetryConfig(
 
 	// TODO: Do something with http context and extra
 
-	for i := 0; i < (1 + retryCount); i++ {
+	for i := 0; i < (1 + retryConfig.Count); i++ {
 		if i != 0 {
 			// Wait before the next response.
 
@@ -207,7 +165,7 @@ func fetchWithRetryConfig(
 
 				if responseHeader != nil {
 					// Use the response header Date as the reference time for Retry-After delay values if available,
-					//otherwise the current time.
+					// otherwise the current time.
 					referenceTime := time.Now()
 					if responseDate, err := time.Parse(time.RFC1123, responseHeader.Get("Date")); err != nil {
 						referenceTime = responseDate
@@ -223,12 +181,8 @@ func fetchWithRetryConfig(
 
 			// If the response provided no information about waiting time, use exponential back-off.
 			if waitUntil == nil {
-				if baseDelay == 0 {
-					// If no base delay was provided, the default is 500 ms.
-					baseDelay = time.Duration(500) * time.Millisecond
-				}
 				// baseDelay * 2^(i-1)
-				waitDuration := baseDelay * (1 << (i - 1))
+				waitDuration := retryConfig.BaseDelay * (1 << (i - 1))
 				if maximumWaitTime != 0 {
 					// Don't let the calculated wait time exceed the maximum wait time.
 					waitDuration = min(waitDuration, maximumWaitTime)
@@ -246,14 +200,12 @@ func fetchWithRetryConfig(
 			}
 		}
 
-		response, responseBody, err = fetch(ctx, request, httpClient, options)
+		response, responseBody, err = fetch(ctx, request, fetchConfig)
 
-		if checkRetryResponse == nil {
-			checkRetryResponse = DefaultRetryResponseChecker
-		}
-		if !checkRetryResponse(response, err) {
+		if !retryConfig.ResponseChecker.Check(response, err) {
 			break
 		}
+
 		if err != nil && i != 0 {
 			err = &motmedelHttpErrors.ReattemptFailedError{Cause: err, Attempt: i + 1}
 		}
@@ -265,40 +217,27 @@ func fetchWithRetryConfig(
 	return response, responseBody, nil
 }
 
-func FetchWithRequest(
-	ctx context.Context,
-	request *http.Request,
-	httpClient *http.Client,
-	options *motmedelHttpTypes.FetchOptions,
-) (*http.Response, []byte, error) {
+func FetchWithRequest(ctx context.Context, request *http.Request, options ...fetch_config.Option) (*http.Response, []byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, fmt.Errorf("context err: %w", err)
+	}
+
 	if request == nil {
 		return nil, nil, nil
 	}
 
-	if httpClient == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
-	}
-
-	var retryConfiguration *motmedelHttpTypes.RetryConfiguration
-
-	if options != nil {
-		retryConfiguration = options.RetryConfig
-	}
-
-	if retryConfiguration == nil {
-		retryConfiguration, _ = ctx.Value(motmedelHttpContext.RetryConfigurationContextKey).(*motmedelHttpTypes.RetryConfiguration)
-	}
+	fetchConfig := fetch_config.New(options...)
 
 	var response *http.Response
 	var responseBody []byte
 	var err error
 	var errString string
 
-	if retryConfiguration != nil {
-		response, responseBody, err = fetchWithRetryConfig(ctx, request, httpClient, options)
+	if fetchConfig.RetryConfig != nil {
+		response, responseBody, err = fetchWithRetryConfig(ctx, request, fetchConfig)
 		errString = " with retry config"
 	} else {
-		response, responseBody, err = fetch(ctx, request, httpClient, options)
+		response, responseBody, err = fetch(ctx, request, fetchConfig)
 	}
 	if err != nil {
 		return response, responseBody, fmt.Errorf("fetch%s: %w", errString, err)
@@ -307,34 +246,19 @@ func FetchWithRequest(
 	return response, responseBody, nil
 }
 
-func Fetch(
-	ctx context.Context,
-	url string,
-	httpClient *http.Client,
-	options *motmedelHttpTypes.FetchOptions,
-) (*http.Response, []byte, error) {
+func Fetch(ctx context.Context, url string, options ...fetch_config.Option) (*http.Response, []byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, fmt.Errorf("context err: %w", err)
+	}
+
 	if url == "" {
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
 	}
 
-	if httpClient == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
-	}
+	fetchConfig := fetch_config.New(options...)
+	method := fetchConfig.Method
 
-	var method string
-	var body []byte
-	var headers map[string]string
-	if options != nil {
-		method = options.Method
-		headers = options.Headers
-		body = options.Body
-	}
-
-	if method == "" {
-		method = http.MethodGet
-	}
-
-	request, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+	request, err := http.NewRequest(method, url, bytes.NewBuffer(fetchConfig.Body))
 	if err != nil {
 		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method)
 	}
@@ -347,50 +271,43 @@ func Fetch(
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader)
 	}
 
-	for key, value := range headers {
+	for key, value := range fetchConfig.Headers {
 		request.Header.Set(key, value)
 	}
 
-	return FetchWithRequest(ctx, request, httpClient, options)
+	return FetchWithRequest(ctx, request, options...)
 }
 
-func FetchJson[U any](
-	ctx context.Context,
-	url string,
-	httpClient *http.Client,
-	options *motmedelHttpTypes.FetchOptions,
-) (*http.Response, U, error) {
+func FetchJson[U any](ctx context.Context, url string, options ...fetch_config.Option) (*http.Response, U, error) {
 	var zero U
+
+	if err := ctx.Err(); err != nil {
+		return nil, zero, fmt.Errorf("context err: %w", err)
+	}
 
 	if url == "" {
 		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
 	}
 
-	if httpClient == nil {
-		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
+	fetchConfig := fetch_config.New(options...)
+
+	headers := fetchConfig.Headers
+	if headers == nil {
+		headers = make(map[string]string)
 	}
 
-	if options == nil {
-		options = &motmedelHttpTypes.FetchOptions{}
+	if _, ok := headers["Content-Type"]; !ok && len(fetchConfig.Body) > 0 {
+		headers["Content-Type"] = "application/json"
 	}
 
-	if options.Headers == nil {
-		options.Headers = make(map[string]string)
+	if _, ok := headers["Accept"]; !ok {
+		headers["Accept"] = "application/json"
 	}
 
-	optionsHeaders := options.Headers
-
-	if _, ok := optionsHeaders["Content-Type"]; !ok && len(options.Body) > 0 {
-		optionsHeaders["Content-Type"] = "application/json"
-	}
-
-	if _, ok := optionsHeaders["Accept"]; !ok {
-		optionsHeaders["Accept"] = "application/json"
-	}
-
-	response, responseBody, err := Fetch(ctx, url, httpClient, options)
+	options = append(options, fetch_config.WithHeaders(headers))
+	response, responseBody, err := Fetch(ctx, url, options...)
 	if err != nil {
-		return response, zero, motmedelErrors.New(fmt.Errorf("fetch: %w", err), url, httpClient, options)
+		return response, zero, fmt.Errorf("fetch: %w", err)
 	}
 	if len(responseBody) == 0 {
 		return response, zero, nil
@@ -407,21 +324,15 @@ func FetchJson[U any](
 	return response, responseValue, nil
 }
 
-func FetchJsonWithBody[U any, T any](
-	ctx context.Context,
-	url string,
-	httpClient *http.Client,
-	bodyValue T,
-	options *motmedelHttpTypes.FetchOptions,
-) (*http.Response, U, error) {
+func FetchJsonWithBody[U any, T any](ctx context.Context, url string, bodyValue T, options ...fetch_config.Option) (*http.Response, U, error) {
 	var zero U
+
+	if err := ctx.Err(); err != nil {
+		return nil, zero, fmt.Errorf("context err: %w", err)
+	}
 
 	if url == "" {
 		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
-	}
-
-	if httpClient == nil {
-		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpClient)
 	}
 
 	var requestBody []byte
@@ -435,14 +346,10 @@ func FetchJsonWithBody[U any, T any](
 			)
 		}
 
-		if options == nil {
-			options = &motmedelHttpTypes.FetchOptions{}
-		}
-
-		options.Body = requestBody
+		options = append(options, fetch_config.WithBody(requestBody))
 	}
 
-	return FetchJson[U](ctx, url, httpClient, options)
+	return FetchJson[U](ctx, url, options...)
 }
 
 func GetMatchingContentEncoding(
@@ -537,7 +444,9 @@ func GetMatchingAccept(
 }
 
 func ParseLastModifiedTimestamp(timestamp string) (time.Time, error) {
-	if t, err := time.Parse(time.RFC1123, timestamp); err != nil {
+	t, err := time.Parse(time.RFC1123, timestamp)
+
+	if err != nil {
 		return time.Time{}, motmedelErrors.NewWithTrace(
 			fmt.Errorf(
 				"%w: time parse rfc1123: %w",
@@ -546,9 +455,9 @@ func ParseLastModifiedTimestamp(timestamp string) (time.Time, error) {
 			),
 			timestamp,
 		)
-	} else {
-		return t, nil
 	}
+
+	return t, nil
 }
 
 func IfNoneMatchCacheHit(ifNoneMatchValue string, etag string) bool {

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"time"
 
 	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 )
@@ -227,22 +226,6 @@ type ContentNegotiation struct {
 
 	NegotiatedAccept         string
 	NegotiatedAcceptEncoding string
-}
-
-type RetryConfiguration struct {
-	Count           int
-	BaseDelay       time.Duration
-	MaximumWaitTime time.Duration
-	CheckResponse   func(*http.Response, error) bool
-}
-
-type FetchOptions struct {
-	Method               string
-	Headers              map[string]string
-	Body                 []byte
-	SkipReadResponseBody bool
-	SkipErrorOnStatus    bool
-	RetryConfig          *RetryConfiguration
 }
 
 type RobotsTxt struct {
