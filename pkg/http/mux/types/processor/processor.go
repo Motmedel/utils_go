@@ -11,3 +11,7 @@ type ProcessorFunction[T any, U any] func(U) (T, *response_error.ResponseError)
 func (pf ProcessorFunction[T, U]) Process(input U) (T, *response_error.ResponseError) {
 	return pf(input)
 }
+
+func New[T any, U any](f func(U) (T, *response_error.ResponseError)) Processor[T, U] {
+	return ProcessorFunction[T, U](f)
+}

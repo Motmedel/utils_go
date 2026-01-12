@@ -5,22 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
-	processorPkg "github.com/Motmedel/utils_go/pkg/http/mux/interfaces/processor"
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
+	processorPkg "github.com/Motmedel/utils_go/pkg/http/mux/types/processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxUtilsJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
-	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
-	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -148,149 +142,4 @@ func MakeJsonBodyParser[T any]() body_parser.BodyParser[T] {
 			return muxUtilsJson.ParseJsonBody[T](body)
 		},
 	)
-}
-
-type RequestParserWithProcessor[T any, U any] struct {
-	RequestParser request_parser.RequestParser[T]
-	Processor     processorPkg.Processor[U, T]
-}
-
-func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *response_error.ResponseError) {
-	var zero U
-
-	requestParser := p.RequestParser
-	if motmedelUtils.IsNil(requestParser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
-	}
-
-	processor := p.Processor
-	if motmedelUtils.IsNil(processor) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilProcessor)}
-	}
-
-	result, responseError := requestParser.Parse(request)
-	if responseError != nil {
-		return zero, responseError
-	}
-
-	processedResult, responseError := processor.Process(result)
-	if responseError != nil {
-		return zero, responseError
-	}
-
-	return processedResult, nil
-}
-
-type RequestParserWithUrlProcessor[T urler.StringURLer] struct {
-	request_parser.RequestParser[T]
-	AllowLocalhost           bool
-	AllowedDomains           []string
-	AllowedRegisteredDomains []string
-}
-
-func (p *RequestParserWithUrlProcessor[T]) Parse(request *http.Request) (*url.URL, *response_error.ResponseError) {
-	requestParser := p.RequestParser
-	if motmedelUtils.IsNil(requestParser) {
-		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
-	}
-
-	result, responseError := requestParser.Parse(request)
-	if responseError != nil {
-		return nil, responseError
-	}
-	if motmedelUtils.IsNil(result) {
-		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(urler.ErrNilStringUrler)}
-	}
-
-	urlString := result.URL()
-	if urlString == "" {
-		return nil, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Empty url.", nil),
-		}
-	}
-
-	parsedUrl, err := url.Parse(urlString)
-	if err != nil {
-		return nil, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Malformed url.", nil),
-			ClientError:   motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err), urlString),
-		}
-	}
-
-	parsedUrlHostname := parsedUrl.Hostname()
-	if !(p.AllowLocalhost && parsedUrlHostname == "localhost") {
-		domainBreakdown := domain_breakdown.GetDomainBreakdown(parsedUrlHostname)
-		if domainBreakdown == nil {
-			return nil, &response_error.ResponseError{
-				ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-					"Malformed url hostname; not a domain.",
-					nil,
-				),
-				ClientError: motmedelErrors.NewWithTrace(motmedelNetErrors.ErrNilDomainBreakdown),
-			}
-		}
-
-		if len(p.AllowedDomains) > 0 || len(p.AllowedRegisteredDomains) > 0 {
-			var allowed bool
-
-			registeredDomain := domainBreakdown.RegisteredDomain
-			for _, domain := range p.AllowedRegisteredDomains {
-				if registeredDomain == domain {
-					allowed = true
-					break
-				}
-			}
-
-			if !allowed {
-				for _, domain := range p.AllowedDomains {
-					if domain == parsedUrlHostname {
-						allowed = true
-						break
-					}
-				}
-			}
-
-			if !allowed {
-				return nil, &response_error.ResponseError{
-					ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-						"The url hostname does not match any allowed domain.",
-						nil,
-					),
-				}
-			}
-		}
-	}
-
-	return parsedUrl, nil
-}
-
-type BodyParserWithProcessor[T any, U any] struct {
-	BodyParser body_parser.BodyParser[T]
-	Processor  processorPkg.Processor[U, T]
-}
-
-func (p *BodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte) (U, *response_error.ResponseError) {
-	var zero U
-
-	bodyParser := p.BodyParser
-	if motmedelUtils.IsNil(bodyParser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
-	}
-
-	processor := p.Processor
-	if motmedelUtils.IsNil(processor) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilProcessor)}
-	}
-
-	result, responseError := bodyParser.Parse(request, body)
-	if responseError != nil {
-		return zero, responseError
-	}
-
-	processedResult, responseError := processor.Process(result)
-	if responseError != nil {
-		return zero, responseError
-	}
-
-	return processedResult, nil
 }

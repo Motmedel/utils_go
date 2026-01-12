@@ -2,6 +2,8 @@ package jwk_validator
 
 import (
 	"fmt"
+	"strings"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/token"
@@ -9,7 +11,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/maps"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"strings"
 )
 
 type JwkValidator struct {
@@ -63,6 +64,7 @@ func (v *JwkValidator) Validate(token *token.Token) error {
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
 			wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
 		}
+		return wrappedErr
 	}
 
 	var expectedKty string

@@ -1,8 +1,8 @@
 package parsing
 
 import (
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 )
 
 type EmptyOption int

@@ -1,9 +1,10 @@
 package adapter
 
 import (
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"net/http"
+
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 )
 
 type Adapter[T any] struct {

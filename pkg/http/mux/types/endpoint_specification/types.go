@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/request_parser"
 	muxTypesParsing "github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
 	muxTypesRateLimiting "github.com/Motmedel/utils_go/pkg/http/mux/types/rate_limiting"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"

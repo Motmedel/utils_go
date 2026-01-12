@@ -36,4 +36,5 @@ var (
 	ErrNilBodyParser                 = errors.New("nil body parser")
 	ErrNilHeaderEntry                = errors.New("nil header entry")
 	ErrNilHint                       = errors.New("nil hint")
+	ErrNilUrlProcessorConfig         = errors.New("nil url processor config")
 )
