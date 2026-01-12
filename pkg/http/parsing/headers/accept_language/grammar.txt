@@ -1,0 +1,10 @@
+root=Accept-Language
+Accept-Language=[element] *(OWS "," OWS [element])
+element=language-range [weight]
+language-range=Language-Tag
+Language-Tag=Primary-subtag *("-" Subtag)
+Primary-subtag=1*8ALPHA
+Subtag=1*8(ALPHA / DIGIT)
+weight=OWS ";" OWS "q=" qvalue
+OWS=*(SP/HTAB)
+qvalue=("0" ["." 0*3DIGIT])/("1" ["." 0*3("0")])
