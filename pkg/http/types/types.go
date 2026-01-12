@@ -200,6 +200,27 @@ func (acceptEncoding *AcceptEncoding) GetPriorityOrderedEncodings() []*Encoding 
 	return encodings
 }
 
+type AcceptLanguage struct {
+	LanguageQs []*LanguageQ
+	Raw        string
+}
+
+type LanguageQ struct {
+	Language string
+	Q        float32
+}
+
+func (acceptLanguage *AcceptLanguage) GetPriorityOrderedLanguages() []*LanguageQ {
+	languages := make([]*LanguageQ, len(acceptLanguage.LanguageQs))
+	copy(languages, acceptLanguage.LanguageQs)
+
+	sort.SliceStable(languages, func(i, j int) bool {
+		return languages[i].Q > languages[j].Q
+	})
+
+	return languages
+}
+
 type StrictTransportSecurityPolicy struct {
 	MaxAga            int
 	IncludeSubdomains bool
