@@ -27,9 +27,9 @@ func ParseJsonBody[T any](body []byte) (T, *response_error.ResponseError) {
 					nil,
 				),
 			}
-		} else {
-			return target, &response_error.ResponseError{ServerError: wrappedErr}
 		}
+
+		return target, &response_error.ResponseError{ServerError: wrappedErr}
 	}
 
 	return target, nil

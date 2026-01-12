@@ -7,7 +7,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	"github.com/Motmedel/utils_go/pkg/http/mux/interfaces/body_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxUtils "github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	muxUtilsJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
