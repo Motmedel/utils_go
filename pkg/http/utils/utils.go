@@ -401,9 +401,9 @@ func GetMatchingContentEncoding(
 
 	if !disallowIdentity {
 		return AcceptContentIdentity
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 func GetMatchingAccept(
@@ -498,9 +498,24 @@ func MakeStrongEtag(data []byte) string {
 	return fmt.Sprintf("\"%x\"", h.Sum(nil))
 }
 
-// NOTE: Copied from the standard library.
-
 func BasicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
+	return base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+}
+
+func GetSingleHeader(name string, header http.Header) (string, error) {
+	if header == nil {
+		return "", motmedelErrors.NewWithTrace(motmedelErrors.ErrNilMap)
+	}
+
+	name = http.CanonicalHeaderKey(name)
+
+	headerValues, ok := header[name]
+	if !ok {
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("%w (%s)", motmedelHttpErrors.ErrMissingHeader, name))
+	}
+	if len(headerValues) != 1 {
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("%w (%s)", motmedelHttpErrors.ErrMultipleHeaderValues, name))
+	}
+
+	return headerValues[0], nil
 }
