@@ -4,9 +4,9 @@ go 1.25
 
 require (
 	github.com/Motmedel/parsing_utils v0.0.5
-	github.com/Motmedel/utils_go v0.0.305
+	github.com/Motmedel/utils_go v0.0.331
 	github.com/google/go-cmp v0.7.0
-	github.com/pandatix/go-abnf v0.3.0
+	github.com/pandatix/go-abnf v0.4.0
 )
 
 require (

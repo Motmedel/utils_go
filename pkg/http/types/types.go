@@ -200,14 +200,18 @@ func (acceptEncoding *AcceptEncoding) GetPriorityOrderedEncodings() []*Encoding 
 	return encodings
 }
 
-type AcceptLanguage struct {
-	LanguageQs []*LanguageQ
-	Raw        string
+type LanguageTag struct {
+	PrimarySubtag string
+	Subtag        string
 }
 
 type LanguageQ struct {
-	Language string
-	Q        float32
+	Tag *LanguageTag
+	Q   float32
+}
+type AcceptLanguage struct {
+	LanguageQs []*LanguageQ
+	Raw        string
 }
 
 func (acceptLanguage *AcceptLanguage) GetPriorityOrderedLanguages() []*LanguageQ {
