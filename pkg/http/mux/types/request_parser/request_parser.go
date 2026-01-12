@@ -55,7 +55,7 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 		return zero, responseError
 	}
 
-	processedResult, responseError := processor.Process(result)
+	processedResult, responseError := processor.Process(request.Context(), result)
 	if responseError != nil {
 		return zero, responseError
 	}

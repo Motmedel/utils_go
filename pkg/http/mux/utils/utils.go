@@ -109,9 +109,13 @@ func GetServerNonZeroParsedRequestAuthentication[T comparable](ctx context.Conte
 }
 
 func MakeValidatableProcessor[T validatable.Validatable]() processorPkg.Processor[T, T] {
-	return processorPkg.ProcessorFunction[T, T](
-		func(v T) (T, *response_error.ResponseError) {
+	return processorPkg.New(
+		func(ctx context.Context, v T) (T, *response_error.ResponseError) {
 			var zero T
+
+			if err := ctx.Err(); err != nil {
+				return zero, &response_error.ResponseError{ServerError: fmt.Errorf("context err: %w", err)}
+			}
 
 			if motmedelUtils.IsNil(v) {
 				return zero, nil

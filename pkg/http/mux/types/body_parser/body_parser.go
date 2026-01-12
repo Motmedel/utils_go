@@ -47,7 +47,7 @@ func (p *BodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte
 		return zero, responseError
 	}
 
-	processedResult, responseError := processor.Process(result)
+	processedResult, responseError := processor.Process(request.Context(), result)
 	if responseError != nil {
 		return zero, responseError
 	}
