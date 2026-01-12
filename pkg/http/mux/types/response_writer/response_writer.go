@@ -141,6 +141,9 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			}
 		}
 
+		// NOTE: By using `Overwrite` with an empty value, one effectively clears a default header without providing
+		// a new value.
+
 		if _, ok := defaultHeaders[canonicalHeaderName]; ok {
 			if !header.Overwrite {
 				continue
@@ -181,6 +184,10 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			for _, varyValue := range strings.Split(headerValue, ",") {
 				varyValues = append(varyValues, strings.TrimSpace(varyValue))
 			}
+			continue
+		}
+
+		if headerValue == "" {
 			continue
 		}
 
