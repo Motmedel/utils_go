@@ -15,7 +15,6 @@ import (
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	muxInterfaces "github.com/Motmedel/utils_go/pkg/http/mux/interfaces"
 	muxInternal "github.com/Motmedel/utils_go/pkg/http/mux/internal"
 	muxInternalMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/mux"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
@@ -26,6 +25,7 @@ import (
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/userer"
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
 	contentSecurityPolicyParsing "github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_security_policy"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
@@ -519,7 +519,7 @@ func muxHandleRequest(
 			context.WithValue(request.Context(), parsing.ParsedRequestAuthenticationContextKey, parsedAuthentication),
 		)
 
-		if usererAuthenticationData, ok := parsedAuthentication.(muxInterfaces.Userer); ok {
+		if usererAuthenticationData, ok := parsedAuthentication.(userer.Userer); ok {
 			if !utils.IsNil(usererAuthenticationData) {
 				httpContext.User = usererAuthenticationData.GetUser()
 			}
