@@ -247,7 +247,7 @@ type ContentDisposition struct {
 type ContentNegotiation struct {
 	Accept         *Accept
 	AcceptEncoding *AcceptEncoding
-	// TODO: Add more headers.
+	AcceptLanguage *AcceptLanguage
 
 	NegotiatedAccept         string
 	NegotiatedAcceptEncoding string

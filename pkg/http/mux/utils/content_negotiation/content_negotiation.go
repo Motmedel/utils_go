@@ -35,5 +35,14 @@ func GetContentNegotiation(requestHeader http.Header, strict bool) (*motmedelHtt
 		contentNegotiation.AcceptEncoding = acceptEncoding
 	}
 
+	if acceptLanguageValue := requestHeader.Get("Accept-Language"); acceptLanguageValue != "" {
+		acceptLanguageData := []byte(acceptLanguageValue)
+		acceptLanguage, err := motmedelHttpHeadersParsingAcceptLanguage.Parse(acceptLanguageData)
+		if err != nil && strict {
+			return nil, motmedelErrors.New(fmt.Errorf("parse accept language: %w", err), acceptLanguageData)
+		}
+		contentNegotiation.AcceptLanguage = acceptLanguage
+	}
+
 	return &contentNegotiation, nil
 }
