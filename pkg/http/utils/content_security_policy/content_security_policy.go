@@ -95,3 +95,43 @@ func PatchCspFrameSrcWithHostSrc(contentSecurityPolicy *csp.ContentSecurityPolic
 		contentSecurityPolicy.Directives = append(contentSecurityPolicy.Directives, frameSrcDirective)
 	}
 }
+
+func PatchCspStyleSrcWithNonce(contentSecurityPolicy *csp.ContentSecurityPolicy, nonces ...string) {
+	if contentSecurityPolicy == nil {
+		return
+	}
+
+	var nonceSources []csp.SourceI
+	for _, nonce := range nonces {
+		if nonce == "" {
+			continue
+		}
+		nonceSources = append(nonceSources, &csp.NonceSource{
+			Base64Value: nonce,
+		})
+	}
+
+	if len(nonceSources) == 0 {
+		return
+	}
+
+	if existingStyleSrcDirective := contentSecurityPolicy.GetStyleSrc(); existingStyleSrcDirective != nil {
+		sourceMap := make(map[string]struct{})
+		for _, source := range existingStyleSrcDirective.Sources {
+			sourceMap[source.String()] = struct{}{}
+		}
+
+		for _, nonceSource := range nonceSources {
+			if _, found := sourceMap[nonceSource.String()]; !found {
+				existingStyleSrcDirective.Sources = append(existingStyleSrcDirective.Sources, nonceSource)
+			}
+		}
+	} else {
+		styleSrcDirective := &csp.StyleSrcDirective{
+			SourceDirective: csp.SourceDirective{
+				Sources: nonceSources,
+			},
+		}
+		contentSecurityPolicy.Directives = append(contentSecurityPolicy.Directives, styleSrcDirective)
+	}
+}
