@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
 	motmedelJwt "github.com/Motmedel/utils_go/pkg/jwt"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
@@ -166,6 +168,49 @@ func (parser *CookieRequestParser) getTokenString(request *http.Request) (string
 }
 
 func (parser *CookieRequestParser) Parse(request *http.Request) (*TokenWithRaw, *muxResponseError.ResponseError) {
+	tokenString, responseError := parser.getTokenString(request)
+	if responseError != nil {
+		return nil, responseError
+	}
+	return parser.getToken(tokenString)
+}
+
+type HeaderRequestParser struct {
+	RequestParser
+}
+
+func (parser *HeaderRequestParser) getTokenString(request *http.Request) (string, *muxResponseError.ResponseError) {
+	if request == nil {
+		return "", &muxResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+		}
+	}
+
+	requestHeader := request.Header
+	if requestHeader == nil {
+		return "", &muxResponseError.ResponseError{
+			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+		}
+	}
+
+	name := parser.Name
+	if name == "" {
+		return "", &muxResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrEmptyName)}
+	}
+
+	headerValue, err := motmedelHttpUtils.GetSingleHeader(name, requestHeader)
+	if err != nil {
+		return "", &muxResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(err)}
+	}
+
+	if http.CanonicalHeaderKey(name) == "Authorization" {
+		headerValue = strings.TrimPrefix(headerValue, "Bearer ")
+	}
+
+	return headerValue, nil
+}
+
+func (parser *HeaderRequestParser) Parse(request *http.Request) (*TokenWithRaw, *muxResponseError.ResponseError) {
 	tokenString, responseError := parser.getTokenString(request)
 	if responseError != nil {
 		return nil, responseError
