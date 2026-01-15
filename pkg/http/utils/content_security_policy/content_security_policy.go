@@ -3,7 +3,9 @@ package content_security_policy
 import (
 	"net/url"
 	"slices"
+	"strings"
 
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	csp "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 )
 
@@ -134,4 +136,53 @@ func PatchCspStyleSrcWithNonce(contentSecurityPolicy *csp.ContentSecurityPolicy,
 		}
 		contentSecurityPolicy.Directives = append(contentSecurityPolicy.Directives, styleSrcDirective)
 	}
+}
+
+func PatchCspStyleSrcWithHash(contentSecurityPolicy *csp.ContentSecurityPolicy, values ...string) error {
+	if contentSecurityPolicy == nil {
+		return nil
+	}
+
+	var hashSources []csp.SourceI
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+
+		hashAlgorithm, hash, found := strings.Cut(value, "-")
+		if !found {
+			return motmedelErrors.NewWithTrace(
+				motmedelErrors.ErrBadSplit,
+				value,
+			)
+		}
+
+		hashSources = append(hashSources, &csp.HashSource{HashAlgorithm: hashAlgorithm, Base64Value: hash})
+	}
+
+	if len(hashSources) == 0 {
+		return nil
+	}
+
+	if existingStyleSrcDirective := contentSecurityPolicy.GetStyleSrc(); existingStyleSrcDirective != nil {
+		sourceMap := make(map[string]struct{})
+		for _, source := range existingStyleSrcDirective.Sources {
+			sourceMap[source.String()] = struct{}{}
+		}
+
+		for _, hashSource := range hashSources {
+			if _, found := sourceMap[hashSource.String()]; !found {
+				existingStyleSrcDirective.Sources = append(existingStyleSrcDirective.Sources, hashSource)
+			}
+		}
+	} else {
+		styleSrcDirective := &csp.StyleSrcDirective{
+			SourceDirective: csp.SourceDirective{
+				Sources: hashSources,
+			},
+		}
+		contentSecurityPolicy.Directives = append(contentSecurityPolicy.Directives, styleSrcDirective)
+	}
+
+	return nil
 }
