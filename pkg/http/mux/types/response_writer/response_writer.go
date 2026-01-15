@@ -23,10 +23,14 @@ var DefaultHeaders = map[string]string{
 	"Cross-Origin-Resource-Policy": "same-origin",
 }
 
+const (
+	DefaultContentSecurityPolicyString = "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+)
+
 var DefaultDocumentHeaders = map[string]string{
 	"Cross-Origin-Opener-Policy":   "same-origin",
 	"Cross-Origin-Embedder-Policy": "require-corp",
-	"Content-Security-Policy":      "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+	"Content-Security-Policy":      DefaultContentSecurityPolicyString,
 	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
 	"Referrer-Policy":              "same-origin",
 }
