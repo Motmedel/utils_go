@@ -1,0 +1,66 @@
+package rule_id_mappings
+
+import "github.com/Motmedel/utils_go/pkg/tls/security/rule_id"
+
+var RuleIdToTitle = map[string]string{
+	rule_id.CertificateExpired:          "Expired Certificate",
+	rule_id.CertificateExpiringSoon:     "Certificate Expiring Soon",
+	rule_id.CertificateSelfSigned:       "Self-Signed Certificate",
+	rule_id.CertificateChainIncomplete:  "Incomplete Certificate Chain",
+	rule_id.CertificateHostnameMismatch: "Certificate Hostname Mismatch",
+	rule_id.CertificateNotYetValid:      "Certificate Not Yet Valid",
+	rule_id.CertificateChainUntrusted:   "Untrusted Certificate Chain",
+	rule_id.WeakRsaKeyLength:            "Weak RSA Key Length",
+	rule_id.WeakSignatureAlgorithm:      "Weak Signature Algorithm",
+	rule_id.TlsVersionDeprecated:        "Deprecated TLS Version",
+	rule_id.Tls10Enabled:                "TLS 1.0 Enabled",
+	rule_id.Tls11Enabled:                "TLS 1.1 Enabled",
+	rule_id.WeakCipherSuite:             "Weak Cipher Suite",
+	rule_id.CipherSuiteNoForwardSecrecy: "No Forward Secrecy",
+	rule_id.CipherSuiteRc4:              "RC4 Cipher Suite",
+	rule_id.CipherSuite3des:             "3DES Cipher Suite",
+	rule_id.CipherSuiteExport:           "Export Cipher Suite",
+	rule_id.CipherSuiteNull:             "NULL Cipher Suite",
+}
+
+var RuleIdToDescription = map[string]string{
+	rule_id.CertificateExpired:          "The server's TLS certificate has expired and is no longer valid. Clients may reject connections to this server.",
+	rule_id.CertificateExpiringSoon:     "The server's TLS certificate will expire within 30 days. Consider renewing the certificate to avoid service disruption.",
+	rule_id.CertificateSelfSigned:       "The server is using a self-signed certificate that is not issued by a trusted Certificate Authority. This may cause trust warnings in clients.",
+	rule_id.CertificateChainIncomplete:  "The certificate chain is incomplete or could not be verified. Some clients may not trust this certificate.",
+	rule_id.CertificateHostnameMismatch: "The certificate's subject name does not match the hostname used to connect. This indicates a potential misconfiguration or man-in-the-middle attack.",
+	rule_id.CertificateNotYetValid:      "The server's TLS certificate is not yet valid. The certificate's validity period has not started.",
+	rule_id.CertificateChainUntrusted:   "The certificate chain could not be verified against the system trust store. The issuing Certificate Authority is not trusted.",
+	rule_id.WeakRsaKeyLength:            "The server's RSA key is less than 2048 bits, which is considered weak by modern security standards. Keys of this size can potentially be factored by attackers.",
+	rule_id.WeakSignatureAlgorithm:      "The certificate uses a weak signature algorithm (SHA-1 or MD5) that is vulnerable to collision attacks. Modern certificates should use SHA-256 or stronger.",
+	rule_id.TlsVersionDeprecated:        "The server is using a deprecated TLS version. Modern security best practices require TLS 1.2 or higher.",
+	rule_id.Tls10Enabled:                "The server supports TLS 1.0, which has known security vulnerabilities including BEAST and POODLE attacks. TLS 1.0 has been deprecated by major browsers and security standards.",
+	rule_id.Tls11Enabled:                "The server supports TLS 1.1, which lacks modern cryptographic features and is considered deprecated. TLS 1.2 or higher is recommended.",
+	rule_id.WeakCipherSuite:             "The server is using a cipher suite that is considered weak by modern security standards.",
+	rule_id.CipherSuiteNoForwardSecrecy: "The cipher suite does not provide forward secrecy. If the server's private key is compromised, past communications could be decrypted.",
+	rule_id.CipherSuiteRc4:              "The server supports RC4 cipher suites, which have known vulnerabilities and have been prohibited by RFC 7465. RC4 should not be used for TLS connections.",
+	rule_id.CipherSuite3des:             "The server supports 3DES cipher suites, which are vulnerable to the Sweet32 attack due to the small 64-bit block size. 3DES is deprecated for TLS.",
+	rule_id.CipherSuiteExport:           "The server supports export-grade cipher suites, which use intentionally weakened cryptography and are vulnerable to attacks like FREAK and Logjam.",
+	rule_id.CipherSuiteNull:             "The server supports NULL cipher suites, which provide no encryption. Data transmitted using these suites is sent in plaintext.",
+}
+
+var RuleIdToSeverity = map[string]string{
+	rule_id.CertificateExpired:          "high",
+	rule_id.CertificateExpiringSoon:     "medium",
+	rule_id.CertificateSelfSigned:       "medium",
+	rule_id.CertificateChainIncomplete:  "medium",
+	rule_id.CertificateHostnameMismatch: "high",
+	rule_id.CertificateNotYetValid:      "high",
+	rule_id.CertificateChainUntrusted:   "high",
+	rule_id.WeakRsaKeyLength:            "high",
+	rule_id.WeakSignatureAlgorithm:      "high",
+	rule_id.TlsVersionDeprecated:        "high",
+	rule_id.Tls10Enabled:                "high",
+	rule_id.Tls11Enabled:                "medium",
+	rule_id.WeakCipherSuite:             "high",
+	rule_id.CipherSuiteNoForwardSecrecy: "medium",
+	rule_id.CipherSuiteRc4:              "high",
+	rule_id.CipherSuite3des:             "medium",
+	rule_id.CipherSuiteExport:           "high",
+	rule_id.CipherSuiteNull:             "high",
+}
