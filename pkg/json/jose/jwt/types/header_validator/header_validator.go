@@ -6,8 +6,8 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/validation_setting"
+	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validation_setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 

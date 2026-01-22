@@ -7,8 +7,8 @@ import (
 	"math/big"
 
 	"github.com/Motmedel/utils_go/pkg/errors"
-	errors2 "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/key"
+	errors2 "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/key"
 	"github.com/Motmedel/utils_go/pkg/maps"
 )
 

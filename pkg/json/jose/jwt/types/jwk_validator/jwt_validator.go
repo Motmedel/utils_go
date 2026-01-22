@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/base_validator"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/tokenapi"
+	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/base_validator"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/tokenapi"
 	"github.com/Motmedel/utils_go/pkg/maps"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"github.com/Motmedel/utils_go/pkg/utils"

@@ -7,12 +7,12 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
-	"github.com/Motmedel/utils_go/pkg/jwt"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/numeric_date"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/validation_setting"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt"
+	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims_strings"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/parsed_claims"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validation_setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 

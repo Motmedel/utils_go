@@ -9,7 +9,7 @@ import (
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	"github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	"github.com/Motmedel/utils_go/pkg/errors"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
+	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 

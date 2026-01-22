@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/jwt/types/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims_strings"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
