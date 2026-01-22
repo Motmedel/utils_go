@@ -1,6 +1,6 @@
 package errors
 
-import "github.com/Motmedel/utils_go/pkg/errors"
+import "errors"
 
 var (
 	ErrNilToken                   = errors.New("nil token")
@@ -26,13 +26,6 @@ var (
 	ErrEmptyEcCrv                 = errors.New("empty ec crv")
 	ErrEmptyEcX                   = errors.New("empty ec x")
 	ErrEmptyEcY                   = errors.New("empty ec y")
-	ErrUnsupportedCrv             = errors.New("unsupported crv")
-	ErrKtyMismatch                = errors.New("kty mismatch")
-	ErrUnsupportedKty             = errors.New("unsupported kty")
-	ErrNilExpiresAt               = errors.New("nil expires at")
-	ErrNilNotBefore               = errors.New("nil not before")
-	ErrEmptySubject               = errors.New("empty subject")
-	ErrEmptyIssuer                = errors.New("empty issuer")
 )
 
 type MissingRequiredFieldError struct {

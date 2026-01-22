@@ -1,24 +1,23 @@
 package rsa
 
 import (
+	"crypto"
 	rsa2 "crypto/rsa"
 	"encoding/base64"
 	"fmt"
 	"math/big"
 
 	"github.com/Motmedel/utils_go/pkg/errors"
-	errors2 "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/key"
+	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	"github.com/Motmedel/utils_go/pkg/maps"
 )
 
 type Key struct {
-	key.Key
 	N string `json:"n"`
 	E string `json:"e"`
 }
 
-func (k *Key) PublicKey() (*rsa2.PublicKey, error) {
+func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	n := k.N
 	nBytes, err := base64.RawURLEncoding.DecodeString(n)
 	if err != nil {
@@ -62,7 +61,7 @@ func New(m map[string]any) (*Key, error) {
 	}
 
 	if kty != "RSA" {
-		return nil, errors.NewWithTrace(errors2.ErrKtyMismatch)
+		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
 	}
 
 	n, err := maps.MapGetConvert[string](m, "n")
@@ -75,6 +74,6 @@ func New(m map[string]any) (*Key, error) {
 		return nil, fmt.Errorf("map get convert (e): %w", err)
 	}
 
-	return &Key{Key: key.Key{Kty: kty}, N: n, E: e}, nil
+	return &Key{N: n, E: e}, nil
 
 }

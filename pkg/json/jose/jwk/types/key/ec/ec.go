@@ -1,6 +1,7 @@
 package ec
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"encoding/base64"
@@ -8,8 +9,7 @@ import (
 	"math/big"
 
 	"github.com/Motmedel/utils_go/pkg/errors"
-	errors2 "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/key"
+	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	"github.com/Motmedel/utils_go/pkg/maps"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -28,13 +28,12 @@ func curveFromCrv(crv string) elliptic.Curve {
 }
 
 type Key struct {
-	key.Key
 	Crv string `json:"crv"`
 	X   string `json:"x"`
 	Y   string `json:"y"`
 }
 
-func (k *Key) PublicKey() (*ecdsa.PublicKey, error) {
+func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	x := k.X
 	xBytes, err := base64.RawURLEncoding.DecodeString(x)
 	if err != nil {
@@ -62,7 +61,7 @@ func (k *Key) PublicKey() (*ecdsa.PublicKey, error) {
 	crv := k.Crv
 	curve := curveFromCrv(crv)
 	if utils.IsNil(curve) {
-		return nil, errors.NewWithTrace(errors2.ErrUnsupportedCrv, crv)
+		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrUnsupportedCrv, crv)
 	}
 
 	return &ecdsa.PublicKey{Curve: curve, X: new(big.Int).SetBytes(xBytes), Y: new(big.Int).SetBytes(yBytes)}, nil
@@ -79,7 +78,7 @@ func New(m map[string]any) (*Key, error) {
 	}
 
 	if kty != "EC" {
-		return nil, errors.NewWithTrace(errors2.ErrKtyMismatch)
+		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
 	}
 
 	crv, err := maps.MapGetConvert[string](m, "crv")
@@ -97,5 +96,5 @@ func New(m map[string]any) (*Key, error) {
 		return nil, fmt.Errorf("map get convert (y): %w", err)
 	}
 
-	return &Key{Key: key.Key{Kty: kty}, Crv: crv, X: x, Y: y}, nil
+	return &Key{Crv: crv, X: x, Y: y}, nil
 }
