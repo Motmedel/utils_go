@@ -2,17 +2,18 @@ package parsed_claims
 
 import (
 	"fmt"
+	"maps"
+
 	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	jwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/numeric_date"
-	"maps"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/claims_strings"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/numeric_date"
 )
 
 type ParsedClaims map[string]any
 
-func FromMap(claimsMap map[string]any) (ParsedClaims, error) {
+func New(claimsMap map[string]any) (ParsedClaims, error) {
 	if claimsMap == nil {
 		return nil, nil
 	}

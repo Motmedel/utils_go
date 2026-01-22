@@ -2,9 +2,10 @@ package registered_claims
 
 import (
 	"fmt"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/claims_strings"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -46,14 +47,13 @@ func getNumericDate(value any) (*numeric_date.NumericDate, error) {
 	}
 }
 
-func FromMap(m map[string]any) (*RegisteredClaims, error) {
+func New(m map[string]any) (*RegisteredClaims, error) {
 	if len(m) == 0 {
 		return nil, nil
 	}
 
 	registeredClaims := &RegisteredClaims{}
 
-	// iss
 	if v, ok := m["iss"]; ok && v != nil {
 		vs, err := utils.Convert[string](v)
 		if err != nil {
@@ -62,7 +62,6 @@ func FromMap(m map[string]any) (*RegisteredClaims, error) {
 		registeredClaims.Issuer = vs
 	}
 
-	// sub
 	if v, ok := m["sub"]; ok && v != nil {
 		vs, err := utils.Convert[string](v)
 		if err != nil {
@@ -71,7 +70,6 @@ func FromMap(m map[string]any) (*RegisteredClaims, error) {
 		registeredClaims.Subject = vs
 	}
 
-	// aud
 	if v, ok := m["aud"]; ok && v != nil {
 		aud, err := claims_strings.Convert(v)
 		if err != nil {
@@ -80,7 +78,6 @@ func FromMap(m map[string]any) (*RegisteredClaims, error) {
 		registeredClaims.Audience = aud
 	}
 
-	// exp
 	if v, ok := m["exp"]; ok {
 		if v == nil {
 			registeredClaims.ExpiresAt = nil
@@ -93,7 +90,6 @@ func FromMap(m map[string]any) (*RegisteredClaims, error) {
 		}
 	}
 
-	// nbf
 	if v, ok := m["nbf"]; ok {
 		if v == nil {
 			registeredClaims.NotBefore = nil
@@ -106,7 +102,6 @@ func FromMap(m map[string]any) (*RegisteredClaims, error) {
 		}
 	}
 
-	// iat
 	if v, ok := m["iat"]; ok {
 		if v == nil {
 			registeredClaims.IssuedAt = nil
@@ -119,7 +114,6 @@ func FromMap(m map[string]any) (*RegisteredClaims, error) {
 		}
 	}
 
-	// jti
 	if v, ok := m["jti"]; ok {
 		vs, err := utils.Convert[string](v)
 		if err != nil {

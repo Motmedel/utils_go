@@ -3,10 +3,11 @@ package numeric_date
 import (
 	"encoding/json"
 	"fmt"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"math"
 	"strconv"
 	"time"
+
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
 var TimePrecision = time.Second
@@ -62,13 +63,13 @@ func (date *NumericDate) UnmarshalJSON(b []byte) (err error) {
 		return motmedelErrors.NewWithTrace(fmt.Errorf("json number float64: %w", err), number)
 	}
 
-	n := FromSeconds(f)
+	n := NewFromSeconds(f)
 	*date = *n
 
 	return nil
 }
 
-func FromSeconds(f float64) *NumericDate {
+func NewFromSeconds(f float64) *NumericDate {
 	round, frac := math.Modf(f)
 	return New(time.Unix(int64(round), int64(frac*1e9)))
 }
@@ -84,14 +85,14 @@ func Convert(value any) (*NumericDate, error) {
 			return nil, nil
 		}
 
-		return FromSeconds(typedValue), nil
+		return NewFromSeconds(typedValue), nil
 	case json.Number:
 		typedFloatValue, err := typedValue.Float64()
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json number float64: %w", err), typedValue)
 		}
 
-		return FromSeconds(typedFloatValue), nil
+		return NewFromSeconds(typedFloatValue), nil
 	default:
 		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("%w: %T", motmedelErrors.ErrUnexpectedType, typedValue),

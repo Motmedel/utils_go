@@ -3,10 +3,11 @@ package header_validator
 import (
 	"errors"
 	"fmt"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/validation_setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -16,7 +17,7 @@ type ExpectedFields struct {
 }
 
 type HeaderValidator struct {
-	Settings map[string]setting.Setting
+	Settings map[string]validation_setting.Setting
 	Expected *ExpectedFields
 }
 
@@ -33,7 +34,7 @@ func (validator *HeaderValidator) Validate(fields map[string]any) error {
 	var errs []error
 
 	for key, value := range validator.Settings {
-		if _, ok := fields[key]; value == setting.SettingRequired && !ok {
+		if _, ok := fields[key]; value == validation_setting.Required && !ok {
 			errs = append(
 				errs,
 				&motmedelJwtErrors.MissingRequiredFieldError{Name: key},
@@ -42,7 +43,7 @@ func (validator *HeaderValidator) Validate(fields map[string]any) error {
 	}
 
 	for key, value := range fields {
-		if fieldSetting := validator.Settings[key]; fieldSetting == setting.SettingSkip {
+		if fieldSetting := validator.Settings[key]; fieldSetting == validation_setting.Skip {
 			continue
 		}
 

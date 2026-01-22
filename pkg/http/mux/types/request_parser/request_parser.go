@@ -11,6 +11,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/url_processor_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	"github.com/Motmedel/utils_go/pkg/http/mux/utils/jwt"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
 	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
@@ -158,9 +159,33 @@ func (p *RequestParserWithUrlProcessor[T]) Parse(request *http.Request) (*url.UR
 	return parsedUrl, nil
 }
 
-func WithUrlProcessor[T urler.StringURLer](requestParser RequestParser[T], options ...url_processor_config.Option) *RequestParserWithUrlProcessor[T] {
+func NewWithUrlProcessor[T urler.StringURLer](requestParser RequestParser[T], options ...url_processor_config.Option) *RequestParserWithUrlProcessor[T] {
 	return &RequestParserWithUrlProcessor[T]{
 		RequestParser: requestParser,
 		Config:        url_processor_config.New(options...),
 	}
+}
+
+type RequestParserWithJwtProcessor struct {
+	RequestParser RequestParser[string]
+}
+
+func (p *RequestParserWithJwtProcessor) Parse(request *http.Request) (*jwt.TokenWithRaw, *response_error.ResponseError) {
+	requestParser := p.RequestParser
+	if utils.IsNil(requestParser) {
+		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
+	}
+
+	result, responseError := requestParser.Parse(request)
+	if responseError != nil {
+		return nil, responseError
+	}
+	if utils.IsNil(result) {
+		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(urler.ErrNilStringUrler)}
+	}
+
+}
+
+type RequestParserWithKeyIdJwtProcessor struct {
+	RequestParser RequestParser[string]
 }

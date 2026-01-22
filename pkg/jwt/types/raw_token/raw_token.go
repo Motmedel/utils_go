@@ -2,13 +2,13 @@ package raw_token
 
 import (
 	"fmt"
+	"strings"
+
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing"
-	"github.com/Motmedel/utils_go/pkg/jwt/verification"
+	"github.com/Motmedel/utils_go/pkg/jwt"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"strings"
 )
 
 type RawToken struct {
@@ -30,7 +30,7 @@ func (rawToken *RawToken) Verify(verifier motmedelCryptoInterfaces.Verifier) err
 
 	header := rawSplit[0]
 	payload := rawSplit[1]
-	if err := verification.Verify(header, payload, rawToken.Signature, verifier); err != nil {
+	if err := jwt.Verify(header, payload, rawToken.Signature, verifier); err != nil {
 		return motmedelErrors.New(fmt.Errorf("verifier verify: %w", err), header, payload, rawToken.Signature)
 	}
 
@@ -38,7 +38,7 @@ func (rawToken *RawToken) Verify(verifier motmedelCryptoInterfaces.Verifier) err
 }
 
 func New(token string) (*RawToken, error) {
-	header, payload, signature, err := parsing.Parse(token)
+	header, payload, signature, err := jwt.Parse(token)
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}

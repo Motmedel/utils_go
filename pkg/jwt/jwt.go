@@ -1,286 +1,132 @@
 package jwt
 
 import (
-	"crypto/x509"
 	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
+	"strings"
+	"time"
 
-	"github.com/Motmedel/utils_go/pkg/crypto/ecdsa"
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
-	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
-	"github.com/Motmedel/utils_go/pkg/crypto/rsa"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
-	jwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/raw_token"
-	jwtKey "github.com/Motmedel/utils_go/pkg/jwt/types/key"
-	jwtToken "github.com/Motmedel/utils_go/pkg/jwt/types/token"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/base_validator"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/header_validator"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/jwk_validator"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/registered_claims_validator"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
-	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
+	"github.com/Motmedel/utils_go/pkg/crypto/interfaces"
+	"github.com/Motmedel/utils_go/pkg/errors"
+	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-func ParseAndCheckWithValidator(
-	tokenString string,
-	signatureVerifier motmedelCryptoInterfaces.NamedVerifier,
-	tokenValidator validator.Validator[*jwtToken.Token],
-) (*jwtToken.Token, error) {
-	if tokenString == "" {
-		return nil, nil
+func Verify(header string, payload string, signature []byte, verifier interfaces.Verifier) error {
+	if utils.IsNil(verifier) {
+		return errors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
 	}
 
-	rawToken, err := raw_token.New(tokenString)
+	err := verifier.Verify([]byte(strings.Join([]string{header, payload}, ".")), signature)
 	if err != nil {
-		return nil, fmt.Errorf("%w: raw token new: %w", motmedelErrors.ErrParseError, err)
-	}
-	if rawToken == nil {
-		return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilRawToken)
+		return fmt.Errorf("%w: verifier verify: %w", errors.ErrVerificationError, err)
 	}
 
-	token, err := jwtToken.FromRawToken(rawToken)
-	if err != nil {
-		return nil, motmedelErrors.New(
-			fmt.Errorf("%w: token from raw token: %w", motmedelErrors.ErrParseError, err),
-			rawToken,
+	return nil
+}
+
+func VerifyTokenString(tokenString string, verifier interfaces.Verifier) error {
+	if utils.IsNil(verifier) {
+		return errors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
+	}
+
+	if len(tokenString) == 0 {
+		return errors.NewWithTrace(
+			fmt.Errorf("%w: %w", errors.ErrParseError, motmedelJwtErrors.ErrEmptyTokenString),
 		)
 	}
 
-	if !utils.IsNil(signatureVerifier) {
-		if token == nil {
-			return nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
-		}
+	rawSplit := strings.Split(tokenString, ".")
+	if len(rawSplit) != 3 {
+		return errors.NewWithTrace(
+			fmt.Errorf("%w: %w", errors.ErrParseError, errors.ErrBadSplit),
+		)
+	}
 
-		tokenHeader := token.Header
-		if tokenHeader == nil {
-			return token, motmedelErrors.NewWithTrace(jwtErrors.ErrNilTokenHeader)
-		}
+	header := rawSplit[0]
+	payload := rawSplit[1]
 
-		alg, err := motmedelMaps.MapGetConvert[string](tokenHeader, "alg")
+	signature, err := base64.RawURLEncoding.DecodeString(rawSplit[2])
+	if err != nil {
+		return errors.NewWithTrace(
+			fmt.Errorf("%w: %w", errors.ErrParseError, errors.ErrBadSplit),
+		)
+	}
+
+	if err := Verify(header, payload, signature, verifier); err != nil {
+		return errors.New(fmt.Errorf("verifier verify: %w", err), header, payload, signature)
+	}
+
+	return nil
+}
+
+const (
+	TokenDelimiter = "."
+)
+
+func SplitToken(token string) ([3]string, error) {
+	var parts [3]string
+
+	splitParts := strings.SplitN(token, TokenDelimiter, 3)
+	if len(splitParts) != 3 {
+		return parts, errors.NewWithTrace(errors.ErrBadSplit)
+	}
+
+	parts[0] = splitParts[0]
+	parts[1] = splitParts[1]
+	parts[2] = splitParts[2]
+
+	return parts, nil
+}
+
+func Parse(token string) ([]byte, []byte, []byte, error) {
+	parts, err := SplitToken(token)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("split token: %w", err)
+	}
+
+	var decodedParts [3][]byte
+
+	for i := 0; i < len(parts); i++ {
+		decodedParts[i], err = base64.RawURLEncoding.DecodeString(parts[i])
 		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("map get convert: %w", err), tokenHeader)
-			if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
+			var partName string
+			switch i {
+			case 0:
+				partName = " (header part)"
+			case 1:
+				partName = " (payload part)"
+			case 2:
+				partName = " (signature part)"
+
 			}
-			return token, wrappedErr
-		}
-
-		verifierMethodName := signatureVerifier.GetName()
-		if alg != verifierMethodName {
-			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrVerificationError, jwtErrors.ErrAlgorithmMismatch),
-				jwtErrors.ErrAlgorithmMismatch, alg, verifierMethodName,
-			)
-		}
-
-		if err := rawToken.Verify(signatureVerifier); err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("raw token verify: %w", err), rawToken)
-		}
-	}
-
-	if !utils.IsNil(tokenValidator) {
-		// TODO: Should I really add `ErrValidationError` here?
-		if err := tokenValidator.Validate(token); err != nil {
-			return nil, motmedelErrors.New(
-				fmt.Errorf("%w: token validator validate: %w", motmedelErrors.ErrValidationError, err),
-				token,
-			)
-		}
-	}
-
-	return token, nil
-}
-
-func ParseAndCheck(tokenString string, signatureVerifier motmedelCryptoInterfaces.NamedVerifier) (*jwtToken.Token, error) {
-	return ParseAndCheckWithValidator(
-		tokenString,
-		signatureVerifier,
-		&base_validator.BaseValidator{
-			PayloadValidator: &registered_claims_validator.RegisteredClaimsValidator{},
-		},
-	)
-}
-
-func ParseAndCheckJwkWithValidator(tokenString string, tokenValidator validator.Validator[*jwtToken.Token]) (*jwtToken.Token, []byte, error) {
-	if tokenString == "" {
-		return nil, nil, nil
-	}
-
-	rawToken, err := raw_token.New(tokenString)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%w: raw token new: %w", motmedelErrors.ErrParseError, err)
-	}
-	if rawToken == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilRawToken)
-	}
-
-	token, err := jwtToken.FromRawToken(rawToken)
-	if err != nil {
-		return nil, nil, motmedelErrors.New(
-			fmt.Errorf("%w: token from raw token: %w", motmedelErrors.ErrParseError, err),
-			rawToken,
-		)
-	}
-
-	if !utils.IsNil(tokenValidator) {
-		if err := tokenValidator.Validate(token); err != nil {
-			return token, nil, motmedelErrors.New(
-				fmt.Errorf("%w: token validator validate: %w", motmedelErrors.ErrValidationError, err),
-				token,
+			return nil, nil, nil, errors.NewWithTrace(
+				fmt.Errorf("base64 raw url encoding decode string%s: %w", partName, err),
 			)
 		}
 	}
 
-	if token == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilToken)
-	}
-
-	tokenHeader := token.Header
-	if tokenHeader == nil {
-		return token, nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilTokenHeader)
-	}
-
-	alg, err := motmedelMaps.MapGetConvert[string](tokenHeader, "alg")
-	if err != nil {
-		var wrappedErr error = motmedelErrors.New(fmt.Errorf("map get convert: %w", err), tokenHeader)
-		if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
-			wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-		}
-		return token, nil, wrappedErr
-	}
-
-	tokenPayload := token.Payload
-	if tokenPayload == nil {
-		return token, nil, motmedelErrors.NewWithTrace(jwtErrors.ErrNilTokenPayload)
-	}
-
-	keyMap, err := motmedelMaps.MapGetConvert[map[string]any](tokenPayload, "key")
-	if err != nil {
-		var wrappedErr error = motmedelErrors.New(fmt.Errorf("map get convert: %w", err), tokenPayload)
-		if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
-			wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-		}
-		return token, nil, wrappedErr
-	}
-
-	kty, err := motmedelMaps.MapGetConvert[string](keyMap, "kty")
-	if err != nil {
-		var wrappedErr error = motmedelErrors.New(fmt.Errorf("map get convert: %w", err), keyMap)
-		if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
-			wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-		}
-		return token, nil, wrappedErr
-	}
-
-	var method motmedelCryptoInterfaces.Method
-
-	var key any
-
-	switch kty {
-	case "RSA":
-		rsaKey, err := jwtKey.RsaKeyFromMap(keyMap)
-		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("rsa key from map: %w", err), keyMap)
-			if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-			}
-			return token, nil, wrappedErr
-		}
-
-		publicKey, err := rsaKey.PublicKey()
-		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ec key public key: %w", err), rsaKey)
-
-			var corruptInputError base64.CorruptInputError
-			if errors.Is(err, io.ErrUnexpectedEOF) || errors.As(err, &corruptInputError) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-			}
-
-			return token, nil, wrappedErr
-		}
-
-		method, err = rsa.New(alg, nil, publicKey)
-		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ecdsa new: %w", err), alg)
-			if errors.Is(err, motmedelCryptoErrors.ErrUnsupportedAlgorithm) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-			}
-			return token, nil, wrappedErr
-		}
-
-		key = publicKey
-	case "EC":
-		ecKey, err := jwtKey.EcKeyFromMap(keyMap)
-		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ec key from map: %w", err), keyMap)
-			if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-			}
-			return token, nil, wrappedErr
-		}
-
-		publicKey, err := ecKey.PublicKey()
-		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ec key public key: %w", err), ecKey)
-
-			var corruptInputError base64.CorruptInputError
-			if motmedelErrors.IsAny(err, jwtErrors.ErrUnsupportedCrv, io.ErrUnexpectedEOF) || errors.As(err, &corruptInputError) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-			}
-
-			return token, nil, wrappedErr
-		}
-
-		method, err = ecdsa.FromPublicKey(publicKey)
-		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ecdsa from public key: %w", err), publicKey)
-			if motmedelErrors.IsAny(err, motmedelCryptoErrors.ErrCurveMismatch, motmedelCryptoErrors.ErrUnsupportedAlgorithm) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-			}
-			return token, nil, wrappedErr
-		}
-
-		key = publicKey
-	default:
-		return token, nil, motmedelErrors.NewWithTrace(jwtErrors.ErrUnsupportedKty, kty)
-	}
-
-	derEncodedKey, err := x509.MarshalPKIXPublicKey(key)
-	if err != nil {
-		return token, nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: x509 marshal pkix public key: %w", motmedelErrors.ErrValidationError, err),
-			key,
-		)
-	}
-
-	if err := rawToken.Verify(method); err != nil {
-		return token, derEncodedKey, motmedelErrors.New(fmt.Errorf("raw token verify: %w", err), rawToken, method)
-	}
-
-	return token, derEncodedKey, nil
+	return decodedParts[0], decodedParts[1], decodedParts[2], nil
 }
 
-func ParseAndCheckJwk(tokenString string) (*jwtToken.Token, any, error) {
-	return ParseAndCheckJwkWithValidator(
-		tokenString,
-		&jwk_validator.JwkValidator{
-			BaseValidator: base_validator.BaseValidator{
-				HeaderValidator: &header_validator.HeaderValidator{
-					Settings: map[string]setting.Setting{
-						"alg": setting.SettingRequired,
-					},
-				},
-				PayloadValidator: &registered_claims_validator.RegisteredClaimsValidator{
-					Settings: map[string]setting.Setting{
-						"key": setting.SettingRequired,
-					},
-				},
-			},
-		},
-	)
+func ValidateExpiresAt(expiresAt time.Time, cmp time.Time) error {
+	if cmp.After(expiresAt) {
+		return motmedelJwtErrors.ErrExpExpired
+	}
+	return nil
+}
+
+func ValidateNotBefore(notBefore time.Time, cmp time.Time) error {
+	if cmp.Before(notBefore) {
+		return motmedelJwtErrors.ErrNbfBefore
+	}
+	return nil
+}
+
+func ValidateIssuedAt(issuedAt time.Time, cmp time.Time) error {
+	if cmp.Before(issuedAt) {
+		return motmedelJwtErrors.ErrIatBefore
+	}
+	return nil
 }

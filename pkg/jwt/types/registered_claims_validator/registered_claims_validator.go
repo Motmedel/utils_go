@@ -3,16 +3,17 @@ package registered_claims_validator
 import (
 	"errors"
 	"fmt"
+	"time"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
+	"github.com/Motmedel/utils_go/pkg/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/jwt/parsing/types/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/claims_strings"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation"
-	"github.com/Motmedel/utils_go/pkg/jwt/validation/types/setting"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/validation_setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"time"
 )
 
 type ExpectedRegisteredClaims struct {
@@ -23,7 +24,7 @@ type ExpectedRegisteredClaims struct {
 }
 
 type RegisteredClaimsValidator struct {
-	Settings map[string]setting.Setting
+	Settings map[string]validation_setting.Setting
 	Expected *ExpectedRegisteredClaims
 }
 
@@ -40,7 +41,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 	var errs []error
 
 	for key, value := range validator.Settings {
-		if _, ok := parsedClaims[key]; value == setting.SettingRequired && !ok {
+		if _, ok := parsedClaims[key]; value == validation_setting.Required && !ok {
 			errs = append(
 				errs,
 				&motmedelJwtErrors.MissingRequiredFieldError{Name: key},
@@ -49,7 +50,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 	}
 
 	for key, value := range parsedClaims {
-		if claimSetting := validator.Settings[key]; claimSetting == setting.SettingSkip {
+		if claimSetting := validator.Settings[key]; claimSetting == validation_setting.Skip {
 			continue
 		}
 
@@ -60,7 +61,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
 			}
 
-			if err := validation.ValidateExpiresAt(expiresAt.Time, time.Now()); err != nil {
+			if err := jwt.ValidateExpiresAt(expiresAt.Time, time.Now()); err != nil {
 				wrappedErr := motmedelErrors.New(
 					fmt.Errorf("validate expires at: %w", err),
 					expiresAt.Time,
@@ -76,7 +77,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
 			}
 
-			if err := validation.ValidateNotBefore(notBefore.Time, time.Now()); err != nil {
+			if err := jwt.ValidateNotBefore(notBefore.Time, time.Now()); err != nil {
 				wrappedErr := motmedelErrors.New(
 					fmt.Errorf("validate not before: %w", err),
 					notBefore.Time,
@@ -92,7 +93,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
 			}
 
-			if err := validation.ValidateIssuedAt(issuedAt.Time, time.Now()); err != nil {
+			if err := jwt.ValidateIssuedAt(issuedAt.Time, time.Now()); err != nil {
 				wrappedErr := motmedelErrors.New(
 					fmt.Errorf("validate issued at: %w", err),
 					issuedAt.Time,

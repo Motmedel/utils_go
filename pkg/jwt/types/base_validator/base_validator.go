@@ -2,11 +2,12 @@ package base_validator
 
 import (
 	"fmt"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/jwt/types/parsed_claims"
-	jwtToken "github.com/Motmedel/utils_go/pkg/jwt/types/token"
+	"github.com/Motmedel/utils_go/pkg/jwt/types/tokenapi"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -15,12 +16,12 @@ type BaseValidator struct {
 	PayloadValidator validator.Validator[parsed_claims.ParsedClaims]
 }
 
-func (v *BaseValidator) Validate(token *jwtToken.Token) error {
+func (v *BaseValidator) Validate(token tokenapi.Token) error {
 	if token == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilToken)
 	}
 
-	tokenHeader := token.Header
+	tokenHeader := token.HeaderFields()
 	if headerValidator := v.HeaderValidator; !utils.IsNil(headerValidator) {
 		if err := headerValidator.Validate(tokenHeader); err != nil {
 			return motmedelErrors.New(fmt.Errorf("header validator validate: %w", err), tokenHeader)
@@ -28,8 +29,8 @@ func (v *BaseValidator) Validate(token *jwtToken.Token) error {
 	}
 
 	if payloadValidator := v.PayloadValidator; !utils.IsNil(payloadValidator) {
-		tokenPayload := token.Payload
-		parsedClaims, err := parsed_claims.FromMap(tokenPayload)
+		tokenPayload := token.Claims()
+		parsedClaims, err := parsed_claims.New(tokenPayload)
 		if err != nil {
 			return motmedelErrors.New(
 				fmt.Errorf("%w: make parsed claims: %w", motmedelErrors.ErrParseError, err),
