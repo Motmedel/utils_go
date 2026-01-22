@@ -28,7 +28,7 @@ type RegisteredClaimsValidator struct {
 	Expected *ExpectedRegisteredClaims
 }
 
-func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.ParsedClaims) error {
+func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.Claims) error {
 	if parsedClaims == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilTokenPayload)
 	}

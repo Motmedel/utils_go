@@ -13,7 +13,7 @@ import (
 
 type BaseValidator struct {
 	HeaderValidator  validator.Validator[map[string]any]
-	PayloadValidator validator.Validator[parsed_claims.ParsedClaims]
+	PayloadValidator validator.Validator[parsed_claims.Claims]
 }
 
 func (v *BaseValidator) Validate(token tokenapi.Token) error {

@@ -11,9 +11,9 @@ import (
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 )
 
-type ParsedClaims map[string]any
+type Claims map[string]any
 
-func New(claimsMap map[string]any) (ParsedClaims, error) {
+func New(claimsMap map[string]any) (Claims, error) {
 	if claimsMap == nil {
 		return nil, nil
 	}
