@@ -23,7 +23,7 @@ type Key struct {
 }
 
 type Keys struct {
-	Keys []map[string]string `json:"keys,omitempty"`
+	Keys []map[string]any `json:"keys,omitempty"`
 }
 
 func New(m map[string]any) (*Key, error) {
