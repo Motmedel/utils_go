@@ -11,5 +11,5 @@ type Key struct {
 }
 
 type Keys struct {
-	Keys []Key `json:"keys,omitempty"`
+	Keys []*Key `json:"keys,omitempty"`
 }
