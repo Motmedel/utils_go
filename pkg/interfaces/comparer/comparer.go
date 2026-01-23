@@ -10,10 +10,10 @@ type Comparer[T comparable] interface {
 	Compare(T) (bool, error)
 }
 
-type ComparerFunction[T comparable] func(T) (bool, error)
+type Function[T comparable] func(T) (bool, error)
 
-func (cf ComparerFunction[T]) Compare(input T) (bool, error) {
-	return cf(input)
+func (f Function[T]) Compare(input T) (bool, error) {
+	return f(input)
 }
 
 type AnyEqualComparer[T comparable] struct {
