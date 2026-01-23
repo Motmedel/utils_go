@@ -8,4 +8,5 @@ var (
 	ErrUnsupportedKty = errors.New("unsupported kty")
 	ErrNilKey         = errors.New("nil key")
 	ErrEmptyAlg       = errors.New("empty alg")
+	ErrNilHandler     = errors.New("nil handler")
 )
