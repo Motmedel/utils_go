@@ -1,4 +1,4 @@
-package claims_strings
+package claim_strings
 
 import (
 	"encoding/json"

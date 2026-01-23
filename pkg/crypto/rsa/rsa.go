@@ -7,9 +7,10 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
+	"hash"
+
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"hash"
 )
 
 // NOTE: Not tested (AI-generated...)
@@ -94,8 +95,6 @@ func (m *Method) GetName() string {
 	return m.Name
 }
 
-// TODO: Derive from the keys
-
 func New(algorithm string, privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey) (*Method, error) {
 	var (
 		hashFunc func() hash.Hash
@@ -149,4 +148,33 @@ func New(algorithm string, privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey)
 		Name:       name,
 		pss:        pss,
 	}, nil
+}
+
+// NewFromPublicKey constructs a verifying Method from an RSA public key by
+// heuristically selecting a JOSE RSA algorithm based on modulus size.
+//
+// Heuristics (PKCS#1 v1.5):
+//   - n bits >= 4096  -> RS512
+//   - n bits >= 3072  -> RS384
+//   - otherwise       -> RS256
+//
+// Note: The choice between PKCS#1 v1.5 (RS*) and PSS (PS*) cannot be inferred
+// from the key alone. This helper defaults to RS* for maximum interoperability.
+func NewFromPublicKey(publicKey *rsa.PublicKey) (*Method, error) {
+	if publicKey == nil {
+		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+	}
+
+	bits := publicKey.N.BitLen()
+	var alg string
+	switch {
+	case bits >= 4096:
+		alg = "RS512"
+	case bits >= 3072:
+		alg = "RS384"
+	default:
+		alg = "RS256"
+	}
+
+	return New(alg, nil, publicKey)
 }

@@ -11,14 +11,14 @@ import (
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-type RawToken struct {
+type Token struct {
 	Header    []byte
 	Payload   []byte
 	Signature []byte
 	Raw       string
 }
 
-func (rawToken *RawToken) Verify(verifier motmedelCryptoInterfaces.Verifier) error {
+func (rawToken *Token) Verify(verifier motmedelCryptoInterfaces.Verifier) error {
 	if utils.IsNil(verifier) {
 		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
 	}
@@ -37,11 +37,11 @@ func (rawToken *RawToken) Verify(verifier motmedelCryptoInterfaces.Verifier) err
 	return nil
 }
 
-func New(token string) (*RawToken, error) {
+func New(token string) (*Token, error) {
 	header, payload, signature, err := jwt.Parse(token)
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}
 
-	return &RawToken{Header: header, Payload: payload, Signature: signature, Raw: token}, nil
+	return &Token{Header: header, Payload: payload, Signature: signature, Raw: token}, nil
 }

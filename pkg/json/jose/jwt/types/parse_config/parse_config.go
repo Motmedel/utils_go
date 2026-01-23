@@ -3,18 +3,18 @@ package parse_config
 import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/base_validator"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/registered_claims_validator"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/tokenapi"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/api"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/registered_claims_validator"
 )
 
-var DefaultValidator = &base_validator.BaseValidator{
+var DefaultValidator = &validator.BaseValidator{
 	PayloadValidator: &registered_claims_validator.RegisteredClaimsValidator{},
 }
 
 type Config struct {
 	SignatureVerifier motmedelCryptoInterfaces.NamedVerifier
-	TokenValidator    validator.Validator[tokenapi.Token]
+	TokenValidator    validator.Validator[api.Token]
 }
 
 type Option func(*Config)
@@ -36,7 +36,7 @@ func WithSignatureVerifier(signatureVerifier motmedelCryptoInterfaces.NamedVerif
 	}
 }
 
-func WithTokenValidator(tokenValidator validator.Validator[tokenapi.Token]) Option {
+func WithTokenValidator(tokenValidator validator.Validator[api.Token]) Option {
 	return func(configuration *Config) {
 		configuration.TokenValidator = tokenValidator
 	}

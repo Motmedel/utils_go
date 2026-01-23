@@ -12,7 +12,7 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/parse_config"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/raw_token"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/raw_token"
 	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -74,7 +74,7 @@ func (token *Token) Claims() map[string]any {
 	return token.Payload
 }
 
-func NewFromRawToken(rawToken *raw_token.RawToken) (*Token, error) {
+func NewFromRawToken(rawToken *raw_token.Token) (*Token, error) {
 	if rawToken == nil {
 		return nil, nil
 	}

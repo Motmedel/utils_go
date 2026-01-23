@@ -7,7 +7,7 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validation_setting"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -16,12 +16,12 @@ type ExpectedFields struct {
 	Typ comparer.Comparer[string]
 }
 
-type HeaderValidator struct {
-	Settings map[string]validation_setting.Setting
+type Validator struct {
+	Settings map[string]setting.Setting
 	Expected *ExpectedFields
 }
 
-func (validator *HeaderValidator) Validate(fields map[string]any) error {
+func (validator *Validator) Validate(fields map[string]any) error {
 	if fields == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilTokenHeader)
 	}
@@ -34,7 +34,7 @@ func (validator *HeaderValidator) Validate(fields map[string]any) error {
 	var errs []error
 
 	for key, value := range validator.Settings {
-		if _, ok := fields[key]; value == validation_setting.Required && !ok {
+		if _, ok := fields[key]; value == setting.Required && !ok {
 			errs = append(
 				errs,
 				&motmedelJwtErrors.MissingRequiredFieldError{Name: key},
@@ -43,7 +43,7 @@ func (validator *HeaderValidator) Validate(fields map[string]any) error {
 	}
 
 	for key, value := range fields {
-		if fieldSetting := validator.Settings[key]; fieldSetting == validation_setting.Skip {
+		if fieldSetting := validator.Settings[key]; fieldSetting == setting.Skip {
 			continue
 		}
 

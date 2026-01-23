@@ -1,4 +1,4 @@
-package validation_setting
+package setting
 
 type Setting int
 

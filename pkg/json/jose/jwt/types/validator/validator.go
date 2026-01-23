@@ -1,4 +1,4 @@
-package base_validator
+package validator
 
 import (
 	"fmt"
@@ -6,17 +6,17 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/parsed_claims"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/tokenapi"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/parsed_claims"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/api"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-type BaseValidator struct {
+type Validator struct {
 	HeaderValidator  validator.Validator[map[string]any]
 	PayloadValidator validator.Validator[parsed_claims.Claims]
 }
 
-func (v *BaseValidator) Validate(token tokenapi.Token) error {
+func (v *Validator) Validate(token api.Token) error {
 	if token == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilToken)
 	}

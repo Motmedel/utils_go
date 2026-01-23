@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/claim_strings"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-type RegisteredClaims struct {
+type Claims struct {
 	// the `iss` (Issuer) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1
 	Issuer string `json:"iss,omitempty"`
 
@@ -17,7 +17,7 @@ type RegisteredClaims struct {
 	Subject string `json:"sub,omitempty"`
 
 	// the `aud` (Audience) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
-	Audience claims_strings.ClaimStrings `json:"aud,omitempty"`
+	Audience claim_strings.ClaimStrings `json:"aud,omitempty"`
 
 	// the `exp` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
 	ExpiresAt *numeric_date.NumericDate `json:"exp,omitempty"`
@@ -47,12 +47,12 @@ func getNumericDate(value any) (*numeric_date.NumericDate, error) {
 	}
 }
 
-func New(m map[string]any) (*RegisteredClaims, error) {
+func New(m map[string]any) (*Claims, error) {
 	if len(m) == 0 {
 		return nil, nil
 	}
 
-	registeredClaims := &RegisteredClaims{}
+	registeredClaims := &Claims{}
 
 	if v, ok := m["iss"]; ok && v != nil {
 		vs, err := utils.Convert[string](v)
@@ -71,7 +71,7 @@ func New(m map[string]any) (*RegisteredClaims, error) {
 	}
 
 	if v, ok := m["aud"]; ok && v != nil {
-		aud, err := claims_strings.Convert(v)
+		aud, err := claim_strings.Convert(v)
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("claims strings convert: %w", err), v)
 		}

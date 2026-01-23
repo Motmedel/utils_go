@@ -9,10 +9,10 @@ import (
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/parsed_claims"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validation_setting"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/claim_strings"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/parsed_claims"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -24,7 +24,7 @@ type ExpectedRegisteredClaims struct {
 }
 
 type RegisteredClaimsValidator struct {
-	Settings map[string]validation_setting.Setting
+	Settings map[string]setting.Setting
 	Expected *ExpectedRegisteredClaims
 }
 
@@ -41,7 +41,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 	var errs []error
 
 	for key, value := range validator.Settings {
-		if _, ok := parsedClaims[key]; value == validation_setting.Required && !ok {
+		if _, ok := parsedClaims[key]; value == setting.Required && !ok {
 			errs = append(
 				errs,
 				&motmedelJwtErrors.MissingRequiredFieldError{Name: key},
@@ -50,7 +50,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 	}
 
 	for key, value := range parsedClaims {
-		if claimSetting := validator.Settings[key]; claimSetting == validation_setting.Skip {
+		if claimSetting := validator.Settings[key]; claimSetting == setting.Skip {
 			continue
 		}
 
@@ -104,7 +104,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				errs = append(errs, wrappedErr)
 			}
 		case "aud":
-			audiences, err := utils.Convert[claims_strings.ClaimStrings](value)
+			audiences, err := utils.Convert[claim_strings.ClaimStrings](value)
 			if err != nil {
 				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
 			}

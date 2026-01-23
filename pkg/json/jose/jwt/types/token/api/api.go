@@ -1,4 +1,4 @@
-package tokenapi
+package api
 
 type Token interface {
 	HeaderFields() map[string]any

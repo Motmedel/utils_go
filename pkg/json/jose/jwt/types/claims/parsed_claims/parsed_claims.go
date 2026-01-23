@@ -7,8 +7,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	jwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims_strings"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/claim_strings"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims/numeric_date"
 )
 
 type Claims map[string]any
@@ -35,7 +35,7 @@ func New(claimsMap map[string]any) (Claims, error) {
 			}
 			clone[key] = *numericDate
 		case "aud":
-			claimsString, err := claims_strings.Convert(value)
+			claimsString, err := claim_strings.Convert(value)
 			if err != nil {
 				return nil, errors.New(fmt.Errorf("parse claim string (%s): %w", key, err), value)
 			}
