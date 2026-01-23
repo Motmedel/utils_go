@@ -8,38 +8,43 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	muxUtils "github.com/Motmedel/utils_go/pkg/http/mux/utils"
-	muxUtilsJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	jsonschemaErrors "github.com/altshiftab/jsonschema/pkg/errors"
 	"github.com/altshiftab/jsonschema/pkg/jsonschema"
 )
 
+var jsonMapBodyParser = json_body_parser.New[map[string]any]()
+
 type Parser[T any] struct {
-	body_parser.BodyParser[T]
-	Schema *jsonschema.Schema
+	schema     *jsonschema.Schema
+	bodyParser body_parser.BodyParser[T]
 }
 
 func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_error.ResponseError) {
 	var zero T
 
-	schema := p.Schema
+	schema := p.schema
 	if schema == nil {
 		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(jsonschemaErrors.ErrNilSchema)}
 	}
 
-	dataMap, responseError := muxUtilsJson.ParseJsonBody[map[string]any](body)
+	bodyParser := p.bodyParser
+	if utils.IsNil(bodyParser) {
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
+	}
+
+	dataMap, responseError := jsonMapBodyParser.Parse(request, body)
 	if responseError != nil {
 		return zero, responseError
 	}
 
-	if err := motmedelJsonSchema.Validate(dataMap, schema); err != nil {
+	if err := schema.Validate(dataMap); err != nil {
 		wrappedErr := motmedelErrors.New(fmt.Errorf("validate (input): %w", err), dataMap, schema)
 
-		var validateError *motmedelJsonSchema.ValidateError
+		var validateError *jsonschemaErrors.ValidateError
 		if errors.As(err, &validateError) {
 			return zero, &response_error.ResponseError{
 				// TODO: The error messages could be made nicer.
@@ -55,13 +60,8 @@ func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_erro
 		return zero, &response_error.ResponseError{ServerError: wrappedErr}
 	}
 
-	parser := p.BodyParser
-	if utils.IsNil(parser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
-	}
-
 	var result T
-	result, responseError = parser.Parse(request, body)
+	result, responseError = bodyParser.Parse(request, body)
 	if responseError != nil {
 		return zero, responseError
 	}
@@ -69,15 +69,19 @@ func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_erro
 	return result, nil
 }
 
-func NewWithSchema[T any](schema *jsonschema.Schema) *Parser[T] {
-	return &Parser[T]{BodyParser: muxUtils.MakeJsonBodyParser[T](), Schema: schema}
+func NewWithSchema[T any](schema *jsonschema.Schema) (*Parser[T], error) {
+	if schema == nil {
+		return nil, motmedelErrors.NewWithTrace(jsonschemaErrors.ErrNilSchema)
+	}
+
+	return &Parser[T]{schema: schema, bodyParser: json_body_parser.New[T]()}, nil
 }
 
 func New[T any]() (*Parser[T], error) {
-	schema, err := jsonschema.FromType[T]()
+	schema, err := jsonschema.NewFromType[T]()
 	if err != nil {
 		return nil, fmt.Errorf("schema new: %w", err)
 	}
 
-	return NewWithSchema[T](schema), nil
+	return NewWithSchema[T](schema)
 }
