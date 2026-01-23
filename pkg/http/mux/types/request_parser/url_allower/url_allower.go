@@ -17,12 +17,12 @@ import (
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-type UrlAllower[T urler.StringURLer] struct {
+type Parser[T urler.StringURLer] struct {
 	request_parser.RequestParser[T]
 	Config *url_allower_config.Config
 }
 
-func (p *UrlAllower[T]) Parse(request *http.Request) (*url.URL, *response_error.ResponseError) {
+func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.ResponseError) {
 	requestParser := p.RequestParser
 	if utils.IsNil(requestParser) {
 		return nil, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(motmedelMuxErrors.ErrNilRequestParser)}
@@ -105,8 +105,8 @@ func (p *UrlAllower[T]) Parse(request *http.Request) (*url.URL, *response_error.
 	return parsedUrl, nil
 }
 
-func New[T urler.StringURLer](requestParser request_parser.RequestParser[T], options ...url_allower_config.Option) *UrlAllower[T] {
-	return &UrlAllower[T]{
+func New[T urler.StringURLer](requestParser request_parser.RequestParser[T], options ...url_allower_config.Option) *Parser[T] {
+	return &Parser[T]{
 		RequestParser: requestParser,
 		Config:        url_allower_config.New(options...),
 	}

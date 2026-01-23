@@ -78,4 +78,3 @@ func New(name string, options ...header_extractor_config.Option) (*Parser, error
 
 	return &Parser{Name: name, config: header_extractor_config.New(options...)}, nil
 }
-

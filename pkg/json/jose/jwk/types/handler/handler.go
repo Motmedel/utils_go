@@ -36,7 +36,8 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 	h.keysMutex.Lock()
 	err := func() error {
 		defer h.keysMutex.Unlock()
-		if expiresAt := h.keysExpiresAt; expiresAt != nil && expiresAt.After(time.Now()) {
+		// Fetch keys on first use (no cache) or when cache is expired.
+		if expiresAt := h.keysExpiresAt; expiresAt == nil || expiresAt.Before(time.Now()) {
 			jwkUrl := h.JwkUrl
 			if jwkUrl == nil {
 				return motmedelErrors.NewWithTrace(fmt.Errorf("%w (jwk url)", motmedelNetErrors.ErrNilUrl))

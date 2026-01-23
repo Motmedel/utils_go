@@ -1,4 +1,4 @@
-package query
+package query_extractor
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/query_extractor/query_extractor_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelJsonTag "github.com/Motmedel/utils_go/pkg/json/types/tag"
@@ -18,7 +19,7 @@ import (
 )
 
 type Parser[T any] struct {
-	AllowAdditionalParameters bool
+	config *query_extractor_config.Config
 }
 
 func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseError) {
@@ -251,7 +252,7 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 		}
 	}
 
-	if !p.AllowAdditionalParameters {
+	if !p.config.AllowAdditionalParameters {
 		for key := range query {
 			if _, ok := known[key]; !ok {
 				parseErrs = append(parseErrs, fmt.Errorf("unknown parameter: %s", key))
@@ -273,4 +274,8 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 	}
 
 	return result.Interface().(T), nil
+}
+
+func New[T any](options ...query_extractor_config.Option) *Parser[T] {
+	return &Parser[T]{config: query_extractor_config.New(options...)}
 }

@@ -1,12 +1,11 @@
-package url_processor_config
-
-type Option func(*Config)
+package url_allower_config
 
 type Config struct {
 	AllowLocalhost           bool
 	AllowedDomains           []string
 	AllowedRegisteredDomains []string
 }
+type Option func(*Config)
 
 func New(options ...Option) *Config {
 	config := &Config{}

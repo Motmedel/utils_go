@@ -1,29 +1,32 @@
-package token_cookie_extractor_config
+package token_header_extractor_config
 
 import "net/http"
 
 var (
-	DefaultCookieName              = "Authorization"
-	DefaultCookiePrefix            = "Bearer "
-	DefaultProblemDetailStatusCode = http.StatusUnauthorized
-	DefaultProblemDetailText       = "Missing token cookie."
+	DefaultHeaderName                = "Authorization"
+	DefaultHeaderValuePrefix         = "Bearer "
+	DefaultProblemDetailStatusCode   = http.StatusUnauthorized
+	DefaultProblemDetailMissingText  = "Missing token header."
+	DefaultProblemDetailMultipleText = "Multiple token headers values."
 )
 
 type Config struct {
-	CookieName              string
-	CookiePrefix            string
-	ProblemDetailStatusCode int
-	ProblemDetailText       string
+	HeaderName                string
+	HeaderValuePrefix         string
+	ProblemDetailStatusCode   int
+	ProblemDetailMissingText  string
+	ProblemDetailMultipleText string
 }
 
 type Option func(*Config)
 
 func New(options ...Option) *Config {
 	config := &Config{
-		CookieName:              DefaultCookieName,
-		CookiePrefix:            DefaultCookiePrefix,
-		ProblemDetailStatusCode: DefaultProblemDetailStatusCode,
-		ProblemDetailText:       DefaultProblemDetailText,
+		HeaderName:                DefaultHeaderName,
+		HeaderValuePrefix:         DefaultHeaderValuePrefix,
+		ProblemDetailStatusCode:   DefaultProblemDetailStatusCode,
+		ProblemDetailMissingText:  DefaultProblemDetailMissingText,
+		ProblemDetailMultipleText: DefaultProblemDetailMultipleText,
 	}
 	for _, option := range options {
 		option(config)
@@ -32,26 +35,32 @@ func New(options ...Option) *Config {
 	return config
 }
 
-func WithCookieName(cookieName string) Option {
-	return func(configuration *Config) {
-		configuration.CookieName = cookieName
+func WithHeaderName(headerName string) Option {
+	return func(config *Config) {
+		config.HeaderName = headerName
 	}
 }
 
-func WithCookiePrefix(cookiePrefix string) Option {
-	return func(configuration *Config) {
-		configuration.CookiePrefix = cookiePrefix
+func WithHeaderValuePrefix(valuePrefix string) Option {
+	return func(config *Config) {
+		config.HeaderValuePrefix = valuePrefix
 	}
 }
 
 func WithProblemDetailStatusCode(statusCode int) Option {
-	return func(configuration *Config) {
-		configuration.ProblemDetailStatusCode = statusCode
+	return func(config *Config) {
+		config.ProblemDetailStatusCode = statusCode
 	}
 }
 
-func WithProblemDetailText(text string) Option {
-	return func(configuration *Config) {
-		configuration.ProblemDetailText = text
+func WithProblemDetailMissingText(text string) Option {
+	return func(config *Config) {
+		config.ProblemDetailMissingText = text
+	}
+}
+
+func WithProblemDetailMultipleText(text string) Option {
+	return func(config *Config) {
+		config.ProblemDetailMultipleText = text
 	}
 }
