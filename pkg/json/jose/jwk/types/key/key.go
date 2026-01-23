@@ -2,12 +2,17 @@ package key
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"fmt"
 
+	motmedelCryptoEcdsa "github.com/Motmedel/utils_go/pkg/crypto/ecdsa"
+	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
+	motmedelCryptoRsa "github.com/Motmedel/utils_go/pkg/crypto/rsa"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key/ec"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key/rsa"
+	ecKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key/ec"
+	rsaKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key/rsa"
 	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
 )
 
@@ -20,6 +25,40 @@ type Key struct {
 	Material interface {
 		PublicKey() (crypto.PublicKey, error)
 	} `json:"-"`
+}
+
+func (k *Key) NamedVerifier() (motmedelCryptoInterfaces.NamedVerifier, error) {
+	material := k.Material
+	if material == nil {
+		return nil, nil
+	}
+
+	publicKey, err := material.PublicKey()
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("public key: %w", err), material)
+	}
+
+	switch typedPublicKey := publicKey.(type) {
+	case *ecdsa.PublicKey:
+		method, err := motmedelCryptoEcdsa.FromPublicKey(typedPublicKey)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("ecdsa from public key: %w", err), typedPublicKey)
+		}
+		return method, nil
+	case *rsa.PublicKey:
+		alg := k.Alg
+		if alg == "" {
+			return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrEmptyAlg)
+		}
+
+		method, err := motmedelCryptoRsa.New(alg, nil, typedPublicKey)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("rsa new: %w", err), alg)
+		}
+		return method, nil
+	default:
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("unsupported public key type: %T", publicKey))
+	}
 }
 
 type Keys struct {
@@ -46,7 +85,7 @@ func New(m map[string]any) (*Key, error) {
 
 	switch kty {
 	case "RSA":
-		material, err = rsa.New(m)
+		material, err = rsaKey.New(m)
 		if err != nil {
 			var wrappedErr error = motmedelErrors.New(fmt.Errorf("rsa new: %w", err), m)
 			if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
@@ -55,7 +94,7 @@ func New(m map[string]any) (*Key, error) {
 			return nil, wrappedErr
 		}
 	case "EC":
-		material, err = ec.New(m)
+		material, err = ecKey.New(m)
 		if err != nil {
 			var wrappedErr error = motmedelErrors.New(fmt.Errorf("ec new: %w", err), m)
 			if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {

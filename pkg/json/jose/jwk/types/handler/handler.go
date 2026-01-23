@@ -2,22 +2,20 @@ package handler
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rsa"
 	"fmt"
 	"net/url"
 	"sync"
 	"time"
 
-	motmedelCryptoEcdsa "github.com/Motmedel/utils_go/pkg/crypto/ecdsa"
+	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
-	motmedelCryptoRsa "github.com/Motmedel/utils_go/pkg/crypto/rsa"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/handler/handler_config"
 	jwkKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
+	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 type Handler struct {
@@ -36,7 +34,6 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 	h.keysMutex.Lock()
 	err := func() error {
 		defer h.keysMutex.Unlock()
-		// Fetch keys on first use (no cache) or when cache is expired.
 		if expiresAt := h.keysExpiresAt; expiresAt == nil || expiresAt.Before(time.Now()) {
 			jwkUrl := h.JwkUrl
 			if jwkUrl == nil {
@@ -100,32 +97,12 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 			return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrNilKey)
 		}
 
-		publicKey, err := key.Material.PublicKey()
+		namedVerifier, err := key.NamedVerifier()
 		if err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("public key: %w", err), key)
+			return nil, motmedelErrors.New(fmt.Errorf("key named verifier: %w", err), key)
 		}
-
-		var namedVerifier motmedelCryptoInterfaces.NamedVerifier
-		switch pk := publicKey.(type) {
-		case *ecdsa.PublicKey:
-			method, err := motmedelCryptoEcdsa.FromPublicKey(pk)
-			if err != nil {
-				return nil, motmedelErrors.New(fmt.Errorf("ecdsa from public key: %w", err), pk)
-			}
-			namedVerifier = method
-		case *rsa.PublicKey:
-			alg := key.Alg
-			if alg == "" {
-				return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrEmptyAlg)
-			}
-
-			method, err := motmedelCryptoRsa.New(alg, nil, pk)
-			if err != nil {
-				return nil, motmedelErrors.New(fmt.Errorf("rsa new: %w", err), alg)
-			}
-			namedVerifier = method
-		default:
-			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("unsupported public key type: %T", publicKey))
+		if utils.IsNil(namedVerifier) {
+			return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
 		}
 
 		h.mu.Lock()
