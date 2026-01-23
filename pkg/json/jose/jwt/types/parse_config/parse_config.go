@@ -4,11 +4,11 @@ import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/api"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator"
+	jwtValidator "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/registered_claims_validator"
 )
 
-var DefaultValidator = &validator.BaseValidator{
+var DefaultValidator = &jwtValidator.Validator{
 	PayloadValidator: &registered_claims_validator.RegisteredClaimsValidator{},
 }
 
