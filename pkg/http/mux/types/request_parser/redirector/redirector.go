@@ -1,4 +1,4 @@
-package redirect_request_parser
+package redirector
 
 import (
 	"errors"
@@ -10,9 +10,9 @@ import (
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxInternalVhostMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/vhost_mux"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/redirector/redirector_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/mux/utils/redirect_request_parser/config"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -97,7 +97,7 @@ func (parser *RequestParser[T]) Parse(request *http.Request) (T, *response_error
 
 	redirectParameter := parser.RedirectParameter
 	if redirectParameter == "" {
-		redirectParameter = config.DefaultParameterName
+		redirectParameter = redirector_config.DefaultParameterName
 	}
 
 	currentUrl := *request.URL
@@ -123,7 +123,7 @@ func (parser *RequestParser[T]) Parse(request *http.Request) (T, *response_error
 func New[T any](
 	requestParser request_parser.RequestParser[T],
 	redirectUrl *url.URL,
-	options ...config.Option,
+	options ...redirector_config.Option,
 ) (*RequestParser[T], error) {
 	if utils.IsNil(requestParser) {
 		return nil, motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)
@@ -133,7 +133,7 @@ func New[T any](
 		return nil, motmedelErrors.NewWithTrace(motmedelNetErrors.ErrNilUrl)
 	}
 
-	requestParserConfig := config.New(options...)
+	requestParserConfig := redirector_config.New(options...)
 
 	return &RequestParser[T]{
 		RequestParser:     requestParser,

@@ -1,4 +1,4 @@
-package json
+package json_body_parser
 
 import (
 	"encoding/json"
@@ -11,7 +11,9 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 )
 
-func ParseJsonBody[T any](body []byte) (T, *response_error.ResponseError) {
+type Parser[T any] struct{}
+
+func (p *Parser[T]) Parse(_ *http.Request, body []byte) (T, *response_error.ResponseError) {
 	var target T
 
 	if err := json.Unmarshal(body, &target); err != nil {
@@ -33,4 +35,8 @@ func ParseJsonBody[T any](body []byte) (T, *response_error.ResponseError) {
 	}
 
 	return target, nil
+}
+
+func New[T any]() *Parser[T] {
+	return &Parser[T]{}
 }

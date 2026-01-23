@@ -23,6 +23,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// TODO: Put in the `endpoint_specification` type package?
+
 const robotsTxtCacheControl = "public, max-age=86400"
 
 func MakeStaticContentHeaders(

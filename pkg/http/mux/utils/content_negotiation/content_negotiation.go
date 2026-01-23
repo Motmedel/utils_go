@@ -1,5 +1,7 @@
 package content_negotiation
 
+// TODO: Move to `pkg/http/utils/content_negotiation`
+
 import (
 	"fmt"
 	"net/http"

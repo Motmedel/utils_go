@@ -14,7 +14,8 @@ import (
 	"time"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
+	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/adapter"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
@@ -25,7 +26,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
-	bodyParserJson "github.com/Motmedel/utils_go/pkg/http/mux/utils/json"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"
@@ -178,11 +178,7 @@ func TestMain(m *testing.M) {
 			},
 			BodyParserConfiguration: &parsing.BodyParserConfiguration{
 				ContentType: "application/json",
-				Parser: body_parser.BodyParserFunction[any](
-					func(_ *http.Request, body []byte) (any, *response_error.ResponseError) {
-						return bodyParserJson.ParseJsonBody[*bodyParserTestData](body)
-					},
-				),
+				Parser:      bodyParserAdapter.New(json_body_parser.New[*bodyParserTestData]()),
 			},
 		},
 		&endpoint_specification.EndpointSpecification{

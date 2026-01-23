@@ -1,4 +1,4 @@
-package config
+package redirector_config
 
 type Option func(*Config)
 
