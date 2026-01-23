@@ -55,7 +55,7 @@ func (p *BodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte
 	return processedResult, nil
 }
 
-func WithProcessor[T any, U any](bodyParser BodyParser[T], processor processorPkg.Processor[U, T]) *BodyParserWithProcessor[T, U] {
+func NewWithProcessor[T any, U any](bodyParser BodyParser[T], processor processorPkg.Processor[U, T]) *BodyParserWithProcessor[T, U] {
 	return &BodyParserWithProcessor[T, U]{
 		BodyParser: bodyParser,
 		Processor:  processor,
