@@ -21,6 +21,8 @@ type ExpectedRegisteredClaims struct {
 	SubjectComparer  comparer.Comparer[string]
 	AudienceComparer comparer.Comparer[string]
 	IdComparer       comparer.Comparer[string]
+
+	OtherComparers map[string]comparer.Comparer[any]
 }
 
 type RegisteredClaimsValidator struct {
@@ -58,7 +60,12 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 		case "exp":
 			expiresAt, err := utils.Convert[numeric_date.NumericDate](value)
 			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
+				)
+
+				continue
 			}
 
 			if err := jwt.ValidateExpiresAt(expiresAt.Time, time.Now()); err != nil {
@@ -74,7 +81,12 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 		case "nbf":
 			notBefore, err := utils.Convert[numeric_date.NumericDate](value)
 			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
+				)
+
+				continue
 			}
 
 			if err := jwt.ValidateNotBefore(notBefore.Time, time.Now()); err != nil {
@@ -90,7 +102,12 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 		case "iat":
 			issuedAt, err := utils.Convert[numeric_date.NumericDate](value)
 			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
+				)
+
+				continue
 			}
 
 			if err := jwt.ValidateIssuedAt(issuedAt.Time, time.Now()); err != nil {
@@ -106,7 +123,12 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 		case "aud":
 			audiences, err := utils.Convert[claim_strings.ClaimStrings](value)
 			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
+				)
+
+				continue
 			}
 
 			if audienceComparer := expected.AudienceComparer; !utils.IsNil(audienceComparer) {
@@ -133,7 +155,12 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 		case "iss":
 			issuer, err := utils.Convert[string](value)
 			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
+				)
+
+				continue
 			}
 
 			if issuerComparer := expected.IssuerComparer; !utils.IsNil(issuerComparer) {
@@ -151,7 +178,12 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 		case "sub":
 			subject, err := utils.Convert[string](value)
 			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
+				)
+
+				continue
 			}
 
 			if subjectComparer := expected.SubjectComparer; !utils.IsNil(subjectComparer) {
@@ -169,7 +201,12 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 		case "jti":
 			id, err := utils.Convert[string](value)
 			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value)
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
+				)
+
+				continue
 			}
 
 			if idComparer := expected.IdComparer; !utils.IsNil(idComparer) {
@@ -183,6 +220,22 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 						motmedelErrors.New(motmedelJwtErrors.ErrIdMismatch, idComparer, id),
 					)
 				}
+			}
+		default:
+			otherComparer, ok := expected.OtherComparers[key]
+			if !ok || utils.IsNil(otherComparer) {
+				continue
+			}
+
+			ok, err := otherComparer.Compare(value)
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), value)
+			}
+			if !ok {
+				errs = append(
+					errs,
+					&motmedelJwtErrors.ClaimMismatchError{Key: key},
+				)
 			}
 		}
 	}

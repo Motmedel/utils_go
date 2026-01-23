@@ -26,6 +26,7 @@ var (
 	ErrEmptyEcCrv                 = errors.New("empty ec crv")
 	ErrEmptyEcX                   = errors.New("empty ec x")
 	ErrEmptyEcY                   = errors.New("empty ec y")
+	ErrClaimMismatch              = errors.New("claim mismatch")
 )
 
 type MissingRequiredFieldError struct {
@@ -42,4 +43,20 @@ func (e *MissingRequiredFieldError) Error() string {
 
 func (e *MissingRequiredFieldError) Unwrap() error {
 	return ErrMissingRequiredField
+}
+
+type ClaimMismatchError struct {
+	Key string
+}
+
+func (e *ClaimMismatchError) Error() string {
+	if e == nil || e.Key == "" {
+		return "claim mismatch"
+	}
+
+	return "claim mismatch: " + e.Key
+}
+
+func (e *ClaimMismatchError) Unwrap() error {
+	return ErrClaimMismatch
 }
