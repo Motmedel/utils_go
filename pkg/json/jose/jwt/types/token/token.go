@@ -11,7 +11,7 @@ import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/parse_config"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/authenticate_config"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/raw_token"
 	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -106,7 +106,7 @@ func New(tokenString string) (*Token, error) {
 	return token, nil
 }
 
-func Parse(tokenString string, options ...parse_config.Option) (*Token, error) {
+func Authenticate(tokenString string, options ...authenticate_config.Option) (*Token, error) {
 	if tokenString == "" {
 		return nil, nil
 	}
@@ -127,7 +127,7 @@ func Parse(tokenString string, options ...parse_config.Option) (*Token, error) {
 		)
 	}
 
-	config := parse_config.New(options...)
+	config := authenticate_config.New(options...)
 
 	signatureVerifier := config.SignatureVerifier
 	if !utils.IsNil(signatureVerifier) {
@@ -160,6 +160,8 @@ func Parse(tokenString string, options ...parse_config.Option) (*Token, error) {
 		if err := rawToken.Verify(signatureVerifier); err != nil {
 			return nil, motmedelErrors.New(fmt.Errorf("raw token verify: %w", err), rawToken)
 		}
+	} else if !config.AllowUnauthenticated {
+		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
 	}
 
 	tokenValidator := config.TokenValidator

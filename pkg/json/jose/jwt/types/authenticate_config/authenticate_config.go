@@ -1,4 +1,4 @@
-package parse_config
+package authenticate_config
 
 import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
@@ -13,8 +13,9 @@ var DefaultValidator = &jwtValidator.Validator{
 }
 
 type Config struct {
-	SignatureVerifier motmedelCryptoInterfaces.NamedVerifier
-	TokenValidator    validator.Validator[api.Token]
+	SignatureVerifier    motmedelCryptoInterfaces.NamedVerifier
+	TokenValidator       validator.Validator[api.Token]
+	AllowUnauthenticated bool
 }
 
 type Option func(*Config)
