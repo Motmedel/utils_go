@@ -57,11 +57,11 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 				return motmedelErrors.New(fmt.Errorf("get expires header: %w", err), responseHeader)
 			}
 
-			expiresAt, err := time.Parse(time.RFC3339, expiresValue)
+			headerValueExpiresAt, err := time.Parse(time.RFC1123, expiresValue)
 			if err != nil {
 				return motmedelErrors.NewWithTrace(fmt.Errorf("time parse (expires): %w", err), expiresValue)
 			}
-			h.keysExpiresAt = &expiresAt
+			h.keysExpiresAt = &headerValueExpiresAt
 
 			h.mu.Lock()
 			clear(h.keyIdToVerifier)
