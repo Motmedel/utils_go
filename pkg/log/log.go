@@ -3,13 +3,14 @@ package log
 import (
 	"context"
 	"fmt"
-	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"log/slog"
 	"os/exec"
 	"reflect"
 	"strconv"
+
+	context2 "github.com/Motmedel/utils_go/pkg/context"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 )
 
 type ContextExtractor interface {
@@ -215,7 +216,7 @@ func (extractor *ErrorContextExtractor) Handle(ctx context.Context, record *slog
 		return nil
 	}
 
-	if logErr, ok := ctx.Value(motmedelContext.ErrorContextKey).(error); ok {
+	if logErr, ok := ctx.Value(context2.ErrorContextKey).(error); ok {
 		record.Add(slog.Group("error", extractor.MakeErrorAttrs(logErr)...))
 
 		if contextErr, ok := logErr.(motmedelErrors.ContextErrorI); ok {

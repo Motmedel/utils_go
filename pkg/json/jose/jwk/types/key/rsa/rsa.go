@@ -9,7 +9,7 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
-	"github.com/Motmedel/utils_go/pkg/maps"
+	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 type Key struct {
@@ -55,7 +55,7 @@ func New(m map[string]any) (*Key, error) {
 		return nil, nil
 	}
 
-	kty, err := maps.MapGetConvert[string](m, "kty")
+	kty, err := utils.MapGetConvert[string](m, "kty")
 	if err != nil {
 		return nil, fmt.Errorf("map get convert (kty): %w", err)
 	}
@@ -64,12 +64,12 @@ func New(m map[string]any) (*Key, error) {
 		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
 	}
 
-	n, err := maps.MapGetConvert[string](m, "n")
+	n, err := utils.MapGetConvert[string](m, "n")
 	if err != nil {
 		return nil, fmt.Errorf("map get convert (n): %w", err)
 	}
 
-	e, err := maps.MapGetConvert[string](m, "e")
+	e, err := utils.MapGetConvert[string](m, "e")
 	if err != nil {
 		return nil, fmt.Errorf("map get convert (e): %w", err)
 	}

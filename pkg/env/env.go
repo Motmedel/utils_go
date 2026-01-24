@@ -3,11 +3,12 @@ package env
 import (
 	"context"
 	"fmt"
-	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
-	motmedelEnvErrors "github.com/Motmedel/utils_go/pkg/env/errors"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"log/slog"
 	"os"
+
+	context2 "github.com/Motmedel/utils_go/pkg/context"
+	motmedelEnvErrors "github.com/Motmedel/utils_go/pkg/env/errors"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
 func GetEnvWithDefault(key string, defaultValue string) string {
@@ -39,7 +40,7 @@ func ReadEnvFatalCtx(ctx context.Context, name string) string {
 	value, err := ReadEnv(name)
 	if err != nil {
 		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(ctx, err),
+			context2.WithError(ctx, err),
 			"An environment variable could not be obtained.",
 		)
 		os.Exit(1)

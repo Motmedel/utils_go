@@ -5,9 +5,10 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
-	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"log/slog"
+
+	context2 "github.com/Motmedel/utils_go/pkg/context"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
 func MakeGzipData(ctx context.Context, data []byte) ([]byte, error) {
@@ -23,7 +24,7 @@ func MakeGzipData(ctx context.Context, data []byte) ([]byte, error) {
 	defer func() {
 		if err := gzipWriter.Close(); err != nil {
 			slog.WarnContext(
-				motmedelContext.WithErrorContextValue(
+				context2.WithError(
 					ctx,
 					motmedelErrors.NewWithTrace(fmt.Errorf("gzip writer close: %w", err)),
 				),

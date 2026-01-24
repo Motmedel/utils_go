@@ -10,7 +10,6 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
-	"github.com/Motmedel/utils_go/pkg/maps"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -72,7 +71,7 @@ func New(m map[string]any) (*Key, error) {
 		return nil, nil
 	}
 
-	kty, err := maps.MapGetConvert[string](m, "kty")
+	kty, err := utils.MapGetConvert[string](m, "kty")
 	if err != nil {
 		return nil, fmt.Errorf("map get convert (kty): %w", err)
 	}
@@ -81,17 +80,17 @@ func New(m map[string]any) (*Key, error) {
 		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
 	}
 
-	crv, err := maps.MapGetConvert[string](m, "crv")
+	crv, err := utils.MapGetConvert[string](m, "crv")
 	if err != nil {
 		return nil, fmt.Errorf("map get convert (crv): %w", err)
 	}
 
-	x, err := maps.MapGetConvert[string](m, "x")
+	x, err := utils.MapGetConvert[string](m, "x")
 	if err != nil {
 		return nil, fmt.Errorf("map get convert (x): %w", err)
 	}
 
-	y, err := maps.MapGetConvert[string](m, "y")
+	y, err := utils.MapGetConvert[string](m, "y")
 	if err != nil {
 		return nil, fmt.Errorf("map get convert (y): %w", err)
 	}

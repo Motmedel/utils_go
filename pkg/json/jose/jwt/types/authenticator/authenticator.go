@@ -14,7 +14,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/authenticator/authenticator_with_key_handler_config"
 	motmedelJwkToken "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token"
 	motmedelJwtValidator "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator"
-	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -79,7 +78,7 @@ func (a *AuthenticatorWithKeyHandler) Authenticate(ctx context.Context, tokenStr
 		return nil, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilTokenHeader)
 	}
 
-	kid, err := motmedelMaps.MapGetConvert[string](tokenHeader, "kid")
+	kid, err := utils.MapGetConvert[string](tokenHeader, "kid")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("map get convert (kid): %w", err), tokenHeader)
 	}

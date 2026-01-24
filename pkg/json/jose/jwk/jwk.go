@@ -6,8 +6,8 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/maps"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
+	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 func Validate(keyMap map[string]any) error {
@@ -15,7 +15,7 @@ func Validate(keyMap map[string]any) error {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelErrors.ErrNilMap)
 	}
 
-	kty, err := maps.MapGetConvert[string](keyMap, "kty")
+	kty, err := utils.MapGetConvert[string](keyMap, "kty")
 	if err != nil {
 		wrappedErr := fmt.Errorf("map get convert (kty): %w", err)
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
@@ -24,7 +24,7 @@ func Validate(keyMap map[string]any) error {
 		return wrappedErr
 	}
 
-	alg, err := maps.MapGetConvert[string](keyMap, "alg")
+	alg, err := utils.MapGetConvert[string](keyMap, "alg")
 	if err != nil {
 		wrappedErr := fmt.Errorf("map get convert (alg): %w", err)
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
@@ -49,7 +49,7 @@ func Validate(keyMap map[string]any) error {
 		}
 
 		if expectedKty == "EC" {
-			if _, err := maps.MapGetConvert[string](keyMap, "crv"); err != nil {
+			if _, err := utils.MapGetConvert[string](keyMap, "crv"); err != nil {
 				return motmedelErrors.New(fmt.Errorf("%w: %w (crv)", motmedelErrors.ErrValidationError, err))
 			}
 		}

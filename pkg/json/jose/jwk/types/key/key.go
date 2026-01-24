@@ -13,7 +13,7 @@ import (
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	ecKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key/ec"
 	rsaKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key/rsa"
-	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
+	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 type Key struct {
@@ -70,7 +70,7 @@ func New(m map[string]any) (*Key, error) {
 		return nil, nil
 	}
 
-	kty, err := motmedelMaps.MapGetConvert[string](m, "kty")
+	kty, err := utils.MapGetConvert[string](m, "kty")
 	if err != nil {
 		var wrappedErr error = motmedelErrors.New(fmt.Errorf("map get convert: %w", err), m)
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {

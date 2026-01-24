@@ -1,21 +1,11 @@
 package context
 
-import (
-	"context"
-	"github.com/Motmedel/utils_go/pkg/utils"
-)
+import "context"
 
-type errorContextType struct{}
+type ErrorContextType struct{}
 
-var ErrorContextKey errorContextType
+var ErrorContextKey ErrorContextType
 
-func WithErrorContextValue(ctx context.Context, err error) context.Context {
-	return context.WithValue(ctx, ErrorContextKey, err)
-}
-func GetContextValue[T any](ctx context.Context, key any) (T, error) {
-	return utils.Convert[T](ctx.Value(key))
-}
-
-func GetNonZeroContextValue[T comparable](ctx context.Context, key any) (T, error) {
-	return utils.ConvertToNonZero[T](ctx.Value(key))
+func WithError(parent context.Context, err error) context.Context {
+	return context.WithValue(parent, ErrorContextKey, err)
 }

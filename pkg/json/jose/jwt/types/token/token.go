@@ -13,7 +13,6 @@ import (
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/authenticate_config"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/raw_token"
-	motmedelMaps "github.com/Motmedel/utils_go/pkg/maps"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -140,7 +139,7 @@ func Authenticate(tokenString string, options ...authenticate_config.Option) (*T
 			return token, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilTokenHeader)
 		}
 
-		alg, err := motmedelMaps.MapGetConvert[string](tokenHeader, "alg")
+		alg, err := utils.MapGetConvert[string](tokenHeader, "alg")
 		if err != nil {
 			var wrappedErr error = motmedelErrors.New(fmt.Errorf("map get convert: %w", err), tokenHeader)
 			if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {

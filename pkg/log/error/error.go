@@ -3,9 +3,11 @@ package error
 import (
 	"context"
 	"fmt"
-	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
+
 	"log/slog"
 	"os"
+
+	context2 "github.com/Motmedel/utils_go/pkg/context"
 )
 
 func LogError(message string, err error, logger *slog.Logger, args ...any) {
@@ -13,7 +15,7 @@ func LogError(message string, err error, logger *slog.Logger, args ...any) {
 		logger = slog.Default()
 	}
 	logger.ErrorContext(
-		motmedelContext.WithErrorContextValue(context.Background(), err),
+		context2.WithError(context.Background(), err),
 		message,
 		args...,
 	)
@@ -24,7 +26,7 @@ func LogWarning(message string, err error, logger *slog.Logger, args ...any) {
 		logger = slog.Default()
 	}
 	logger.WarnContext(
-		motmedelContext.WithErrorContextValue(context.Background(), err),
+		context2.WithError(context.Background(), err),
 		message,
 		args...,
 	)
@@ -35,7 +37,7 @@ func LogDebug(message string, err error, logger *slog.Logger, args ...any) {
 		logger = slog.Default()
 	}
 	logger.DebugContext(
-		motmedelContext.WithErrorContextValue(context.Background(), err),
+		context2.WithError(context.Background(), err),
 		message,
 		args...,
 	)
@@ -46,7 +48,7 @@ func LogFatalWithExitCode(message string, err error, logger *slog.Logger, exitCo
 		logger = slog.Default()
 	}
 	logger.ErrorContext(
-		motmedelContext.WithErrorContextValue(context.Background(), err),
+		context2.WithError(context.Background(), err),
 		message,
 		args...,
 	)

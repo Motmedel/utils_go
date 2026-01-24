@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
+	context2 "github.com/Motmedel/utils_go/pkg/context"
 	sqlErrors "github.com/Motmedel/utils_go/pkg/database/sql/errors"
 	"github.com/Motmedel/utils_go/pkg/database/sql/types/tx_caller"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -47,7 +47,7 @@ func WithTx[T any](
 		var rollbackErr error
 		if rollbackErr = transaction.Rollback(); rollbackErr != nil {
 			slog.ErrorContext(
-				motmedelContext.WithErrorContextValue(
+				context2.WithError(
 					ctx,
 					motmedelErrors.NewWithTrace(fmt.Errorf("tx rollback: %w", rollbackErr), transaction),
 				),
