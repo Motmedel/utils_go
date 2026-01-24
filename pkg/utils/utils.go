@@ -80,6 +80,20 @@ func Must[T any](val T, err error, label string) T {
 	}
 	return val
 }
+
+func MustNonZero[T comparable](val T, err error, label string) T {
+	var zero T
+	out := Must(val, err, label)
+	if out == zero {
+		slog.ErrorContext(
+			motmedelContext.WithError(context.Background(), err),
+			fmt.Sprintf("fatal (zero value): %s", label),
+		)
+		os.Exit(1)
+	}
+	return out
+}
+
 func GetContextValue[T any](ctx context.Context, key any) (T, error) {
 	return Convert[T](ctx.Value(key))
 }
