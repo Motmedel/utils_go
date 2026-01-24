@@ -13,7 +13,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	atuhenticatorPkg "github.com/Motmedel/utils_go/pkg/interfaces/authenticator"
+	authenticatorPkg "github.com/Motmedel/utils_go/pkg/interfaces/authenticator"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	motmedelJwtToken "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -21,7 +21,7 @@ import (
 
 type Parser struct {
 	TokenExtractor request_parser.RequestParser[string]
-	Authenticators []atuhenticatorPkg.Authenticator[*motmedelJwtToken.Token, string]
+	Authenticators []authenticatorPkg.Authenticator[*motmedelJwtToken.Token, string]
 }
 
 func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResponseError.ResponseError) {
@@ -108,4 +108,15 @@ func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResp
 	}
 
 	return nil, &muxResponseError.ResponseError{ServerError: errors.Join(authenticatorErrs...)}
+}
+
+func New(
+	tokenExtractor request_parser.RequestParser[string],
+	authenticators ...authenticatorPkg.Authenticator[*motmedelJwtToken.Token, string],
+) (*Parser, error) {
+	if utils.IsNil(tokenExtractor) {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (token extractor)", muxErrors.ErrNilRequestParser))
+	}
+
+	return &Parser{TokenExtractor: tokenExtractor, Authenticators: authenticators}, nil
 }
