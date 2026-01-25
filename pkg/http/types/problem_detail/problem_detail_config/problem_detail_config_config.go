@@ -45,7 +45,7 @@ func WithDetail(detail string) Option {
 	}
 }
 
-func WithExtensions(extension map[string]any) Option {
+func WithExtension(extension map[string]any) Option {
 	return func(config *Config) {
 		config.Extension = extension
 	}
