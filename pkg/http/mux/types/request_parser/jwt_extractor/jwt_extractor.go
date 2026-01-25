@@ -8,6 +8,7 @@ import (
 
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
@@ -15,17 +16,16 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	authenticatorPkg "github.com/Motmedel/utils_go/pkg/interfaces/authenticator"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	motmedelJwtToken "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/authenticated_token"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 type Parser struct {
 	TokenExtractor request_parser.RequestParser[string]
-	Authenticators []authenticatorPkg.Authenticator[*motmedelJwtToken.Token, string]
+	Authenticators []authenticatorPkg.Authenticator[*authenticated_token.Token, string]
 }
 
-func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResponseError.ResponseError) {
+func (p *Parser) Parse(request *http.Request) (*authenticated_token.Token, *muxResponseError.ResponseError) {
 	if request == nil {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
@@ -54,7 +54,7 @@ func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResp
 		}
 	}
 
-	var authenticatedToken *motmedelJwtToken.Token
+	var authenticatedToken *authenticated_token.Token
 	var waitGroup sync.WaitGroup
 
 	authenticatorErrs := make([]error, len(p.Authenticators))
@@ -88,7 +88,7 @@ func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResp
 			continue
 		}
 
-		if motmedelErrors.IsAny(err, motmedelJwtErrors.ErrSubjectMismatch) {
+		if e, ok := motmedelErrors.AsType[*mismatch_error.Error](err); ok && e.Field == "sub" {
 			return nil, &muxResponseError.ResponseError{
 				ProblemDetail: problem_detail.New(
 					http.StatusForbidden,
@@ -110,7 +110,7 @@ func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResp
 
 func New(
 	tokenExtractor request_parser.RequestParser[string],
-	authenticators ...authenticatorPkg.Authenticator[*motmedelJwtToken.Token, string],
+	authenticators ...authenticatorPkg.Authenticator[*authenticated_token.Token, string],
 ) (*Parser, error) {
 	if utils.IsNil(tokenExtractor) {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (token extractor)", muxErrors.ErrNilRequestParser))

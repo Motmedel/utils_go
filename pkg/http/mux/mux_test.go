@@ -85,7 +85,6 @@ func TestMain(m *testing.M) {
 					ProblemDetail: problem_detail.New(
 						http.StatusForbidden,
 						problem_detail_config.WithDetail("URL query parameters are not allowed."),
-						nil,
 					),
 				}
 			}
