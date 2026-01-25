@@ -14,11 +14,12 @@ import (
 	"time"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_loader"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_loader/body_setting"
 	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/adapter"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_body_parser"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/rate_limiting"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
@@ -103,7 +104,7 @@ func TestMain(m *testing.M) {
 	mux.ProblemDetailConverter = HtmlProblemDetailConverter
 
 	mux.Add(
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/hello-world",
 			Method: http.MethodGet,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
@@ -115,11 +116,11 @@ func TestMain(m *testing.M) {
 				}, nil
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/hello-world",
 			Method: http.MethodPost,
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/hello-world-static",
 			Method: http.MethodGet,
 			StaticContent: &muxTypesStaticContent.StaticContent{
@@ -131,7 +132,7 @@ func TestMain(m *testing.M) {
 				},
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/hello-world-fetch-metadata",
 			Method: http.MethodGet,
 			StaticContent: &muxTypesStaticContent.StaticContent{
@@ -144,21 +145,19 @@ func TestMain(m *testing.M) {
 				},
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
-			Path:   "/push",
-			Method: http.MethodPost,
-			BodyParserConfiguration: &parsing.BodyParserConfiguration{
-				ContentType: "application/json",
-			},
+		&endpoint.Endpoint{
+			Path:       "/push",
+			Method:     http.MethodPost,
+			BodyLoader: &body_loader.Loader{ContentType: "application/json"},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/empty",
 			Method: http.MethodGet,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
 				return nil, nil
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/body-parsing",
 			Method: http.MethodPost,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
@@ -175,33 +174,33 @@ func TestMain(m *testing.M) {
 
 				return nil, nil
 			},
-			BodyParserConfiguration: &parsing.BodyParserConfiguration{
-				ContentType: "application/json",
+			BodyLoader: &body_loader.Loader{
 				Parser:      bodyParserAdapter.New(json_body_parser.New[*bodyParserTestData]()),
+				ContentType: "application/json",
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/body-parsing-limit",
 			Method: http.MethodPost,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
 				return nil, nil
 			},
-			BodyParserConfiguration: &parsing.BodyParserConfiguration{
+			BodyLoader: &body_loader.Loader{
 				ContentType: "application/octet-stream",
 				MaxBytes:    2,
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/forbidden-body",
 			Method: http.MethodPost,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
 				return nil, nil
 			},
-			BodyParserConfiguration: &parsing.BodyParserConfiguration{
-				EmptyOption: parsing.BodyForbidden,
+			BodyLoader: &body_loader.Loader{
+				Setting: body_setting.Forbidden,
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/teapot",
 			Method: http.MethodGet,
 			Handler: func(request *http.Request, i []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
@@ -210,7 +209,7 @@ func TestMain(m *testing.M) {
 				}
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/rate-limiting",
 			Method: http.MethodGet,
 			RateLimitingConfiguration: &rate_limiting.RateLimitingConfiguration{
@@ -218,10 +217,10 @@ func TestMain(m *testing.M) {
 				NumSecondsExpiration: 5,
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/cors",
 			Method: http.MethodGet,
-			CorsRequestParser: request_parser.RequestParserFunction[*motmedelHttpTypes.CorsConfiguration](
+			CorsParser: request_parser.RequestParserFunction[*motmedelHttpTypes.CorsConfiguration](
 				func(r *http.Request) (*motmedelHttpTypes.CorsConfiguration, *response_error.ResponseError) {
 					return &motmedelHttpTypes.CorsConfiguration{
 						Origin:        "*",
@@ -235,10 +234,10 @@ func TestMain(m *testing.M) {
 				return nil, nil
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/cors",
 			Method: http.MethodPost,
-			CorsRequestParser: request_parser.RequestParserFunction[*motmedelHttpTypes.CorsConfiguration](
+			CorsParser: request_parser.RequestParserFunction[*motmedelHttpTypes.CorsConfiguration](
 				func(r *http.Request) (*motmedelHttpTypes.CorsConfiguration, *response_error.ResponseError) {
 					return &motmedelHttpTypes.CorsConfiguration{
 						Origin:        "*",
@@ -252,7 +251,7 @@ func TestMain(m *testing.M) {
 				return nil, nil
 			},
 		},
-		&endpoint_specification.EndpointSpecification{
+		&endpoint.Endpoint{
 			Path:   "/cors",
 			Method: http.MethodPatch,
 			Handler: func(request *http.Request, body []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {

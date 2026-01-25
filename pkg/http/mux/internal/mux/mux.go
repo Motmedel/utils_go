@@ -17,7 +17,7 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	muxTypes "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
+	muxTypes "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
 	muxTypesRateLimiting "github.com/Motmedel/utils_go/pkg/http/mux/types/rate_limiting"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
@@ -311,10 +311,10 @@ func ObtainRequestBody(
 	return nil, nil
 }
 
-func GetEndpointSpecification(
-	endpointSpecificationMap map[string]map[string]*muxTypes.EndpointSpecification,
+func GetEndpoint(
+	endpointSpecificationMap map[string]map[string]*muxTypes.Endpoint,
 	request *http.Request,
-) (*muxTypes.EndpointSpecification, map[string]*muxTypes.EndpointSpecification, *muxTypesResponseError.ResponseError) {
+) (*muxTypes.Endpoint, map[string]*muxTypes.Endpoint, *muxTypesResponseError.ResponseError) {
 	if len(endpointSpecificationMap) == 0 {
 		return nil, nil, &muxTypesResponseError.ResponseError{
 			ProblemDetail: problem_detail.New(http.StatusNotFound),
@@ -389,11 +389,9 @@ func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestH
 					),
 					ClientError: wrappedErr,
 				}
-			} else {
-				return false, &muxTypesResponseError.ResponseError{
-					ServerError: wrappedErr,
-				}
 			}
+
+			return false, &muxTypesResponseError.ResponseError{ServerError: wrappedErr}
 		}
 	}
 

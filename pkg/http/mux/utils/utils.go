@@ -4,10 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
+
+type parsedRequestUrlContextType struct{}
+type parsedRequestHeaderContextType struct{}
+type parsedRequestBodyContextType struct{}
+type parsedRequestAuthenticationContextType struct{}
+
+var ParsedRequestUrlContextKey = parsedRequestUrlContextType{}
+var ParsedRequestHeaderContextKey = parsedRequestHeaderContextType{}
+var ParsedRequestBodyContextKey = parsedRequestBodyContextType{}
+var ParsedRequestAuthenticationContextKey = parsedRequestAuthenticationContextType{}
 
 func getParsed[T any](ctx context.Context, key any) (T, error) {
 	value, err := utils.GetContextValue[T](ctx, key)
@@ -52,49 +61,49 @@ func GetServerContextValue[T any](ctx context.Context, key any) (T, *response_er
 }
 
 func GetParsedRequestBody[T any](ctx context.Context) (T, error) {
-	return getParsed[T](ctx, parsing.ParsedRequestBodyContextKey)
+	return getParsed[T](ctx, ParsedRequestBodyContextKey)
 }
 
 func GetServerParsedRequestBody[T any](ctx context.Context) (T, *response_error.ResponseError) {
-	return GetServerContextValue[T](ctx, parsing.ParsedRequestBodyContextKey)
+	return GetServerContextValue[T](ctx, ParsedRequestBodyContextKey)
 }
 
 func GetNonZeroParsedRequestBody[T comparable](ctx context.Context) (T, error) {
-	return getNonZeroParsed[T](ctx, parsing.ParsedRequestBodyContextKey)
+	return getNonZeroParsed[T](ctx, ParsedRequestBodyContextKey)
 }
 
 func GetServerNonZeroParsedRequestBody[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
-	return GetServerNonZeroContextValue[T](ctx, parsing.ParsedRequestBodyContextKey)
+	return GetServerNonZeroContextValue[T](ctx, ParsedRequestBodyContextKey)
 }
 
 func GetParsedRequestHeaders[T any](ctx context.Context) (T, error) {
-	return getParsed[T](ctx, parsing.ParsedRequestHeaderContextKey)
+	return getParsed[T](ctx, ParsedRequestHeaderContextKey)
 }
 
 func GetNonZeroParsedRequestHeaders[T comparable](ctx context.Context) (T, error) {
-	return getNonZeroParsed[T](ctx, parsing.ParsedRequestHeaderContextKey)
+	return getNonZeroParsed[T](ctx, ParsedRequestHeaderContextKey)
 }
 
 func GetServerNonZeroParsedRequestHeaders[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
-	return GetServerNonZeroContextValue[T](ctx, parsing.ParsedRequestHeaderContextKey)
+	return GetServerNonZeroContextValue[T](ctx, ParsedRequestHeaderContextKey)
 }
 
 func GetParsedRequestUrl[T any](ctx context.Context) (T, error) {
-	return getParsed[T](ctx, parsing.ParsedRequestUrlContextKey)
+	return getParsed[T](ctx, ParsedRequestUrlContextKey)
 }
 
 func GetServerNonZeroParsedRequestUrl[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
-	return GetServerNonZeroContextValue[T](ctx, parsing.ParsedRequestUrlContextKey)
+	return GetServerNonZeroContextValue[T](ctx, ParsedRequestUrlContextKey)
 }
 
 func GetNonZeroParsedRequestUrl[T comparable](ctx context.Context) (T, error) {
-	return getNonZeroParsed[T](ctx, parsing.ParsedRequestUrlContextKey)
+	return getNonZeroParsed[T](ctx, ParsedRequestUrlContextKey)
 }
 
 func GetParsedRequestAuthentication[T any](ctx context.Context) (T, error) {
-	return getParsed[T](ctx, parsing.ParsedRequestAuthenticationContextKey)
+	return getParsed[T](ctx, ParsedRequestAuthenticationContextKey)
 }
 
 func GetServerNonZeroParsedRequestAuthentication[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
-	return GetServerNonZeroContextValue[T](ctx, parsing.ParsedRequestAuthenticationContextKey)
+	return GetServerNonZeroContextValue[T](ctx, ParsedRequestAuthenticationContextKey)
 }

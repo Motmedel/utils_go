@@ -44,6 +44,7 @@ var DefaultProblemDetailMediaRanges = []*motmedelHttpTypes.ServerMediaRange{
 	{Type: "text", Subtype: "plain"},
 }
 
+// TODO: Move to `problem_detail` package.
 func ConvertProblemDetail(
 	detail *problem_detail.Detail,
 	negotiation *motmedelHttpTypes.ContentNegotiation,

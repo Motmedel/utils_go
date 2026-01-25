@@ -15,7 +15,7 @@ import (
 	motmedelGzip "github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
 	muxResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -178,7 +178,7 @@ func EndpointSpecificationFromDataPath(
 	lastModified string,
 	addContentEncodingData bool,
 	private bool,
-) (*endpoint_specification.EndpointSpecification, error) {
+) (*endpoint.Endpoint, error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -245,7 +245,7 @@ func EndpointSpecificationFromDataPath(
 		}
 	}
 
-	return &endpoint_specification.EndpointSpecification{
+	return &endpoint.Endpoint{
 		Path:          path,
 		Method:        http.MethodGet,
 		StaticContent: staticContent,
@@ -256,7 +256,7 @@ func EndpointSpecificationsFromDirectory(
 	rootPath string,
 	addContentEncodingData bool,
 	private bool,
-) ([]*endpoint_specification.EndpointSpecification, error) {
+) ([]*endpoint.Endpoint, error) {
 	if rootPath == "" {
 		return nil, nil
 	}
@@ -265,7 +265,7 @@ func EndpointSpecificationsFromDirectory(
 		rootPath += "/"
 	}
 
-	var specifications []*endpoint_specification.EndpointSpecification
+	var specifications []*endpoint.Endpoint
 	var specificationsMutex sync.Mutex
 
 	errGroup, cancelCtx := errgroup.WithContext(context.Background())
@@ -338,12 +338,12 @@ func EndpointSpecificationsFromZip(
 	reader *zip.Reader,
 	addContentEncodingData bool,
 	private bool,
-) ([]*endpoint_specification.EndpointSpecification, error) {
+) ([]*endpoint.Endpoint, error) {
 	if reader == nil {
 		return nil, nil
 	}
 
-	var specifications []*endpoint_specification.EndpointSpecification
+	var specifications []*endpoint.Endpoint
 	var specificationsMutex sync.Mutex
 
 	errGroup, cancelCtx := errgroup.WithContext(context.Background())
@@ -410,7 +410,7 @@ loop:
 	return specifications, nil
 }
 
-func MakeRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *endpoint_specification.EndpointSpecification {
+func MakeRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *endpoint.Endpoint {
 	if robotsTxt == nil {
 		return nil
 	}
@@ -424,7 +424,7 @@ func MakeRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *endpoint_specificati
 	etag := motmedelHttpUtils.MakeStrongEtag(data)
 	lastModified := time.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT"
 
-	return &endpoint_specification.EndpointSpecification{
+	return &endpoint.Endpoint{
 		Path:   "/robots.txt",
 		Method: http.MethodGet,
 		StaticContent: &static_content.StaticContent{
