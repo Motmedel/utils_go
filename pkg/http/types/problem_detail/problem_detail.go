@@ -10,7 +10,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail/problem_detail_config"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 )
 
 type Detail struct {

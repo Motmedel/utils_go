@@ -1,4 +1,4 @@
-module github.com/Motmedel/utils_go/pkg/http/problem_detail
+module github.com/Motmedel/utils_go/pkg/http/types/problem_detail
 
 go 1.25
 
