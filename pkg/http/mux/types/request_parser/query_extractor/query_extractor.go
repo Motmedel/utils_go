@@ -12,7 +12,8 @@ import (
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/query_extractor/query_extractor_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	motmedelJsonTag "github.com/Motmedel/utils_go/pkg/json/types/tag"
 	motmedelReflect "github.com/Motmedel/utils_go/pkg/reflect"
 	motmedelReflectErrors "github.com/Motmedel/utils_go/pkg/reflect/errors"
@@ -49,9 +50,9 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 	query, err := url.ParseQuery(requestUrl.RawQuery)
 	if err != nil {
 		return zero, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-				"Malformed query.",
-				nil,
+			ProblemDetail: problem_detail.New(
+				http.StatusBadRequest,
+				problem_detail_config.WithDetail("Malformed query."),
 			),
 		}
 	}
@@ -266,9 +267,10 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			errorStrings = append(errorStrings, err.Error())
 		}
 		return zero, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-				"Bad query.",
-				map[string]interface{}{"errors": errorStrings},
+			ProblemDetail: problem_detail.New(
+				http.StatusBadRequest,
+				problem_detail_config.WithDetail("Bad query."),
+				problem_detail_config.WithExtension(map[string]any{"errors": errorStrings}),
 			),
 		}
 	}

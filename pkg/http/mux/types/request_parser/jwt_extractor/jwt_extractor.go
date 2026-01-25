@@ -12,7 +12,8 @@ import (
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	authenticatorPkg "github.com/Motmedel/utils_go/pkg/interfaces/authenticator"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	motmedelJwtToken "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token"
@@ -46,10 +47,9 @@ func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResp
 	}
 	if tokenString == "" {
 		return nil, &muxResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+			ProblemDetail: problem_detail.New(
 				http.StatusUnauthorized,
-				"Empty token.",
-				nil,
+				problem_detail_config.WithDetail("Empty token."),
 			),
 		}
 	}
@@ -90,18 +90,16 @@ func (p *Parser) Parse(request *http.Request) (*motmedelJwtToken.Token, *muxResp
 
 		if motmedelErrors.IsAny(err, motmedelJwtErrors.ErrSubjectMismatch) {
 			return nil, &muxResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusForbidden,
-					"The subject is not allowed to access this resource.",
-					nil,
+					problem_detail_config.WithDetail("The subject is not allowed to access this resource."),
 				),
 			}
 		} else if motmedelErrors.IsAny(err, motmedelCryptoErrors.ErrSignatureMismatch, motmedelErrors.ErrValidationError) {
 			return nil, &muxResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusUnauthorized,
-					"Invalid token.",
-					nil,
+					problem_detail_config.WithDetail("Invalid token."),
 				),
 			}
 		}

@@ -256,7 +256,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			gzipBody, err := motmedelGzip.MakeGzipData(ctx, body)
 			if err != nil {
 				slog.WarnContext(
-					motmedelContext.WithErrorContextValue(
+					motmedelContext.WithError(
 						ctx,
 						motmedelErrors.New(fmt.Errorf("make gzip data: %w", err), body),
 					),

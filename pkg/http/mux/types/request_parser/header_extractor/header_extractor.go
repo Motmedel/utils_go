@@ -10,7 +10,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/header_extractor/header_extractor_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
 
@@ -49,19 +50,19 @@ func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseE
 		if errors.Is(err, motmedelHttpErrors.ErrMissingHeader) {
 			return "", &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					p.config.ProblemDetailStatusCode,
-					p.config.ProblemDetailMissingText,
-					map[string]string{"header": name},
+					problem_detail_config.WithDetail(p.config.ProblemDetailMissingText),
+					problem_detail_config.WithExtension(map[string]any{"header": name}),
 				),
 			}
 		} else if errors.Is(err, motmedelHttpErrors.ErrMultipleHeaderValues) {
 			return "", &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					p.config.ProblemDetailStatusCode,
-					p.config.ProblemDetailMultipleText,
-					map[string]string{"header": name},
+					problem_detail_config.WithDetail(p.config.ProblemDetailMultipleText),
+					problem_detail_config.WithExtension(map[string]any{"header": name}),
 				),
 			}
 		}

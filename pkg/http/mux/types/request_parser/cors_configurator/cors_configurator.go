@@ -9,8 +9,9 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
 )
 
@@ -57,9 +58,9 @@ func (configurator *Configurator) Parse(request *http.Request) (*motmedelHttpTyp
 		if err != nil {
 			return nil, &response_error.ResponseError{
 				ClientError: motmedelErrors.NewWithTrace(fmt.Errorf("url parse (origin): %w", err), origin),
-				ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-					"Invalid Origin header.",
-					nil,
+				ProblemDetail: problem_detail.New(
+					http.StatusBadRequest,
+					problem_detail_config.WithDetail("Invalid Origin header."),
 				),
 			}
 		}
@@ -68,9 +69,9 @@ func (configurator *Configurator) Parse(request *http.Request) (*motmedelHttpTyp
 		originDomainBreakdown := domain_breakdown.GetDomainBreakdown(originHostname)
 		if originDomainBreakdown == nil {
 			return nil, &response_error.ResponseError{
-				ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-					"Invalid Origin header hostname.",
-					nil,
+				ProblemDetail: problem_detail.New(
+					http.StatusBadRequest,
+					problem_detail_config.WithDetail("Invalid Origin header hostname."),
 				),
 			}
 		}

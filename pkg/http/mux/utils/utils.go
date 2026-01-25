@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/parsing"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 func getParsed[T any](ctx context.Context, key any) (T, error) {
-	value, err := motmedelContext.GetContextValue[T](ctx, key)
+	value, err := utils.GetContextValue[T](ctx, key)
 	if err != nil {
 		return value, fmt.Errorf("get context value: %w", err)
 	}
@@ -19,7 +19,7 @@ func getParsed[T any](ctx context.Context, key any) (T, error) {
 }
 
 func getNonZeroParsed[T comparable](ctx context.Context, key any) (T, error) {
-	value, err := motmedelContext.GetNonZeroContextValue[T](ctx, key)
+	value, err := utils.GetNonZeroContextValue[T](ctx, key)
 	if err != nil {
 		return value, fmt.Errorf("get non zero context value: %w", err)
 	}

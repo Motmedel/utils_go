@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/adapter"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint_specification"
@@ -27,9 +27,9 @@ import (
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -47,11 +47,11 @@ var defaultHtmlProblemDetailMediaRanges = slices.Concat(
 )
 
 func htmlConvertProblemDetail(
-	detail *problem_detail.ProblemDetail,
+	detail *problem_detail.Detail,
 	negotiation *motmedelHttpTypes.ContentNegotiation,
 ) ([]byte, string, error) {
 	if detail == nil {
-		return nil, "", motmedelErrors.NewWithTrace(problemDetailErrors.ErrNilProblemDetail)
+		return nil, "", nil_error.New("problem detail")
 	}
 
 	if detail.Status == http.StatusTeapot && negotiation != nil {
@@ -82,9 +82,9 @@ func TestMain(m *testing.M) {
 		Handler: func(request *http.Request) (firewall.Verdict, *response_error.ResponseError) {
 			if request.URL.RawQuery != "" {
 				return firewall.VerdictReject, &response_error.ResponseError{
-					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+					ProblemDetail: problem_detail.New(
 						http.StatusForbidden,
-						"URL query parameters are not allowed.",
+						problem_detail_config.WithDetail("URL query parameters are not allowed."),
 						nil,
 					),
 				}
@@ -170,7 +170,7 @@ func TestMain(m *testing.M) {
 
 				if d.Data != "hello world" {
 					return nil, &response_error.ResponseError{
-						ProblemDetail: problem_detail.MakeInternalServerErrorProblemDetail("", nil),
+						ProblemDetail: problem_detail.New(http.StatusInternalServerError),
 					}
 				}
 
@@ -207,7 +207,7 @@ func TestMain(m *testing.M) {
 			Method: http.MethodGet,
 			Handler: func(request *http.Request, i []byte) (*muxTypesResponse.Response, *response_error.ResponseError) {
 				return nil, &response_error.ResponseError{
-					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusTeapot, "", nil),
+					ProblemDetail: problem_detail.New(http.StatusTeapot),
 				}
 			},
 		},
@@ -282,7 +282,7 @@ func TestMux(t *testing.T) {
 		expectedStatusCode    int
 		expectedHeaders       [][2]string
 		expectedBody          []byte
-		expectedProblemDetail *problem_detail.ProblemDetail
+		expectedProblemDetail *problem_detail.Detail
 		expectedClientDoError error
 	}{
 		{
@@ -330,7 +330,7 @@ func TestMux(t *testing.T) {
 				{"Sec-Fetch-Site", "cross-origin"},
 			},
 			expectedStatusCode: http.StatusForbidden,
-			expectedProblemDetail: &problem_detail.ProblemDetail{
+			expectedProblemDetail: &problem_detail.Detail{
 				Detail: "Cross-site request blocked by Fetch-Metadata policy.",
 			},
 		},
@@ -371,7 +371,7 @@ func TestMux(t *testing.T) {
 			method:             http.MethodPatch,
 			url:                "/hello-world",
 			expectedStatusCode: http.StatusMethodNotAllowed,
-			expectedProblemDetail: &problem_detail.ProblemDetail{
+			expectedProblemDetail: &problem_detail.Detail{
 				Detail: `Expected GET, HEAD, OPTIONS, POST.`,
 			},
 			expectedHeaders: [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
@@ -395,7 +395,7 @@ func TestMux(t *testing.T) {
 			method:                http.MethodGet,
 			url:                   "/not-found",
 			expectedStatusCode:    http.StatusNotFound,
-			expectedProblemDetail: &problem_detail.ProblemDetail{},
+			expectedProblemDetail: &problem_detail.Detail{},
 		},
 		{
 			name:               "status ok, post data",
@@ -419,7 +419,7 @@ func TestMux(t *testing.T) {
 			url:                "/push",
 			headers:            [][2]string{{"Content-Type", "application/json"}},
 			expectedStatusCode: http.StatusBadRequest,
-			expectedProblemDetail: &problem_detail.ProblemDetail{
+			expectedProblemDetail: &problem_detail.Detail{
 				Detail: "A body is expected; Content-Length cannot be 0.",
 			},
 		},
@@ -430,7 +430,7 @@ func TestMux(t *testing.T) {
 			body:               []byte(`{"data": "data"}`),
 			expectedStatusCode: http.StatusUnsupportedMediaType,
 			expectedHeaders:    [][2]string{{"Accept", "application/json"}},
-			expectedProblemDetail: &problem_detail.ProblemDetail{
+			expectedProblemDetail: &problem_detail.Detail{
 				Detail: "Missing Content-Type.",
 			},
 		},
@@ -441,7 +441,7 @@ func TestMux(t *testing.T) {
 			headers:            [][2]string{{"Content-Type", ""}},
 			body:               []byte(`{"data": "data"}`),
 			expectedStatusCode: http.StatusBadRequest,
-			expectedProblemDetail: &problem_detail.ProblemDetail{
+			expectedProblemDetail: &problem_detail.Detail{
 				Detail: "Malformed Content-Type.",
 			},
 		},
@@ -452,7 +452,7 @@ func TestMux(t *testing.T) {
 			headers:            [][2]string{{"Content-Type", "text/plain"}},
 			expectedStatusCode: http.StatusUnsupportedMediaType,
 			expectedHeaders:    [][2]string{{"Accept", "application/json"}},
-			expectedProblemDetail: &problem_detail.ProblemDetail{
+			expectedProblemDetail: &problem_detail.Detail{
 				Detail: `Expected Content-Type to be "application/json", observed "text/plain".`,
 			},
 		},
@@ -463,21 +463,21 @@ func TestMux(t *testing.T) {
 			headers:               [][2]string{{"Content-Type", "application/json"}},
 			body:                  []byte(`{"data": "data"`),
 			expectedStatusCode:    http.StatusBadRequest,
-			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Invalid JSON body."},
+			expectedProblemDetail: &problem_detail.Detail{Detail: "Invalid JSON body."},
 		},
 		{
 			name:                  "error status forbidden, firewall match url query parameters",
 			method:                http.MethodGet,
 			url:                   "/foo?bar=fuu",
 			expectedStatusCode:    http.StatusForbidden,
-			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "URL query parameters are not allowed."},
+			expectedProblemDetail: &problem_detail.Detail{Detail: "URL query parameters are not allowed."},
 		},
 		{
 			name:                  "error status forbidden, firewall match url secret (reject)",
 			method:                http.MethodGet,
 			url:                   "/secret-reject",
 			expectedStatusCode:    http.StatusForbidden,
-			expectedProblemDetail: &problem_detail.ProblemDetail{},
+			expectedProblemDetail: &problem_detail.Detail{},
 		},
 		{
 			name:                  "error status forbidden, firewall match url secret (drop)",
@@ -501,7 +501,7 @@ func TestMux(t *testing.T) {
 			headers:               [][2]string{{"Content-Type", "application/octet-stream"}},
 			body:                  []byte("123"),
 			expectedStatusCode:    http.StatusRequestEntityTooLarge,
-			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 2 bytes"},
+			expectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 2 bytes"},
 		},
 		{
 			name:               "max bytes ok",
@@ -517,7 +517,7 @@ func TestMux(t *testing.T) {
 			url:                   "/forbidden-body",
 			body:                  []byte("12"),
 			expectedStatusCode:    http.StatusRequestEntityTooLarge,
-			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 0 bytes"},
+			expectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
 		},
 		{
 			name:                  "forbidden body get",
@@ -525,7 +525,7 @@ func TestMux(t *testing.T) {
 			url:                   "/hello-world",
 			body:                  []byte("12"),
 			expectedStatusCode:    http.StatusRequestEntityTooLarge,
-			expectedProblemDetail: &problem_detail.ProblemDetail{Detail: "Limit: 0 bytes"},
+			expectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
 		},
 		{
 			name:   "cors preflight",
@@ -610,14 +610,14 @@ func TestMux(t *testing.T) {
 			}
 
 			if expectedProblemDetail := testCase.expectedProblemDetail; expectedProblemDetail != nil {
-				var problemDetail *problem_detail.ProblemDetail
+				var problemDetail *problem_detail.Detail
 				if err := json.Unmarshal(responseBody, &problemDetail); err != nil {
 					t.Fatalf("json unmarshal response body: %v", err)
 				}
 
 				opts := []cmp.Option{
-					cmpopts.IgnoreFields(problem_detail.ProblemDetail{}, "Type"),
-					cmpopts.IgnoreFields(problem_detail.ProblemDetail{}, "Instance"),
+					cmpopts.IgnoreFields(problem_detail.Detail{}, "Type"),
+					cmpopts.IgnoreFields(problem_detail.Detail{}, "Instance"),
 					cmpopts.EquateEmpty(),
 				}
 

@@ -23,8 +23,9 @@ import (
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_type"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
 
@@ -88,7 +89,7 @@ func HandleRateLimiting(
 	expirationTime, full := timerRateLimiter.Claim()
 	if full {
 		return &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusTooManyRequests, "", nil),
+			ProblemDetail: problem_detail.New(http.StatusTooManyRequests),
 			Headers: []*muxTypesResponse.HeaderEntry{
 				{
 					Name:  "Retry-After",
@@ -129,10 +130,9 @@ func HandleFetchMetadata(requestHeader http.Header, method string) *muxTypesResp
 	}
 
 	return &muxTypesResponseError.ResponseError{
-		ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+		ProblemDetail: problem_detail.New(
 			http.StatusForbidden,
-			"Cross-site request blocked by Fetch-Metadata policy.",
-			nil,
+			problem_detail_config.WithDetail("Cross-site request blocked by Fetch-Metadata policy."),
 		),
 	}
 }
@@ -153,10 +153,9 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 
 	if _, ok := requestHeader["Content-Type"]; !ok {
 		return &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+			ProblemDetail: problem_detail.New(
 				http.StatusUnsupportedMediaType,
-				"Missing Content-Type.",
-				nil,
+				problem_detail_config.WithDetail("Missing Content-Type."),
 			),
 			Headers: acceptedContentTypeHeaders,
 		}
@@ -169,10 +168,9 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 		if motmedelErrors.IsAny(err, motmedelErrors.ErrSyntaxError, motmedelErrors.ErrSemanticError) {
 			return &muxTypesResponseError.ResponseError{
 				ClientError: wrappedErr,
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusBadRequest,
-					"Malformed Content-Type.",
-					nil,
+					problem_detail_config.WithDetail("Malformed Content-Type."),
 				),
 			}
 		}
@@ -188,14 +186,15 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 	fullNormalizeContentTypeString := contentType.GetFullType(true)
 	if fullNormalizeContentTypeString != expectedContentType {
 		return &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+			ProblemDetail: problem_detail.New(
 				http.StatusUnsupportedMediaType,
-				fmt.Sprintf(
-					"Expected Content-Type to be %q, observed %q.",
-					expectedContentType,
-					fullNormalizeContentTypeString,
+				problem_detail_config.WithDetail(
+					fmt.Sprintf(
+						"Expected Content-Type to be %q, observed %q.",
+						expectedContentType,
+						fullNormalizeContentTypeString,
+					),
 				),
-				nil,
 			),
 			Headers: acceptedContentTypeHeaders,
 		}
@@ -221,10 +220,9 @@ func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypes
 		contentLength, err = strconv.ParseUint(headerValue, 10, 64)
 		if err != nil {
 			return &muxTypesResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusBadRequest,
-					"Malformed Content-Length.",
-					nil,
+					problem_detail_config.WithDetail("Malformed Content-Length."),
 				),
 				ClientError: motmedelErrors.NewWithTrace(
 					fmt.Errorf("strconv parse uint: %w", err),
@@ -240,10 +238,9 @@ func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypes
 
 	if !allowEmpty && contentLength == 0 {
 		return &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+			ProblemDetail: problem_detail.New(
 				zeroContentLengthStatusCode,
-				zeroContentLengthMessage,
-				nil,
+				problem_detail_config.WithDetail(zeroContentLengthMessage),
 			),
 		}
 	}
@@ -266,10 +263,9 @@ func ObtainRequestBody(
 	if contentLength >= 0 {
 		if contentLength > 0 && maxBytes > 0 && contentLength > maxBytes {
 			return nil, &muxTypesResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusRequestEntityTooLarge,
-					fmt.Sprintf("Limit: %d bytes", maxBytes),
-					nil,
+					problem_detail_config.WithDetail(fmt.Sprintf("Limit: %d bytes", maxBytes)),
 				),
 			}
 		}
@@ -288,10 +284,9 @@ func ObtainRequestBody(
 			if errors.As(err, &maxBytesError) {
 				return nil, &muxTypesResponseError.ResponseError{
 					ClientError: wrappedErr,
-					ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+					ProblemDetail: problem_detail.New(
 						http.StatusRequestEntityTooLarge,
-						fmt.Sprintf("Limit: %d bytes", maxBytesError.Limit),
-						nil,
+						problem_detail_config.WithDetail(fmt.Sprintf("Limit: %d bytes", maxBytesError.Limit)),
 					),
 				}
 			}
@@ -301,7 +296,7 @@ func ObtainRequestBody(
 		defer func() {
 			if err := bodyReader.Close(); err != nil {
 				slog.WarnContext(
-					motmedelContext.WithErrorContextValue(
+					motmedelContext.WithError(
 						ctx,
 						motmedelErrors.NewWithTrace(fmt.Errorf("body reader close: %w", err), bodyReader),
 					),
@@ -322,7 +317,7 @@ func GetEndpointSpecification(
 ) (*muxTypes.EndpointSpecification, map[string]*muxTypes.EndpointSpecification, *muxTypesResponseError.ResponseError) {
 	if len(endpointSpecificationMap) == 0 {
 		return nil, nil, &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
+			ProblemDetail: problem_detail.New(http.StatusNotFound),
 		}
 	}
 
@@ -349,7 +344,7 @@ func GetEndpointSpecification(
 	methodToEndpointSpecification, ok := endpointSpecificationMap[requestUrl.Path]
 	if !ok {
 		return nil, nil, &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusNotFound, "", nil),
+			ProblemDetail: problem_detail.New(http.StatusNotFound),
 		}
 	}
 
@@ -388,8 +383,11 @@ func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestH
 			)
 			if errors.Is(err, motmedelHttpErrors.ErrBadIfModifiedSinceTimestamp) {
 				return false, &muxTypesResponseError.ResponseError{
-					ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Bad If-Modified-Since value", nil),
-					ClientError:   wrappedErr,
+					ProblemDetail: problem_detail.New(
+						http.StatusBadRequest,
+						problem_detail_config.WithDetail("Bad If-Modified-Since value"),
+					),
+					ClientError: wrappedErr,
 				}
 			} else {
 				return false, &muxTypesResponseError.ResponseError{
@@ -452,7 +450,7 @@ func ObtainStaticContentResponse(
 			// NOTE: The problem detail won't appear in the response body because not even `identity` is acceptable;
 			//	rather, the problem detail specifies the status code only.
 			return nil, &muxTypesResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusNotAcceptable, "", nil),
+				ProblemDetail: problem_detail.New(http.StatusNotAcceptable),
 			}
 		}
 

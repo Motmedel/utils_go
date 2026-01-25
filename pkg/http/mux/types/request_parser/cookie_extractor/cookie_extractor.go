@@ -11,7 +11,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/cookie_extractor/cookie_extractor_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 )
 
 var (
@@ -43,10 +44,10 @@ func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseE
 		if errors.Is(err, http.ErrNoCookie) {
 			return "", &muxResponseError.ResponseError{
 				ClientError: wrappedErr,
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					p.config.ProblemDetailStatusCode,
-					p.config.ProblemDetailText,
-					map[string]string{"cookie": name},
+					problem_detail_config.WithDetail(p.config.ProblemDetailText),
+					problem_detail_config.WithExtension(map[string]any{"cookie": name}),
 				),
 			}
 		}

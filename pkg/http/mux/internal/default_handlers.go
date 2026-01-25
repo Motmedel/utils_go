@@ -27,7 +27,7 @@ func DefaultResponseErrorHandler(
 
 	if responseWriter == nil {
 		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(
+			motmedelContext.WithError(
 				ctx,
 				motmedelErrors.NewWithTrace(muxErrors.ErrNilResponseWriter),
 			),
@@ -44,7 +44,7 @@ func DefaultResponseErrorHandler(
 			clientError := motmedelErrors.New(responseError.ClientError)
 			clientError.Id = errorId
 			slog.WarnContext(
-				motmedelContext.WithErrorContextValue(ctx, clientError),
+				motmedelContext.WithError(ctx, clientError),
 				"A client error occurred.",
 			)
 		}()
@@ -53,13 +53,13 @@ func DefaultResponseErrorHandler(
 			serverError := motmedelErrors.New(responseError.ServerError)
 			serverError.Id = errorId
 			slog.ErrorContext(
-				motmedelContext.WithErrorContextValue(ctx, serverError),
+				motmedelContext.WithError(ctx, serverError),
 				"A server error occurred.",
 			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_Invalid:
 		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(
+			motmedelContext.WithError(
 				ctx,
 				motmedelErrors.NewWithTrace(muxErrors.ErrUnusableResponseError, responseError),
 			),
@@ -68,7 +68,7 @@ func DefaultResponseErrorHandler(
 		return
 	default:
 		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(
+			motmedelContext.WithError(
 				ctx,
 				motmedelErrors.NewWithTrace(
 					fmt.Errorf("%w: %v", muxErrors.ErrUnexpectedResponseErrorType, responseErrorType),
@@ -86,7 +86,7 @@ func DefaultResponseErrorHandler(
 	problemDetail, err := responseError.GetEffectiveProblemDetail()
 	if err != nil {
 		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(
+			motmedelContext.WithError(
 				ctx,
 				motmedelErrors.NewWithTrace(
 					fmt.Errorf("response error get effective problem detail: %w", err),
@@ -104,7 +104,7 @@ func DefaultResponseErrorHandler(
 	response, err := responseError.MakeResponse(contentNegotiation)
 	if err != nil {
 		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(
+			motmedelContext.WithError(
 				ctx,
 				motmedelErrors.New(fmt.Errorf("make response error response: %w", err), responseError),
 			),
@@ -120,7 +120,7 @@ func DefaultResponseErrorHandler(
 
 	if err := responseWriter.WriteResponse(ctx, response, acceptEncoding); err != nil {
 		slog.ErrorContext(
-			motmedelContext.WithErrorContextValue(
+			motmedelContext.WithError(
 				ctx,
 				motmedelErrors.New(fmt.Errorf("write response: %w", err), responseError),
 			),

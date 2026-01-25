@@ -9,7 +9,8 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validatable"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -32,10 +33,9 @@ func New[T validatable.Validatable]() processor.Processor[T, T] {
 				if errors2.Is(wrappedErr, motmedelErrors.ErrValidationError) {
 					return zero, &response_error.ResponseError{
 						ClientError: err,
-						ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+						ProblemDetail: problem_detail.New(
 							http.StatusBadRequest,
-							"The body did not pass validation.",
-							nil,
+							problem_detail_config.WithDetail("The body did not pass validation."),
 						),
 					}
 				}

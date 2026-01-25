@@ -7,11 +7,11 @@ import (
 	"net/http"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	problemDetailErrors "github.com/Motmedel/utils_go/pkg/http/problem_detail/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
 
@@ -24,13 +24,13 @@ const (
 )
 
 type ProblemDetailConverter interface {
-	Convert(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
+	Convert(*problem_detail.Detail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
 }
 
-type ProblemDetailConverterFunction func(*problem_detail.ProblemDetail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
+type ProblemDetailConverterFunction func(*problem_detail.Detail, *motmedelHttpTypes.ContentNegotiation) ([]byte, string, error)
 
 func (f ProblemDetailConverterFunction) Convert(
-	problemDetail *problem_detail.ProblemDetail,
+	problemDetail *problem_detail.Detail,
 	contentNegotiation *motmedelHttpTypes.ContentNegotiation,
 ) ([]byte, string, error) {
 	return f(problemDetail, contentNegotiation)
@@ -45,7 +45,7 @@ var DefaultProblemDetailMediaRanges = []*motmedelHttpTypes.ServerMediaRange{
 }
 
 func ConvertProblemDetail(
-	detail *problem_detail.ProblemDetail,
+	detail *problem_detail.Detail,
 	negotiation *motmedelHttpTypes.ContentNegotiation,
 ) ([]byte, string, error) {
 	if detail == nil {
@@ -95,7 +95,7 @@ func ConvertProblemDetail(
 var DefaultProblemDetailConverter = ProblemDetailConverterFunction(ConvertProblemDetail)
 
 type ResponseError struct {
-	ProblemDetail          *problem_detail.ProblemDetail
+	ProblemDetail          *problem_detail.Detail
 	Headers                []*muxTypesResponse.HeaderEntry
 	ClientError            error
 	ServerError            error
@@ -119,7 +119,7 @@ func (responseError *ResponseError) Type() ResponseErrorType {
 	return ResponseErrorType_Invalid
 }
 
-func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail.ProblemDetail, error) {
+func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail.Detail, error) {
 	if problemDetail := responseError.ProblemDetail; problemDetail != nil {
 		return problemDetail, nil
 	}
@@ -129,18 +129,18 @@ func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail
 	}
 
 	if responseError.ServerError != nil {
-		return problem_detail.MakeInternalServerErrorProblemDetail("", nil), nil
+		return problem_detail.New(http.StatusInternalServerError), nil
 	}
 
 	if responseError.ClientError != nil {
-		return problem_detail.MakeBadRequestProblemDetail("", nil), nil
+		return problem_detail.New(http.StatusBadRequest), nil
 	}
 
 	return nil, motmedelErrors.NewWithTrace(
 		fmt.Errorf(
 			"%w: %w, %w",
 			muxErrors.ErrUnusableResponseError,
-			problemDetailErrors.ErrNilProblemDetail,
+			nil_error.New("problem detail"),
 			muxErrors.ErrEmptyResponseErrorErrors,
 		),
 	)
@@ -152,7 +152,7 @@ func (responseError *ResponseError) MakeResponse(
 	problemDetail := responseError.ProblemDetail
 	if problemDetail == nil {
 		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: %w", muxErrors.ErrUnusableResponseError, problemDetailErrors.ErrNilProblemDetail),
+			fmt.Errorf("%w: %w", muxErrors.ErrUnusableResponseError, nil_error.New("problem detail")),
 		)
 	}
 

@@ -2,6 +2,9 @@ package mux
 
 import (
 	"crypto/tls"
+	"net"
+	"net/http"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -9,9 +12,7 @@ import (
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
-	"net"
-	"net/http"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 )
 
 type VhostMuxSpecification struct {
@@ -89,11 +90,7 @@ func vhostMuxHandleRequest(
 	muxSpecification, ok := hostToSpecification[host]
 	if !ok {
 		return nil, &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
-				http.StatusMisdirectedRequest,
-				"",
-				nil,
-			),
+			ProblemDetail: problem_detail.New(http.StatusMisdirectedRequest),
 		}
 	}
 	if muxSpecification == nil {

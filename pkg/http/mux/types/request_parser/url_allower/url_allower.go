@@ -10,7 +10,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/url_allower/url_allower_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
 	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
@@ -39,14 +40,14 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 	urlString := result.URL()
 	if urlString == "" {
 		return nil, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Empty url.", nil),
+			ProblemDetail: problem_detail.New(http.StatusBadRequest, problem_detail_config.WithDetail("Empty url.")),
 		}
 	}
 
 	parsedUrl, err := url.Parse(urlString)
 	if err != nil {
 		return nil, &response_error.ResponseError{
-			ProblemDetail: problem_detail.MakeBadRequestProblemDetail("Malformed url.", nil),
+			ProblemDetail: problem_detail.New(http.StatusBadRequest, problem_detail_config.WithDetail("Malformed url.")),
 			ClientError:   motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err), urlString),
 		}
 	}
@@ -63,9 +64,9 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 		domainBreakdown := domain_breakdown.GetDomainBreakdown(parsedUrlHostname)
 		if domainBreakdown == nil {
 			return nil, &response_error.ResponseError{
-				ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-					"Malformed url hostname; not a domain.",
-					nil,
+				ProblemDetail: problem_detail.New(
+					http.StatusBadRequest,
+					problem_detail_config.WithDetail("Malformed url hostname; not a domain."),
 				),
 				ClientError: motmedelErrors.NewWithTrace(motmedelNetErrors.ErrNilDomainBreakdown),
 			}
@@ -93,9 +94,9 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 
 			if !allowed {
 				return nil, &response_error.ResponseError{
-					ProblemDetail: problem_detail.MakeBadRequestProblemDetail(
-						"The url hostname does not match any allowed domain.",
-						nil,
+					ProblemDetail: problem_detail.New(
+						http.StatusBadRequest,
+						problem_detail_config.WithDetail("The url hostname does not match any allowed domain."),
 					),
 				}
 			}

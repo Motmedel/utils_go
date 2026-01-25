@@ -28,9 +28,10 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/userer"
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
 	contentSecurityPolicyParsing "github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_security_policy"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	motmedelIter "github.com/Motmedel/utils_go/pkg/iter"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	"github.com/google/uuid"
@@ -104,7 +105,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 	requestId, err := uuid.NewV7()
 	if err != nil {
 		slog.WarnContext(
-			motmedelContext.WithErrorContextValue(
+			motmedelContext.WithError(
 				request.Context(),
 				motmedelErrors.NewWithTrace(fmt.Errorf("uuid new v7: %w", err)),
 			),
@@ -170,7 +171,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 			if connection != nil {
 				if err := connection.Close(); err != nil {
 					slog.ErrorContext(
-						motmedelContext.WithErrorContextValue(
+						motmedelContext.WithError(
 							request.Context(),
 							motmedelErrors.NewWithTrace(
 								fmt.Errorf("connection close: %w", err),
@@ -188,7 +189,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 	} else if verdict == muxTypesFirewall.VerdictReject {
 		if firewallResponseError == nil {
 			firewallResponseError = &muxTypesResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(http.StatusForbidden, "", nil),
+				ProblemDetail: problem_detail.New(http.StatusForbidden),
 			}
 		}
 		responseErrorHandler(motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext), firewallResponseError, responseWriter)
@@ -436,10 +437,9 @@ func muxHandleRequest(
 		}
 
 		return nil, &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+			ProblemDetail: problem_detail.New(
 				http.StatusMethodNotAllowed,
-				fmt.Sprintf("Expected %s.", expectedMethodsString),
-				nil,
+				problem_detail_config.WithDetail(fmt.Sprintf("Expected %s.", expectedMethodsString)),
 			),
 			Headers: headerEntries,
 		}
@@ -614,10 +614,9 @@ func muxHandleRequest(
 
 	if !allowEmptyBody && len(requestBody) == 0 {
 		return nil, &muxTypesResponseError.ResponseError{
-			ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+			ProblemDetail: problem_detail.New(
 				http.StatusBadRequest,
-				"A body is expected.",
-				nil,
+				problem_detail_config.WithDetail("A body is expected."),
 			),
 			Headers: corsHeaderEntries,
 		}
@@ -628,10 +627,9 @@ func muxHandleRequest(
 	case "application/json":
 		if !json.Valid(requestBody) {
 			return nil, &muxTypesResponseError.ResponseError{
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusBadRequest,
-					"Invalid JSON body.",
-					nil,
+					problem_detail_config.WithDetail("Invalid JSON body."),
 				),
 				Headers: corsHeaderEntries,
 			}

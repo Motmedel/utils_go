@@ -8,7 +8,8 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 )
 
 type Parser[T any] struct{}
@@ -23,10 +24,9 @@ func (p *Parser[T]) Parse(_ *http.Request, body []byte) (T, *response_error.Resp
 		if errors.As(err, &unmarshalTypeError) {
 			return target, &response_error.ResponseError{
 				ClientError: wrappedErr,
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusUnprocessableEntity,
-					"Invalid body. The value is not appropriate for the JSON type.",
-					nil,
+					problem_detail_config.WithDetail("Invalid body. The value is not appropriate for the JSON type."),
 				),
 			}
 		}

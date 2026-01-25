@@ -3,9 +3,9 @@ module github.com/Motmedel/utils_go/pkg/http/mux
 go 1.25
 
 require (
-	github.com/Motmedel/utils_go v0.0.350
+	github.com/Motmedel/utils_go v0.0.357
 	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.33
-	github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5
+	github.com/Motmedel/utils_go/pkg/http/types/problem_detail v1.0.8
 	github.com/Motmedel/utils_go/pkg/net/domain_breakdown v0.0.5
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
