@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/api"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -18,7 +18,7 @@ type Validator struct {
 
 func (v *Validator) Validate(token api.Token) error {
 	if token == nil {
-		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilToken)
+		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, nil_error.New("jwt token"))
 	}
 
 	tokenHeader := token.HeaderFields()

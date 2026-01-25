@@ -43,7 +43,7 @@ func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	}
 
 	var exponent int
-	for i := 0; i < len(eBytes); i++ {
+	for i := range eBytes {
 		exponent = exponent<<8 + int(eBytes[i])
 	}
 
@@ -75,5 +75,4 @@ func New(m map[string]any) (*Key, error) {
 	}
 
 	return &Key{N: n, E: e}, nil
-
 }

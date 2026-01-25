@@ -1,4 +1,4 @@
-package authenticate_config
+package authenticated_token_config
 
 import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"

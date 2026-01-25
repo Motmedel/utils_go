@@ -9,6 +9,7 @@ import (
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	"github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	"github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -31,9 +32,9 @@ func VerifyTokenString(tokenString string, verifier interfaces.Verifier) error {
 		return errors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
 	}
 
-	if len(tokenString) == 0 {
+	if tokenString == "" {
 		return errors.NewWithTrace(
-			fmt.Errorf("%w: %w", errors.ErrParseError, motmedelJwtErrors.ErrEmptyTokenString),
+			fmt.Errorf("%w: %w", errors.ErrParseError, empty_error.New("token")),
 		)
 	}
 
@@ -88,7 +89,7 @@ func Parse(token string) ([]byte, []byte, []byte, error) {
 
 	var decodedParts [3][]byte
 
-	for i := 0; i < len(parts); i++ {
+	for i := range parts {
 		decodedParts[i], err = base64.RawURLEncoding.DecodeString(parts[i])
 		if err != nil {
 			var partName string
@@ -99,7 +100,6 @@ func Parse(token string) ([]byte, []byte, []byte, error) {
 				partName = " (payload part)"
 			case 2:
 				partName = " (signature part)"
-
 			}
 			return nil, nil, nil, errors.NewWithTrace(
 				fmt.Errorf("base64 raw url encoding decode string%s: %w", partName, err),

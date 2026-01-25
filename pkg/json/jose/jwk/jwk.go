@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -43,7 +43,7 @@ func Validate(keyMap map[string]any) error {
 	if expectedKty != "" {
 		if kty != expectedKty {
 			return motmedelErrors.New(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrVerificationError, motmedelJwtErrors.ErrAlgKtyMismatch),
+				fmt.Errorf("%w: %w", motmedelErrors.ErrVerificationError, mismatch_error.New("kty", kty, expectedKty)),
 				alg, kty,
 			)
 		}

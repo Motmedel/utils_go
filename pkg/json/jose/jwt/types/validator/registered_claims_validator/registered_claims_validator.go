@@ -6,15 +6,19 @@ import (
 	"time"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/missing_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claim_strings"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
+
+// TODO: Rework
 
 type ExpectedRegisteredClaims struct {
 	IssuerComparer   comparer.Comparer[string]
@@ -32,7 +36,7 @@ type RegisteredClaimsValidator struct {
 
 func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_claims.ParsedClaims) error {
 	if parsedClaims == nil {
-		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilTokenPayload)
+		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, nil_error.New("parsed claims"))
 	}
 
 	expected := validator.Expected
@@ -44,10 +48,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_cla
 
 	for key, value := range validator.Settings {
 		if _, ok := parsedClaims[key]; value == setting.Required && !ok {
-			errs = append(
-				errs,
-				&motmedelJwtErrors.MissingRequiredFieldError{Name: key},
-			)
+			errs = append(errs, missing_error.New(key))
 		}
 	}
 
@@ -146,10 +147,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_cla
 				}
 
 				if !audienceMatched {
-					errs = append(
-						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrAudienceMismatch, audienceComparer, audiences),
-					)
+					errs = append(errs, mismatch_error.New(key))
 				}
 			}
 		case "iss":
@@ -169,10 +167,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_cla
 					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), issuer)
 				}
 				if !ok {
-					errs = append(
-						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrIssuerMismatch, issuerComparer, issuer),
-					)
+					errs = append(errs, missing_error.New(key))
 				}
 			}
 		case "sub":
@@ -192,10 +187,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_cla
 					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), subject)
 				}
 				if !ok {
-					errs = append(
-						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrSubjectMismatch, subjectComparer, subject),
-					)
+					errs = append(errs, mismatch_error.New(key))
 				}
 			}
 		case "jti":
@@ -215,10 +207,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_cla
 					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), id)
 				}
 				if !ok {
-					errs = append(
-						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrIdMismatch, idComparer, id),
-					)
+					errs = append(errs, mismatch_error.New(key))
 				}
 			}
 		default:
@@ -232,10 +221,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_cla
 				return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), value)
 			}
 			if !ok {
-				errs = append(
-					errs,
-					&motmedelJwtErrors.ClaimMismatchError{Key: key},
-				)
+				errs = append(errs, mismatch_error.New(key))
 			}
 		}
 	}

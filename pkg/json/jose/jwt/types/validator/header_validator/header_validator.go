@@ -5,11 +5,15 @@ import (
 	"fmt"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/missing_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
+
+// TODO: Rework this. Use map?
 
 type ExpectedFields struct {
 	Alg comparer.Comparer[string]
@@ -23,7 +27,7 @@ type Validator struct {
 
 func (validator *Validator) Validate(fields map[string]any) error {
 	if fields == nil {
-		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilTokenHeader)
+		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, nil_error.New("fields"))
 	}
 
 	expected := validator.Expected
@@ -35,10 +39,7 @@ func (validator *Validator) Validate(fields map[string]any) error {
 
 	for key, value := range validator.Settings {
 		if _, ok := fields[key]; value == setting.Required && !ok {
-			errs = append(
-				errs,
-				&motmedelJwtErrors.MissingRequiredFieldError{Name: key},
-			)
+			errs = append(errs, missing_error.New(key))
 		}
 	}
 
@@ -60,10 +61,7 @@ func (validator *Validator) Validate(fields map[string]any) error {
 					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), alg)
 				}
 				if !ok {
-					errs = append(
-						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrAlgMismatch, algComparer, alg),
-					)
+					errs = append(errs, mismatch_error.New(key))
 				}
 			}
 		case "typ":
@@ -78,10 +76,7 @@ func (validator *Validator) Validate(fields map[string]any) error {
 					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), typ)
 				}
 				if !ok {
-					errs = append(
-						errs,
-						motmedelErrors.New(motmedelJwtErrors.ErrTypMismatch, typComparer, typ),
-					)
+					errs = append(errs, mismatch_error.New(key))
 				}
 			}
 		}

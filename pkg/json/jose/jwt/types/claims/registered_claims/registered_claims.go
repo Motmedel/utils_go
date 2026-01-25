@@ -5,7 +5,7 @@ import (
 	"maps"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claim_strings"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -132,7 +132,7 @@ func NewParsedClaims(claimsMap map[string]any) (ParsedClaims, error) {
 				return nil, motmedelErrors.New(fmt.Errorf("parse numeric date (%s): %w", key, err), value)
 			}
 			if numericDate == nil {
-				return nil, motmedelErrors.NewWithTrace(errors.ErrNilNumericDate, value)
+				return nil, motmedelErrors.NewWithTrace(nil_error.New("numeric date"))
 			}
 			clone[key] = *numericDate
 		case "aud":

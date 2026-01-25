@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -25,7 +25,7 @@ func New(m map[string]any) (*Claims, error) {
 		return nil, fmt.Errorf("registered claims new: %w", err)
 	}
 	if registeredClaims == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilRegisteredClaims)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("registered claims"))
 	}
 
 	sessionClaims := &Claims{Claims: *registeredClaims}
@@ -41,7 +41,7 @@ func New(m map[string]any) (*Claims, error) {
 	if v, ok := m["auth_time"]; ok && v != nil {
 		numericDate, err := numeric_date.Convert(v)
 		if err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("get numeric date (auth_time): %w", err), v)
+			return nil, motmedelErrors.New(fmt.Errorf("numeric date convert (auth_time): %w", err), v)
 		}
 		sessionClaims.AuthenticatedAt = numericDate
 	}
@@ -77,7 +77,7 @@ func NewParsedClaims(claimsMap map[string]any) (ParsedClaims, error) {
 		return nil, fmt.Errorf("registered claims new parsed claims: %w", err)
 	}
 	if parsedRegisteredClaims == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilParsedRegisteredClaims)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("parsed registered claims"))
 	}
 
 	if v, ok := parsedRegisteredClaims["auth_time"]; ok && v != nil {
@@ -86,7 +86,7 @@ func NewParsedClaims(claimsMap map[string]any) (ParsedClaims, error) {
 			return nil, motmedelErrors.New(fmt.Errorf("numeric date convert (auth_time): %w", err), v)
 		}
 		if numericDate == nil {
-			return nil, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilNumericDate)
+			return nil, motmedelErrors.NewWithTrace(nil_error.New("numeric date"))
 		}
 		parsedRegisteredClaims["auth_time"] = *numericDate
 	}

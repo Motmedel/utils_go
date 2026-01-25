@@ -10,8 +10,6 @@ import (
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/authenticate_config"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/raw_token"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -105,74 +103,4 @@ func New(tokenString string) (*Token, error) {
 	return token, nil
 }
 
-func Authenticate(tokenString string, options ...authenticate_config.Option) (*Token, error) {
-	if tokenString == "" {
-		return nil, nil
-	}
-
-	rawToken, err := raw_token.New(tokenString)
-	if err != nil {
-		return nil, fmt.Errorf("%w: raw token new: %w", motmedelErrors.ErrParseError, err)
-	}
-	if rawToken == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilRawToken)
-	}
-
-	token, err := NewFromRawToken(rawToken)
-	if err != nil {
-		return nil, motmedelErrors.New(
-			fmt.Errorf("%w: token from raw token: %w", motmedelErrors.ErrParseError, err),
-			rawToken,
-		)
-	}
-
-	config := authenticate_config.New(options...)
-
-	signatureVerifier := config.SignatureVerifier
-	if !utils.IsNil(signatureVerifier) {
-		if token == nil {
-			return nil, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilToken)
-		}
-
-		tokenHeader := token.Header
-		if tokenHeader == nil {
-			return token, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilTokenHeader)
-		}
-
-		alg, err := utils.MapGetConvert[string](tokenHeader, "alg")
-		if err != nil {
-			var wrappedErr error = motmedelErrors.New(fmt.Errorf("map get convert: %w", err), tokenHeader)
-			if motmedelErrors.IsAny(err, motmedelErrors.ErrConversionNotOk, motmedelErrors.ErrNotInMap) {
-				wrappedErr = fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, wrappedErr)
-			}
-			return token, wrappedErr
-		}
-
-		verifierMethodName := signatureVerifier.GetName()
-		if alg != verifierMethodName {
-			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrVerificationError, motmedelJwtErrors.ErrAlgorithmMismatch),
-				motmedelJwtErrors.ErrAlgorithmMismatch, alg, verifierMethodName,
-			)
-		}
-
-		if err := rawToken.Verify(signatureVerifier); err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("raw token verify: %w", err), rawToken)
-		}
-	} else if !config.AllowUnauthenticated {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
-	}
-
-	tokenValidator := config.TokenValidator
-	if !utils.IsNil(tokenValidator) {
-		// TODO: Should I really add `ErrValidationError` here?
-		if err := tokenValidator.Validate(token); err != nil {
-			return nil, motmedelErrors.New(
-				fmt.Errorf("%w: token validator validate: %w", motmedelErrors.ErrValidationError, err),
-				token,
-			)
-		}
-	}
-
-	return token, nil
-}
+// TODO: Return an `AuthenticatedToken` type instead of `Token`?
