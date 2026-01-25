@@ -10,7 +10,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-type SessionClaims struct {
+type Claims struct {
 	registered_claims.Claims
 
 	AuthenticationMethods []string           `json:"amr,omitempty"`
@@ -18,7 +18,7 @@ type SessionClaims struct {
 	AuthorizedParty       string             `json:"azp,omitempty"`
 }
 
-func New(m map[string]any) (*SessionClaims, error) {
+func New(m map[string]any) (*Claims, error) {
 	registeredClaims, err := registered_claims.New(m)
 	if err != nil {
 		return nil, fmt.Errorf("registered claims new: %w", err)
@@ -27,7 +27,7 @@ func New(m map[string]any) (*SessionClaims, error) {
 		return nil, motmedelErrors.NewWithTrace(motmedelJwtErrors.ErrNilRegisteredClaims)
 	}
 
-	sessionClaims := &SessionClaims{Claims: *registeredClaims}
+	sessionClaims := &Claims{Claims: *registeredClaims}
 
 	if v, ok := m["amr"]; ok && v != nil {
 		vs, err := utils.ConvertSlice[string](v)
