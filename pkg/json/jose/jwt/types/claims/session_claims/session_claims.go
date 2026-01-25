@@ -16,6 +16,7 @@ type Claims struct {
 	AuthenticationMethods []string           `json:"amr,omitempty"`
 	AuthenticatedAt       *numeric_date.Date `json:"auth_time,omitempty"`
 	AuthorizedParty       string             `json:"azp,omitempty"`
+	Roles                 []string           `json:"roles,omitempty"`
 }
 
 func New(m map[string]any) (*Claims, error) {
@@ -51,6 +52,14 @@ func New(m map[string]any) (*Claims, error) {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("convert (azp): %w", err), v)
 		}
 		sessionClaims.AuthorizedParty = vs
+	}
+
+	if v, ok := m["roles"]; ok && v != nil {
+		vs, err := utils.ConvertSlice[string](v)
+		if err != nil {
+			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("convert slice (roles): %w", err), v)
+		}
+		sessionClaims.Roles = vs
 	}
 
 	return sessionClaims, nil
