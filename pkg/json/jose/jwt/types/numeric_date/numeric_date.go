@@ -12,15 +12,15 @@ import (
 
 var TimePrecision = time.Second
 
-// NumericDate represents a JSON numeric date value, as referenced at
+// Date represents a JSON numeric date value, as referenced at
 // https://datatracker.ietf.org/doc/html/rfc7519#section-2.
-type NumericDate struct {
+type Date struct {
 	time.Time
 }
 
 // MarshalJSON is an implementation of the json.RawMessage interface and serializes the UNIX epoch
 // represented in NumericDate to a byte array, using the precision specified in TimePrecision.
-func (date NumericDate) MarshalJSON() (b []byte, err error) {
+func (date Date) MarshalJSON() (b []byte, err error) {
 	var prec int
 	if TimePrecision < time.Second {
 		prec = int(math.Log10(float64(time.Second) / float64(TimePrecision)))
@@ -49,7 +49,7 @@ func (date NumericDate) MarshalJSON() (b []byte, err error) {
 // deserializes a [NumericDate] from a JSON representation, i.e. a
 // [json.Number]. This number represents a UNIX epoch with either integer or
 // non-integer seconds.
-func (date *NumericDate) UnmarshalJSON(b []byte) (err error) {
+func (date *Date) UnmarshalJSON(b []byte) (err error) {
 	var (
 		number json.Number
 		f      float64
@@ -69,17 +69,21 @@ func (date *NumericDate) UnmarshalJSON(b []byte) (err error) {
 	return nil
 }
 
-func NewFromSeconds(f float64) *NumericDate {
+func NewFromSeconds(f float64) *Date {
 	round, frac := math.Modf(f)
 	return New(time.Unix(int64(round), int64(frac*1e9)))
 }
 
-func New(t time.Time) *NumericDate {
-	return &NumericDate{t.Truncate(TimePrecision)}
+func New(t time.Time) *Date {
+	return &Date{t.Truncate(TimePrecision)}
 }
 
-func Convert(value any) (*NumericDate, error) {
+func Convert(value any) (*Date, error) {
 	switch typedValue := value.(type) {
+	case *Date:
+		return typedValue, nil
+	case Date:
+		return &typedValue, nil
 	case float64:
 		if typedValue == 0 {
 			return nil, nil

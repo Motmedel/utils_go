@@ -27,6 +27,8 @@ var (
 	ErrEmptyEcX                   = errors.New("empty ec x")
 	ErrEmptyEcY                   = errors.New("empty ec y")
 	ErrClaimMismatch              = errors.New("claim mismatch")
+	ErrNilParsedRegisteredClaims  = errors.New("nil parsed registered claims")
+	ErrNilParsedSessionClaims     = errors.New("nil parsed session claims")
 )
 
 type MissingRequiredFieldError struct {

@@ -9,9 +9,9 @@ import (
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/claim_strings"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/parsed_claims"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claim_strings"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -30,7 +30,7 @@ type RegisteredClaimsValidator struct {
 	Expected *ExpectedRegisteredClaims
 }
 
-func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.Claims) error {
+func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_claims.ParsedClaims) error {
 	if parsedClaims == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelJwtErrors.ErrNilTokenPayload)
 	}
@@ -58,7 +58,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 
 		switch key {
 		case "exp":
-			expiresAt, err := utils.Convert[numeric_date.NumericDate](value)
+			expiresAt, err := utils.Convert[numeric_date.Date](value)
 			if err != nil {
 				errs = append(
 					errs,
@@ -79,7 +79,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				errs = append(errs, wrappedErr)
 			}
 		case "nbf":
-			notBefore, err := utils.Convert[numeric_date.NumericDate](value)
+			notBefore, err := utils.Convert[numeric_date.Date](value)
 			if err != nil {
 				errs = append(
 					errs,
@@ -100,7 +100,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims parsed_claims.
 				errs = append(errs, wrappedErr)
 			}
 		case "iat":
-			issuedAt, err := utils.Convert[numeric_date.NumericDate](value)
+			issuedAt, err := utils.Convert[numeric_date.Date](value)
 			if err != nil {
 				errs = append(
 					errs,

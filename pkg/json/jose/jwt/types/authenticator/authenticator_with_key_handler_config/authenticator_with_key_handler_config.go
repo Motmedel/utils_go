@@ -2,11 +2,11 @@ package authenticator_with_key_handler_config
 
 import (
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/parsed_claims"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
 )
 
 type Config struct {
-	ClaimsValidator validator.Validator[parsed_claims.Claims]
+	ClaimsValidator validator.Validator[registered_claims.ParsedClaims]
 	HeaderValidator validator.Validator[map[string]any]
 }
 
@@ -21,7 +21,7 @@ func New(options ...Option) *Config {
 	return config
 }
 
-func WithClaimsValidator(claimsValidator validator.Validator[parsed_claims.Claims]) Option {
+func WithClaimsValidator(claimsValidator validator.Validator[registered_claims.ParsedClaims]) Option {
 	return func(config *Config) {
 		config.ClaimsValidator = claimsValidator
 	}

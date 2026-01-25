@@ -2,10 +2,12 @@ package registered_claims
 
 import (
 	"fmt"
+	"maps"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/claim_strings"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims/numeric_date"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claim_strings"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -20,31 +22,16 @@ type Claims struct {
 	Audience claim_strings.ClaimStrings `json:"aud,omitempty"`
 
 	// the `exp` (Expiration Time) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.4
-	ExpiresAt *numeric_date.NumericDate `json:"exp,omitempty"`
+	ExpiresAt *numeric_date.Date `json:"exp,omitempty"`
 
 	// the `nbf` (Not Before) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.5
-	NotBefore *numeric_date.NumericDate `json:"nbf,omitempty"`
+	NotBefore *numeric_date.Date `json:"nbf,omitempty"`
 
 	// the `iat` (Issued At) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.6
-	IssuedAt *numeric_date.NumericDate `json:"iat,omitempty"`
+	IssuedAt *numeric_date.Date `json:"iat,omitempty"`
 
 	// the `jti` (JWT ID) claim. See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.7
 	Id string `json:"jti,omitempty"`
-}
-
-func getNumericDate(value any) (*numeric_date.NumericDate, error) {
-	switch typedValue := value.(type) {
-	case *numeric_date.NumericDate:
-		return typedValue, nil
-	case numeric_date.NumericDate:
-		return &typedValue, nil
-	default:
-		numericDate, err := numeric_date.Convert(typedValue)
-		if err != nil {
-			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("numeric date convert: %w", err), typedValue)
-		}
-		return numericDate, nil
-	}
 }
 
 func New(m map[string]any) (*Claims, error) {
@@ -82,7 +69,7 @@ func New(m map[string]any) (*Claims, error) {
 		if v == nil {
 			registeredClaims.ExpiresAt = nil
 		} else {
-			numericDate, err := getNumericDate(v)
+			numericDate, err := numeric_date.Convert(v)
 			if err != nil {
 				return nil, motmedelErrors.New(fmt.Errorf("get numeric date (exp): %w", err), v)
 			}
@@ -94,7 +81,7 @@ func New(m map[string]any) (*Claims, error) {
 		if v == nil {
 			registeredClaims.NotBefore = nil
 		} else {
-			numericDate, err := getNumericDate(v)
+			numericDate, err := numeric_date.Convert(v)
 			if err != nil {
 				return nil, motmedelErrors.New(fmt.Errorf("get numeric date (nbf): %w", err), v)
 			}
@@ -106,7 +93,7 @@ func New(m map[string]any) (*Claims, error) {
 		if v == nil {
 			registeredClaims.IssuedAt = nil
 		} else {
-			numericDate, err := getNumericDate(v)
+			numericDate, err := numeric_date.Convert(v)
 			if err != nil {
 				return nil, motmedelErrors.New(fmt.Errorf("get numeric date (iat): %w", err), v)
 			}
@@ -123,4 +110,39 @@ func New(m map[string]any) (*Claims, error) {
 	}
 
 	return registeredClaims, nil
+}
+
+type ParsedClaims map[string]any
+
+func NewParsedClaims(claimsMap map[string]any) (ParsedClaims, error) {
+	if claimsMap == nil {
+		return nil, nil
+	}
+
+	clone := maps.Clone(claimsMap)
+	if clone == nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (claims map clone)", motmedelErrors.ErrNilMap))
+	}
+
+	for key, value := range claimsMap {
+		switch key {
+		case "exp", "nbf", "iat":
+			numericDate, err := numeric_date.Convert(value)
+			if err != nil {
+				return nil, motmedelErrors.New(fmt.Errorf("parse numeric date (%s): %w", key, err), value)
+			}
+			if numericDate == nil {
+				return nil, motmedelErrors.NewWithTrace(errors.ErrNilNumericDate, value)
+			}
+			clone[key] = *numericDate
+		case "aud":
+			claimsString, err := claim_strings.Convert(value)
+			if err != nil {
+				return nil, motmedelErrors.New(fmt.Errorf("parse claim string (%s): %w", key, err), value)
+			}
+			clone[key] = claimsString
+		}
+	}
+
+	return clone, nil
 }
