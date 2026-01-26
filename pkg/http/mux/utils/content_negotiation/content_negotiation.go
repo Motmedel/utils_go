@@ -1,7 +1,5 @@
 package content_negotiation
 
-// TODO: Move to `pkg/http/utils/content_negotiation`
-
 import (
 	"fmt"
 	"net/http"
@@ -12,6 +10,9 @@ import (
 	motmedelHttpHeadersParsingAcceptLanguage "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_language"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 )
+
+// TODO: Log warnings in non-strict cases?
+// TODO: Maybe this should be a request parser instead. `strict` and `logErrors` can be initialized.
 
 func GetContentNegotiation(requestHeader http.Header, strict bool) (*motmedelHttpTypes.ContentNegotiation, error) {
 	if len(requestHeader) == 0 {

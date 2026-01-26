@@ -20,8 +20,10 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_loader/body_setting"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
 	muxTypesEnpointSpecification "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
-	muxTypesFirewall "github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall_verdict"
+	muxTypesFirewall "github.com/Motmedel/utils_go/pkg/http/mux/types/firewall_verdict"
 	muxTypesMiddleware "github.com/Motmedel/utils_go/pkg/http/mux/types/middleware"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
@@ -51,27 +53,11 @@ type baseMux struct {
 	SetContextKeyValuePairs [][2]any
 	ResponseErrorHandler    func(context.Context, *muxTypesResponseError.ResponseError, *muxTypesResponseWriter.ResponseWriter)
 	DoneCallback            func(context.Context)
-	FirewallConfiguration   *muxTypesFirewall.Configuration
+	FirewallParser          request_parser.RequestParser[firewall_verdict.Verdict]
 	DefaultHeaders          map[string]string
 	DefaultDocumentHeaders  map[string]string
 	Middleware              []muxTypesMiddleware.Middleware
 	ProblemDetailConverter  muxTypesResponseError.ProblemDetailConverter
-}
-
-func (bm *baseMux) getFirewallVerdict(request *http.Request) (muxTypesFirewall.Verdict, *muxTypesResponseError.ResponseError) {
-	if request == nil {
-		return muxTypesFirewall.VerdictReject, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
-		}
-	}
-
-	if firewallConfiguration := bm.FirewallConfiguration; firewallConfiguration != nil {
-		if firewallHandler := firewallConfiguration.Handler; firewallHandler != nil {
-			return firewallHandler(request)
-		}
-	}
-
-	return muxTypesFirewall.VerdictAccept, nil
 }
 
 func (bm *baseMux) ServeHttpWithCallback(
@@ -151,10 +137,15 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 	responseWriter.IsHeadRequest = strings.ToUpper(request.Method) == http.MethodHead
 
-	// Check the request with the muxTypesFirewall.
+	// Perform firewall check.
 
-	verdict, firewallResponseError := bm.getFirewallVerdict(request)
-	if verdict == muxTypesFirewall.VerdictDrop {
+	verdict := firewall_verdict.Accept
+	var firewallResponseError *muxTypesResponseError.ResponseError
+	if firewallParser := bm.FirewallParser; !utils.IsNil(firewallParser) {
+		verdict, firewallResponseError = firewallParser.Parse(request)
+	}
+
+	if verdict == muxTypesFirewall.Drop {
 		hijacker, ok := originalResponseWriter.(http.Hijacker)
 		if ok {
 			connection, _, err := hijacker.Hijack()
@@ -187,7 +178,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 		// Trigger a termination of the connection.
 		panic(http.ErrAbortHandler)
-	} else if verdict == muxTypesFirewall.VerdictReject {
+	} else if verdict == muxTypesFirewall.Reject {
 		if firewallResponseError == nil {
 			firewallResponseError = &muxTypesResponseError.ResponseError{
 				ProblemDetail: problem_detail.New(http.StatusForbidden),

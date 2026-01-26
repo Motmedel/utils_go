@@ -2,12 +2,15 @@ package rate_limiting
 
 import (
 	"fmt"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
 	"net/http"
 	"sync"
 	"time"
+
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
 )
+
+// TODO: This does not need to be in `mux`?
 
 type RateLimiter struct {
 	insertionIndex   int

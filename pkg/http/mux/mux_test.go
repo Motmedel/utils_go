@@ -19,13 +19,13 @@ import (
 	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/adapter"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall"
+	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint/static_content"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall_verdict"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/rate_limiting"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
-	muxTypesStaticContent "github.com/Motmedel/utils_go/pkg/http/mux/types/static_content"
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -79,10 +79,10 @@ var HtmlProblemDetailConverter = response_error.ProblemDetailConverterFunction(h
 
 func TestMain(m *testing.M) {
 	mux := &Mux{}
-	mux.FirewallConfiguration = &firewall.Configuration{
-		Handler: func(request *http.Request) (firewall.Verdict, *response_error.ResponseError) {
+	mux.FirewallParser = request_parser.New(
+		func(request *http.Request) (firewall_verdict.Verdict, *response_error.ResponseError) {
 			if request.URL.RawQuery != "" {
-				return firewall.VerdictReject, &response_error.ResponseError{
+				return firewall_verdict.Reject, &response_error.ResponseError{
 					ProblemDetail: problem_detail.New(
 						http.StatusForbidden,
 						problem_detail_config.WithDetail("URL query parameters are not allowed."),
@@ -91,16 +91,16 @@ func TestMain(m *testing.M) {
 			}
 
 			if request.URL.Path == "/secret-reject" {
-				return firewall.VerdictReject, nil
+				return firewall_verdict.Reject, nil
 			}
 
 			if request.URL.Path == "/secret-drop" {
-				return firewall.VerdictDrop, nil
+				return firewall_verdict.Drop, nil
 			}
 
-			return firewall.VerdictAccept, nil
+			return firewall_verdict.Accept, nil
 		},
-	}
+	)
 	mux.ProblemDetailConverter = HtmlProblemDetailConverter
 
 	mux.Add(
