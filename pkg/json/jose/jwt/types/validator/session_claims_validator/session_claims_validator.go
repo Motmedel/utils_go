@@ -43,10 +43,7 @@ func (validator *Validator) Validate(parsedClaims map[string]any) error {
 	var errs []error
 
 	if registeredClaimsValidator := validator.RegisteredClaimsValidator; registeredClaimsValidator != nil {
-		registeredClaimsValidatorCopy := *registeredClaimsValidator
-		registeredClaimsValidatorCopy.Settings = validator.Settings
-
-		if err := registeredClaimsValidatorCopy.Validate(parsedClaims); err != nil {
+		if err := registeredClaimsValidator.Validate(parsedClaims); err != nil {
 			errs = append(errs, err)
 		}
 	}
