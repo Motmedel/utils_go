@@ -11,3 +11,5 @@ func (e *Error) Error() string {
 func New(field string) *Error {
 	return &Error{Field: field}
 }
+
+// TODO: Add "instance" field.

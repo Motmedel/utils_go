@@ -84,6 +84,10 @@ func GetNonZeroParsedRequestHeaders[T comparable](ctx context.Context) (T, error
 	return getNonZeroParsed[T](ctx, ParsedRequestHeaderContextKey)
 }
 
+func GetServerParsedRequestHeaders[T any](ctx context.Context) (T, *response_error.ResponseError) {
+	return GetServerContextValue[T](ctx, ParsedRequestHeaderContextKey)
+}
+
 func GetServerNonZeroParsedRequestHeaders[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
 	return GetServerNonZeroContextValue[T](ctx, ParsedRequestHeaderContextKey)
 }
