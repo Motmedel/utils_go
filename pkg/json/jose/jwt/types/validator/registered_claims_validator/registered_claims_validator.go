@@ -20,7 +20,7 @@ import (
 
 // TODO: Rework
 
-type ExpectedRegisteredClaims struct {
+type ExpectedClaims struct {
 	IssuerComparer   comparer.Comparer[string]
 	SubjectComparer  comparer.Comparer[string]
 	AudienceComparer comparer.Comparer[string]
@@ -29,19 +29,19 @@ type ExpectedRegisteredClaims struct {
 	OtherComparers map[string]comparer.Comparer[any]
 }
 
-type RegisteredClaimsValidator struct {
+type Validator struct {
 	Settings map[string]setting.Setting
-	Expected *ExpectedRegisteredClaims
+	Expected *ExpectedClaims
 }
 
-func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_claims.ParsedClaims) error {
+func (validator *Validator) Validate(parsedClaims registered_claims.ParsedClaims) error {
 	if parsedClaims == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, nil_error.New("parsed claims"))
 	}
 
 	expected := validator.Expected
 	if expected == nil {
-		expected = &ExpectedRegisteredClaims{}
+		expected = &ExpectedClaims{}
 	}
 
 	var errs []error
@@ -167,7 +167,7 @@ func (validator *RegisteredClaimsValidator) Validate(parsedClaims registered_cla
 					return motmedelErrors.New(fmt.Errorf("compare (%s): %w", key, err), issuer)
 				}
 				if !ok {
-					errs = append(errs, missing_error.New(key))
+					errs = append(errs, mismatch_error.New(key))
 				}
 			}
 		case "sub":

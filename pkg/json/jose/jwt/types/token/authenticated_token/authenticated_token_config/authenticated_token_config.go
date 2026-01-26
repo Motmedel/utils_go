@@ -9,7 +9,7 @@ import (
 )
 
 var DefaultValidator = &jwtValidator.Validator{
-	PayloadValidator: &registered_claims_validator.RegisteredClaimsValidator{},
+	PayloadValidator: &registered_claims_validator.Validator{},
 }
 
 type Config struct {
