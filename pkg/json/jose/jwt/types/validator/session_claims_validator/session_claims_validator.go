@@ -27,7 +27,7 @@ type ExpectedClaims struct {
 }
 
 type Validator struct {
-	registeredClaimsValidator *registered_claims_validator.Validator
+	RegisteredClaimsValidator *registered_claims_validator.Validator
 	Settings                  map[string]setting.Setting
 	Expected                  *ExpectedClaims
 }
@@ -44,7 +44,7 @@ func (validator *Validator) Validate(parsedClaims session_claims.ParsedClaims) e
 
 	var errs []error
 
-	if registeredClaimsValidator := validator.registeredClaimsValidator; registeredClaimsValidator != nil {
+	if registeredClaimsValidator := validator.RegisteredClaimsValidator; registeredClaimsValidator != nil {
 		registeredClaimsValidatorCopy := *registeredClaimsValidator
 		registeredClaimsValidatorCopy.Settings = validator.Settings
 
