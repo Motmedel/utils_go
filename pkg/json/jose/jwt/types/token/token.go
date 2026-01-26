@@ -63,14 +63,6 @@ func (token *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string,
 	), nil
 }
 
-func (token *Token) HeaderFields() map[string]any {
-	return token.Header
-}
-
-func (token *Token) Claims() map[string]any {
-	return token.Payload
-}
-
 func NewFromRawToken(rawToken *raw_token.Token) (*Token, error) {
 	if rawToken == nil {
 		return nil, nil

@@ -3,7 +3,7 @@ package authenticated_token_config
 import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/api"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token"
 	jwtValidator "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/registered_claims_validator"
 )
@@ -14,7 +14,7 @@ var DefaultValidator = &jwtValidator.Validator{
 
 type Config struct {
 	SignatureVerifier    motmedelCryptoInterfaces.NamedVerifier
-	TokenValidator       validator.Validator[api.Token]
+	TokenValidator       validator.Validator[*token.Token]
 	AllowUnauthenticated bool
 }
 
@@ -37,7 +37,7 @@ func WithSignatureVerifier(signatureVerifier motmedelCryptoInterfaces.NamedVerif
 	}
 }
 
-func WithTokenValidator(tokenValidator validator.Validator[api.Token]) Option {
+func WithTokenValidator(tokenValidator validator.Validator[*token.Token]) Option {
 	return func(configuration *Config) {
 		configuration.TokenValidator = tokenValidator
 	}

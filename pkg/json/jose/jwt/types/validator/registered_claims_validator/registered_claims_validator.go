@@ -12,7 +12,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claim_strings"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/setting"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -34,7 +33,7 @@ type Validator struct {
 	Expected *ExpectedClaims
 }
 
-func (validator *Validator) Validate(parsedClaims registered_claims.ParsedClaims) error {
+func (validator *Validator) Validate(parsedClaims map[string]any) error {
 	if parsedClaims == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, nil_error.New("parsed claims"))
 	}

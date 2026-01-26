@@ -3,12 +3,11 @@ package authenticator_config
 import (
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	"github.com/Motmedel/utils_go/pkg/interfaces/validator"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
 )
 
 type Config struct {
 	SignatureVerifier motmedelCryptoInterfaces.NamedVerifier
-	ClaimsValidator   validator.Validator[registered_claims.ParsedClaims]
+	ClaimsValidator   validator.Validator[map[string]any]
 	HeaderValidator   validator.Validator[map[string]any]
 }
 
@@ -29,7 +28,7 @@ func WithSignatureVerifier(signatureVerifier motmedelCryptoInterfaces.NamedVerif
 	}
 }
 
-func WithClaimsValidator(claimsValidator validator.Validator[registered_claims.ParsedClaims]) Option {
+func WithClaimsValidator(claimsValidator validator.Validator[map[string]any]) Option {
 	return func(config *Config) {
 		config.ClaimsValidator = claimsValidator
 	}
