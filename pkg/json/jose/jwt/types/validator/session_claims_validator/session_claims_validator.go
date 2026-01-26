@@ -9,8 +9,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/errors/types/missing_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/registered_claims"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/claims/session_claims"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/numeric_date"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/registered_claims_validator"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/validator/setting"
@@ -32,7 +30,7 @@ type Validator struct {
 	Expected                  *ExpectedClaims
 }
 
-func (validator *Validator) Validate(parsedClaims session_claims.ParsedClaims) error {
+func (validator *Validator) Validate(parsedClaims map[string]any) error {
 	if parsedClaims == nil {
 		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, nil_error.New("parsed claims"))
 	}
@@ -48,7 +46,7 @@ func (validator *Validator) Validate(parsedClaims session_claims.ParsedClaims) e
 		registeredClaimsValidatorCopy := *registeredClaimsValidator
 		registeredClaimsValidatorCopy.Settings = validator.Settings
 
-		if err := registeredClaimsValidatorCopy.Validate(registered_claims.ParsedClaims(parsedClaims)); err != nil {
+		if err := registeredClaimsValidatorCopy.Validate(parsedClaims); err != nil {
 			errs = append(errs, err)
 		}
 	}
