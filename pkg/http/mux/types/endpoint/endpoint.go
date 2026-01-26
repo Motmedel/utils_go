@@ -34,6 +34,8 @@ type Hint struct {
 	OutputOptional    bool
 }
 
+type Handler = func(*http.Request, []byte) (*muxResponse.Response, *muxResponseError.ResponseError)
+
 type Endpoint struct {
 	Path                      string
 	Method                    string
@@ -49,7 +51,7 @@ type Endpoint struct {
 	CorsParser           request_parser.RequestParser[*motmedelHttpTypes.CorsConfiguration]
 	DisableFetchMedata   bool
 	Hint                 *Hint
-	Handler              func(*http.Request, []byte) (*muxResponse.Response, *muxResponseError.ResponseError)
+	Handler              Handler
 	StaticContent        *static_content.StaticContent
 }
 
