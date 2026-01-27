@@ -1,7 +1,9 @@
 github.com/Motmedel/utils_go v0.0.297 h1:nhcTaFioYyNDon78a2z6S5b04FyyaqTt8nuCY/TlbHA=
 github.com/Motmedel/utils_go v0.0.297/go.mod h1:kKm8jM7GA8M7ICIImi5etOMixRgQfnStBPjEoCMTgbg=
+github.com/Motmedel/utils_go v0.0.364/go.mod h1:st9wrD7tyw4AM64tOD7rs0vO7tMxmXQC1Apm48B+4Q4=
 github.com/Motmedel/utils_go/pkg/http/mux v0.0.123 h1:PtfcbFmtpG1NxrAziz4FlDZVljidezMxsaJo7Y9HyIE=
 github.com/Motmedel/utils_go/pkg/http/mux v0.0.123/go.mod h1:720ycaP/aYQLLSwAW1e9P6ZoYgKwbHCwmraP9MiwJm0=
+github.com/Motmedel/utils_go/pkg/http/mux v0.0.154/go.mod h1:vICBvT6IR5Vi8Da+B6GGcGDAutzhO4ICNfaLLv8VcVY=
 github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5 h1:W10vCKqxk8wwxvlXDD7+PA57RKZx/oOXp7fvQ/a09ag=
 github.com/Motmedel/utils_go/pkg/http/problem_detail v1.0.5/go.mod h1:NVtWalWHHrewsfTkYjUQCaR4LqKeylOX6QOFoEadAx8=
 github.com/go-jose/go-jose/v4 v4.1.3 h1:CVLmWDhDVRa6Mi/IgCgaopNosCaHz7zrMeF9MlZRkrs=
