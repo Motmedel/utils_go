@@ -10,7 +10,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	"github.com/Motmedel/utils_go/pkg/http/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	"github.com/Motmedel/utils_go/pkg/utils"
 	jsonschemaErrors "github.com/altshiftab/jsonschema/pkg/errors"
 	"github.com/altshiftab/jsonschema/pkg/jsonschema"
@@ -48,10 +49,10 @@ func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_erro
 		if errors.As(err, &validateError) {
 			return zero, &response_error.ResponseError{
 				// TODO: The error messages could be made nicer.
-				ProblemDetail: problem_detail.MakeStatusCodeProblemDetail(
+				ProblemDetail: problem_detail.New(
 					http.StatusUnprocessableEntity,
-					"Invalid body.",
-					map[string]any{"errors": validateError.Errors},
+					problem_detail_config.WithDetail("Invalid body."),
+					problem_detail_config.WithExtension(map[string]any{"errors": validateError.Errors}),
 				),
 				ClientError: wrappedErr,
 			}
