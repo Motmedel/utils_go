@@ -1,4 +1,4 @@
-package handler
+package key_handler
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/handler/handler_config"
 	jwkKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key_handler/key_handler_config"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key_set"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -21,7 +21,7 @@ import (
 
 type Handler struct {
 	JwkUrl *url.URL
-	config *handler_config.Config
+	config *key_handler_config.Config
 
 	keysMutex     sync.Mutex
 	keys          []map[string]any
@@ -42,7 +42,7 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 			}
 
 			urlString := jwkUrl.String()
-			response, keysResponseData, err := motmedelHttpUtils.FetchJson[key_set.KeySet](ctx, urlString, h.config.FetchOptions...)
+			response, keysResponseData, err := motmedelHttpUtils.FetchJson[*key_set.KeySet](ctx, urlString, h.config.FetchOptions...)
 			if err != nil {
 				return motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 			}
@@ -116,7 +116,7 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 	return nil, nil
 }
 
-func New(jwkUrl *url.URL, options ...handler_config.Option) (*Handler, error) {
+func New(jwkUrl *url.URL, options ...key_handler_config.Option) (*Handler, error) {
 	if jwkUrl == nil {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (jwk url)", motmedelNetErrors.ErrNilUrl))
 	}
@@ -124,6 +124,6 @@ func New(jwkUrl *url.URL, options ...handler_config.Option) (*Handler, error) {
 	return &Handler{
 		JwkUrl:          jwkUrl,
 		keyIdToVerifier: make(map[string]motmedelCryptoInterfaces.NamedVerifier),
-		config:          handler_config.New(options...),
+		config:          key_handler_config.New(options...),
 	}, nil
 }

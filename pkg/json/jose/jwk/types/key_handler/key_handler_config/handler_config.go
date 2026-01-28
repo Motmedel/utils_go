@@ -1,4 +1,4 @@
-package handler_config
+package key_handler_config
 
 import (
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"

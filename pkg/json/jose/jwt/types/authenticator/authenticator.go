@@ -8,7 +8,7 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/handler"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key_handler"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/authenticator/authenticator_config"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/authenticator/authenticator_with_key_handler_config"
 	motmedelJwkToken "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token"
@@ -57,7 +57,7 @@ func New(options ...authenticator_config.Option) *Authenticator {
 }
 
 type AuthenticatorWithKeyHandler struct {
-	Handler *handler.Handler
+	Handler *key_handler.Handler
 	config  *authenticator_with_key_handler_config.Config
 }
 
@@ -119,7 +119,7 @@ func (a *AuthenticatorWithKeyHandler) Authenticate(ctx context.Context, tokenStr
 	return authenticatedToken, nil
 }
 
-func NewWithKeyHandler(handler *handler.Handler, options ...authenticator_with_key_handler_config.Option) (*AuthenticatorWithKeyHandler, error) {
+func NewWithKeyHandler(handler *key_handler.Handler, options ...authenticator_with_key_handler_config.Option) (*AuthenticatorWithKeyHandler, error) {
 	if handler == nil {
 		return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrNilHandler)
 	}

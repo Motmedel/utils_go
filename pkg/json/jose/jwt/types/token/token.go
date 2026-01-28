@@ -94,5 +94,3 @@ func New(tokenString string) (*Token, error) {
 
 	return token, nil
 }
-
-// TODO: Return an `AuthenticatedToken` type instead of `Token`?
