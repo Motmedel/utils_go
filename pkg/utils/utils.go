@@ -70,7 +70,7 @@ func IsNil(value any) bool {
 	return value == nil || (reflect.ValueOf(value).Kind() == reflect.Ptr && reflect.ValueOf(value).IsNil())
 }
 
-func Must[T any](val T, err error, label string) T {
+func Must(err error, label string) {
 	if err != nil {
 		slog.ErrorContext(
 			motmedelContext.WithError(context.Background(), err),
@@ -78,20 +78,6 @@ func Must[T any](val T, err error, label string) T {
 		)
 		os.Exit(1)
 	}
-	return val
-}
-
-func MustNonZero[T comparable](val T, err error, label string) T {
-	var zero T
-	out := Must(val, err, label)
-	if out == zero {
-		slog.ErrorContext(
-			motmedelContext.WithError(context.Background(), err),
-			fmt.Sprintf("fatal (zero value): %s", label),
-		)
-		os.Exit(1)
-	}
-	return out
 }
 
 func GetContextValue[T any](ctx context.Context, key any) (T, error) {
