@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -110,4 +111,26 @@ func GetParsedRequestAuthentication[T any](ctx context.Context) (T, error) {
 
 func GetServerNonZeroParsedRequestAuthentication[T comparable](ctx context.Context) (T, *response_error.ResponseError) {
 	return GetServerNonZeroContextValue[T](ctx, ParsedRequestAuthenticationContextKey)
+}
+
+func MakeStaticContentHeaders(contentType, cacheControl, etag, lastModified string) []*response.HeaderEntry {
+	var entries []*response.HeaderEntry
+
+	if contentType != "" {
+		entries = append(entries, &response.HeaderEntry{Name: "Content-Type", Value: contentType})
+
+	}
+	if etag != "" {
+		entries = append(entries, &response.HeaderEntry{Name: "ETag", Value: etag})
+	}
+
+	if lastModified != "" {
+		entries = append(entries, &response.HeaderEntry{Name: "Last-Modified", Value: lastModified})
+	}
+
+	if cacheControl != "" {
+		entries = append(entries, &response.HeaderEntry{Name: "Cache-Control", Value: cacheControl, Overwrite: true})
+	}
+
+	return entries
 }

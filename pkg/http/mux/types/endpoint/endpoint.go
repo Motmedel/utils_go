@@ -22,6 +22,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"golang.org/x/sync/errgroup"
@@ -55,33 +56,6 @@ type Endpoint struct {
 	StaticContent        *static_content.StaticContent
 }
 
-func makeStaticContentHeaders(
-	contentType string,
-	cacheControl string,
-	etag string,
-	lastModified string,
-) []*muxResponse.HeaderEntry {
-	var entries []*muxResponse.HeaderEntry
-
-	if contentType != "" {
-		entries = append(entries, &muxResponse.HeaderEntry{Name: "Content-Type", Value: contentType})
-
-	}
-	if etag != "" {
-		entries = append(entries, &muxResponse.HeaderEntry{Name: "ETag", Value: etag})
-	}
-
-	if lastModified != "" {
-		entries = append(entries, &muxResponse.HeaderEntry{Name: "Last-Modified", Value: lastModified})
-	}
-
-	if cacheControl != "" {
-		entries = append(entries, &muxResponse.HeaderEntry{Name: "Cache-Control", Value: cacheControl, Overwrite: true})
-	}
-
-	return entries
-}
-
 const robotsTxtCacheControl = "public, max-age=86400"
 
 func NewRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *Endpoint {
@@ -107,7 +81,7 @@ func NewRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *Endpoint {
 				Data:         data,
 				Etag:         etag,
 				LastModified: lastModified,
-				Headers:      makeStaticContentHeaders("text/plain", robotsTxtCacheControl, etag, lastModified),
+				Headers:      utils.MakeStaticContentHeaders("text/plain", robotsTxtCacheControl, etag, lastModified),
 			},
 		},
 	}
@@ -122,7 +96,7 @@ type StaticContentParameter struct {
 }
 
 func (parameter *StaticContentParameter) HeaderEntries(etag string, lastModified string) []*muxResponse.HeaderEntry {
-	return makeStaticContentHeaders(parameter.ContentType, parameter.CacheControl, etag, lastModified)
+	return utils.MakeStaticContentHeaders(parameter.ContentType, parameter.CacheControl, etag, lastModified)
 }
 
 func AddContentEncodingData(staticContent *static_content.StaticContent) error {
