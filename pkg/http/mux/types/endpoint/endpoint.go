@@ -310,6 +310,7 @@ func NewFromDataPath(
 		Path:          path,
 		Method:        http.MethodGet,
 		StaticContent: staticContent,
+		Public:        !private,
 	}, nil
 }
 
