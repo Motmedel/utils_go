@@ -14,6 +14,7 @@ import (
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/handler/handler_config"
 	jwkKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key_set"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -41,7 +42,7 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 			}
 
 			urlString := jwkUrl.String()
-			response, keysResponseData, err := motmedelHttpUtils.FetchJson[jwkKey.Keys](ctx, urlString, h.config.FetchOptions...)
+			response, keysResponseData, err := motmedelHttpUtils.FetchJson[key_set.KeySet](ctx, urlString, h.config.FetchOptions...)
 			if err != nil {
 				return motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 			}

@@ -61,10 +61,6 @@ func (k *Key) NamedVerifier() (motmedelCryptoInterfaces.NamedVerifier, error) {
 	}
 }
 
-type Keys struct {
-	Keys []map[string]any `json:"keys,omitempty"`
-}
-
 func New(m map[string]any) (*Key, error) {
 	if m == nil {
 		return nil, nil
