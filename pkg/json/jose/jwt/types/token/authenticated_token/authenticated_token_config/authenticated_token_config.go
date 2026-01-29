@@ -42,3 +42,9 @@ func WithTokenValidator(tokenValidator validator.Validator[*token.Token]) Option
 		configuration.TokenValidator = tokenValidator
 	}
 }
+
+func WithAllowUnauthenticated(allowUnauthenticated bool) Option {
+	return func(configuration *Config) {
+		configuration.AllowUnauthenticated = allowUnauthenticated
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"io"
 	"sync"
 )
 
@@ -18,6 +19,13 @@ func (c *Conn) ExecContext(ctx context.Context, _ string, _ []driver.NamedValue)
 }
 
 var _ driver.ExecerContext = (*Conn)(nil)
+var _ driver.QueryerContext = (*Conn)(nil)
+
+// QueryContext returns an empty result set to avoid fast-path ErrSkip propagation
+// from the driver during tests.
+func (c *Conn) QueryContext(ctx context.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
+	return &Rows{}, nil
+}
 
 // A fake SQL driver for testing that reports one row affected.
 
@@ -32,7 +40,16 @@ func (s *Stmt) NumInput() int { return -1 }
 func (s *Stmt) Exec(_ []driver.Value) (driver.Result, error) {
 	return driver.RowsAffected(1), nil
 }
-func (s *Stmt) Query(_ []driver.Value) (driver.Rows, error) { return nil, driver.ErrSkip }
+func (s *Stmt) Query(_ []driver.Value) (driver.Rows, error) { return &Rows{}, nil }
+
+// Rows is a minimal implementation that represents an empty result set.
+type Rows struct{}
+
+func (r *Rows) Columns() []string { return []string{} }
+func (r *Rows) Close() error      { return nil }
+func (r *Rows) Next(_ []driver.Value) error {
+	return io.EOF
+}
 
 type Tx struct{}
 
