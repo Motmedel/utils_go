@@ -495,6 +495,7 @@ func muxHandleRequest(
 		parsedAuthentication, responseError := authenticationParser.Parse(request)
 		if responseError != nil {
 			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
+			return nil, responseError
 		}
 
 		request = request.WithContext(
