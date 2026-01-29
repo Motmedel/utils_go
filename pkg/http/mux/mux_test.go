@@ -1,9 +1,6 @@
 package mux
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+	muxTesting "github.com/Motmedel/utils_go/pkg/http/mux/testing"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_loader"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_loader/body_setting"
 	bodyParserAdapter "github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/adapter"
@@ -32,8 +30,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var httpServer *httptest.Server
@@ -271,74 +267,63 @@ func TestMain(m *testing.M) {
 // TODO: Test adding and deleting from a mux.
 
 func TestMux(t *testing.T) {
-	testCases := []struct {
-		name                  string
-		method                string
-		url                   string
-		headers               [][2]string
-		body                  []byte
-		expectedStatusCode    int
-		expectedHeaders       [][2]string
-		expectedBody          []byte
-		expectedProblemDetail *problem_detail.Detail
-		expectedClientDoError error
-	}{
+	testCases := []*muxTesting.Case{
 		{
-			name:               "status ok, handler",
-			method:             http.MethodGet,
-			url:                "/hello-world",
-			expectedStatusCode: http.StatusOK,
-			expectedBody:       []byte("hello world"),
-			expectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
+			Name:               "status ok, handler",
+			Method:             http.MethodGet,
+			Url:                "/hello-world",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedBody:       []byte("hello world"),
+			ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
 		},
 		{
-			name:               "status ok, handler (HEAD)",
-			method:             http.MethodHead,
-			url:                "/hello-world",
-			expectedStatusCode: http.StatusOK,
-			expectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
+			Name:               "status ok, handler (HEAD)",
+			Method:             http.MethodHead,
+			Url:                "/hello-world",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
 		},
 		{
-			name:               "status no content (OPTIONS)",
-			method:             http.MethodOptions,
-			url:                "/hello-world",
-			expectedStatusCode: http.StatusNoContent,
-			expectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
+			Name:               "status no content (OPTIONS)",
+			Method:             http.MethodOptions,
+			Url:                "/hello-world",
+			ExpectedStatusCode: http.StatusNoContent,
+			ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 		},
 		{
-			name:               "status ok, static content",
-			method:             http.MethodGet,
-			url:                "/hello-world-static",
-			expectedStatusCode: http.StatusOK,
-			expectedBody:       []byte("<html>hello world</html>"),
-			expectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
+			Name:               "status ok, static content",
+			Method:             http.MethodGet,
+			Url:                "/hello-world-static",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedBody:       []byte("<html>hello world</html>"),
+			ExpectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
 		},
 		{
-			name:               "fetch metadata vary",
-			method:             http.MethodHead,
-			url:                "/hello-world-fetch-metadata",
-			expectedStatusCode: http.StatusOK,
-			expectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"}},
+			Name:               "fetch metadata vary",
+			Method:             http.MethodHead,
+			Url:                "/hello-world-fetch-metadata",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"}},
 		},
 		{
-			name:   "fetch metadata forbidden",
-			method: http.MethodGet,
-			url:    "/hello-world",
-			headers: [][2]string{
+			Name:   "fetch metadata forbidden",
+			Method: http.MethodGet,
+			Url:    "/hello-world",
+			Headers: [][2]string{
 				{"Sec-Fetch-Site", "cross-origin"},
 			},
-			expectedStatusCode: http.StatusForbidden,
-			expectedProblemDetail: &problem_detail.Detail{
+			ExpectedStatusCode: http.StatusForbidden,
+			ExpectedProblemDetail: &problem_detail.Detail{
 				Detail: "Cross-site request blocked by Fetch-Metadata policy.",
 			},
 		},
 		{
-			name:               "default headers",
-			method:             http.MethodGet,
-			url:                "/hello-world",
-			expectedStatusCode: http.StatusOK,
-			expectedBody:       []byte("hello world"),
-			expectedHeaders: func() [][2]string {
+			Name:               "default headers",
+			Method:             http.MethodGet,
+			Url:                "/hello-world",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedBody:       []byte("hello world"),
+			ExpectedHeaders: func() [][2]string {
 				var headers [][2]string
 				for key, value := range response_writer.DefaultHeaders {
 					headers = append(headers, [2]string{key, value})
@@ -347,12 +332,12 @@ func TestMux(t *testing.T) {
 			}(),
 		},
 		{
-			name:               "default document headers",
-			method:             http.MethodGet,
-			url:                "/hello-world-static",
-			expectedStatusCode: http.StatusOK,
-			expectedBody:       []byte("<html>hello world</html>"),
-			expectedHeaders: func() [][2]string {
+			Name:               "default document headers",
+			Method:             http.MethodGet,
+			Url:                "/hello-world-static",
+			ExpectedStatusCode: http.StatusOK,
+			ExpectedBody:       []byte("<html>hello world</html>"),
+			ExpectedHeaders: func() [][2]string {
 				var headers [][2]string
 				for key, value := range response_writer.DefaultHeaders {
 					headers = append(headers, [2]string{key, value})
@@ -365,177 +350,177 @@ func TestMux(t *testing.T) {
 			}(),
 		},
 		{
-			name:               "bad method",
-			method:             http.MethodPatch,
-			url:                "/hello-world",
-			expectedStatusCode: http.StatusMethodNotAllowed,
-			expectedProblemDetail: &problem_detail.Detail{
+			Name:               "bad method",
+			Method:             http.MethodPatch,
+			Url:                "/hello-world",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			ExpectedProblemDetail: &problem_detail.Detail{
 				Detail: `Expected GET, HEAD, OPTIONS, POST.`,
 			},
-			expectedHeaders: [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
+			ExpectedHeaders: [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 		},
 		{
-			name:               "error status method not allowed, without response body",
-			method:             http.MethodPatch,
-			url:                "/hello-world",
-			headers:            [][2]string{{"Accept-Encoding", "*;q=0"}},
-			expectedStatusCode: http.StatusMethodNotAllowed,
-			expectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
+			Name:               "error status method not allowed, without response body",
+			Method:             http.MethodPatch,
+			Url:                "/hello-world",
+			Headers:            [][2]string{{"Accept-Encoding", "*;q=0"}},
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 		},
 		{
-			name:               "status no content",
-			method:             http.MethodGet,
-			url:                "/empty",
-			expectedStatusCode: http.StatusNoContent,
+			Name:               "status no content",
+			Method:             http.MethodGet,
+			Url:                "/empty",
+			ExpectedStatusCode: http.StatusNoContent,
 		},
 		{
-			name:                  "error status not found",
-			method:                http.MethodGet,
-			url:                   "/not-found",
-			expectedStatusCode:    http.StatusNotFound,
-			expectedProblemDetail: &problem_detail.Detail{},
+			Name:                  "error status not found",
+			Method:                http.MethodGet,
+			Url:                   "/not-found",
+			ExpectedStatusCode:    http.StatusNotFound,
+			ExpectedProblemDetail: &problem_detail.Detail{},
 		},
 		{
-			name:               "status ok, post data",
-			method:             http.MethodPost,
-			url:                "/push",
-			headers:            [][2]string{{"Content-Type", "application/json"}},
-			body:               []byte(`{"data": "data"}`),
-			expectedStatusCode: http.StatusNoContent,
+			Name:               "status ok, post data",
+			Method:             http.MethodPost,
+			Url:                "/push",
+			Headers:            [][2]string{{"Content-Type", "application/json"}},
+			Body:               []byte(`{"data": "data"}`),
+			ExpectedStatusCode: http.StatusNoContent,
 		},
 		{
-			name:               "status no content, body parsing test",
-			method:             http.MethodPost,
-			url:                "/body-parsing",
-			headers:            [][2]string{{"Content-Type", "application/json"}},
-			body:               []byte(`{"data": "hello world"}`),
-			expectedStatusCode: http.StatusNoContent,
+			Name:               "status no content, body parsing test",
+			Method:             http.MethodPost,
+			Url:                "/body-parsing",
+			Headers:            [][2]string{{"Content-Type", "application/json"}},
+			Body:               []byte(`{"data": "hello world"}`),
+			ExpectedStatusCode: http.StatusNoContent,
 		},
 		{
-			name:               "error status bad request, post no data",
-			method:             http.MethodPost,
-			url:                "/push",
-			headers:            [][2]string{{"Content-Type", "application/json"}},
-			expectedStatusCode: http.StatusBadRequest,
-			expectedProblemDetail: &problem_detail.Detail{
+			Name:               "error status bad request, post no data",
+			Method:             http.MethodPost,
+			Url:                "/push",
+			Headers:            [][2]string{{"Content-Type", "application/json"}},
+			ExpectedStatusCode: http.StatusBadRequest,
+			ExpectedProblemDetail: &problem_detail.Detail{
 				Detail: "A body is expected; Content-Length cannot be 0.",
 			},
 		},
 		{
-			name:               "error status unsupported media type, missing content type",
-			method:             http.MethodPost,
-			url:                "/push",
-			body:               []byte(`{"data": "data"}`),
-			expectedStatusCode: http.StatusUnsupportedMediaType,
-			expectedHeaders:    [][2]string{{"Accept", "application/json"}},
-			expectedProblemDetail: &problem_detail.Detail{
+			Name:               "error status unsupported media type, missing content type",
+			Method:             http.MethodPost,
+			Url:                "/push",
+			Body:               []byte(`{"data": "data"}`),
+			ExpectedStatusCode: http.StatusUnsupportedMediaType,
+			ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
+			ExpectedProblemDetail: &problem_detail.Detail{
 				Detail: "Missing Content-Type.",
 			},
 		},
 		{
-			name:               "error status bad request, malformed content type",
-			method:             http.MethodPost,
-			url:                "/push",
-			headers:            [][2]string{{"Content-Type", ""}},
-			body:               []byte(`{"data": "data"}`),
-			expectedStatusCode: http.StatusBadRequest,
-			expectedProblemDetail: &problem_detail.Detail{
+			Name:               "error status bad request, malformed content type",
+			Method:             http.MethodPost,
+			Url:                "/push",
+			Headers:            [][2]string{{"Content-Type", ""}},
+			Body:               []byte(`{"data": "data"}`),
+			ExpectedStatusCode: http.StatusBadRequest,
+			ExpectedProblemDetail: &problem_detail.Detail{
 				Detail: "Malformed Content-Type.",
 			},
 		},
 		{
-			name:               "error status unsupported media type, other content type",
-			method:             http.MethodPost,
-			url:                "/push",
-			headers:            [][2]string{{"Content-Type", "text/plain"}},
-			expectedStatusCode: http.StatusUnsupportedMediaType,
-			expectedHeaders:    [][2]string{{"Accept", "application/json"}},
-			expectedProblemDetail: &problem_detail.Detail{
+			Name:               "error status unsupported media type, other content type",
+			Method:             http.MethodPost,
+			Url:                "/push",
+			Headers:            [][2]string{{"Content-Type", "text/plain"}},
+			ExpectedStatusCode: http.StatusUnsupportedMediaType,
+			ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
+			ExpectedProblemDetail: &problem_detail.Detail{
 				Detail: `Expected Content-Type to be "application/json", observed "text/plain".`,
 			},
 		},
 		{
-			name:                  "error bad request, invalid json body",
-			method:                http.MethodPost,
-			url:                   "/push",
-			headers:               [][2]string{{"Content-Type", "application/json"}},
-			body:                  []byte(`{"data": "data"`),
-			expectedStatusCode:    http.StatusBadRequest,
-			expectedProblemDetail: &problem_detail.Detail{Detail: "Invalid JSON body."},
+			Name:                  "error bad request, invalid json body",
+			Method:                http.MethodPost,
+			Url:                   "/push",
+			Headers:               [][2]string{{"Content-Type", "application/json"}},
+			Body:                  []byte(`{"data": "data"`),
+			ExpectedStatusCode:    http.StatusBadRequest,
+			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Invalid JSON body."},
 		},
 		{
-			name:                  "error status forbidden, firewall match url query parameters",
-			method:                http.MethodGet,
-			url:                   "/foo?bar=fuu",
-			expectedStatusCode:    http.StatusForbidden,
-			expectedProblemDetail: &problem_detail.Detail{Detail: "URL query parameters are not allowed."},
+			Name:                  "error status forbidden, firewall match url query parameters",
+			Method:                http.MethodGet,
+			Url:                   "/foo?bar=fuu",
+			ExpectedStatusCode:    http.StatusForbidden,
+			ExpectedProblemDetail: &problem_detail.Detail{Detail: "URL query parameters are not allowed."},
 		},
 		{
-			name:                  "error status forbidden, firewall match url secret (reject)",
-			method:                http.MethodGet,
-			url:                   "/secret-reject",
-			expectedStatusCode:    http.StatusForbidden,
-			expectedProblemDetail: &problem_detail.Detail{},
+			Name:                  "error status forbidden, firewall match url secret (reject)",
+			Method:                http.MethodGet,
+			Url:                   "/secret-reject",
+			ExpectedStatusCode:    http.StatusForbidden,
+			ExpectedProblemDetail: &problem_detail.Detail{},
 		},
 		{
-			name:                  "error status forbidden, firewall match url secret (drop)",
-			method:                http.MethodGet,
-			url:                   "/secret-drop",
-			expectedClientDoError: io.EOF,
+			Name:                  "error status forbidden, firewall match url secret (drop)",
+			Method:                http.MethodGet,
+			Url:                   "/secret-drop",
+			ExpectedClientDoError: io.EOF,
 		},
 		{
-			name:               "custom error representation",
-			method:             http.MethodGet,
-			url:                "/teapot",
-			headers:            [][2]string{{"Accept", "text/html"}},
-			expectedStatusCode: http.StatusTeapot,
-			expectedBody:       []byte("<html>418</html>"),
-			expectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
+			Name:               "custom error representation",
+			Method:             http.MethodGet,
+			Url:                "/teapot",
+			Headers:            [][2]string{{"Accept", "text/html"}},
+			ExpectedStatusCode: http.StatusTeapot,
+			ExpectedBody:       []byte("<html>418</html>"),
+			ExpectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
 		},
 		{
-			name:                  "max bytes too large",
-			method:                http.MethodPost,
-			url:                   "/body-parsing-limit",
-			headers:               [][2]string{{"Content-Type", "application/octet-stream"}},
-			body:                  []byte("123"),
-			expectedStatusCode:    http.StatusRequestEntityTooLarge,
-			expectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 2 bytes"},
+			Name:                  "max bytes too large",
+			Method:                http.MethodPost,
+			Url:                   "/body-parsing-limit",
+			Headers:               [][2]string{{"Content-Type", "application/octet-stream"}},
+			Body:                  []byte("123"),
+			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
+			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 2 bytes"},
 		},
 		{
-			name:               "max bytes ok",
-			method:             http.MethodPost,
-			url:                "/body-parsing-limit",
-			headers:            [][2]string{{"Content-Type", "application/octet-stream"}},
-			body:               []byte("12"),
-			expectedStatusCode: http.StatusNoContent,
+			Name:               "max bytes ok",
+			Method:             http.MethodPost,
+			Url:                "/body-parsing-limit",
+			Headers:            [][2]string{{"Content-Type", "application/octet-stream"}},
+			Body:               []byte("12"),
+			ExpectedStatusCode: http.StatusNoContent,
 		},
 		{
-			name:                  "forbidden body",
-			method:                http.MethodPost,
-			url:                   "/forbidden-body",
-			body:                  []byte("12"),
-			expectedStatusCode:    http.StatusRequestEntityTooLarge,
-			expectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
+			Name:                  "forbidden body",
+			Method:                http.MethodPost,
+			Url:                   "/forbidden-body",
+			Body:                  []byte("12"),
+			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
+			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
 		},
 		{
-			name:                  "forbidden body get",
-			method:                http.MethodGet,
-			url:                   "/hello-world",
-			body:                  []byte("12"),
-			expectedStatusCode:    http.StatusRequestEntityTooLarge,
-			expectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
+			Name:                  "forbidden body get",
+			Method:                http.MethodGet,
+			Url:                   "/hello-world",
+			Body:                  []byte("12"),
+			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
+			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
 		},
 		{
-			name:   "cors preflight",
-			method: http.MethodOptions,
-			headers: [][2]string{
+			Name:   "cors preflight",
+			Method: http.MethodOptions,
+			Headers: [][2]string{
 				{"Origin", "https://example.com"},
 				{"Access-Control-Request-Method", "POST"},
 				{"Access-Control-Request-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
 			},
-			url:                "/cors",
-			expectedStatusCode: http.StatusNoContent,
-			expectedHeaders: [][2]string{
+			Url:                "/cors",
+			ExpectedStatusCode: http.StatusNoContent,
+			ExpectedHeaders: [][2]string{
 				{"Access-Control-Allow-Methods", "GET, HEAD, POST"},
 				{"Access-Control-Allow-Origin", "*"},
 				{"Access-Control-Allow-Credentials", "true"},
@@ -544,14 +529,14 @@ func TestMux(t *testing.T) {
 			},
 		},
 		{
-			name:   "cors post",
-			method: http.MethodPost,
-			headers: [][2]string{
+			Name:   "cors post",
+			Method: http.MethodPost,
+			Headers: [][2]string{
 				{"Origin", "https://example.com"},
 			},
-			url:                "/cors",
-			expectedStatusCode: http.StatusNoContent,
-			expectedHeaders: [][2]string{
+			Url:                "/cors",
+			ExpectedStatusCode: http.StatusNoContent,
+			ExpectedHeaders: [][2]string{
 				{"Access-Control-Allow-Origin", "*"},
 				{"Access-Control-Allow-Credentials", "true"},
 				{"Access-Control-Expose-Headers", "X-Secret-2"},
@@ -562,74 +547,12 @@ func TestMux(t *testing.T) {
 	// TODO: Write test for URL parsing.
 
 	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			var requestBody io.Reader
-			if testCaseBody := testCase.body; len(testCaseBody) != 0 {
-				requestBody = bytes.NewReader(testCaseBody)
-			}
-
-			request, err := http.NewRequest(testCase.method, httpServer.URL+testCase.url, requestBody)
-			if err != nil {
-				t.Fatalf("new request: %v", err)
-			}
-
-			for _, header := range testCase.headers {
-				request.Header.Set(header[0], header[1])
-			}
-
-			response, err := http.DefaultClient.Do(request)
-			if err != nil {
-				if testCase.expectedClientDoError != nil {
-					if errors.Is(err, testCase.expectedClientDoError) {
-						return
-					}
-					t.Fatalf("http client do: %v", err)
-				}
-			}
-			defer response.Body.Close()
-
-			responseBody, err := io.ReadAll(response.Body)
-			if err != nil {
-				t.Fatalf("io read all response body: %v", err)
-			}
-
-			if response.StatusCode != testCase.expectedStatusCode {
-				t.Errorf("got status code %d, expected %d", response.StatusCode, testCase.expectedStatusCode)
-			}
-
-			if expectedHeaders := testCase.expectedHeaders; len(expectedHeaders) != 0 {
-				responseHeader := response.Header
-				for _, header := range expectedHeaders {
-					headerValue := responseHeader.Get(header[0])
-					if headerValue != header[1] {
-						t.Errorf("got %q, expected header %q to be %q", headerValue, header[0], header[1])
-					}
-				}
-			}
-
-			if expectedProblemDetail := testCase.expectedProblemDetail; expectedProblemDetail != nil {
-				var problemDetail *problem_detail.Detail
-				if err := json.Unmarshal(responseBody, &problemDetail); err != nil {
-					t.Fatalf("json unmarshal response body: %v", err)
-				}
-
-				opts := []cmp.Option{
-					cmpopts.IgnoreFields(problem_detail.Detail{}, "Type"),
-					cmpopts.IgnoreFields(problem_detail.Detail{}, "Instance"),
-					cmpopts.EquateEmpty(),
-				}
-
-				expectedStatusCode := testCase.expectedStatusCode
-				expectedProblemDetail.Title = http.StatusText(expectedStatusCode)
-				expectedProblemDetail.Status = expectedStatusCode
-
-				if diff := cmp.Diff(expectedProblemDetail, problemDetail, opts...); diff != "" {
-					t.Errorf("problem detail mismatch (-expected +got):\n%s", diff)
-				}
-			} else if !bytes.Equal(responseBody, testCase.expectedBody) {
-				t.Errorf("got response body %q, expected response body %q", responseBody, testCase.expectedBody)
-			}
-		})
+		t.Run(
+			testCase.Name,
+			func(t *testing.T) {
+				muxTesting.TestMuxCase(testCase, httpServer.URL, t)
+			},
+		)
 	}
 }
 
