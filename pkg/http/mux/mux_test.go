@@ -271,7 +271,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "status ok, handler",
 			Method:             http.MethodGet,
-			Url:                "/hello-world",
+			Path:               "/hello-world",
 			ExpectedStatusCode: http.StatusOK,
 			ExpectedBody:       []byte("hello world"),
 			ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
@@ -279,21 +279,21 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "status ok, handler (HEAD)",
 			Method:             http.MethodHead,
-			Url:                "/hello-world",
+			Path:               "/hello-world",
 			ExpectedStatusCode: http.StatusOK,
 			ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
 		},
 		{
 			Name:               "status no content (OPTIONS)",
 			Method:             http.MethodOptions,
-			Url:                "/hello-world",
+			Path:               "/hello-world",
 			ExpectedStatusCode: http.StatusNoContent,
 			ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 		},
 		{
 			Name:               "status ok, static content",
 			Method:             http.MethodGet,
-			Url:                "/hello-world-static",
+			Path:               "/hello-world-static",
 			ExpectedStatusCode: http.StatusOK,
 			ExpectedBody:       []byte("<html>hello world</html>"),
 			ExpectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
@@ -301,14 +301,14 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "fetch metadata vary",
 			Method:             http.MethodHead,
-			Url:                "/hello-world-fetch-metadata",
+			Path:               "/hello-world-fetch-metadata",
 			ExpectedStatusCode: http.StatusOK,
 			ExpectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"}},
 		},
 		{
 			Name:   "fetch metadata forbidden",
 			Method: http.MethodGet,
-			Url:    "/hello-world",
+			Path:   "/hello-world",
 			Headers: [][2]string{
 				{"Sec-Fetch-Site", "cross-origin"},
 			},
@@ -320,7 +320,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "default headers",
 			Method:             http.MethodGet,
-			Url:                "/hello-world",
+			Path:               "/hello-world",
 			ExpectedStatusCode: http.StatusOK,
 			ExpectedBody:       []byte("hello world"),
 			ExpectedHeaders: func() [][2]string {
@@ -334,7 +334,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "default document headers",
 			Method:             http.MethodGet,
-			Url:                "/hello-world-static",
+			Path:               "/hello-world-static",
 			ExpectedStatusCode: http.StatusOK,
 			ExpectedBody:       []byte("<html>hello world</html>"),
 			ExpectedHeaders: func() [][2]string {
@@ -352,7 +352,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "bad method",
 			Method:             http.MethodPatch,
-			Url:                "/hello-world",
+			Path:               "/hello-world",
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
 			ExpectedProblemDetail: &problem_detail.Detail{
 				Detail: `Expected GET, HEAD, OPTIONS, POST.`,
@@ -362,7 +362,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "error status method not allowed, without response body",
 			Method:             http.MethodPatch,
-			Url:                "/hello-world",
+			Path:               "/hello-world",
 			Headers:            [][2]string{{"Accept-Encoding", "*;q=0"}},
 			ExpectedStatusCode: http.StatusMethodNotAllowed,
 			ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
@@ -370,20 +370,20 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "status no content",
 			Method:             http.MethodGet,
-			Url:                "/empty",
+			Path:               "/empty",
 			ExpectedStatusCode: http.StatusNoContent,
 		},
 		{
 			Name:                  "error status not found",
 			Method:                http.MethodGet,
-			Url:                   "/not-found",
+			Path:                  "/not-found",
 			ExpectedStatusCode:    http.StatusNotFound,
 			ExpectedProblemDetail: &problem_detail.Detail{},
 		},
 		{
 			Name:               "status ok, post data",
 			Method:             http.MethodPost,
-			Url:                "/push",
+			Path:               "/push",
 			Headers:            [][2]string{{"Content-Type", "application/json"}},
 			Body:               []byte(`{"data": "data"}`),
 			ExpectedStatusCode: http.StatusNoContent,
@@ -391,7 +391,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "status no content, body parsing test",
 			Method:             http.MethodPost,
-			Url:                "/body-parsing",
+			Path:               "/body-parsing",
 			Headers:            [][2]string{{"Content-Type", "application/json"}},
 			Body:               []byte(`{"data": "hello world"}`),
 			ExpectedStatusCode: http.StatusNoContent,
@@ -399,7 +399,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "error status bad request, post no data",
 			Method:             http.MethodPost,
-			Url:                "/push",
+			Path:               "/push",
 			Headers:            [][2]string{{"Content-Type", "application/json"}},
 			ExpectedStatusCode: http.StatusBadRequest,
 			ExpectedProblemDetail: &problem_detail.Detail{
@@ -409,7 +409,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "error status unsupported media type, missing content type",
 			Method:             http.MethodPost,
-			Url:                "/push",
+			Path:               "/push",
 			Body:               []byte(`{"data": "data"}`),
 			ExpectedStatusCode: http.StatusUnsupportedMediaType,
 			ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
@@ -420,7 +420,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "error status bad request, malformed content type",
 			Method:             http.MethodPost,
-			Url:                "/push",
+			Path:               "/push",
 			Headers:            [][2]string{{"Content-Type", ""}},
 			Body:               []byte(`{"data": "data"}`),
 			ExpectedStatusCode: http.StatusBadRequest,
@@ -431,7 +431,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "error status unsupported media type, other content type",
 			Method:             http.MethodPost,
-			Url:                "/push",
+			Path:               "/push",
 			Headers:            [][2]string{{"Content-Type", "text/plain"}},
 			ExpectedStatusCode: http.StatusUnsupportedMediaType,
 			ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
@@ -442,7 +442,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:                  "error bad request, invalid json body",
 			Method:                http.MethodPost,
-			Url:                   "/push",
+			Path:                  "/push",
 			Headers:               [][2]string{{"Content-Type", "application/json"}},
 			Body:                  []byte(`{"data": "data"`),
 			ExpectedStatusCode:    http.StatusBadRequest,
@@ -451,27 +451,27 @@ func TestMux(t *testing.T) {
 		{
 			Name:                  "error status forbidden, firewall match url query parameters",
 			Method:                http.MethodGet,
-			Url:                   "/foo?bar=fuu",
+			Path:                  "/foo?bar=fuu",
 			ExpectedStatusCode:    http.StatusForbidden,
 			ExpectedProblemDetail: &problem_detail.Detail{Detail: "URL query parameters are not allowed."},
 		},
 		{
 			Name:                  "error status forbidden, firewall match url secret (reject)",
 			Method:                http.MethodGet,
-			Url:                   "/secret-reject",
+			Path:                  "/secret-reject",
 			ExpectedStatusCode:    http.StatusForbidden,
 			ExpectedProblemDetail: &problem_detail.Detail{},
 		},
 		{
 			Name:                  "error status forbidden, firewall match url secret (drop)",
 			Method:                http.MethodGet,
-			Url:                   "/secret-drop",
+			Path:                  "/secret-drop",
 			ExpectedClientDoError: io.EOF,
 		},
 		{
 			Name:               "custom error representation",
 			Method:             http.MethodGet,
-			Url:                "/teapot",
+			Path:               "/teapot",
 			Headers:            [][2]string{{"Accept", "text/html"}},
 			ExpectedStatusCode: http.StatusTeapot,
 			ExpectedBody:       []byte("<html>418</html>"),
@@ -480,7 +480,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:                  "max bytes too large",
 			Method:                http.MethodPost,
-			Url:                   "/body-parsing-limit",
+			Path:                  "/body-parsing-limit",
 			Headers:               [][2]string{{"Content-Type", "application/octet-stream"}},
 			Body:                  []byte("123"),
 			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
@@ -489,7 +489,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:               "max bytes ok",
 			Method:             http.MethodPost,
-			Url:                "/body-parsing-limit",
+			Path:               "/body-parsing-limit",
 			Headers:            [][2]string{{"Content-Type", "application/octet-stream"}},
 			Body:               []byte("12"),
 			ExpectedStatusCode: http.StatusNoContent,
@@ -497,7 +497,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:                  "forbidden body",
 			Method:                http.MethodPost,
-			Url:                   "/forbidden-body",
+			Path:                  "/forbidden-body",
 			Body:                  []byte("12"),
 			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
 			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
@@ -505,7 +505,7 @@ func TestMux(t *testing.T) {
 		{
 			Name:                  "forbidden body get",
 			Method:                http.MethodGet,
-			Url:                   "/hello-world",
+			Path:                  "/hello-world",
 			Body:                  []byte("12"),
 			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
 			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
@@ -518,7 +518,7 @@ func TestMux(t *testing.T) {
 				{"Access-Control-Request-Method", "POST"},
 				{"Access-Control-Request-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
 			},
-			Url:                "/cors",
+			Path:               "/cors",
 			ExpectedStatusCode: http.StatusNoContent,
 			ExpectedHeaders: [][2]string{
 				{"Access-Control-Allow-Methods", "GET, HEAD, POST"},
@@ -534,7 +534,7 @@ func TestMux(t *testing.T) {
 			Headers: [][2]string{
 				{"Origin", "https://example.com"},
 			},
-			Url:                "/cors",
+			Path:               "/cors",
 			ExpectedStatusCode: http.StatusNoContent,
 			ExpectedHeaders: [][2]string{
 				{"Access-Control-Allow-Origin", "*"},

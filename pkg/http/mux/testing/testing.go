@@ -16,7 +16,7 @@ import (
 type Case struct {
 	Name                  string
 	Method                string
-	Url                   string
+	Path                  string
 	Headers               [][2]string
 	Body                  []byte
 	ExpectedStatusCode    int
@@ -32,7 +32,7 @@ func TestMuxCase(testCase *Case, serverUrl string, t *testing.T) {
 		requestBody = bytes.NewReader(testCaseBody)
 	}
 
-	request, err := http.NewRequest(testCase.Method, serverUrl+testCase.Url, requestBody)
+	request, err := http.NewRequest(testCase.Method, serverUrl+testCase.Path, requestBody)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
