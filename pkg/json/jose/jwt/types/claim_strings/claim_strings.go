@@ -61,6 +61,8 @@ func Convert(value any) (ClaimStrings, error) {
 	var claimsString []string
 
 	switch typedValue := value.(type) {
+	case ClaimStrings:
+		return typedValue, nil
 	case string:
 		claimsString = append(claimsString, typedValue)
 	case []string:
