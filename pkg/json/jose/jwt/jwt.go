@@ -2,13 +2,14 @@ package jwt
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	"github.com/Motmedel/utils_go/pkg/crypto/interfaces"
-	"github.com/Motmedel/utils_go/pkg/errors"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	motmedelJwtErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwt/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -16,12 +17,12 @@ import (
 
 func Verify(header string, payload string, signature []byte, verifier interfaces.Verifier) error {
 	if utils.IsNil(verifier) {
-		return errors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
+		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
 	}
 
 	err := verifier.Verify([]byte(strings.Join([]string{header, payload}, ".")), signature)
 	if err != nil {
-		return fmt.Errorf("%w: verifier verify: %w", errors.ErrVerificationError, err)
+		return fmt.Errorf("%w: verifier verify: %w", motmedelErrors.ErrVerificationError, err)
 	}
 
 	return nil
@@ -29,19 +30,19 @@ func Verify(header string, payload string, signature []byte, verifier interfaces
 
 func VerifyTokenString(tokenString string, verifier interfaces.Verifier) error {
 	if utils.IsNil(verifier) {
-		return errors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
+		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
 	}
 
 	if tokenString == "" {
-		return errors.NewWithTrace(
-			fmt.Errorf("%w: %w", errors.ErrParseError, empty_error.New("token")),
+		return motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: %w", motmedelErrors.ErrParseError, empty_error.New("token")),
 		)
 	}
 
 	rawSplit := strings.Split(tokenString, ".")
 	if len(rawSplit) != 3 {
-		return errors.NewWithTrace(
-			fmt.Errorf("%w: %w", errors.ErrParseError, errors.ErrBadSplit),
+		return motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: %w", motmedelErrors.ErrParseError, motmedelErrors.ErrBadSplit),
 		)
 	}
 
@@ -50,13 +51,13 @@ func VerifyTokenString(tokenString string, verifier interfaces.Verifier) error {
 
 	signature, err := base64.RawURLEncoding.DecodeString(rawSplit[2])
 	if err != nil {
-		return errors.NewWithTrace(
-			fmt.Errorf("%w: %w", errors.ErrParseError, errors.ErrBadSplit),
+		return motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: %w", motmedelErrors.ErrParseError, motmedelErrors.ErrBadSplit),
 		)
 	}
 
 	if err := Verify(header, payload, signature, verifier); err != nil {
-		return errors.New(fmt.Errorf("verifier verify: %w", err), header, payload, signature)
+		return motmedelErrors.New(fmt.Errorf("verifier verify: %w", err), header, payload, signature)
 	}
 
 	return nil
@@ -71,7 +72,7 @@ func SplitToken(token string) ([3]string, error) {
 
 	splitParts := strings.SplitN(token, TokenDelimiter, 3)
 	if len(splitParts) != 3 {
-		return parts, errors.NewWithTrace(errors.ErrBadSplit)
+		return parts, motmedelErrors.NewWithTrace(motmedelErrors.ErrBadSplit)
 	}
 
 	parts[0] = splitParts[0]
@@ -84,7 +85,12 @@ func SplitToken(token string) ([3]string, error) {
 func Parse(token string) ([]byte, []byte, []byte, error) {
 	parts, err := SplitToken(token)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("split token: %w", err)
+		wrappedErr := fmt.Errorf("split token: %w", err)
+		if errors.Is(err, motmedelErrors.ErrBadSplit) {
+			return nil, nil, nil, fmt.Errorf("%w: %w", motmedelErrors.ErrParseError, wrappedErr)
+		}
+
+		return nil, nil, nil, wrappedErr
 	}
 
 	var decodedParts [3][]byte
@@ -101,9 +107,13 @@ func Parse(token string) ([]byte, []byte, []byte, error) {
 			case 2:
 				partName = " (signature part)"
 			}
-			return nil, nil, nil, errors.NewWithTrace(
-				fmt.Errorf("base64 raw url encoding decode string%s: %w", partName, err),
-			)
+			return nil, nil, nil,
+				motmedelErrors.NewWithTrace(
+					fmt.Errorf(
+						"%w: base64 raw url encoding decode string%s: %w",
+						motmedelErrors.ErrParseError, partName, err,
+					),
+				)
 		}
 	}
 
