@@ -67,6 +67,7 @@ func (validator *Validator) Validate(parsedClaims map[string]any) error {
 					errs,
 					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
 				)
+				continue
 			}
 
 			if authenticationMethodsComparer := expected.AuthenticationMethodsComparer; !utils.IsNil(authenticationMethodsComparer) {
@@ -130,6 +131,7 @@ func (validator *Validator) Validate(parsedClaims map[string]any) error {
 					errs,
 					motmedelErrors.New(fmt.Errorf("convert (%s): %w", key, err), value),
 				)
+				continue
 			}
 
 			if rolesComparer := expected.RolesComparer; !utils.IsNil(rolesComparer) {

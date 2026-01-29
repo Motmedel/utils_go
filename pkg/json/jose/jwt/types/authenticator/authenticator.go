@@ -68,7 +68,7 @@ func (a *AuthenticatorWithKeyHandler) Authenticate(ctx context.Context, tokenStr
 
 	token, err := motmedelJwkToken.New(tokenString)
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: token new %w", motmedelErrors.ErrParseError, err))
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: token new: %w", motmedelErrors.ErrParseError, err))
 	}
 	if token == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("jwt token"))
