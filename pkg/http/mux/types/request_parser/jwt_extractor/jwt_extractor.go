@@ -90,6 +90,7 @@ func (p *Parser[T]) Parse(request *http.Request) (*authenticated_token.Token, *m
 
 		if e, ok := motmedelErrors.AsType[*mismatch_error.Error](err); ok && e.Field == "sub" {
 			return nil, &muxResponseError.ResponseError{
+				ClientError: err,
 				ProblemDetail: problem_detail.New(
 					http.StatusForbidden,
 					problem_detail_config.WithDetail("The subject is not allowed to access this resource."),
@@ -97,6 +98,7 @@ func (p *Parser[T]) Parse(request *http.Request) (*authenticated_token.Token, *m
 			}
 		} else if motmedelErrors.IsAny(err, motmedelCryptoErrors.ErrSignatureMismatch, motmedelErrors.ErrValidationError) {
 			return nil, &muxResponseError.ResponseError{
+				ClientError: err,
 				ProblemDetail: problem_detail.New(
 					http.StatusUnauthorized,
 					problem_detail_config.WithDetail("Invalid token."),
