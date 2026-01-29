@@ -13,8 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-type Case struct {
-	Name                  string
+type Args struct {
 	Method                string
 	Path                  string
 	Headers               [][2]string
@@ -26,27 +25,35 @@ type Case struct {
 	ExpectedClientDoError error
 }
 
-func TestMuxCase(testCase *Case, serverUrl string, t *testing.T) {
+func TestArgs(t *testing.T, args *Args, serverUrl string) {
 	t.Helper()
 
+	if args == nil {
+		t.Fatalf("args is nil")
+	}
+
+	if serverUrl == "" {
+		t.Fatalf("server url is empty")
+	}
+
 	var requestBody io.Reader
-	if testCaseBody := testCase.Body; len(testCaseBody) != 0 {
+	if testCaseBody := args.Body; len(testCaseBody) != 0 {
 		requestBody = bytes.NewReader(testCaseBody)
 	}
 
-	request, err := http.NewRequest(testCase.Method, serverUrl+testCase.Path, requestBody)
+	request, err := http.NewRequest(args.Method, serverUrl+args.Path, requestBody)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
 
-	for _, header := range testCase.Headers {
+	for _, header := range args.Headers {
 		request.Header.Set(header[0], header[1])
 	}
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		if testCase.ExpectedClientDoError != nil {
-			if errors.Is(err, testCase.ExpectedClientDoError) {
+		if args.ExpectedClientDoError != nil {
+			if errors.Is(err, args.ExpectedClientDoError) {
 				return
 			}
 			t.Fatalf("http client do: %v", err)
@@ -62,11 +69,11 @@ func TestMuxCase(testCase *Case, serverUrl string, t *testing.T) {
 		t.Fatalf("io read all response body: %v", err)
 	}
 
-	if response.StatusCode != testCase.ExpectedStatusCode {
-		t.Errorf("got status code %d, expected %d", response.StatusCode, testCase.ExpectedStatusCode)
+	if response.StatusCode != args.ExpectedStatusCode {
+		t.Errorf("got status code %d, expected %d", response.StatusCode, args.ExpectedStatusCode)
 	}
 
-	if expectedHeaders := testCase.ExpectedHeaders; len(expectedHeaders) != 0 {
+	if expectedHeaders := args.ExpectedHeaders; len(expectedHeaders) != 0 {
 		responseHeader := response.Header
 		for _, header := range expectedHeaders {
 			headerValue := responseHeader.Get(header[0])
@@ -76,7 +83,7 @@ func TestMuxCase(testCase *Case, serverUrl string, t *testing.T) {
 		}
 	}
 
-	if expectedProblemDetail := testCase.ExpectedProblemDetail; expectedProblemDetail != nil {
+	if expectedProblemDetail := args.ExpectedProblemDetail; expectedProblemDetail != nil {
 		var problemDetail *problem_detail.Detail
 		if err := json.Unmarshal(responseBody, &problemDetail); err != nil {
 			t.Fatalf("json unmarshal response body: %v", err)
@@ -88,14 +95,14 @@ func TestMuxCase(testCase *Case, serverUrl string, t *testing.T) {
 			cmpopts.EquateEmpty(),
 		}
 
-		expectedStatusCode := testCase.ExpectedStatusCode
+		expectedStatusCode := args.ExpectedStatusCode
 		expectedProblemDetail.Title = http.StatusText(expectedStatusCode)
 		expectedProblemDetail.Status = expectedStatusCode
 
 		if diff := cmp.Diff(expectedProblemDetail, problemDetail, opts...); diff != "" {
 			t.Errorf("problem detail mismatch (-expected +got):\n%s", diff)
 		}
-	} else if !bytes.Equal(responseBody, testCase.ExpectedBody) {
-		t.Errorf("got response body %q, expected response body %q", responseBody, testCase.ExpectedBody)
+	} else if !bytes.Equal(responseBody, args.ExpectedBody) {
+		t.Errorf("got response body %q, expected response body %q", responseBody, args.ExpectedBody)
 	}
 }

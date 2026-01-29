@@ -267,279 +267,340 @@ func TestMain(m *testing.M) {
 // TODO: Test adding and deleting from a mux.
 
 func TestMux(t *testing.T) {
-	testCases := []*muxTesting.Case{
+	testCases := []struct {
+		name string
+		args *muxTesting.Args
+	}{
 		{
-			Name:               "status ok, handler",
-			Method:             http.MethodGet,
-			Path:               "/hello-world",
-			ExpectedStatusCode: http.StatusOK,
-			ExpectedBody:       []byte("hello world"),
-			ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
-		},
-		{
-			Name:               "status ok, handler (HEAD)",
-			Method:             http.MethodHead,
-			Path:               "/hello-world",
-			ExpectedStatusCode: http.StatusOK,
-			ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
-		},
-		{
-			Name:               "status no content (OPTIONS)",
-			Method:             http.MethodOptions,
-			Path:               "/hello-world",
-			ExpectedStatusCode: http.StatusNoContent,
-			ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
-		},
-		{
-			Name:               "status ok, static content",
-			Method:             http.MethodGet,
-			Path:               "/hello-world-static",
-			ExpectedStatusCode: http.StatusOK,
-			ExpectedBody:       []byte("<html>hello world</html>"),
-			ExpectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
-		},
-		{
-			Name:               "fetch metadata vary",
-			Method:             http.MethodHead,
-			Path:               "/hello-world-fetch-metadata",
-			ExpectedStatusCode: http.StatusOK,
-			ExpectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"}},
-		},
-		{
-			Name:   "fetch metadata forbidden",
-			Method: http.MethodGet,
-			Path:   "/hello-world",
-			Headers: [][2]string{
-				{"Sec-Fetch-Site", "cross-origin"},
-			},
-			ExpectedStatusCode: http.StatusForbidden,
-			ExpectedProblemDetail: &problem_detail.Detail{
-				Detail: "Cross-site request blocked by Fetch-Metadata policy.",
+			name: "status ok, handler",
+			args: &muxTesting.Args{
+				Method:             http.MethodGet,
+				Path:               "/hello-world",
+				ExpectedStatusCode: http.StatusOK,
+				ExpectedBody:       []byte("hello world"),
+				ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
 			},
 		},
 		{
-			Name:               "default headers",
-			Method:             http.MethodGet,
-			Path:               "/hello-world",
-			ExpectedStatusCode: http.StatusOK,
-			ExpectedBody:       []byte("hello world"),
-			ExpectedHeaders: func() [][2]string {
-				var headers [][2]string
-				for key, value := range response_writer.DefaultHeaders {
-					headers = append(headers, [2]string{key, value})
-				}
-				return headers
-			}(),
+			name: "status ok, handler (HEAD)",
+			args: &muxTesting.Args{
+				Method:             http.MethodHead,
+				Path:               "/hello-world",
+				ExpectedStatusCode: http.StatusOK,
+				ExpectedHeaders:    [][2]string{{"Content-Type", "application/octet-stream"}},
+			},
 		},
 		{
-			Name:               "default document headers",
-			Method:             http.MethodGet,
-			Path:               "/hello-world-static",
-			ExpectedStatusCode: http.StatusOK,
-			ExpectedBody:       []byte("<html>hello world</html>"),
-			ExpectedHeaders: func() [][2]string {
-				var headers [][2]string
-				for key, value := range response_writer.DefaultHeaders {
-					headers = append(headers, [2]string{key, value})
-				}
+			name: "status no content (OPTIONS)",
+			args: &muxTesting.Args{
+				Method:             http.MethodOptions,
+				Path:               "/hello-world",
+				ExpectedStatusCode: http.StatusNoContent,
+				ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
+			},
+		},
+		{
+			name: "status ok, static content",
+			args: &muxTesting.Args{
+				Method:             http.MethodGet,
+				Path:               "/hello-world-static",
+				ExpectedStatusCode: http.StatusOK,
+				ExpectedBody:       []byte("<html>hello world</html>"),
+				ExpectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
+			},
+		},
+		{
+			name: "fetch metadata vary",
+			args: &muxTesting.Args{
+				Method:             http.MethodHead,
+				Path:               "/hello-world-fetch-metadata",
+				ExpectedStatusCode: http.StatusOK,
+				ExpectedHeaders:    [][2]string{{"Vary", "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"}},
+			},
+		},
+		{
+			name: "fetch metadata forbidden",
+			args: &muxTesting.Args{
+				Method: http.MethodGet,
+				Path:   "/hello-world",
+				Headers: [][2]string{
+					{"Sec-Fetch-Site", "cross-origin"},
+				},
+				ExpectedStatusCode: http.StatusForbidden,
+				ExpectedProblemDetail: &problem_detail.Detail{
+					Detail: "Cross-site request blocked by Fetch-Metadata policy.",
+				},
+			},
+		},
+		{
+			name: "default headers",
+			args: &muxTesting.Args{
+				Method:             http.MethodGet,
+				Path:               "/hello-world",
+				ExpectedStatusCode: http.StatusOK,
+				ExpectedBody:       []byte("hello world"),
+				ExpectedHeaders: func() [][2]string {
+					var headers [][2]string
+					for key, value := range response_writer.DefaultHeaders {
+						headers = append(headers, [2]string{key, value})
+					}
+					return headers
+				}(),
+			},
+		},
+		{
+			name: "default document headers",
+			args: &muxTesting.Args{
+				Method:             http.MethodGet,
+				Path:               "/hello-world-static",
+				ExpectedStatusCode: http.StatusOK,
+				ExpectedBody:       []byte("<html>hello world</html>"),
+				ExpectedHeaders: func() [][2]string {
+					var headers [][2]string
+					for key, value := range response_writer.DefaultHeaders {
+						headers = append(headers, [2]string{key, value})
+					}
 
-				for key, value := range response_writer.DefaultDocumentHeaders {
-					headers = append(headers, [2]string{key, value})
-				}
-				return headers
-			}(),
-		},
-		{
-			Name:               "bad method",
-			Method:             http.MethodPatch,
-			Path:               "/hello-world",
-			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			ExpectedProblemDetail: &problem_detail.Detail{
-				Detail: `Expected GET, HEAD, OPTIONS, POST.`,
-			},
-			ExpectedHeaders: [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
-		},
-		{
-			Name:               "error status method not allowed, without response body",
-			Method:             http.MethodPatch,
-			Path:               "/hello-world",
-			Headers:            [][2]string{{"Accept-Encoding", "*;q=0"}},
-			ExpectedStatusCode: http.StatusMethodNotAllowed,
-			ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
-		},
-		{
-			Name:               "status no content",
-			Method:             http.MethodGet,
-			Path:               "/empty",
-			ExpectedStatusCode: http.StatusNoContent,
-		},
-		{
-			Name:                  "error status not found",
-			Method:                http.MethodGet,
-			Path:                  "/not-found",
-			ExpectedStatusCode:    http.StatusNotFound,
-			ExpectedProblemDetail: &problem_detail.Detail{},
-		},
-		{
-			Name:               "status ok, post data",
-			Method:             http.MethodPost,
-			Path:               "/push",
-			Headers:            [][2]string{{"Content-Type", "application/json"}},
-			Body:               []byte(`{"data": "data"}`),
-			ExpectedStatusCode: http.StatusNoContent,
-		},
-		{
-			Name:               "status no content, body parsing test",
-			Method:             http.MethodPost,
-			Path:               "/body-parsing",
-			Headers:            [][2]string{{"Content-Type", "application/json"}},
-			Body:               []byte(`{"data": "hello world"}`),
-			ExpectedStatusCode: http.StatusNoContent,
-		},
-		{
-			Name:               "error status bad request, post no data",
-			Method:             http.MethodPost,
-			Path:               "/push",
-			Headers:            [][2]string{{"Content-Type", "application/json"}},
-			ExpectedStatusCode: http.StatusBadRequest,
-			ExpectedProblemDetail: &problem_detail.Detail{
-				Detail: "A body is expected; Content-Length cannot be 0.",
+					for key, value := range response_writer.DefaultDocumentHeaders {
+						headers = append(headers, [2]string{key, value})
+					}
+					return headers
+				}(),
 			},
 		},
 		{
-			Name:               "error status unsupported media type, missing content type",
-			Method:             http.MethodPost,
-			Path:               "/push",
-			Body:               []byte(`{"data": "data"}`),
-			ExpectedStatusCode: http.StatusUnsupportedMediaType,
-			ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
-			ExpectedProblemDetail: &problem_detail.Detail{
-				Detail: "Missing Content-Type.",
+			name: "bad method",
+			args: &muxTesting.Args{
+				Method:             http.MethodPatch,
+				Path:               "/hello-world",
+				ExpectedStatusCode: http.StatusMethodNotAllowed,
+				ExpectedProblemDetail: &problem_detail.Detail{
+					Detail: `Expected GET, HEAD, OPTIONS, POST.`,
+				},
+				ExpectedHeaders: [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 			},
 		},
 		{
-			Name:               "error status bad request, malformed content type",
-			Method:             http.MethodPost,
-			Path:               "/push",
-			Headers:            [][2]string{{"Content-Type", ""}},
-			Body:               []byte(`{"data": "data"}`),
-			ExpectedStatusCode: http.StatusBadRequest,
-			ExpectedProblemDetail: &problem_detail.Detail{
-				Detail: "Malformed Content-Type.",
+			name: "error status method not allowed, without response body",
+			args: &muxTesting.Args{
+				Method:             http.MethodPatch,
+				Path:               "/hello-world",
+				Headers:            [][2]string{{"Accept-Encoding", "*;q=0"}},
+				ExpectedStatusCode: http.StatusMethodNotAllowed,
+				ExpectedHeaders:    [][2]string{{"Allow", "GET, HEAD, OPTIONS, POST"}},
 			},
 		},
 		{
-			Name:               "error status unsupported media type, other content type",
-			Method:             http.MethodPost,
-			Path:               "/push",
-			Headers:            [][2]string{{"Content-Type", "text/plain"}},
-			ExpectedStatusCode: http.StatusUnsupportedMediaType,
-			ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
-			ExpectedProblemDetail: &problem_detail.Detail{
-				Detail: `Expected Content-Type to be "application/json", observed "text/plain".`,
+			name: "status no content",
+			args: &muxTesting.Args{
+				Method:             http.MethodGet,
+				Path:               "/empty",
+				ExpectedStatusCode: http.StatusNoContent,
 			},
 		},
 		{
-			Name:                  "error bad request, invalid json body",
-			Method:                http.MethodPost,
-			Path:                  "/push",
-			Headers:               [][2]string{{"Content-Type", "application/json"}},
-			Body:                  []byte(`{"data": "data"`),
-			ExpectedStatusCode:    http.StatusBadRequest,
-			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Invalid JSON body."},
-		},
-		{
-			Name:                  "error status forbidden, firewall match url query parameters",
-			Method:                http.MethodGet,
-			Path:                  "/foo?bar=fuu",
-			ExpectedStatusCode:    http.StatusForbidden,
-			ExpectedProblemDetail: &problem_detail.Detail{Detail: "URL query parameters are not allowed."},
-		},
-		{
-			Name:                  "error status forbidden, firewall match url secret (reject)",
-			Method:                http.MethodGet,
-			Path:                  "/secret-reject",
-			ExpectedStatusCode:    http.StatusForbidden,
-			ExpectedProblemDetail: &problem_detail.Detail{},
-		},
-		{
-			Name:                  "error status forbidden, firewall match url secret (drop)",
-			Method:                http.MethodGet,
-			Path:                  "/secret-drop",
-			ExpectedClientDoError: io.EOF,
-		},
-		{
-			Name:               "custom error representation",
-			Method:             http.MethodGet,
-			Path:               "/teapot",
-			Headers:            [][2]string{{"Accept", "text/html"}},
-			ExpectedStatusCode: http.StatusTeapot,
-			ExpectedBody:       []byte("<html>418</html>"),
-			ExpectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
-		},
-		{
-			Name:                  "max bytes too large",
-			Method:                http.MethodPost,
-			Path:                  "/body-parsing-limit",
-			Headers:               [][2]string{{"Content-Type", "application/octet-stream"}},
-			Body:                  []byte("123"),
-			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
-			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 2 bytes"},
-		},
-		{
-			Name:               "max bytes ok",
-			Method:             http.MethodPost,
-			Path:               "/body-parsing-limit",
-			Headers:            [][2]string{{"Content-Type", "application/octet-stream"}},
-			Body:               []byte("12"),
-			ExpectedStatusCode: http.StatusNoContent,
-		},
-		{
-			Name:                  "forbidden body",
-			Method:                http.MethodPost,
-			Path:                  "/forbidden-body",
-			Body:                  []byte("12"),
-			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
-			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
-		},
-		{
-			Name:                  "forbidden body get",
-			Method:                http.MethodGet,
-			Path:                  "/hello-world",
-			Body:                  []byte("12"),
-			ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
-			ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
-		},
-		{
-			Name:   "cors preflight",
-			Method: http.MethodOptions,
-			Headers: [][2]string{
-				{"Origin", "https://example.com"},
-				{"Access-Control-Request-Method", "POST"},
-				{"Access-Control-Request-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
-			},
-			Path:               "/cors",
-			ExpectedStatusCode: http.StatusNoContent,
-			ExpectedHeaders: [][2]string{
-				{"Access-Control-Allow-Methods", "GET, HEAD, POST"},
-				{"Access-Control-Allow-Origin", "*"},
-				{"Access-Control-Allow-Credentials", "true"},
-				{"Access-Control-Allow-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
-				{"Allow", "GET, HEAD, OPTIONS, PATCH, POST"},
+			name: "error status not found",
+			args: &muxTesting.Args{
+				Method:                http.MethodGet,
+				Path:                  "/not-found",
+				ExpectedStatusCode:    http.StatusNotFound,
+				ExpectedProblemDetail: &problem_detail.Detail{},
 			},
 		},
 		{
-			Name:   "cors post",
-			Method: http.MethodPost,
-			Headers: [][2]string{
-				{"Origin", "https://example.com"},
+			name: "status ok, post data",
+			args: &muxTesting.Args{
+				Method:             http.MethodPost,
+				Path:               "/push",
+				Headers:            [][2]string{{"Content-Type", "application/json"}},
+				Body:               []byte(`{"data": "data"}`),
+				ExpectedStatusCode: http.StatusNoContent,
 			},
-			Path:               "/cors",
-			ExpectedStatusCode: http.StatusNoContent,
-			ExpectedHeaders: [][2]string{
-				{"Access-Control-Allow-Origin", "*"},
-				{"Access-Control-Allow-Credentials", "true"},
-				{"Access-Control-Expose-Headers", "X-Secret-2"},
+		},
+		{
+			name: "status no content, body parsing test",
+			args: &muxTesting.Args{
+				Method:             http.MethodPost,
+				Path:               "/body-parsing",
+				Headers:            [][2]string{{"Content-Type", "application/json"}},
+				Body:               []byte(`{"data": "hello world"}`),
+				ExpectedStatusCode: http.StatusNoContent,
+			},
+		},
+		{
+			name: "error status bad request, post no data",
+			args: &muxTesting.Args{
+				Method:             http.MethodPost,
+				Path:               "/push",
+				Headers:            [][2]string{{"Content-Type", "application/json"}},
+				ExpectedStatusCode: http.StatusBadRequest,
+				ExpectedProblemDetail: &problem_detail.Detail{
+					Detail: "A body is expected; Content-Length cannot be 0.",
+				},
+			},
+		},
+		{
+			name: "error status unsupported media type, missing content type",
+			args: &muxTesting.Args{
+				Method:             http.MethodPost,
+				Path:               "/push",
+				Body:               []byte(`{"data": "data"}`),
+				ExpectedStatusCode: http.StatusUnsupportedMediaType,
+				ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
+				ExpectedProblemDetail: &problem_detail.Detail{
+					Detail: "Missing Content-Type.",
+				},
+			},
+		},
+		{
+			name: "error status bad request, malformed content type",
+			args: &muxTesting.Args{
+				Method:             http.MethodPost,
+				Path:               "/push",
+				Headers:            [][2]string{{"Content-Type", ""}},
+				Body:               []byte(`{"data": "data"}`),
+				ExpectedStatusCode: http.StatusBadRequest,
+				ExpectedProblemDetail: &problem_detail.Detail{
+					Detail: "Malformed Content-Type.",
+				},
+			},
+		},
+		{
+			name: "error status unsupported media type, other content type",
+			args: &muxTesting.Args{
+				Method:             http.MethodPost,
+				Path:               "/push",
+				Headers:            [][2]string{{"Content-Type", "text/plain"}},
+				ExpectedStatusCode: http.StatusUnsupportedMediaType,
+				ExpectedHeaders:    [][2]string{{"Accept", "application/json"}},
+				ExpectedProblemDetail: &problem_detail.Detail{
+					Detail: `Expected Content-Type to be "application/json", observed "text/plain".`,
+				},
+			},
+		},
+		{
+			name: "error bad request, invalid json body",
+			args: &muxTesting.Args{
+				Method:                http.MethodPost,
+				Path:                  "/push",
+				Headers:               [][2]string{{"Content-Type", "application/json"}},
+				Body:                  []byte(`{"data": "data"`),
+				ExpectedStatusCode:    http.StatusBadRequest,
+				ExpectedProblemDetail: &problem_detail.Detail{Detail: "Invalid JSON body."},
+			},
+		},
+		{
+			name: "error status forbidden, firewall match url query parameters",
+			args: &muxTesting.Args{
+				Method:                http.MethodGet,
+				Path:                  "/foo?bar=fuu",
+				ExpectedStatusCode:    http.StatusForbidden,
+				ExpectedProblemDetail: &problem_detail.Detail{Detail: "URL query parameters are not allowed."},
+			},
+		},
+		{
+			name: "error status forbidden, firewall match url secret (reject)",
+			args: &muxTesting.Args{
+				Method:                http.MethodGet,
+				Path:                  "/secret-reject",
+				ExpectedStatusCode:    http.StatusForbidden,
+				ExpectedProblemDetail: &problem_detail.Detail{},
+			},
+		},
+		{
+			name: "error status forbidden, firewall match url secret (drop)",
+			args: &muxTesting.Args{
+				Method:                http.MethodGet,
+				Path:                  "/secret-drop",
+				ExpectedClientDoError: io.EOF,
+			},
+		},
+		{
+			name: "custom error representation",
+			args: &muxTesting.Args{
+				Method:             http.MethodGet,
+				Path:               "/teapot",
+				Headers:            [][2]string{{"Accept", "text/html"}},
+				ExpectedStatusCode: http.StatusTeapot,
+				ExpectedBody:       []byte("<html>418</html>"),
+				ExpectedHeaders:    [][2]string{{"Content-Type", "text/html"}},
+			},
+		},
+		{
+			name: "max bytes too large",
+			args: &muxTesting.Args{
+				Method:                http.MethodPost,
+				Path:                  "/body-parsing-limit",
+				Headers:               [][2]string{{"Content-Type", "application/octet-stream"}},
+				Body:                  []byte("123"),
+				ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
+				ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 2 bytes"},
+			},
+		},
+		{
+			name: "max bytes ok",
+			args: &muxTesting.Args{
+				Method:             http.MethodPost,
+				Path:               "/body-parsing-limit",
+				Headers:            [][2]string{{"Content-Type", "application/octet-stream"}},
+				Body:               []byte("12"),
+				ExpectedStatusCode: http.StatusNoContent,
+			},
+		},
+		{
+			name: "forbidden body",
+			args: &muxTesting.Args{
+				Method:                http.MethodPost,
+				Path:                  "/forbidden-body",
+				Body:                  []byte("12"),
+				ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
+				ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
+			},
+		},
+		{
+			name: "forbidden body get",
+			args: &muxTesting.Args{
+				Method:                http.MethodGet,
+				Path:                  "/hello-world",
+				Body:                  []byte("12"),
+				ExpectedStatusCode:    http.StatusRequestEntityTooLarge,
+				ExpectedProblemDetail: &problem_detail.Detail{Detail: "Limit: 0 bytes"},
+			},
+		},
+		{
+			name: "cors preflight",
+			args: &muxTesting.Args{
+				Method: http.MethodOptions,
+				Headers: [][2]string{
+					{"Origin", "https://example.com"},
+					{"Access-Control-Request-Method", "POST"},
+					{"Access-Control-Request-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
+				},
+				Path:               "/cors",
+				ExpectedStatusCode: http.StatusNoContent,
+				ExpectedHeaders: [][2]string{
+					{"Access-Control-Allow-Methods", "GET, HEAD, POST"},
+					{"Access-Control-Allow-Origin", "*"},
+					{"Access-Control-Allow-Credentials", "true"},
+					{"Access-Control-Allow-Headers", "X-Custom-Header-3, X-Custom-Header-4"},
+					{"Allow", "GET, HEAD, OPTIONS, PATCH, POST"},
+				},
+			},
+		},
+		{
+			name: "cors post",
+			args: &muxTesting.Args{
+				Method: http.MethodPost,
+				Headers: [][2]string{
+					{"Origin", "https://example.com"},
+				},
+				Path:               "/cors",
+				ExpectedStatusCode: http.StatusNoContent,
+				ExpectedHeaders: [][2]string{
+					{"Access-Control-Allow-Origin", "*"},
+					{"Access-Control-Allow-Credentials", "true"},
+					{"Access-Control-Expose-Headers", "X-Secret-2"},
+				},
 			},
 		},
 	}
@@ -548,9 +609,10 @@ func TestMux(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(
-			testCase.Name,
+			testCase.name,
 			func(t *testing.T) {
-				muxTesting.TestMuxCase(testCase, httpServer.URL, t)
+				t.Parallel()
+				muxTesting.TestArgs(t, testCase.args, httpServer.URL)
 			},
 		)
 	}
