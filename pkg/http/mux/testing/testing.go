@@ -27,6 +27,8 @@ type Case struct {
 }
 
 func TestMuxCase(testCase *Case, serverUrl string, t *testing.T) {
+	t.Helper()
+
 	var requestBody io.Reader
 	if testCaseBody := testCase.Body; len(testCaseBody) != 0 {
 		requestBody = bytes.NewReader(testCaseBody)
