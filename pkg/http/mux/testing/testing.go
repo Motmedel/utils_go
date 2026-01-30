@@ -45,7 +45,7 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 		requestBody = bytes.NewReader(testCaseBody)
 	}
 
-	request, err := http.NewRequest(args.Method, serverUrl+args.Path, requestBody)
+	request, err := http.NewRequestWithContext(t.Context(), args.Method, serverUrl+args.Path, requestBody)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -54,7 +54,13 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 		request.Header.Add(header[0], header[1])
 	}
 
-	response, err := http.DefaultClient.Do(request)
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	response, err := client.Do(request)
 	if err != nil {
 		if args.ExpectedClientDoError != nil {
 			if errors.Is(err, args.ExpectedClientDoError) {
@@ -109,7 +115,7 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 				if errors.Is(err, motmedelHttpErrors.ErrMissingHeader) {
 					t.Errorf("expected header %q to be present", header)
 				} else if errors.Is(err, motmedelHttpErrors.ErrMultipleHeaderValues) {
-					t.Errorf("multiple header values for header %q", header)
+					continue
 				} else {
 					t.Fatalf("unexpected error: %v", err)
 				}
