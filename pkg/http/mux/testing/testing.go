@@ -47,7 +47,7 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 	}
 
 	for _, header := range args.Headers {
-		request.Header.Set(header[0], header[1])
+		request.Header.Add(header[0], header[1])
 	}
 
 	response, err := http.DefaultClient.Do(request)
