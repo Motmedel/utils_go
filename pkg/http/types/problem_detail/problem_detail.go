@@ -63,6 +63,102 @@ func (d *Detail) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 
+// UnmarshalJSON populates the Detail from a flat JSON object, collecting any
+// non-standard fields into the Extension map.
+func (d *Detail) UnmarshalJSON(data []byte) error {
+	if d == nil {
+		return motmedelErrors.NewWithTrace(nil_error.New("json unmarshal (detail): nil receiver"))
+	}
+
+	// Accept null
+	if string(data) == "null" {
+		*d = Detail{}
+		return nil
+	}
+
+	// Decode into raw map first to separate known vs extension fields.
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return motmedelErrors.NewWithTrace(
+			fmt.Errorf("json unmarshal (detail map): %w", err),
+			string(data),
+		)
+	}
+
+	// If it's not an object
+	if raw == nil {
+		*d = Detail{}
+		return nil
+	}
+
+	// Known fields
+	if v, ok := raw["type"]; ok {
+		if err := json.Unmarshal(v, &d.Type); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (type): %w", err))
+		}
+		delete(raw, "type")
+	}
+
+	if v, ok := raw["title"]; ok {
+		if err := json.Unmarshal(v, &d.Title); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (title): %w", err))
+		}
+		delete(raw, "title")
+	}
+
+	if v, ok := raw["status"]; ok {
+		var statusInt int
+		if err := json.Unmarshal(v, &statusInt); err != nil {
+			// Try string then convert to int
+			var statusStr string
+			if errStr := json.Unmarshal(v, &statusStr); errStr != nil {
+				return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (status): %w", err))
+			}
+			si, convErr := strconv.Atoi(statusStr)
+			if convErr != nil {
+				return motmedelErrors.NewWithTrace(fmt.Errorf("atoi (status): %w", convErr), statusStr)
+			}
+			statusInt = si
+		}
+		d.Status = statusInt
+		delete(raw, "status")
+	}
+
+	if v, ok := raw["detail"]; ok {
+		if err := json.Unmarshal(v, &d.Detail); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (detail): %w", err))
+		}
+		delete(raw, "detail")
+	}
+
+	if v, ok := raw["instance"]; ok {
+		if err := json.Unmarshal(v, &d.Instance); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (instance): %w", err))
+		}
+		delete(raw, "instance")
+	}
+
+	// Remaining fields go to Extension
+	if len(raw) > 0 {
+		ext := make(map[string]any, len(raw))
+		for k, v := range raw {
+			if k == "" {
+				continue
+			}
+			var val any
+			if err := json.Unmarshal(v, &val); err != nil {
+				return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (extension value): %w", err), k)
+			}
+			ext[k] = val
+		}
+		d.Extension = ext
+	} else {
+		d.Extension = nil
+	}
+
+	return nil
+}
+
 func (d *Detail) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
 	if encoder == nil {
 		return motmedelErrors.NewWithTrace(nil_error.New("xml encoder"))
