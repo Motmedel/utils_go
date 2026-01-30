@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 
 	motmedelCryptoEcdsa "github.com/Motmedel/utils_go/pkg/crypto/ecdsa"
@@ -25,6 +26,42 @@ type Key struct {
 	Material interface {
 		PublicKey() (crypto.PublicKey, error)
 	} `json:"-"`
+}
+
+// MarshalJSON ensures that the material fields (e.g., EC or RSA parameters)
+// are serialized at the same top-level as the common JWK fields (alg, kty, kid, use).
+func (k *Key) MarshalJSON() ([]byte, error) {
+	// Start with base fields
+	m := make(map[string]any)
+	if k.Alg != "" {
+		m["alg"] = k.Alg
+	}
+	if k.Kty != "" {
+		m["kty"] = k.Kty
+	}
+	if k.Kid != "" {
+		m["kid"] = k.Kid
+	}
+	if k.Use != "" {
+		m["use"] = k.Use
+	}
+
+	// Merge material (if present) at the same level
+	if k.Material != nil {
+		b, err := json.Marshal(k.Material)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("json marshal (material): %w", err), k.Material)
+		}
+		var mat map[string]any
+		if err := json.Unmarshal(b, &mat); err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("json unmarshal (material to map): %w", err), string(b))
+		}
+		for key, val := range mat {
+			m[key] = val
+		}
+	}
+
+	return json.Marshal(m)
 }
 
 func (k *Key) NamedVerifier() (motmedelCryptoInterfaces.NamedVerifier, error) {

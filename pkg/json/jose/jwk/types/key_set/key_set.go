@@ -1,6 +1,7 @@
 package key_set
 
-// TODO: I want to use the `Key` type?
+import "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
+
 type KeySet struct {
-	Keys []map[string]any `json:"keys,omitempty"`
+	Keys []*key.Key `json:"keys,omitempty"`
 }
