@@ -8,21 +8,24 @@ import (
 	"net/http"
 	"testing"
 
+	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	"github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 type Args struct {
-	Method                string
-	Path                  string
-	Headers               [][2]string
-	Body                  []byte
-	ExpectedStatusCode    int
-	ExpectedHeaders       [][2]string
-	ExpectedBody          []byte
-	ExpectedProblemDetail *problem_detail.Detail
-	ExpectedClientDoError error
+	Method                 string
+	Path                   string
+	Headers                [][2]string
+	Body                   []byte
+	ExpectedStatusCode     int
+	ExpectedHeaders        [][2]string
+	ExpectedHeadersPresent []string
+	ExpectedBody           []byte
+	ExpectedProblemDetail  *problem_detail.Detail
+	ExpectedClientDoError  error
 }
 
 func TestArgs(t *testing.T, args *Args, serverUrl string) {
@@ -75,10 +78,40 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 
 	if expectedHeaders := args.ExpectedHeaders; len(expectedHeaders) != 0 {
 		responseHeader := response.Header
+		if responseHeader == nil {
+			t.Fatalf("response header is nil")
+		}
+
 		for _, header := range expectedHeaders {
-			headerValue := responseHeader.Get(header[0])
-			if headerValue != header[1] {
-				t.Errorf("got %q, expected header %q to be %q", headerValue, header[0], header[1])
+			headerName := header[0]
+			expectedHeaderValue := header[1]
+			headerValue, err := utils.GetSingleHeader(headerName, responseHeader)
+			if err != nil {
+				if errors.Is(err, motmedelHttpErrors.ErrMissingHeader) {
+					t.Errorf("expected header %q to be present", headerName)
+				} else if errors.Is(err, motmedelHttpErrors.ErrMultipleHeaderValues) {
+					t.Errorf("multiple header values for header %q", headerName)
+				} else {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+
+			if headerValue != expectedHeaderValue {
+				t.Errorf("got %q, expected header %q to be %q", headerValue, headerName, expectedHeaderValue)
+			}
+		}
+	}
+
+	if expectedHeadersPresent := args.ExpectedHeadersPresent; len(expectedHeadersPresent) != 0 {
+		for _, header := range expectedHeadersPresent {
+			if _, err := utils.GetSingleHeader(header, response.Header); err != nil {
+				if errors.Is(err, motmedelHttpErrors.ErrMissingHeader) {
+					t.Errorf("expected header %q to be present", header)
+				} else if errors.Is(err, motmedelHttpErrors.ErrMultipleHeaderValues) {
+					t.Errorf("multiple header values for header %q", header)
+				} else {
+					t.Fatalf("unexpected error: %v", err)
+				}
 			}
 		}
 	}
