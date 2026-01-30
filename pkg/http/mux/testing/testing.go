@@ -16,16 +16,17 @@ import (
 )
 
 type Args struct {
-	Method                 string
-	Path                   string
-	Headers                [][2]string
-	Body                   []byte
-	ExpectedStatusCode     int
-	ExpectedHeaders        [][2]string
-	ExpectedHeadersPresent []string
-	ExpectedBody           []byte
-	ExpectedProblemDetail  *problem_detail.Detail
-	ExpectedClientDoError  error
+	Method                    string
+	Path                      string
+	Headers                   [][2]string
+	Body                      []byte
+	ExpectedStatusCode        int
+	ExpectedHeaders           [][2]string
+	ExpectedHeadersPresent    []string
+	ExpectedHeadersNotPresent []string
+	ExpectedBody              []byte
+	ExpectedProblemDetail     *problem_detail.Detail
+	ExpectedClientDoError     error
 }
 
 func TestArgs(t *testing.T, args *Args, serverUrl string) {
@@ -112,6 +113,14 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 				} else {
 					t.Fatalf("unexpected error: %v", err)
 				}
+			}
+		}
+	}
+
+	if expectedHeadersNotPresent := args.ExpectedHeadersNotPresent; len(expectedHeadersNotPresent) != 0 {
+		for _, header := range expectedHeadersNotPresent {
+			if _, ok := response.Header[header]; ok {
+				t.Errorf("expected header %q to not be present", header)
 			}
 		}
 	}
