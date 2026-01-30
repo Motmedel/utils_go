@@ -9,6 +9,8 @@ import (
 	"math/big"
 
 	"github.com/Motmedel/utils_go/pkg/errors"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -96,4 +98,56 @@ func New(m map[string]any) (*Key, error) {
 	}
 
 	return &Key{Crv: crv, X: x, Y: y}, nil
+}
+
+func padLeft(b []byte, size int) []byte {
+	if len(b) >= size {
+		return b
+	}
+	out := make([]byte, size)
+	copy(out[size-len(b):], b)
+	return out
+}
+
+func NewFromPublicKey(publicKey *ecdsa.PublicKey) (*Key, error) {
+	if publicKey == nil {
+		return nil, nil
+	}
+
+	curve := publicKey.Curve
+	if utils.IsNil(curve) {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("public key curve"))
+	}
+
+	x := publicKey.X
+	if x == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("public key x"))
+	}
+
+	y := publicKey.Y
+	if y == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("public key y"))
+	}
+
+	var crv string
+	var size int
+	switch publicKey.Curve {
+	case elliptic.P256():
+		crv = "P-256"
+		size = 32
+	case elliptic.P384():
+		crv = "P-384"
+		size = 48
+	case elliptic.P521():
+		crv = "P-521"
+		size = 66
+	default:
+		return nil, fmt.Errorf("unsupported curve: %T", publicKey.Curve)
+	}
+
+	return &Key{
+		Crv: crv,
+		X:   base64.RawURLEncoding.EncodeToString(padLeft(x.Bytes(), size)),
+		Y:   base64.RawURLEncoding.EncodeToString(padLeft(y.Bytes(), size)),
+	}, nil
 }
