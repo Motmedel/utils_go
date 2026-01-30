@@ -14,7 +14,6 @@ import (
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	jwkKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key_handler/key_handler_config"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key_set"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -42,12 +41,17 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 			}
 
 			urlString := jwkUrl.String()
-			response, keysResponseData, err := motmedelHttpUtils.FetchJson[*key_set.KeySet](ctx, urlString, h.config.FetchOptions...)
+			response, keysResponseData, err := motmedelHttpUtils.FetchJson[map[string]any](ctx, urlString, h.config.FetchOptions...)
 			if err != nil {
 				return motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 			}
 
-			h.keys = keysResponseData.Keys
+			keys, err := utils.MapGetConvertSlice[map[string]any](keysResponseData, "keys")
+			if err != nil {
+				return motmedelErrors.New(fmt.Errorf("map get convert: %w", err), keysResponseData)
+			}
+
+			h.keys = keys
 
 			responseHeader := response.Header
 			expiresValue, err := motmedelHttpUtils.GetSingleHeader("Expires", responseHeader)
