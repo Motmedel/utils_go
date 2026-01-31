@@ -4,6 +4,8 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -98,6 +100,43 @@ func (k *Key) NamedVerifier() (motmedelCryptoInterfaces.NamedVerifier, error) {
 	}
 }
 
+// ThumbprintSHA256 computes the JWK Thumbprint (RFC 7638) using SHA-256 and
+// returns it as a base64url-encoded string without padding.
+func (k *Key) ThumbprintSHA256() (string, error) {
+	if k == nil {
+		return "", nil
+	}
+
+	var input string
+	switch k.Kty {
+	case "EC":
+		if mat, ok := k.Material.(*ecKey.Key); ok && mat != nil {
+			s, err := mat.ThumbprintInput()
+			if err != nil {
+				return "", motmedelErrors.New(fmt.Errorf("ec thumbprint input: %w", err), mat)
+			}
+			input = s
+		} else {
+			return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid EC material type: %T", k.Material))
+		}
+	case "RSA":
+		if mat, ok := k.Material.(*rsaKey.Key); ok && mat != nil {
+			s, err := mat.ThumbprintInput()
+			if err != nil {
+				return "", motmedelErrors.New(fmt.Errorf("rsa thumbprint input: %w", err), mat)
+			}
+			input = s
+		} else {
+			return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid RSA material type: %T", k.Material))
+		}
+	default:
+		return "", motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrUnsupportedKty, k.Kty)
+	}
+
+	sum := sha256.Sum256([]byte(input))
+	return base64.RawURLEncoding.EncodeToString(sum[:]), nil
+}
+
 func New(m map[string]any) (*Key, error) {
 	if m == nil {
 		return nil, nil
@@ -144,4 +183,45 @@ func New(m map[string]any) (*Key, error) {
 	use, _ := m["use"].(string)
 
 	return &Key{Alg: alg, Kty: kty, Kid: kid, Use: use, Material: material}, nil
+}
+
+// NewFromPublicKey constructs a JWK key from a Go public key. It sets Kty and Material
+// based on the public key type, and populates Alg/Kid/Use from the provided arguments.
+// For RSA keys, Alg must be non-empty (e.g., "RS256") because verification requires it.
+func NewFromPublicKey(publicKey crypto.PublicKey, alg, kid, use string) (*Key, error) {
+	if publicKey == nil {
+		return nil, nil
+	}
+
+	switch pk := publicKey.(type) {
+	case *ecdsa.PublicKey:
+		mat, err := ecKey.NewFromPublicKey(pk)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("ec new from public key: %w", err))
+		}
+		return &Key{
+			Alg:      alg,
+			Kty:      "EC",
+			Kid:      kid,
+			Use:      use,
+			Material: mat,
+		}, nil
+	case *rsa.PublicKey:
+		if alg == "" {
+			return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrEmptyAlg)
+		}
+		mat, err := rsaKey.NewFromPublicKey(pk)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("rsa new from public key: %w", err))
+		}
+		return &Key{
+			Alg:      alg,
+			Kty:      "RSA",
+			Kid:      kid,
+			Use:      use,
+			Material: mat,
+		}, nil
+	default:
+		return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrUnsupportedKty, fmt.Sprintf("%T", publicKey))
+	}
 }

@@ -11,6 +11,10 @@ import (
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
+// TODO: This should be a JWS object, not a token
+// TODO: `Raw` should not be exported. Use a `Raw()` method instead.
+// TODO: `Signature` should not be exported either; use `Signature()`? But what if I want to create invalid objects?
+
 type Token struct {
 	Header    []byte
 	Payload   []byte

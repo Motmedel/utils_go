@@ -151,3 +151,16 @@ func NewFromPublicKey(publicKey *ecdsa.PublicKey) (*Key, error) {
 		Y:   base64.RawURLEncoding.EncodeToString(padLeft(y.Bytes(), size)),
 	}, nil
 }
+
+// ThumbprintInput returns the RFC 7638 canonical JSON string used to compute
+// the JWK Thumbprint for an EC key: {"crv":"%s","kty":"EC","x":"%s","y":"%s"}
+// The fields must be ordered exactly as above and values must be base64url-encoded
+// without padding.
+func (k *Key) ThumbprintInput() (string, error) {
+	if k == nil {
+		return "", nil
+	}
+	// k.X and k.Y are already base64url-encoded with proper zero-left padding in NewFromPublicKey
+	// k.Crv is already the JOSE curve name
+	return fmt.Sprintf("{\"crv\":\"%s\",\"kty\":\"EC\",\"x\":\"%s\",\"y\":\"%s\"}", k.Crv, k.X, k.Y), nil
+}
