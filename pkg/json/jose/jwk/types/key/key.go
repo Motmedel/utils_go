@@ -4,8 +4,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -100,41 +98,21 @@ func (k *Key) NamedVerifier() (motmedelCryptoInterfaces.NamedVerifier, error) {
 	}
 }
 
-// ThumbprintSHA256 computes the JWK Thumbprint (RFC 7638) using SHA-256 and
-// returns it as a base64url-encoded string without padding.
 func (k *Key) ThumbprintSHA256() (string, error) {
-	if k == nil {
-		return "", nil
-	}
-
-	var input string
 	switch k.Kty {
 	case "EC":
 		if mat, ok := k.Material.(*ecKey.Key); ok && mat != nil {
-			s, err := mat.ThumbprintInput()
-			if err != nil {
-				return "", motmedelErrors.New(fmt.Errorf("ec thumbprint input: %w", err), mat)
-			}
-			input = s
-		} else {
-			return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid EC material type: %T", k.Material))
+			return mat.Thumbprint(), nil
 		}
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid EC material type: %T", k.Material))
 	case "RSA":
 		if mat, ok := k.Material.(*rsaKey.Key); ok && mat != nil {
-			s, err := mat.ThumbprintInput()
-			if err != nil {
-				return "", motmedelErrors.New(fmt.Errorf("rsa thumbprint input: %w", err), mat)
-			}
-			input = s
-		} else {
-			return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid RSA material type: %T", k.Material))
+			return mat.Thumbprint(), nil
 		}
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid RSA material type: %T", k.Material))
 	default:
 		return "", motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrUnsupportedKty, k.Kty)
 	}
-
-	sum := sha256.Sum256([]byte(input))
-	return base64.RawURLEncoding.EncodeToString(sum[:]), nil
 }
 
 func New(m map[string]any) (*Key, error) {

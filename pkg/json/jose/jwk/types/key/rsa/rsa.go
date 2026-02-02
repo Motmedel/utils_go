@@ -3,6 +3,7 @@ package rsa
 import (
 	"crypto"
 	rsa2 "crypto/rsa"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"math/big"
@@ -115,13 +116,7 @@ func NewFromPublicKey(publicKey *rsa2.PublicKey) (*Key, error) {
 	return &Key{N: nB64, E: eB64}, nil
 }
 
-// ThumbprintInput returns the RFC 7638 canonical JSON string used to compute
-// the JWK Thumbprint for an RSA key: {"e":"%s","kty":"RSA","n":"%s"}
-// The fields must be ordered exactly as above and values must be base64url-encoded
-// without padding.
-func (k *Key) ThumbprintInput() (string, error) {
-	if k == nil {
-		return "", nil
-	}
-	return fmt.Sprintf("{\"e\":\"%s\",\"kty\":\"RSA\",\"n\":\"%s\"}", k.E, k.N), nil
+func (k *Key) Thumbprint() string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("{\"e\":\"%s\",\"kty\":\"RSA\",\"n\":\"%s\"}", k.E, k.N)))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
