@@ -17,15 +17,15 @@ import (
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
-type RequestParser[T any] struct {
-	request_parser.RequestParser[T]
+type Parser[T request_parser.RequestParser[S], S any] struct {
+	RequestParser     T
 	RedirectUrl       *url.URL
 	RedirectParameter string
 	RequireProto      bool
 }
 
-func (parser *RequestParser[T]) Parse(request *http.Request) (T, *response_error.ResponseError) {
-	var zero T
+func (parser *Parser[T, S]) Parse(request *http.Request) (S, *response_error.ResponseError) {
+	var zero S
 
 	requestParser := parser.RequestParser
 	if utils.IsNil(requestParser) {
@@ -120,11 +120,11 @@ func (parser *RequestParser[T]) Parse(request *http.Request) (T, *response_error
 	return zero, responseError
 }
 
-func New[T any](
-	requestParser request_parser.RequestParser[T],
+func New[T request_parser.RequestParser[S], S any](
+	requestParser T,
 	redirectUrl *url.URL,
 	options ...redirector_config.Option,
-) (*RequestParser[T], error) {
+) (*Parser[T, S], error) {
 	if utils.IsNil(requestParser) {
 		return nil, motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)
 	}
@@ -135,7 +135,7 @@ func New[T any](
 
 	requestParserConfig := redirector_config.New(options...)
 
-	return &RequestParser[T]{
+	return &Parser[T, S]{
 		RequestParser:     requestParser,
 		RedirectUrl:       redirectUrl,
 		RedirectParameter: requestParserConfig.ParameterName,
