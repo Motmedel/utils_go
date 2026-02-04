@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
 	motmedelMuxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/url_allower/url_allower_config"
@@ -77,7 +78,7 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 
 			registeredDomain := domainBreakdown.RegisteredDomain
 			for _, domain := range config.AllowedRegisteredDomains {
-				if registeredDomain == domain {
+				if domain == registeredDomain {
 					allowed = true
 					break
 				}
@@ -94,6 +95,13 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 
 			if !allowed {
 				return nil, &response_error.ResponseError{
+					ClientError: mismatch_error.New(
+						"redirect",
+						config.AllowedRegisteredDomains,
+						registeredDomain,
+						config.AllowedDomains,
+						parsedUrlHostname,
+					),
 					ProblemDetail: problem_detail.New(
 						http.StatusBadRequest,
 						problem_detail_config.WithDetail("The url hostname does not match any allowed domain."),
