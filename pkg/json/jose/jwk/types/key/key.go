@@ -85,7 +85,8 @@ func (k *Key) NamedVerifier() (motmedelCryptoInterfaces.NamedVerifier, error) {
 	case *rsa.PublicKey:
 		alg := k.Alg
 		if alg == "" {
-			return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrEmptyAlg)
+			// Default to using RS256
+			alg = "RS256"
 		}
 
 		method, err := motmedelCryptoRsa.New(alg, nil, typedPublicKey)
