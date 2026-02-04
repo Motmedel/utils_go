@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -54,16 +56,39 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 			h.keys = keys
 
 			responseHeader := response.Header
-			expiresValue, err := motmedelHttpUtils.GetSingleHeader("Expires", responseHeader)
-			if err != nil {
-				return motmedelErrors.New(fmt.Errorf("get expires header: %w", err), responseHeader)
+
+			// Prefer Cache-Control: max-age over Expires
+			cacheControlValue, ccErr := motmedelHttpUtils.GetSingleHeader("Cache-Control", responseHeader)
+			usedCacheControl := false
+			if ccErr == nil && cacheControlValue != "" {
+				directives := strings.Split(cacheControlValue, ",")
+				for _, d := range directives {
+					d = strings.TrimSpace(strings.ToLower(d))
+					if strings.HasPrefix(d, "max-age=") {
+						v := strings.TrimSpace(strings.TrimPrefix(d, "max-age="))
+						if secs, err := strconv.Atoi(v); err == nil && secs >= 0 {
+							maxAgeExpiresAt := time.Now().Add(time.Duration(secs) * time.Second)
+							h.keysExpiresAt = &maxAgeExpiresAt
+							usedCacheControl = true
+						}
+						break
+					}
+				}
 			}
 
-			headerValueExpiresAt, err := time.Parse(time.RFC1123, expiresValue)
-			if err != nil {
-				return motmedelErrors.NewWithTrace(fmt.Errorf("time parse (expires): %w", err), expiresValue)
+			if !usedCacheControl {
+				// Fallback to Expires header (RFC1123)
+				expiresValue, err := motmedelHttpUtils.GetSingleHeader("Expires", responseHeader)
+				if err != nil {
+					return motmedelErrors.New(fmt.Errorf("get expires header: %w", err), responseHeader)
+				}
+
+				headerValueExpiresAt, err := time.Parse(time.RFC1123, expiresValue)
+				if err != nil {
+					return motmedelErrors.NewWithTrace(fmt.Errorf("time parse (expires): %w", err), expiresValue)
+				}
+				h.keysExpiresAt = &headerValueExpiresAt
 			}
-			h.keysExpiresAt = &headerValueExpiresAt
 
 			h.mu.Lock()
 			clear(h.keyIdToVerifier)
