@@ -19,7 +19,7 @@ import (
 	muxInternalMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/mux"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_loader/body_setting"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
-	muxTypesEnpointSpecification "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
+	endpointPkg "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/firewall_verdict"
 	muxTypesFirewall "github.com/Motmedel/utils_go/pkg/http/mux/types/firewall_verdict"
 	muxTypesMiddleware "github.com/Motmedel/utils_go/pkg/http/mux/types/middleware"
@@ -256,7 +256,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 type Mux struct {
 	baseMux
-	EndpointSpecificationMap map[string]map[string]*muxTypesEnpointSpecification.Endpoint
+	EndpointSpecificationMap map[string]map[string]*endpointPkg.Endpoint
 }
 
 func muxHandleRequest(
@@ -317,7 +317,7 @@ func muxHandleRequest(
 		// Produce an OPTIONS response (list allowed methods and/or CORS configuration).
 
 		var allowedMethods []string
-		var corsEndpoints []*muxTypesEnpointSpecification.Endpoint
+		var corsEndpoints []*endpointPkg.Endpoint
 
 		for method, otherEndpoint := range methodToEndpoint {
 			if otherEndpoint == nil {
@@ -720,33 +720,52 @@ func (mux *Mux) ServeHTTP(originalResponseWriter http.ResponseWriter, request *h
 	)
 }
 
-func (mux *Mux) Add(specifications ...*muxTypesEnpointSpecification.Endpoint) {
-	if len(specifications) == 0 {
+func (mux *Mux) Add(endpoints ...*endpointPkg.Endpoint) {
+	if len(endpoints) == 0 {
 		return
 	}
 
 	endpointSpecificationMap := mux.EndpointSpecificationMap
 	if endpointSpecificationMap == nil {
-		endpointSpecificationMap = make(map[string]map[string]*muxTypesEnpointSpecification.Endpoint)
+		endpointSpecificationMap = make(map[string]map[string]*endpointPkg.Endpoint)
 	}
 
-	for _, specification := range specifications {
-		if specification == nil {
+	for _, endpoint := range endpoints {
+		if endpoint == nil {
 			continue
 		}
-		methodToEndpointSpecification, ok := endpointSpecificationMap[specification.Path]
-		if !ok {
-			methodToEndpointSpecification = make(map[string]*muxTypesEnpointSpecification.Endpoint)
-			endpointSpecificationMap[specification.Path] = methodToEndpointSpecification
+
+		if endpoint.Method == "" {
+			slog.Warn("Endpoint with empty method.")
 		}
 
-		methodToEndpointSpecification[strings.ToUpper(specification.Method)] = specification
+		if endpoint.Path == "" {
+			slog.Warn("Endpoint with empty path.")
+		}
+
+		if !endpoint.Public && utils.IsNil(endpoint.AuthenticationParser) {
+			slog.Warn(
+				fmt.Sprintf(
+					"Non-public endpoint without authentication parser: %s %s.",
+					endpoint.Path,
+					endpoint.Method,
+				),
+			)
+		}
+
+		methodToEndpointSpecification, ok := endpointSpecificationMap[endpoint.Path]
+		if !ok {
+			methodToEndpointSpecification = make(map[string]*endpointPkg.Endpoint)
+			endpointSpecificationMap[endpoint.Path] = methodToEndpointSpecification
+		}
+
+		methodToEndpointSpecification[strings.ToUpper(endpoint.Method)] = endpoint
 	}
 
 	mux.EndpointSpecificationMap = endpointSpecificationMap
 }
 
-func (mux *Mux) Delete(specifications ...*muxTypesEnpointSpecification.Endpoint) {
+func (mux *Mux) Delete(specifications ...*endpointPkg.Endpoint) {
 	if len(specifications) == 0 {
 		return
 	}
@@ -770,7 +789,7 @@ func (mux *Mux) Delete(specifications ...*muxTypesEnpointSpecification.Endpoint)
 	}
 }
 
-func (mux *Mux) Get(path string, method string) *muxTypesEnpointSpecification.Endpoint {
+func (mux *Mux) Get(path string, method string) *endpointPkg.Endpoint {
 	endpointSpecificationMap := mux.EndpointSpecificationMap
 	if endpointSpecificationMap == nil {
 		return nil
@@ -784,8 +803,8 @@ func (mux *Mux) Get(path string, method string) *muxTypesEnpointSpecification.En
 	return methodToEndpointSpecification[strings.ToUpper(method)]
 }
 
-func (mux *Mux) GetDocumentEndpointSpecifications() []*muxTypesEnpointSpecification.Endpoint {
-	var specifications []*muxTypesEnpointSpecification.Endpoint
+func (mux *Mux) GetDocumentEndpointSpecifications() []*endpointPkg.Endpoint {
+	var specifications []*endpointPkg.Endpoint
 
 	for _, methodMap := range mux.EndpointSpecificationMap {
 		for _, specification := range methodMap {
@@ -817,7 +836,7 @@ func (mux *Mux) GetDocumentEndpointSpecifications() []*muxTypesEnpointSpecificat
 	return specifications
 }
 
-func (mux *Mux) DuplicateEndpointSpecification(endpointSpecification *muxTypesEnpointSpecification.Endpoint, routes ...string) error {
+func (mux *Mux) DuplicateEndpointSpecification(endpointSpecification *endpointPkg.Endpoint, routes ...string) error {
 	if endpointSpecification == nil {
 		return motmedelErrors.NewWithTrace(muxErrors.ErrNilEndpointSpecification)
 	}
