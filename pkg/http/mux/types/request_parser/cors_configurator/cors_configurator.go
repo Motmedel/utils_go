@@ -55,7 +55,7 @@ func (c *Configurator) Parse(request *http.Request) (*motmedelHttpTypes.CorsConf
 		}
 	}
 
-	if matchedAllowedOrigin != "" && !utils.IsNil(c.AllowedOriginsComparer) {
+	if matchedAllowedOrigin == "" && !utils.IsNil(c.AllowedOriginsComparer) {
 		if ok, _ := c.AllowedOriginsComparer.Compare(origin); ok {
 			matchedAllowedOrigin = origin
 		}
