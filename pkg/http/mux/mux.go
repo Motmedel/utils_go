@@ -747,8 +747,8 @@ func (mux *Mux) Add(endpoints ...*endpointPkg.Endpoint) {
 			slog.Warn(
 				fmt.Sprintf(
 					"Non-public endpoint without authentication parser: %s %s.",
-					endpoint.Path,
 					endpoint.Method,
+					endpoint.Path,
 				),
 			)
 		}
