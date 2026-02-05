@@ -12,12 +12,15 @@ import (
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
+	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
+	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 type Configurator struct {
-	AllowedOrigins   []string
-	RegisteredDomain string
+	AllowedOrigins         []string
+	AllowedOriginsComparer comparer.Comparer[string]
+	RegisteredDomain       string
 
 	Headers       []string
 	Credentials   bool
@@ -25,7 +28,7 @@ type Configurator struct {
 	ExposeHeaders []string
 }
 
-func (configurator *Configurator) Parse(request *http.Request) (*motmedelHttpTypes.CorsConfiguration, *response_error.ResponseError) {
+func (c *Configurator) Parse(request *http.Request) (*motmedelHttpTypes.CorsConfiguration, *response_error.ResponseError) {
 	if request == nil {
 		return nil, &response_error.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
@@ -45,14 +48,20 @@ func (configurator *Configurator) Parse(request *http.Request) (*motmedelHttpTyp
 	}
 
 	var matchedAllowedOrigin string
-	for _, allowedOrigin := range configurator.AllowedOrigins {
+	for _, allowedOrigin := range c.AllowedOrigins {
 		if strings.EqualFold(origin, allowedOrigin) {
 			matchedAllowedOrigin = allowedOrigin
 			break
 		}
 	}
 
-	registeredDomain := configurator.RegisteredDomain
+	if matchedAllowedOrigin != "" && utils.IsNil(c.AllowedOriginsComparer) {
+		if ok, _ := c.AllowedOriginsComparer.Compare(origin); ok {
+			matchedAllowedOrigin = origin
+		}
+	}
+
+	registeredDomain := c.RegisteredDomain
 	if matchedAllowedOrigin == "" && registeredDomain != "" {
 		parsedOrigin, err := url.Parse(origin)
 		if err != nil {
@@ -87,9 +96,9 @@ func (configurator *Configurator) Parse(request *http.Request) (*motmedelHttpTyp
 
 	return &motmedelHttpTypes.CorsConfiguration{
 		Origin:        matchedAllowedOrigin,
-		Headers:       configurator.Headers,
-		Credentials:   configurator.Credentials,
-		MaxAge:        configurator.MaxAge,
-		ExposeHeaders: configurator.ExposeHeaders,
+		Headers:       c.Headers,
+		Credentials:   c.Credentials,
+		MaxAge:        c.MaxAge,
+		ExposeHeaders: c.ExposeHeaders,
 	}, nil
 }
