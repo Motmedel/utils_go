@@ -16,6 +16,10 @@ func (f Function[T]) Compare(input T) (bool, error) {
 	return f(input)
 }
 
+func New[T comparable](f func(T) (bool, error)) Comparer[T] {
+	return Function[T](f)
+}
+
 type AnyEqualComparer[T comparable] struct {
 	Values []T
 }
