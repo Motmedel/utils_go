@@ -340,3 +340,25 @@ type CorsConfiguration struct {
 	MaxAge        int
 	ExposeHeaders []string
 }
+
+// ForwardedElement represents a single forwarded element containing multiple parameters.
+// Standard parameters defined in RFC 7239 are:
+//   - For: identifies the node making the request to the proxy
+//   - By: identifies the interface where the request came in to the proxy
+//   - Host: the original value of the Host request header
+//   - Proto: indicates the protocol used to make the request (http or https)
+type ForwardedElement struct {
+	For   string
+	By    string
+	Host  string
+	Proto string
+	// Extensions contain any non-standard parameters
+	Extensions map[string]string
+}
+
+// Forwarded represents the parsed Forwarded HTTP header as defined in RFC 7239.
+// The header can contain multiple elements, each potentially originating from
+// different proxies in the request chain.
+type Forwarded struct {
+	Elements []*ForwardedElement
+}
