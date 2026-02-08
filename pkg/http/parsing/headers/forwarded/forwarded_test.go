@@ -3,6 +3,8 @@ package forwarded
 import (
 	"reflect"
 	"testing"
+
+	"github.com/Motmedel/utils_go/pkg/http/types"
 )
 
 // Corpus of valid Forwarded header values from RFC 7239 examples and common use cases.
@@ -50,13 +52,13 @@ func TestParseForwardedCorrectness(t *testing.T) {
 	cases := []struct {
 		name   string
 		header string
-		want   *Forwarded
+		want   *types.Forwarded
 	}{
 		{
 			name:   "simple for",
 			header: "for=192.0.2.43",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "192.0.2.43"},
 				},
 			},
@@ -64,8 +66,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "for with proto and by",
 			header: "for=192.0.2.60;proto=http;by=203.0.113.43",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "192.0.2.60", Proto: "http", By: "203.0.113.43"},
 				},
 			},
@@ -73,8 +75,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "multiple elements",
 			header: "for=192.0.2.43, for=198.51.100.178",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "192.0.2.43"},
 					{For: "198.51.100.178"},
 				},
@@ -83,8 +85,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "quoted obfuscated identifier",
 			header: "for=\"_gazonk\"",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "_gazonk"},
 				},
 			},
@@ -92,8 +94,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "quoted IPv6 with port",
 			header: "For=\"[2001:db8:cafe::17]:4711\"",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "[2001:db8:cafe::17]:4711"},
 				},
 			},
@@ -101,8 +103,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "all standard parameters",
 			header: "for=192.0.2.43;by=203.0.113.43;host=example.com;proto=https",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "192.0.2.43", By: "203.0.113.43", Host: "example.com", Proto: "https"},
 				},
 			},
@@ -110,8 +112,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "unknown for value",
 			header: "for=unknown",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "unknown"},
 				},
 			},
@@ -119,8 +121,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "extension parameter",
 			header: "for=192.0.2.43;secret=mytoken",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "192.0.2.43", Extensions: map[string]string{"secret": "mytoken"}},
 				},
 			},
@@ -128,8 +130,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "case insensitive parameter names",
 			header: "FOR=192.0.2.43;PROTO=https",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "192.0.2.43", Proto: "https"},
 				},
 			},
@@ -137,8 +139,8 @@ func TestParseForwardedCorrectness(t *testing.T) {
 		{
 			name:   "multiple elements with different parameters",
 			header: "for=192.0.2.43;proto=http, for=198.51.100.178;proto=https",
-			want: &Forwarded{
-				Elements: []*ForwardedElement{
+			want: &types.Forwarded{
+				Elements: []*types.ForwardedElement{
 					{For: "192.0.2.43", Proto: "http"},
 					{For: "198.51.100.178", Proto: "https"},
 				},

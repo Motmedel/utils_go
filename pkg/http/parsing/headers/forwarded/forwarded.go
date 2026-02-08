@@ -9,6 +9,7 @@ import (
 
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/http/types"
 	goabnf "github.com/pandatix/go-abnf"
 )
 
@@ -21,29 +22,7 @@ var (
 	ErrInvalidQuotedValue = errors.New("invalid quoted value")
 )
 
-// ForwardedElement represents a single forwarded element containing multiple parameters.
-// Standard parameters defined in RFC 7239 are:
-//   - For: identifies the node making the request to the proxy
-//   - By: identifies the interface where the request came in to the proxy
-//   - Host: the original value of the Host request header
-//   - Proto: indicates the protocol used to make the request (http or https)
-type ForwardedElement struct {
-	For   string
-	By    string
-	Host  string
-	Proto string
-	// Extensions contains any non-standard parameters
-	Extensions map[string]string
-}
-
-// Forwarded represents the parsed Forwarded HTTP header as defined in RFC 7239.
-// The header can contain multiple elements, each potentially originating from
-// different proxies in the request chain.
-type Forwarded struct {
-	Elements []*ForwardedElement
-}
-
-func Parse(data []byte) (*Forwarded, error) {
+func Parse(data []byte) (*types.Forwarded, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(Grammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
@@ -52,7 +31,7 @@ func Parse(data []byte) (*Forwarded, error) {
 		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
-	var forwarded Forwarded
+	var forwarded types.Forwarded
 
 	elementPaths := parsing_utils.SearchPath(
 		paths[0],
@@ -60,7 +39,7 @@ func Parse(data []byte) (*Forwarded, error) {
 	)
 
 	for _, elementPath := range elementPaths {
-		element := &ForwardedElement{}
+		element := &types.ForwardedElement{}
 
 		pairPaths := parsing_utils.SearchPath(
 			elementPath,
