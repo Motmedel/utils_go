@@ -41,19 +41,16 @@ type Endpoint struct {
 	Path                      string
 	Method                    string
 	RateLimitingConfiguration *muxTypesRateLimiting.RateLimitingConfiguration
-	// TODO: Implement
-	// A security feature to avoid unintentional exposure; If not public and no `AuthenticationParser` was provided
-	//an error is returned.
-	Public               bool
-	AuthenticationParser request_parser.RequestParser[any]
-	UrlParser            request_parser.RequestParser[any]
-	HeaderParser         request_parser.RequestParser[any]
-	BodyLoader           *body_loader.Loader
-	CorsParser           request_parser.RequestParser[*motmedelHttpTypes.CorsConfiguration]
-	DisableFetchMedata   bool
-	Hint                 *Hint
-	Handler              Handler
-	StaticContent        *static_content.StaticContent
+	AuthenticationParser      request_parser.RequestParser[any]
+	UrlParser                 request_parser.RequestParser[any]
+	HeaderParser              request_parser.RequestParser[any]
+	BodyLoader                *body_loader.Loader
+	CorsParser                request_parser.RequestParser[*motmedelHttpTypes.CorsConfiguration]
+	DisableFetchMedata        bool
+	Public                    bool
+	Hint                      *Hint
+	Handler                   Handler
+	StaticContent             *static_content.StaticContent
 }
 
 const robotsTxtCacheControl = "public, max-age=86400"

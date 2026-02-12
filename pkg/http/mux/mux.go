@@ -11,6 +11,7 @@ import (
 
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
@@ -256,7 +257,7 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 type Mux struct {
 	baseMux
-	EndpointSpecificationMap map[string]map[string]*endpointPkg.Endpoint
+	EndpointMap map[string]map[string]*endpointPkg.Endpoint
 }
 
 func muxHandleRequest(
@@ -298,7 +299,7 @@ func muxHandleRequest(
 	// Locate the endpoint specification.
 
 	endpoint, methodToEndpoint, responseError := muxInternalMux.GetEndpoint(
-		mux.EndpointSpecificationMap,
+		mux.EndpointMap,
 		request,
 	)
 	if responseError != nil {
@@ -725,9 +726,9 @@ func (mux *Mux) Add(endpoints ...*endpointPkg.Endpoint) {
 		return
 	}
 
-	endpointSpecificationMap := mux.EndpointSpecificationMap
-	if endpointSpecificationMap == nil {
-		endpointSpecificationMap = make(map[string]map[string]*endpointPkg.Endpoint)
+	endpointMap := mux.EndpointMap
+	if endpointMap == nil {
+		endpointMap = make(map[string]map[string]*endpointPkg.Endpoint)
 	}
 
 	for _, endpoint := range endpoints {
@@ -753,62 +754,62 @@ func (mux *Mux) Add(endpoints ...*endpointPkg.Endpoint) {
 			)
 		}
 
-		methodToEndpointSpecification, ok := endpointSpecificationMap[endpoint.Path]
+		methodToEndpoint, ok := endpointMap[endpoint.Path]
 		if !ok {
-			methodToEndpointSpecification = make(map[string]*endpointPkg.Endpoint)
-			endpointSpecificationMap[endpoint.Path] = methodToEndpointSpecification
+			methodToEndpoint = make(map[string]*endpointPkg.Endpoint)
+			endpointMap[endpoint.Path] = methodToEndpoint
 		}
 
-		methodToEndpointSpecification[strings.ToUpper(endpoint.Method)] = endpoint
+		methodToEndpoint[strings.ToUpper(endpoint.Method)] = endpoint
 	}
 
-	mux.EndpointSpecificationMap = endpointSpecificationMap
+	mux.EndpointMap = endpointMap
 }
 
-func (mux *Mux) Delete(specifications ...*endpointPkg.Endpoint) {
-	if len(specifications) == 0 {
+func (mux *Mux) Delete(endpoints ...*endpointPkg.Endpoint) {
+	if len(endpoints) == 0 {
 		return
 	}
 
-	endpointSpecificationMap := mux.EndpointSpecificationMap
+	endpointSpecificationMap := mux.EndpointMap
 	if endpointSpecificationMap == nil {
 		return
 	}
 
-	for _, specification := range specifications {
-		methodToEndpointSpecification, ok := endpointSpecificationMap[specification.Path]
+	for _, endpoint := range endpoints {
+		methodToEndpoint, ok := endpointSpecificationMap[endpoint.Path]
 		if !ok {
 			return
 		}
 
-		delete(methodToEndpointSpecification, strings.ToUpper(specification.Method))
+		delete(methodToEndpoint, strings.ToUpper(endpoint.Method))
 
-		if len(methodToEndpointSpecification) == 0 {
-			delete(endpointSpecificationMap, specification.Path)
+		if len(methodToEndpoint) == 0 {
+			delete(endpointSpecificationMap, endpoint.Path)
 		}
 	}
 }
 
 func (mux *Mux) Get(path string, method string) *endpointPkg.Endpoint {
-	endpointSpecificationMap := mux.EndpointSpecificationMap
-	if endpointSpecificationMap == nil {
+	endpointMap := mux.EndpointMap
+	if endpointMap == nil {
 		return nil
 	}
 
-	methodToEndpointSpecification, ok := endpointSpecificationMap[path]
-	if !ok || methodToEndpointSpecification == nil {
+	methodToEndpoint, ok := endpointMap[path]
+	if !ok || methodToEndpoint == nil {
 		return nil
 	}
 
-	return methodToEndpointSpecification[strings.ToUpper(method)]
+	return methodToEndpoint[strings.ToUpper(method)]
 }
 
 func (mux *Mux) GetDocumentEndpointSpecifications() []*endpointPkg.Endpoint {
-	var specifications []*endpointPkg.Endpoint
+	var endpoints []*endpointPkg.Endpoint
 
-	for _, methodMap := range mux.EndpointSpecificationMap {
-		for _, specification := range methodMap {
-			staticContent := specification.StaticContent
+	for _, methodMap := range mux.EndpointMap {
+		for _, endpoint := range methodMap {
+			staticContent := endpoint.StaticContent
 			if staticContent == nil {
 				continue
 			}
@@ -829,20 +830,20 @@ func (mux *Mux) GetDocumentEndpointSpecifications() []*endpointPkg.Endpoint {
 				continue
 			}
 
-			specifications = append(specifications, specification)
+			endpoints = append(endpoints, endpoint)
 		}
 	}
 
-	return specifications
+	return endpoints
 }
 
-func (mux *Mux) DuplicateEndpointSpecification(endpointSpecification *endpointPkg.Endpoint, routes ...string) error {
-	if endpointSpecification == nil {
-		return motmedelErrors.NewWithTrace(muxErrors.ErrNilEndpointSpecification)
+func (mux *Mux) DuplicateEndpointSpecification(endpoint *endpointPkg.Endpoint, routes ...string) error {
+	if endpoint == nil {
+		return motmedelErrors.NewWithTrace(nil_error.New("endpoint"))
 	}
 
 	for _, route := range routes {
-		specification := *endpointSpecification
+		specification := *endpoint
 		specification.Path = route
 
 		mux.Add(&specification)
