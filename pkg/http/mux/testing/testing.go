@@ -4,16 +4,22 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"testing"
 
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
+
+const ExpectedBodyNonEmpty = "*non-empty-body"
 
 type Args struct {
 	Method                    string
@@ -72,7 +78,17 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 	if response == nil {
 		t.Fatalf("http client do returned nil response")
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); err != nil {
+			slog.WarnContext(
+				motmedelContext.WithError(
+					t.Context(),
+					motmedelErrors.NewWithTrace(fmt.Errorf("response body close: %w", err)),
+				),
+				"An error occurred when closing the response body.",
+			)
+		}
+	}()
 
 	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -150,7 +166,15 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 		if diff := cmp.Diff(expectedProblemDetail, problemDetail, opts...); diff != "" {
 			t.Errorf("problem detail mismatch (-expected +got):\n%s", diff)
 		}
-	} else if !bytes.Equal(responseBody, args.ExpectedBody) {
-		t.Errorf("got response body %q, expected response body %q", responseBody, args.ExpectedBody)
+	} else {
+		if string(args.ExpectedBody) == ExpectedBodyNonEmpty {
+			if len(responseBody) == 0 {
+				t.Errorf("expected non-empty response body, got empty body")
+			}
+		} else {
+			if !bytes.Equal(responseBody, args.ExpectedBody) {
+				t.Errorf("got response body %q, expected response body %q", responseBody, args.ExpectedBody)
+			}
+		}
 	}
 }
