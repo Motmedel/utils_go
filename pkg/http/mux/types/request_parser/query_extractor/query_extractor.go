@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"go/ast"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"reflect"
+	"regexp"
 	"strconv"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/query_extractor/query_extractor_config"
+	queryTag "github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/query_extractor/tag"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
@@ -18,6 +21,26 @@ import (
 	motmedelReflect "github.com/Motmedel/utils_go/pkg/reflect"
 	motmedelReflectErrors "github.com/Motmedel/utils_go/pkg/reflect/errors"
 )
+
+var uuidRegexp = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+func validateFormat(value string, format string) error {
+	switch format {
+	case "email":
+		_, err := mail.ParseAddress(value)
+		if err != nil {
+			return fmt.Errorf("invalid email format: %q", value)
+		}
+		return nil
+	case "uuid":
+		if !uuidRegexp.MatchString(value) {
+			return fmt.Errorf("invalid uuid format: %q", value)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported format: %q", format)
+	}
+}
 
 type Parser[T any] struct {
 	config *query_extractor_config.Config
@@ -218,16 +241,29 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 		}
 
 		optional := false
+		var format string
 
-		jsonTag := motmedelJsonTag.New(field.Tag.Get("json"))
-		if jsonTag != nil {
-			if jsonTag.Skip {
+		qt := queryTag.New(field.Tag.Get("query"))
+		if qt != nil {
+			if qt.Skip {
 				continue
 			}
-			if name := jsonTag.Name; name != "" {
+			if name := qt.Name; name != "" {
 				identifier = name
 			}
-			optional = jsonTag.OmitEmpty || jsonTag.OmitZero
+			optional = qt.OmitEmpty || qt.OmitZero
+			format = qt.Format
+		} else {
+			jsonTag := motmedelJsonTag.New(field.Tag.Get("json"))
+			if jsonTag != nil {
+				if jsonTag.Skip {
+					continue
+				}
+				if name := jsonTag.Name; name != "" {
+					identifier = name
+				}
+				optional = jsonTag.OmitEmpty || jsonTag.OmitZero
+			}
 		}
 
 		known[identifier] = struct{}{}
@@ -244,6 +280,14 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 		if len(values) > 1 && !(fieldTypeKind == reflect.Slice || fieldTypeKind == reflect.Array) {
 			parseErrs = append(parseErrs, fmt.Errorf("multiple values for parameter: %s", identifier))
 			continue
+		}
+
+		if format != "" {
+			for _, v := range values {
+				if err := validateFormat(v, format); err != nil {
+					parseErrs = append(parseErrs, fmt.Errorf("parameter %s: %w", identifier, err))
+				}
+			}
 		}
 
 		targetField := structVal.Field(i)
