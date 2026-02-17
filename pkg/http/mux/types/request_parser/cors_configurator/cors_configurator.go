@@ -13,7 +13,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
-	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
+	"github.com/Motmedel/utils_go/pkg/net/types/domain_parts"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -75,8 +75,8 @@ func (c *Configurator) Parse(request *http.Request) (*motmedelHttpTypes.CorsConf
 		}
 
 		originHostname := parsedOrigin.Hostname()
-		originDomainBreakdown := domain_breakdown.GetDomainBreakdown(originHostname)
-		if originDomainBreakdown == nil {
+		originDomainParts := domain_parts.New(originHostname)
+		if originDomainParts == nil {
 			return nil, &response_error.ResponseError{
 				ProblemDetail: problem_detail.New(
 					http.StatusBadRequest,
@@ -85,7 +85,7 @@ func (c *Configurator) Parse(request *http.Request) (*motmedelHttpTypes.CorsConf
 			}
 		}
 
-		if strings.EqualFold(originDomainBreakdown.RegisteredDomain, registeredDomain) {
+		if strings.EqualFold(originDomainParts.RegisteredDomain, registeredDomain) {
 			matchedAllowedOrigin = origin
 		}
 	}

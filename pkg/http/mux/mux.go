@@ -38,7 +38,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	motmedelIter "github.com/Motmedel/utils_go/pkg/iter"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"github.com/google/uuid"
+	"github.com/Motmedel/utils_go/pkg/uuid"
 )
 
 const (

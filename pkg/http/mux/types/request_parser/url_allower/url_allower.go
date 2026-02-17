@@ -14,8 +14,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
-	"github.com/Motmedel/utils_go/pkg/net/domain_breakdown"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
+	"github.com/Motmedel/utils_go/pkg/net/types/domain_parts"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -62,8 +62,8 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 
 	parsedUrlHostname := parsedUrl.Hostname()
 	if !(config.AllowLocalhost && parsedUrlHostname == "localhost") {
-		domainBreakdown := domain_breakdown.GetDomainBreakdown(parsedUrlHostname)
-		if domainBreakdown == nil {
+		domainParts := domain_parts.New(parsedUrlHostname)
+		if domainParts == nil {
 			return nil, &response_error.ResponseError{
 				ProblemDetail: problem_detail.New(
 					http.StatusBadRequest,
@@ -76,7 +76,7 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 		if len(config.AllowedDomains) > 0 || len(config.AllowedRegisteredDomains) > 0 {
 			var allowed bool
 
-			registeredDomain := domainBreakdown.RegisteredDomain
+			registeredDomain := domainParts.RegisteredDomain
 			for _, domain := range config.AllowedRegisteredDomains {
 				if domain == registeredDomain {
 					allowed = true
