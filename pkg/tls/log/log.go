@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Motmedel/ecs_go/ecs"
+	"log/slog"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
+	"github.com/Motmedel/utils_go/pkg/schema"
+	schemaUtils "github.com/Motmedel/utils_go/pkg/schema/utils"
 	motmedelTlsContext "github.com/Motmedel/utils_go/pkg/tls/context"
 	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
-	"log/slog"
 )
 
-func ParseTlsContext(tlsContext *motmedelTlsTypes.TlsContext) *ecs.Base {
+func ParseTlsContext(tlsContext *motmedelTlsTypes.TlsContext) *schema.Base {
 	if tlsContext == nil {
 		return nil
 	}
@@ -22,8 +24,8 @@ func ParseTlsContext(tlsContext *motmedelTlsTypes.TlsContext) *ecs.Base {
 		return nil
 	}
 
-	var base ecs.Base
-	ecs.EnrichWithTlsContext(&base, tlsContext)
+	var base schema.Base
+	schemaUtils.EnrichWithTlsContext(&base, tlsContext)
 
 	return &base
 }

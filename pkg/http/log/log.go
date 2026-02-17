@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/Motmedel/ecs_go/ecs"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	configPkg "github.com/Motmedel/utils_go/pkg/http/log/types/config"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelJson "github.com/Motmedel/utils_go/pkg/json"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
+	schemaUtils "github.com/Motmedel/utils_go/pkg/schema/utils"
 )
 
 type HttpContextExtractor struct {
@@ -28,7 +28,7 @@ func (extractor *HttpContextExtractor) Handle(ctx context.Context, record *slog.
 	}
 
 	if httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext); ok {
-		base, err := ecs.ParseHttpContext(httpContext, extractor.HeaderExtractor)
+		base, err := schemaUtils.ParseHttpContext(httpContext, extractor.HeaderExtractor)
 		if err != nil {
 			return motmedelErrors.New(
 				fmt.Errorf("ecs parse http context: %w", err),

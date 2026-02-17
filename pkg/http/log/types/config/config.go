@@ -1,10 +1,10 @@
 package config
 
 import (
-	"github.com/Motmedel/ecs_go/ecs"
+	schemaUtils "github.com/Motmedel/utils_go/pkg/schema/utils"
 )
 
-var DefaultHeaderExtractor = ecs.DefaultMaskedHeaderExtractor
+var DefaultHeaderExtractor = schemaUtils.DefaultMaskedHeaderExtractor
 
 type Option func(configuration *Config)
 

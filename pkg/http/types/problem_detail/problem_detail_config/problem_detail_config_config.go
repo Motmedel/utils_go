@@ -1,6 +1,6 @@
 package problem_detail_config
 
-import "github.com/google/uuid"
+import "github.com/Motmedel/utils_go/pkg/uuid"
 
 var (
 	DefaultType = "about:blank"
