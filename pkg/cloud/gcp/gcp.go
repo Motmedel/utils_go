@@ -12,7 +12,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 )
 
-var metadataBaseUrl = url.URL{
+var metadataBaseUrl = &url.URL{
 	Scheme: "http",
 	Host:   "metadata.google.internal",
 	Path:   "/computeMetadata/v1",
@@ -27,7 +27,7 @@ func GetIdToken(ctx context.Context, audience string) (string, error) {
 		return "", fmt.Errorf("context err: %w", err)
 	}
 
-	identityUrl := metadataBaseUrl
+	identityUrl := *metadataBaseUrl
 	identityUrl.Path += "/instance/service-accounts/default/identity"
 	identityUrl.RawQuery = url.Values{"audience": {audience}}.Encode()
 
