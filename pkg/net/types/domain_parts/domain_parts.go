@@ -1,12 +1,18 @@
-package domain_breakdown
+package domain_parts
 
 import (
-	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
-	"golang.org/x/net/publicsuffix"
 	"strings"
+
+	"github.com/Motmedel/utils_go/pkg/net/publicsuffix"
 )
 
-func GetDomainBreakdown(domainString string) *motmedelNet.DomainBreakdown {
+type Parts struct {
+	RegisteredDomain string `json:"registered_domain,omitempty"`
+	Subdomain        string `json:"subdomain,omitempty"`
+	TopLevelDomain   string `json:"top_level_domain,omitempty"`
+}
+
+func New(domainString string) *Parts {
 	if domainString == "" {
 		return nil
 	}
@@ -21,14 +27,14 @@ func GetDomainBreakdown(domainString string) *motmedelNet.DomainBreakdown {
 		return nil
 	}
 
-	domainBreakdown := motmedelNet.DomainBreakdown{
+	breakdown := Parts{
 		TopLevelDomain:   etld,
 		RegisteredDomain: registeredDomain,
 	}
 
 	if subdomain := strings.TrimSuffix(domainString, "."+registeredDomain); subdomain != domainString {
-		domainBreakdown.Subdomain = subdomain
+		breakdown.Subdomain = subdomain
 	}
 
-	return &domainBreakdown
+	return &breakdown
 }

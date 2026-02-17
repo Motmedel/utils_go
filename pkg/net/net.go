@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"net"
 	"strconv"
+
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 )
 
 const (
 	ProtocolIcmp  = 1
 	ProtocolTcp   = 6
 	ProtocolUdp   = 17
-	ProtocolIcmp6 = 132
+	ProtocolIcmp6 = 58
 )
 
 func SplitAddress(address string) (string, int, error) {
@@ -202,10 +203,4 @@ func NetworkFromTarget(target string) (*net.IPNet, error) {
 	}
 
 	return nil, motmedelErrors.NewWithTrace(motmedelNetErrors.ErrUndeterminableTargetFormat)
-}
-
-type DomainBreakdown struct {
-	RegisteredDomain string `json:"registered_domain,omitempty"`
-	Subdomain        string `json:"subdomain,omitempty"`
-	TopLevelDomain   string `json:"top_level_domain,omitempty"`
 }
