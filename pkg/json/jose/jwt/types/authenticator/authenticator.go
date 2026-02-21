@@ -38,7 +38,7 @@ func (a *Authenticator) Authenticate(ctx context.Context, tokenString string) (*
 		authenticated_token_config.WithTokenValidator(validator),
 	)
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(
+		return nil, motmedelErrors.New(
 			fmt.Errorf("authenticated token new: %w", err),
 			tokenString, signatureVerifier, validator,
 		)
@@ -107,7 +107,7 @@ func (a *AuthenticatorWithKeyHandler) Authenticate(ctx context.Context, tokenStr
 		authenticated_token_config.WithTokenValidator(validator),
 	)
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(
+		return nil, motmedelErrors.New(
 			fmt.Errorf("authenticated token new: %w", err),
 			tokenString, signatureVerifier, validator,
 		)

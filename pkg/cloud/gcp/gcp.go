@@ -43,3 +43,24 @@ func GetIdToken(ctx context.Context, audience string) (string, error) {
 
 	return string(responseBody), nil
 }
+
+func GetProjectId(ctx context.Context) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", fmt.Errorf("context err: %w", err)
+	}
+
+	requestUrl := *metadataBaseUrl
+	requestUrl.Path += "/project/project-id"
+
+	urlString := requestUrl.String()
+	_, responseBody, err := motmedelHttpUtils.Fetch(
+		ctx,
+		urlString,
+		fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"}),
+	)
+	if err != nil {
+		return "", motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
+	}
+
+	return string(responseBody), nil
+}

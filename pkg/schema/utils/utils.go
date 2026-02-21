@@ -371,7 +371,7 @@ func ParseHttp(
 
 func ParseHttpContext(
 	httpContext *motmedelHttpTypes.HttpContext,
-// TODO: Rework this. `any` is not nice. Use an interface?
+	// TODO: Rework this. `any` is not nice. Use an interface?
 	headerExtractor func(requestResponse any) string,
 ) (*schema.Base, error) {
 	if httpContext == nil {
