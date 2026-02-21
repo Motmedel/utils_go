@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -27,6 +28,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/userer"
 	utils2 "github.com/Motmedel/utils_go/pkg/http/mux/utils"
@@ -879,4 +881,12 @@ func (mux *Mux) SetContentSecurityPolicy(csp *content_security_policy.ContentSec
 	}
 
 	return nil
+}
+
+func New(endpoints ...*endpointPkg.Endpoint) *Mux {
+	var mux Mux
+	mux.DefaultHeaders = maps.Clone(response_writer.DefaultHeaders)
+	mux.DefaultDocumentHeaders = maps.Clone(response_writer.DefaultDocumentHeaders)
+	mux.Add(endpoints...)
+	return &mux
 }
