@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/http_context_extractor/http_context_extractor_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/log_entry"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
@@ -40,4 +41,8 @@ func (e *Extractor) Handle(ctx context.Context, record *slog.Record) error {
 	}
 
 	return nil
+}
+
+func New(options ...http_context_extractor_config.Option) *Extractor {
+	return &Extractor{ProjectId: http_context_extractor_config.New(options...).ProjectId}
 }
