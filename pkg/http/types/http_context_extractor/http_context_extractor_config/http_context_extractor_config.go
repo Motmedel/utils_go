@@ -1,4 +1,4 @@
-package config
+package http_context_extractor_config
 
 import (
 	schemaUtils "github.com/Motmedel/utils_go/pkg/schema/utils"

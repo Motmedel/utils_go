@@ -1,4 +1,4 @@
-package log
+package http_context_extractor
 
 import (
 	"context"
@@ -7,18 +7,18 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
-	configPkg "github.com/Motmedel/utils_go/pkg/http/log/types/config"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/http_context_extractor/http_context_extractor_config"
 	motmedelJson "github.com/Motmedel/utils_go/pkg/json"
 	motmedelLog "github.com/Motmedel/utils_go/pkg/log"
 	schemaUtils "github.com/Motmedel/utils_go/pkg/schema/utils"
 )
 
-type HttpContextExtractor struct {
+type Extractor struct {
 	HeaderExtractor func(any) string
 }
 
-func (extractor *HttpContextExtractor) Handle(ctx context.Context, record *slog.Record) error {
+func (e *Extractor) Handle(ctx context.Context, record *slog.Record) error {
 	if record == nil {
 		return nil
 	}
@@ -28,7 +28,7 @@ func (extractor *HttpContextExtractor) Handle(ctx context.Context, record *slog.
 	}
 
 	if httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext); ok {
-		base, err := schemaUtils.ParseHttpContext(httpContext, extractor.HeaderExtractor)
+		base, err := schemaUtils.ParseHttpContext(httpContext, e.HeaderExtractor)
 		if err != nil {
 			return motmedelErrors.New(
 				fmt.Errorf("ecs parse http context: %w", err),
@@ -48,7 +48,7 @@ func (extractor *HttpContextExtractor) Handle(ctx context.Context, record *slog.
 	return nil
 }
 
-func New(options ...configPkg.Option) *HttpContextExtractor {
-	config := configPkg.New(options...)
-	return &HttpContextExtractor{HeaderExtractor: config.HeaderExtractor}
+func New(options ...http_context_extractor_config.Option) *Extractor {
+	config := http_context_extractor_config.New(options...)
+	return &Extractor{HeaderExtractor: config.HeaderExtractor}
 }
