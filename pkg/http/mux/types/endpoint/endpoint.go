@@ -30,7 +30,9 @@ import (
 
 type Hint struct {
 	InputType         reflect.Type
+	UrlInputType      reflect.Type
 	OutputType        reflect.Type
+	UrlOutputType     reflect.Type
 	OutputContentType string
 	OutputOptional    bool
 }
