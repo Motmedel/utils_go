@@ -315,7 +315,7 @@ func ParseHttp(
 		} else {
 			// TODO: Currently relies on `X-Forwarded-For` rather than `Forwarded`; using the latter
 			//	entails the inclusion of an external parsing library, which is not acceptable.
-			forwardedForSplit := strings.Split(forwardedString, ",")
+			forwardedForSplit := strings.Split(xForwardedFor, ",")
 			if len(forwardedForSplit) > 0 {
 				forwardedForIpAddress := strings.TrimSpace(forwardedForSplit[0])
 
