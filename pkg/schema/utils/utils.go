@@ -26,23 +26,6 @@ const (
 	timestampFormat = "2006-01-02T15:04:05.999999999Z"
 )
 
-// NOTE: Copied
-// validOptionalPort reports whether port is either an empty string or matches /^:\d*$/
-func validOptionalPort(port string) bool {
-	if port == "" {
-		return true
-	}
-	if port[0] != ':' {
-		return false
-	}
-	for _, b := range port[1:] {
-		if b < '0' || b > '9' {
-			return false
-		}
-	}
-	return true
-}
-
 const unknownPlaceholder = "(unknown)"
 
 func MakeConnectionMessage(base *schema.Base, suffix string) string {
@@ -161,34 +144,42 @@ func ParseHttp(
 
 	network := &schema.Network{Protocol: "http"}
 
+	var source *schema.Target
+	var destination *schema.Target
 	var client *schema.Target
-	var httpVersion string
 	var server *schema.Target
+
 	var ecsUrl *schema.Url
 	var userAgent *schema.UserAgent
+	var httpVersion string
 
 	var httpRequest *schema.HttpRequest
 	if request != nil {
 		requestUrl := request.URL
 		originalUrl := requestUrl.String()
 
-		host := requestUrl.Host
-		if host == "" {
-			host = request.Host
+		hostSource := requestUrl.Host
+		if hostSource == "" {
+			hostSource = request.Host
 		}
-		// NOTE: Copied from `url.splitHostPort`
-		colon := strings.LastIndexByte(host, ':')
-		if colon != -1 && validOptionalPort(host[colon:]) {
-			host, _ = host[:colon], host[colon+1:]
-		}
+		hostUrl := &url.URL{Host: hostSource}
+		trimmedHost := hostUrl.Hostname()
 
-		trimmedHost := host
-
-		if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
-			trimmedHost = host[1 : len(host)-1]
+		host := trimmedHost
+		if len(hostSource) > 0 && hostSource[0] == '[' {
+			host = "[" + trimmedHost + "]"
 		}
 
 		domainParts := domain_parts.New(trimmedHost)
+
+		requestHeader := request.Header
+
+		var forwardedString string
+		var xForwardedFor string
+		if requestHeader != nil {
+			forwardedString = requestHeader.Get("Forwarded")
+			xForwardedFor = requestHeader.Get("X-Forwarded-For")
+		}
 
 		var port int
 		if portString := requestUrl.Port(); portString != "" {
@@ -196,32 +187,32 @@ func ParseHttp(
 		}
 
 		if trimmedHost != "" || port != 0 {
-			server = &schema.Target{Address: trimmedHost, Port: port}
+			destination = &schema.Target{Address: trimmedHost, Port: port}
 			if ip := net.ParseIP(trimmedHost); ip != nil {
-				server.Ip = trimmedHost
+				destination.Ip = trimmedHost
 				if ipVersion := motmedelNet.GetIpVersion(&ip); ipVersion == 4 {
 					network.Type = "ipv4"
 				} else if ipVersion == 6 {
 					network.Type = "ipv6"
 				}
 			} else {
-				server.Domain = trimmedHost
+				destination.Domain = trimmedHost
 				if domainParts != nil {
-					server.RegisteredDomain = domainParts.RegisteredDomain
-					server.Subdomain = domainParts.Subdomain
-					server.TopLevelDomain = domainParts.TopLevelDomain
+					destination.RegisteredDomain = domainParts.RegisteredDomain
+					destination.Subdomain = domainParts.Subdomain
+					destination.TopLevelDomain = domainParts.TopLevelDomain
 				}
 			}
 		}
 
-		if serverTcpAddr, ok := request.Context().Value(http.LocalAddrContextKey).(*net.TCPAddr); ok {
-			if server == nil {
-				server = &schema.Target{}
+		if destinationTcpAddr, ok := request.Context().Value(http.LocalAddrContextKey).(*net.TCPAddr); ok {
+			if destination == nil {
+				destination = &schema.Target{}
 			}
-			server.Ip = serverTcpAddr.IP.String()
-			server.Port = serverTcpAddr.Port
+			destination.Ip = destinationTcpAddr.IP.String()
+			destination.Port = destinationTcpAddr.Port
 
-			if ipVersion := motmedelNet.GetIpVersion(&serverTcpAddr.IP); ipVersion == 4 {
+			if ipVersion := motmedelNet.GetIpVersion(&destinationTcpAddr.IP); ipVersion == 4 {
 				network.Type = "ipv4"
 			} else if ipVersion == 6 {
 				network.Type = "ipv6"
@@ -237,14 +228,14 @@ func ParseHttp(
 
 		// TODO: Maybe I can use `parseTarget()`?
 		if remoteAddr := request.RemoteAddr; remoteAddr != "" {
-			clientIpAddress, clientPort, err := motmedelNet.SplitAddress(remoteAddr)
+			sourceIpAddress, sourcePort, err := motmedelNet.SplitAddress(remoteAddr)
 			if err != nil {
 				return nil, motmedelErrors.New(
 					fmt.Errorf("split address: %w", err),
 					remoteAddr,
 				)
 			}
-			client = &schema.Target{Ip: clientIpAddress, Port: clientPort}
+			source = &schema.Target{Ip: sourceIpAddress, Port: sourcePort}
 		}
 
 		if userAgentOriginal := request.UserAgent(); userAgentOriginal != "" {
@@ -268,8 +259,13 @@ func ParseHttp(
 			ecsUrl.TopLevelDomain = domainParts.TopLevelDomain
 		}
 
+		var contentType string
+		if requestHeader != nil {
+			contentType = requestHeader.Get("Content-Type")
+		}
+
 		httpRequest = &schema.HttpRequest{
-			ContentType: request.Header.Get("Content-Type"),
+			ContentType: contentType,
 			Method:      request.Method,
 			Referrer:    request.Referer(),
 		}
@@ -288,20 +284,20 @@ func ParseHttp(
 				network.IanaNumber = "6"
 			}
 
-			if server != nil && client != nil {
-				serverIp := net.ParseIP(server.Ip)
-				clientIp := net.ParseIP(client.Ip)
-				serverPort := server.Port
-				clientPort := client.Port
+			if destination != nil && source != nil {
+				destinationIp := net.ParseIP(destination.Ip)
+				serverIp := net.ParseIP(source.Ip)
+				destinationPort := destination.Port
+				sourcePort := source.Port
 
 				protocolNumber, _ := strconv.Atoi(network.IanaNumber)
 
-				if serverIp != nil && clientIp != nil && serverPort != 0 && clientPort != 0 && protocolNumber != 0 {
+				if destinationIp != nil && serverIp != nil && destinationPort != 0 && sourcePort != 0 && protocolNumber != 0 {
 					flowTuple := flow_tuple.New(
+						destinationIp,
 						serverIp,
-						clientIp,
-						uint16(serverPort),
-						uint16(clientPort),
+						uint16(destinationPort),
+						uint16(sourcePort),
 						uint8(protocolNumber),
 					)
 					if flowTuple != nil {
@@ -312,9 +308,33 @@ func ParseHttp(
 				}
 			}
 		}
+
+		if forwardedString == "" && xForwardedFor == "" {
+			client = source
+			server = destination
+		} else {
+			// TODO: Currently relies on `X-Forwarded-For` rather than `Forwarded`; using the latter
+			//	entails the inclusion of an external parsing library, which is not acceptable.
+			forwardedForSplit := strings.Split(forwardedString, ",")
+			if len(forwardedForSplit) > 0 {
+				forwardedForIpAddress := strings.TrimSpace(forwardedForSplit[0])
+
+				if ip := net.ParseIP(forwardedForIpAddress); ip != nil {
+					client = &schema.Target{Ip: forwardedForIpAddress, Address: forwardedForIpAddress}
+				}
+			}
+
+			if destination != nil && destination.Domain != "" {
+				destinationCopy := *destination
+				server = &destinationCopy
+				server.Ip = ""
+				server.Port = 0
+				server.Address = server.Domain
+			}
+		}
 	}
 
-	if headerExtractor != nil {
+	if httpRequest != nil && headerExtractor != nil {
 		if normalizedHeader := headerExtractor(request); normalizedHeader != "" {
 			httpRequest.HttpHeaders = &schema.HttpHeaders{Normalized: normalizedHeader}
 		}
@@ -355,23 +375,25 @@ func ParseHttp(
 		ecsHttp = &schema.Http{Request: httpRequest, Response: httpResponse, Version: httpVersion}
 	}
 
-	if client == nil && ecsHttp == nil && server == nil && ecsUrl == nil && userAgent == nil && network == nil {
+	if source == nil && ecsHttp == nil && destination == nil && ecsUrl == nil && userAgent == nil && network == nil {
 		return nil, nil
 	}
 
 	return &schema.Base{
-		Client:    client,
-		Http:      ecsHttp,
-		Server:    server,
-		Url:       ecsUrl,
-		UserAgent: userAgent,
-		Network:   network,
+		Client:      client,
+		Destination: destination,
+		Http:        ecsHttp,
+		Server:      server,
+		Source:      source,
+		Url:         ecsUrl,
+		UserAgent:   userAgent,
+		Network:     network,
 	}, nil
 }
 
 func ParseHttpContext(
 	httpContext *motmedelHttpTypes.HttpContext,
-	// TODO: Rework this. `any` is not nice. Use an interface?
+// TODO: Rework this. `any` is not nice. Use an interface?
 	headerExtractor func(requestResponse any) string,
 ) (*schema.Base, error) {
 	if httpContext == nil {
