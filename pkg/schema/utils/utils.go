@@ -315,6 +315,9 @@ func ParseHttp(
 		} else {
 			// TODO: Currently relies on `X-Forwarded-For` rather than `Forwarded`; using the latter
 			//	entails the inclusion of an external parsing library, which is not acceptable.
+
+			var serverIpAddress string
+
 			forwardedForSplit := strings.Split(xForwardedFor, ",")
 			if len(forwardedForSplit) > 0 {
 				forwardedForIpAddress := strings.TrimSpace(forwardedForSplit[0])
@@ -322,12 +325,19 @@ func ParseHttp(
 				if ip := net.ParseIP(forwardedForIpAddress); ip != nil {
 					client = &schema.Target{Ip: forwardedForIpAddress, Address: forwardedForIpAddress}
 				}
+
+				if len(forwardedForSplit) > 1 {
+					serverIpAddressElement := forwardedForSplit[len(forwardedForSplit)-1]
+					if ip := net.ParseIP(serverIpAddressElement); ip != nil {
+						serverIpAddress = serverIpAddressElement
+					}
+				}
 			}
 
 			if destination != nil && destination.Domain != "" {
 				destinationCopy := *destination
 				server = &destinationCopy
-				server.Ip = ""
+				server.Ip = serverIpAddress
 				server.Port = 0
 				server.Address = server.Domain
 			}
