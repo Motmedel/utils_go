@@ -136,7 +136,6 @@ func ParseHttp(
 	requestBodyData []byte,
 	response *http.Response,
 	responseBodyData []byte,
-	headerExtractor func(any) string,
 ) (*schema.Base, error) {
 	if request == nil && len(requestBodyData) == 0 && response == nil && len(responseBodyData) == 0 {
 		return nil, nil
@@ -344,12 +343,6 @@ func ParseHttp(
 		}
 	}
 
-	if httpRequest != nil && headerExtractor != nil {
-		if normalizedHeader := headerExtractor(request); normalizedHeader != "" {
-			httpRequest.HttpHeaders = &schema.HttpHeaders{Normalized: normalizedHeader}
-		}
-	}
-
 	if len(requestBodyData) != 0 {
 		if httpRequest == nil {
 			httpRequest = &schema.HttpRequest{}
@@ -363,12 +356,6 @@ func ParseHttp(
 		httpResponse = &schema.HttpResponse{
 			StatusCode:  response.StatusCode,
 			ContentType: response.Header.Get("Content-Type"),
-		}
-
-		if headerExtractor != nil {
-			if normalizedHeader := headerExtractor(response); normalizedHeader != "" {
-				httpResponse.HttpHeaders = &schema.HttpHeaders{Normalized: normalizedHeader}
-			}
 		}
 	}
 
@@ -401,11 +388,7 @@ func ParseHttp(
 	}, nil
 }
 
-func ParseHttpContext(
-	httpContext *motmedelHttpTypes.HttpContext,
-// TODO: Rework this. `any` is not nice. Use an interface?
-	headerExtractor func(requestResponse any) string,
-) (*schema.Base, error) {
+func ParseHttpContext(httpContext *motmedelHttpTypes.HttpContext) (*schema.Base, error) {
 	if httpContext == nil {
 		return nil, nil
 	}
@@ -438,7 +421,6 @@ func ParseHttpContext(
 		httpContext.RequestBody,
 		httpContext.Response,
 		httpContext.ResponseBody,
-		headerExtractor,
 	)
 	if err != nil {
 		return nil, motmedelErrors.New(
