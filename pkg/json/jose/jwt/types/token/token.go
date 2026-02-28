@@ -7,10 +7,10 @@ import (
 	"maps"
 	"strings"
 
-	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/raw_token"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jws/types/jws_object"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -19,18 +19,18 @@ type Token struct {
 	Payload map[string]any
 }
 
-func (token *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string, error) {
+func (t *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string, error) {
 	if utils.IsNil(signer) {
-		return "", motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilSigner)
+		return "", motmedelErrors.NewWithTrace(nil_error.New("signer"))
 	}
 
-	payloadBytes, err := json.Marshal(token.Payload)
+	payloadBytes, err := json.Marshal(t.Payload)
 	if err != nil {
-		return "", motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (payload): %w", err), token.Payload)
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (payload): %w", err), t.Payload)
 	}
 
 	var header map[string]any
-	if tokenHeader := token.Header; tokenHeader != nil {
+	if tokenHeader := t.Header; tokenHeader != nil {
 		header = maps.Clone(tokenHeader)
 		if header == nil {
 			return "", motmedelErrors.NewWithTrace(fmt.Errorf("%w (header clone)", motmedelErrors.ErrNilMap))
@@ -63,31 +63,31 @@ func (token *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string,
 	), nil
 }
 
-func NewFromRawToken(rawToken *raw_token.Token) (*Token, error) {
-	if rawToken == nil {
+func NewFromJws(jws *jws_object.Object) (*Token, error) {
+	if jws == nil {
 		return nil, nil
 	}
 
 	var token Token
 
-	if err := json.Unmarshal(rawToken.Header, &token.Header); err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (header): %w", err), rawToken.Header)
+	if err := json.Unmarshal(jws.Header, &token.Header); err != nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (header): %w", err), jws.Header)
 	}
 
-	if err := json.Unmarshal(rawToken.Payload, &token.Payload); err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (payload): %w", err), rawToken.Payload)
+	if err := json.Unmarshal(jws.Payload, &token.Payload); err != nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal (payload): %w", err), jws.Payload)
 	}
 
 	return &token, nil
 }
 
 func New(tokenString string) (*Token, error) {
-	rawToken, err := raw_token.New(tokenString)
+	rawToken, err := jws_object.New(tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("raw token new: %w", err)
 	}
 
-	token, err := NewFromRawToken(rawToken)
+	token, err := NewFromJws(rawToken)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("from raw token: %w", err), rawToken)
 	}

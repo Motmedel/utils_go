@@ -8,9 +8,9 @@ import (
 	"github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jws/types/jws_object"
 	motmedelJwtToken "github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/authenticated_token/authenticated_token_config"
-	"github.com/Motmedel/utils_go/pkg/json/jose/jwt/types/token/raw_token"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -33,7 +33,7 @@ func New(tokenString string, options ...authenticated_token_config.Option) (*Tok
 		return nil, nil
 	}
 
-	rawToken, err := raw_token.New(tokenString)
+	rawToken, err := jws_object.New(tokenString)
 	if err != nil {
 		return nil, fmt.Errorf("%w: raw token new: %w", errors.ErrParseError, err)
 	}
@@ -41,7 +41,7 @@ func New(tokenString string, options ...authenticated_token_config.Option) (*Tok
 		return nil, errors.NewWithTrace(nil_error.New("raw jwt token"))
 	}
 
-	token, err := motmedelJwtToken.NewFromRawToken(rawToken)
+	token, err := motmedelJwtToken.NewFromJws(rawToken)
 	if err != nil {
 		return nil, errors.New(
 			fmt.Errorf("%w: token from raw token: %w", errors.ErrParseError, err),
