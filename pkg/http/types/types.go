@@ -153,6 +153,75 @@ type Authorization struct {
 	Params  map[string]string
 }
 
+func isHttpTokenRune(c byte) bool {
+	if c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' {
+		return true
+	}
+	switch c {
+	case '!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~':
+		return true
+	}
+	return false
+}
+
+func isHttpToken(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if !isHttpTokenRune(s[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func quoteHttpString(s string) string {
+	var b strings.Builder
+	b.Grow(len(s) + 2)
+	b.WriteByte('"')
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '"' || c == '\\' {
+			b.WriteByte('\\')
+		}
+		b.WriteByte(c)
+	}
+	b.WriteByte('"')
+	return b.String()
+}
+
+func (authorization *Authorization) String() string {
+	if authorization.Scheme == "" {
+		return ""
+	}
+
+	if authorization.Token68 != "" {
+		return authorization.Scheme + " " + authorization.Token68
+	}
+
+	if len(authorization.Params) == 0 {
+		return authorization.Scheme
+	}
+
+	keys := make([]string, 0, len(authorization.Params))
+	for k := range authorization.Params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	params := make([]string, 0, len(keys))
+	for _, k := range keys {
+		v := authorization.Params[k]
+		if !isHttpToken(v) {
+			v = quoteHttpString(v)
+		}
+		params = append(params, k+"="+v)
+	}
+
+	return authorization.Scheme + " " + strings.Join(params, ", ")
+}
+
 type MediaType struct {
 	Type       string
 	Subtype    string
