@@ -18,6 +18,8 @@ const (
 	Delimiter = "."
 )
 
+// TODO: Implement tests for verification.
+
 func Verify(header string, payload string, signature []byte, verifier motmedelCryptoInterfaces.Verifier) error {
 	if utils.IsNil(verifier) {
 		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
