@@ -45,3 +45,7 @@ func (e *Extractor) Handle(ctx context.Context, record *slog.Record) error {
 
 	return nil
 }
+
+func New() *Extractor {
+	return &Extractor{}
+}
