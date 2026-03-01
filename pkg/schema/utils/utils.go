@@ -388,6 +388,96 @@ func ParseHttp(
 	}, nil
 }
 
+func MakeHttpMessage(base *schema.Base) string {
+	if base == nil {
+		return ""
+	}
+
+	remoteAddress := "-"
+	if source := base.Source; source != nil {
+		if source.Ip != "" {
+			remoteAddress = source.Ip
+		}
+	}
+
+	userName := "-"
+	if user := base.User; user != nil {
+		if user.Name != "" {
+			userName = user.Name
+		} else if user.Email != "" {
+			userName = user.Email
+		}
+	}
+
+	requestLine := "-"
+	referrer := "-"
+	userAgentOriginal := "-"
+
+	if ecsHttp := base.Http; ecsHttp != nil {
+		if httpRequest := ecsHttp.Request; httpRequest != nil {
+			method := httpRequest.Method
+			if method == "" {
+				method = "-"
+			}
+
+			path := "-"
+			if ecsUrl := base.Url; ecsUrl != nil {
+				if ecsUrl.Original != "" {
+					path = ecsUrl.Original
+				} else if ecsUrl.Path != "" {
+					path = ecsUrl.Path
+					if ecsUrl.Query != "" {
+						path += "?" + ecsUrl.Query
+					}
+				}
+			}
+
+			proto := "-"
+			if ecsHttp.Version != "" {
+				proto = "HTTP/" + ecsHttp.Version
+			}
+
+			requestLine = fmt.Sprintf("%s %s %s", method, path, proto)
+
+			if httpRequest.Referrer != "" {
+				referrer = httpRequest.Referrer
+			}
+		}
+	}
+
+	if userAgent := base.UserAgent; userAgent != nil {
+		if userAgent.Original != "" {
+			userAgentOriginal = userAgent.Original
+		}
+	}
+
+	statusCodeString := "-"
+	bodyBytesString := "-"
+	if ecsHttp := base.Http; ecsHttp != nil {
+		if httpResponse := ecsHttp.Response; httpResponse != nil {
+			if httpResponse.StatusCode != 0 {
+				statusCodeString = strconv.Itoa(httpResponse.StatusCode)
+			}
+			if body := httpResponse.Body; body != nil {
+				if body.Bytes != 0 {
+					bodyBytesString = strconv.Itoa(body.Bytes)
+				}
+			}
+		}
+	}
+
+	return fmt.Sprintf(
+		"%s - %s \"%s\" %s %s \"%s\" \"%s\"",
+		remoteAddress,
+		userName,
+		requestLine,
+		statusCodeString,
+		bodyBytesString,
+		referrer,
+		userAgentOriginal,
+	)
+}
+
 func ParseHttpContext(httpContext *motmedelHttpTypes.HttpContext) (*schema.Base, error) {
 	if httpContext == nil {
 		return nil, nil
@@ -430,6 +520,7 @@ func ParseHttpContext(httpContext *motmedelHttpTypes.HttpContext) (*schema.Base,
 
 	if base != nil {
 		base.User = user
+		base.Message = MakeHttpMessage(base)
 	}
 
 	return base, nil
