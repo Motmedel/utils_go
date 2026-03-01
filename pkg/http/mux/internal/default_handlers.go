@@ -46,6 +46,11 @@ func DefaultResponseErrorHandler(
 			slog.WarnContext(
 				motmedelContext.WithError(ctx, clientError),
 				"A client error occurred.",
+				slog.Group(
+					"event",
+					slog.String("reason", "A client error occurred."),
+					slog.String("action", "log_http_client_error"),
+				),
 			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_ServerError:
@@ -55,6 +60,11 @@ func DefaultResponseErrorHandler(
 			slog.ErrorContext(
 				motmedelContext.WithError(ctx, serverError),
 				"A server error occurred.",
+				slog.Group(
+					"event",
+					slog.String("reason", "A server error occurred."),
+					slog.String("action", "log_http_server_error"),
+				),
 			)
 		}()
 	case muxTypesResponseError.ResponseErrorType_Invalid:
