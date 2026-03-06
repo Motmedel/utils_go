@@ -14,7 +14,9 @@ import (
 	"strings"
 	"time"
 
+	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -54,17 +56,31 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 	}
 
 	if fetchConfig == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilFetchConfig)
+		return nil, nil, nil_error.New("fetch config")
 	}
 
 	httpContext, ok := ctx.Value(motmedelHttpContext.HttpContextContextKey).(*motmedelHttpTypes.HttpContext)
 	if !ok || httpContext == nil {
 		httpContext = &motmedelHttpTypes.HttpContext{}
 	}
-	ctxWithHttpContext := motmedelHttpContext.WithHttpContextValue(context.Background(), httpContext)
 
 	httpContext.Request = request
 	httpContext.RequestBody = fetchConfig.Body
+
+	defer func() {
+		if slog.Default().Enabled(ctx, slog.LevelDebug) {
+			slog.DebugContext(
+				motmedelHttpContext.WithHttpContextValue(ctx, httpContext),
+				"A fetch was performed.",
+				slog.Group(
+					"event",
+					slog.String("reason", "A fetch was performed."),
+				),
+			)
+		}
+	}()
+
+	ctxWithHttpContext := motmedelHttpContext.WithHttpContextValue(context.Background(), httpContext)
 
 	response, err := fetchConfig.HttpClient.Do(request)
 	httpContext.Response = response
@@ -75,13 +91,13 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 		)
 	}
 	if response == nil {
-		return nil, nil, motmedelErrors.NewWithTraceCtx(ctxWithHttpContext, motmedelHttpErrors.ErrNilHttpResponse)
+		return nil, nil, motmedelErrors.NewWithTraceCtx(ctxWithHttpContext, nil_error.New("http response"))
 	}
 	responseBody := response.Body
-	if responseBody == nil {
+	if utils.IsNil(responseBody) {
 		return nil, nil, motmedelErrors.NewWithTraceCtx(
 			ctxWithHttpContext,
-			motmedelHttpErrors.ErrNilHttpResponseBodyReader,
+			nil_error.New("http response body"),
 		)
 	}
 
@@ -90,7 +106,13 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 		responseBodyData, err = io.ReadAll(responseBody)
 		defer func() {
 			if err := responseBody.Close(); err != nil {
-				slog.Warn(fmt.Sprintf("close response body: %v", err))
+				slog.WarnContext(
+					motmedelContext.WithError(
+						ctx,
+						motmedelErrors.NewWithTrace(fmt.Errorf("http response body close: %w", err)),
+					),
+					"An error occurred when closing the response body.",
+				)
 			}
 		}()
 
