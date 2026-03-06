@@ -35,7 +35,7 @@ type Config struct {
 	ResponseChecker response_checker.ResponseChecker
 }
 
-func NewConfig(options ...Option) *Config {
+func New(options ...Option) *Config {
 	config := &Config{
 		Count:           DefaultCount,
 		BaseDelay:       DefaultBaseDelay,
@@ -43,7 +43,9 @@ func NewConfig(options ...Option) *Config {
 	}
 
 	for _, option := range options {
-		option(config)
+		if option != nil {
+			option(config)
+		}
 	}
 
 	return config
