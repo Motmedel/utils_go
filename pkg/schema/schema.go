@@ -48,6 +48,7 @@ type Base struct {
 	Http          *Http          `json:"http,omitempty"`
 	Log           *Log           `json:"log,omitempty"`
 	Observer      *Observer      `json:"observer,omitempty"`
+	Package       *Package       `json:"package,omitempty"`
 	Process       *Process       `json:"process,omitempty"`
 	Registry      *Registry      `json:"registry,omitempty"`
 	Related       *Related       `json:"related,omitempty"`
@@ -487,6 +488,22 @@ type Os struct {
 	Platform string `json:"platform,omitempty"`
 	Type     string `json:"type,omitempty"`
 	Version  string `json:"version,omitempty"`
+}
+
+type Package struct {
+	Architecture string `json:"architecture,omitempty"`
+	BuildVersion string `json:"build_version"`
+	Checksum     string `json:"checksum,omitempty"`
+	Description  string `json:"description,omitempty"`
+	InstallScope string `json:"install_scope,omitempty"`
+	Installed    string `json:"installed,omitempty"`
+	Licence      string `json:"licence,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Path         string `json:"path,omitempty"`
+	Reference    string `json:"reference,omitempty"`
+	Size         string `json:"size,omitempty"`
+	Type         string `json:"type,omitempty"`
+	Version      string `json:"version,omitempty"`
 }
 
 type ProcessIo struct {
