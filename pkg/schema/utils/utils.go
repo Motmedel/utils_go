@@ -483,43 +483,13 @@ func ParseHttpContext(httpContext *motmedelHttpTypes.HttpContext) (*schema.Base,
 		return nil, nil
 	}
 
-	var user *schema.User
-	if httpContextUser := httpContext.User; httpContextUser != nil {
-		user = &schema.User{
-			Domain:   httpContextUser.Domain,
-			Email:    httpContextUser.Email,
-			FullName: httpContextUser.FullName,
-			Hash:     httpContextUser.Hash,
-			Id:       httpContextUser.Id,
-			Name:     httpContextUser.Name,
-			Roles:    httpContextUser.Roles,
-		}
-
-		var group *schema.Group
-		if httpContextUserGroup := httpContextUser.Group; httpContextUserGroup != nil {
-			group = &schema.Group{
-				Domain: httpContextUserGroup.Domain,
-				Id:     httpContextUserGroup.Id,
-				Name:   httpContextUserGroup.Name,
-			}
-		}
-		user.Group = group
-	}
-
-	base, err := ParseHttp(
-		httpContext.Request,
-		httpContext.RequestBody,
-		httpContext.Response,
-		httpContext.ResponseBody,
-	)
+	base, err := ParseHttp(httpContext.Request, httpContext.RequestBody, httpContext.Response, httpContext.ResponseBody)
 	if err != nil {
-		return nil, motmedelErrors.New(
-			fmt.Errorf("parse http: %w", err),
-		)
+		return nil, motmedelErrors.New(fmt.Errorf("parse http: %w", err))
 	}
 
 	if base != nil {
-		base.User = user
+		base.User = httpContext.User
 		base.Message = MakeHttpMessage(base)
 	}
 

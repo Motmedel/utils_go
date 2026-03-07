@@ -6,25 +6,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/schema"
 	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 )
-
-type HttpContextGroup struct {
-	Domain string `json:"domain,omitempty"`
-	Id     string `json:"id,omitempty"`
-	Name   string `json:"name,omitempty"`
-}
-
-type HttpContextUser struct {
-	Domain   string            `json:"domain,omitempty"`
-	Email    string            `json:"email,omitempty"`
-	FullName string            `json:"full_name,omitempty"`
-	Hash     string            `json:"hash,omitempty"`
-	Id       string            `json:"id,omitempty"`
-	Name     string            `json:"name,omitempty"`
-	Roles    []string          `json:"roles,omitempty"`
-	Group    *HttpContextGroup `json:"group,omitempty"`
-}
 
 type HttpContext struct {
 	Request      *http.Request
@@ -32,7 +16,7 @@ type HttpContext struct {
 	Response     *http.Response
 	ResponseBody []byte
 	TlsContext   *motmedelTlsTypes.TlsContext
-	User         *HttpContextUser
+	User         *schema.User
 	Extra        []*HttpContext
 }
 

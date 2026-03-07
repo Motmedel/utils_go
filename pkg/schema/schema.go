@@ -121,6 +121,8 @@ type User struct {
 	Changes  *User    `json:"changes,omitempty"`
 	Group    *Group   `json:"group,omitempty"`
 	Target   *User    `json:"target,omitempty"`
+	// NOTE: Custom
+	Unverified bool `json:"unverified,omitempty"`
 }
 
 type CloudAccount struct {
