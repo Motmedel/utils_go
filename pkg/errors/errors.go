@@ -32,6 +32,7 @@ func CollectWrappedErrors(err error) []error {
 	var results []error
 
 	queue := []error{err}
+	isRoot := true
 
 	for len(queue) > 0 {
 		poppedErr := queue[0]
@@ -41,7 +42,9 @@ func CollectWrappedErrors(err error) []error {
 			continue
 		}
 
-		if !reflect.DeepEqual(poppedErr, err) {
+		if isRoot {
+			isRoot = false
+		} else {
 			results = append(results, poppedErr)
 		}
 

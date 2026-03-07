@@ -492,7 +492,7 @@ type Os struct {
 
 type Package struct {
 	Architecture string `json:"architecture,omitempty"`
-	BuildVersion string `json:"build_version"`
+	BuildVersion string `json:"build_version,omitempty"`
 	Checksum     string `json:"checksum,omitempty"`
 	Description  string `json:"description,omitempty"`
 	InstallScope string `json:"install_scope,omitempty"`
