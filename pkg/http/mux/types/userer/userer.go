@@ -1,21 +1,21 @@
 package userer
 
 import (
-	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/schema"
 )
 
 type Userer interface {
-	GetUser() *motmedelHttpTypes.HttpContextUser
+	GetUser() *schema.User
 }
 
-type UsererFunction func() *motmedelHttpTypes.HttpContextUser
+type Function func() *schema.User
 
-func (f UsererFunction) GetUser() *motmedelHttpTypes.HttpContextUser {
+func (f Function) GetUser() *schema.User {
 	return f()
 }
 
-func New(f func() *motmedelHttpTypes.HttpContextUser) Userer {
-	return UsererFunction(f)
+func New(f func() *schema.User) Userer {
+	return Function(f)
 }
 
 // TODO: In future, add something for getting client metadata (IP enrichment; geo, tags e.g.)
