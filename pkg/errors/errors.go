@@ -41,8 +41,7 @@ func CollectWrappedErrors(err error) []error {
 			continue
 		}
 
-		// TODO: This can cause a `panic` when comparing incomparable types. Handle.
-		if poppedErr != err {
+		if !reflect.DeepEqual(poppedErr, err) {
 			results = append(results, poppedErr)
 		}
 
