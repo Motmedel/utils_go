@@ -358,9 +358,9 @@ type Host struct {
 }
 
 type HttpReporting struct {
-	IntegrityViolation *reporting_api.Report[*integrity_policy.IntegrityViolationReportBody] `json:"integrity_violation,omitempty"`
-	CspViolation       *reporting_api.Report[*csp.CSPViolationReportBody]                    `json:"csp_violation,omitempty"`
-	CspReport          *csp.Report                                                           `json:"csp_report,omitempty"`
+	IntegrityViolations []*reporting_api.Report[*integrity_policy.IntegrityViolationReportBody] `json:"integrity_violations,omitempty"`
+	CspViolation        []*reporting_api.Report[*csp.CSPViolationReportBody]                    `json:"csp_violations,omitempty"`
+	CspReport           *csp.Report                                                             `json:"csp_report,omitempty"`
 }
 
 type HttpRequest struct {
