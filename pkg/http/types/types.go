@@ -15,6 +15,7 @@ type HttpContext struct {
 	RequestBody  []byte
 	Response     *http.Response
 	ResponseBody []byte
+	Reporting    *schema.HttpReporting
 	TlsContext   *motmedelTlsTypes.TlsContext
 	User         *schema.User
 	Extra        []*HttpContext
