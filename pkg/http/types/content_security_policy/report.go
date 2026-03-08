@@ -201,17 +201,17 @@ func (r *Report) Message() string {
 // CSPViolationReportBody is the report body for "csp-violation" reports sent
 // via the Reporting API (report-to directive). Defined in CSP Level 3 section 5.
 type CSPViolationReportBody struct {
-	DocumentURL        string `json:"documentURL,omitempty"`
-	Referrer           string `json:"referrer,omitempty"`
-	BlockedURL         string `json:"blockedURL,omitempty"`
-	EffectiveDirective string `json:"effectiveDirective,omitempty"`
-	OriginalPolicy     string `json:"originalPolicy,omitempty"`
-	SourceFile         string `json:"sourceFile,omitempty"`
-	Sample             string `json:"sample,omitempty"`
-	Disposition        string `json:"disposition,omitempty"`
-	StatusCode         int    `json:"statusCode,omitempty"`
-	LineNumber         *int   `json:"lineNumber,omitempty"`
-	ColumnNumber       *int   `json:"columnNumber,omitempty"`
+	DocumentURL        string  `json:"documentURL,omitempty"`
+	Referrer           string  `json:"referrer,omitempty"`
+	BlockedURL         string  `json:"blockedURL,omitempty"`
+	EffectiveDirective string  `json:"effectiveDirective,omitempty"`
+	OriginalPolicy     string  `json:"originalPolicy,omitempty"`
+	SourceFile         string  `json:"sourceFile,omitempty"`
+	Sample             *string `json:"sample,omitempty"`
+	Disposition        string  `json:"disposition,omitempty"`
+	StatusCode         int     `json:"statusCode,omitempty"`
+	LineNumber         *int    `json:"lineNumber,omitempty"`
+	ColumnNumber       *int    `json:"columnNumber,omitempty"`
 }
 
 func (body *CSPViolationReportBody) Message() string {

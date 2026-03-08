@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"sort"
 	"strings"
@@ -19,6 +20,8 @@ type HttpContext struct {
 	TlsContext   *motmedelTlsTypes.TlsContext
 	User         *schema.User
 	Extra        []*HttpContext
+	LocalAddr    net.Addr
+	RemoteAddr   net.Addr
 }
 
 func getFullType(typeValue string, subtypeValue string, normalize bool) string {

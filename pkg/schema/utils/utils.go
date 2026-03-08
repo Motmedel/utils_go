@@ -488,13 +488,54 @@ func ParseHttpContext(httpContext *motmedelHttpTypes.HttpContext) (*schema.Base,
 		return nil, motmedelErrors.New(fmt.Errorf("parse http: %w", err))
 	}
 
-	if base != nil {
-		base.User = httpContext.User
-		base.Message = MakeHttpMessage(base)
+	if base == nil {
+		base = &schema.Base{}
+	}
 
-		if base.Http != nil && base.Http.Request != nil {
-			base.Http.Request.Reporting = httpContext.Reporting
+	if localAddr := httpContext.LocalAddr; localAddr != nil && base.Source == nil {
+		ipAddress, port, err := motmedelNet.SplitAddress(localAddr.String())
+		if err != nil {
+			return nil, motmedelErrors.New(
+				fmt.Errorf("split address (local addr): %w", err),
+				localAddr.String(),
+			)
 		}
+		base.Source = &schema.Target{Ip: ipAddress, Port: port}
+	}
+
+	if remoteAddr := httpContext.RemoteAddr; remoteAddr != nil {
+		ipAddress, port, err := motmedelNet.SplitAddress(remoteAddr.String())
+		if err != nil {
+			return nil, motmedelErrors.New(
+				fmt.Errorf("split address (remote addr): %w", err),
+				remoteAddr.String(),
+			)
+		}
+
+		if base.Destination == nil {
+			base.Destination = &schema.Target{Ip: ipAddress, Port: port}
+		} else if base.Destination.Ip == "" {
+			base.Destination.Ip = ipAddress
+		}
+	}
+
+	if base.Client == nil && base.Source != nil {
+		base.Client = base.Source
+	}
+
+	if base.Server == nil && base.Destination != nil {
+		base.Server = base.Destination
+	} else if base.Server != nil && base.Server.Ip == "" && base.Destination != nil {
+		base.Server.Ip = base.Destination.Ip
+	}
+
+	EnrichWithTlsContext(base, httpContext.TlsContext)
+
+	base.User = httpContext.User
+	base.Message = MakeHttpMessage(base)
+
+	if base.Http != nil && base.Http.Request != nil {
+		base.Http.Request.Reporting = httpContext.Reporting
 	}
 
 	return base, nil

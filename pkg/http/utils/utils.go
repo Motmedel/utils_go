@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httptrace"
 	"strconv"
 	"strings"
 	"time"
@@ -81,6 +82,16 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 	}()
 
 	ctxWithHttpContext := motmedelHttpContext.WithHttpContextValue(context.Background(), httpContext)
+
+	trace := &httptrace.ClientTrace{
+		GotConn: func(info httptrace.GotConnInfo) {
+			if conn := info.Conn; conn != nil {
+				httpContext.LocalAddr = conn.LocalAddr()
+				httpContext.RemoteAddr = conn.RemoteAddr()
+			}
+		},
+	}
+	request = request.WithContext(httptrace.WithClientTrace(request.Context(), trace))
 
 	response, err := fetchConfig.HttpClient.Do(request)
 	httpContext.Response = response
