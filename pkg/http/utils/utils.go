@@ -68,10 +68,18 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 	httpContext.Request = request
 	httpContext.RequestBody = fetchConfig.Body
 
+	var err error
+
 	defer func() {
 		if slog.Default().Enabled(ctx, slog.LevelDebug) {
+			debugCtx := motmedelHttpContext.WithHttpContextValue(ctx, httpContext)
+
+			if err != nil {
+				debugCtx = motmedelContext.WithError(debugCtx, err)
+			}
+
 			slog.DebugContext(
-				motmedelHttpContext.WithHttpContextValue(ctx, httpContext),
+				debugCtx,
 				"A fetch was performed.",
 				slog.Group(
 					"event",
@@ -184,7 +192,7 @@ func fetchWithRetryConfig(
 	var response *http.Response
 	var responseBody []byte
 
-	// TODO: Do something with http context and extra
+	// TODO: Do something with http context and extra? (Or remove `extra`?)
 
 	for i := 0; i < (1 + retryConfig.Count); i++ {
 		if i != 0 {
