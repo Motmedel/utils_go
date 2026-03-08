@@ -491,6 +491,10 @@ func ParseHttpContext(httpContext *motmedelHttpTypes.HttpContext) (*schema.Base,
 	if base != nil {
 		base.User = httpContext.User
 		base.Message = MakeHttpMessage(base)
+
+		if base.Http != nil && base.Http.Request != nil {
+			base.Http.Request.Reporting = httpContext.Reporting
+		}
 	}
 
 	return base, nil
