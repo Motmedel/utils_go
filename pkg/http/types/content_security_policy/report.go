@@ -73,45 +73,8 @@ func cspDirectiveResourceDescription(directive string) string {
 	}
 }
 
-// CspViolationMessage produces a Firefox-style console message from a CSP
-// violation report body. The message format follows the strings defined in
-// Firefox's dom/chrome/security/csp.properties.
-
-// Report is the deprecated report body sent via the report-uri directive
-// (CSP Level 3 section 5.3). JSON keys use hyphenated names.
-type Report struct {
-	DocumentURI        string `json:"document-uri,omitempty" required:"true"`
-	Referrer           string `json:"referrer,omitempty" required:"true"`
-	ViolatedDirective  string `json:"violated-directive,omitempty" required:"true"`
-	EffectiveDirective string `json:"effective-directive,omitempty"`
-	OriginalPolicy     string `json:"original-policy,omitempty" required:"true"`
-	BlockedUri         string `json:"blocked-uri,omitempty" required:"true"`
-	LineNumber         int    `json:"line-number,omitempty"`
-	ColumnNumber       int    `json:"column-number,omitempty"`
-	SourceFile         string `json:"source-file,omitempty"`
-}
-
-// CSPViolationReportBody is the report body for "csp-violation" reports sent
-// via the Reporting API (report-to directive). Defined in CSP Level 3 section 5.
-type CSPViolationReportBody struct {
-	DocumentURL        string `json:"documentURL,omitempty"`
-	Referrer           string `json:"referrer,omitempty"`
-	BlockedURL         string `json:"blockedURL,omitempty"`
-	EffectiveDirective string `json:"effectiveDirective,omitempty"`
-	OriginalPolicy     string `json:"originalPolicy,omitempty"`
-	SourceFile         string `json:"sourceFile,omitempty"`
-	Sample             string `json:"sample,omitempty"`
-	Disposition        string `json:"disposition,omitempty"`
-	StatusCode         int    `json:"statusCode,omitempty"`
-	LineNumber         *int   `json:"lineNumber,omitempty"`
-	ColumnNumber       *int   `json:"columnNumber,omitempty"`
-}
-
-func (body *CSPViolationReportBody) Message() string {
-	effectiveDirective := body.EffectiveDirective
-	directiveValue := extractDirectiveValue(effectiveDirective, body.OriginalPolicy)
-	blockedURL := body.BlockedURL
-	reportOnly := body.Disposition == "report"
+func cspViolationMessage(effectiveDirective, originalPolicy, blockedURL string, reportOnly bool) string {
+	directiveValue := extractDirectiveValue(effectiveDirective, originalPolicy)
 
 	var prefix, blocked string
 	if reportOnly {
@@ -211,6 +174,48 @@ func (body *CSPViolationReportBody) Message() string {
 			directiveValue,
 		)
 	}
+}
+
+// CspViolationMessage produces a Firefox-style console message from a CSP
+// violation report body. The message format follows the strings defined in
+// Firefox's dom/chrome/security/csp.properties.
+
+// Report is the deprecated report body sent via the report-uri directive
+// (CSP Level 3 section 5.3). JSON keys use hyphenated names.
+type Report struct {
+	DocumentURI        string `json:"document-uri,omitempty" required:"true"`
+	Referrer           string `json:"referrer,omitempty" required:"true"`
+	ViolatedDirective  string `json:"violated-directive,omitempty" required:"true"`
+	EffectiveDirective string `json:"effective-directive,omitempty"`
+	OriginalPolicy     string `json:"original-policy,omitempty" required:"true"`
+	BlockedUri         string `json:"blocked-uri,omitempty" required:"true"`
+	LineNumber         int    `json:"line-number,omitempty"`
+	ColumnNumber       int    `json:"column-number,omitempty"`
+	SourceFile         string `json:"source-file,omitempty"`
+}
+
+func (r *Report) Message() string {
+	return cspViolationMessage(r.EffectiveDirective, r.OriginalPolicy, r.BlockedUri, false)
+}
+
+// CSPViolationReportBody is the report body for "csp-violation" reports sent
+// via the Reporting API (report-to directive). Defined in CSP Level 3 section 5.
+type CSPViolationReportBody struct {
+	DocumentURL        string `json:"documentURL,omitempty"`
+	Referrer           string `json:"referrer,omitempty"`
+	BlockedURL         string `json:"blockedURL,omitempty"`
+	EffectiveDirective string `json:"effectiveDirective,omitempty"`
+	OriginalPolicy     string `json:"originalPolicy,omitempty"`
+	SourceFile         string `json:"sourceFile,omitempty"`
+	Sample             string `json:"sample,omitempty"`
+	Disposition        string `json:"disposition,omitempty"`
+	StatusCode         int    `json:"statusCode,omitempty"`
+	LineNumber         *int   `json:"lineNumber,omitempty"`
+	ColumnNumber       *int   `json:"columnNumber,omitempty"`
+}
+
+func (body *CSPViolationReportBody) Message() string {
+	return cspViolationMessage(body.EffectiveDirective, body.OriginalPolicy, body.BlockedURL, body.Disposition == "report")
 }
 
 // CSPHashReportBody is the report body for "csp-hash" reports sent via the

@@ -1,6 +1,9 @@
 package schema
 
 import (
+	csp "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
+	"github.com/Motmedel/utils_go/pkg/http/types/integrity_policy"
+	"github.com/Motmedel/utils_go/pkg/http/types/reporting_api"
 	"github.com/Motmedel/utils_go/pkg/net/types/domain_parts"
 )
 
@@ -354,6 +357,12 @@ type Host struct {
 	Os           Os       `json:"os,omitempty"`
 }
 
+type HttpReporting struct {
+	IntegrityViolation *reporting_api.Report[*integrity_policy.IntegrityViolationReportBody] `json:"integrity_violation,omitempty"`
+	CspViolation       *reporting_api.Report[*csp.CSPViolationReportBody]                    `json:"csp_violation,omitempty"`
+	CspReport          *csp.Report                                                           `json:"csp_report,omitempty"`
+}
+
 type HttpRequest struct {
 	Body  *Body `json:"body,omitempty"`
 	Bytes int   `json:"bytes,omitempty"`
@@ -365,6 +374,8 @@ type HttpRequest struct {
 	Method      string       `json:"method,omitempty"`
 	MimeType    string       `json:"mime_type,omitempty"`
 	Referrer    string       `json:"referrer,omitempty"`
+	// NOTE: Custom
+	Reporting *HttpReporting `json:"reporting,omitempty"`
 }
 
 type HttpResponse struct {
@@ -378,6 +389,7 @@ type HttpResponse struct {
 	// NOTE: Custom
 	ReasonPhrase string `json:"reason_phrase,omitempty"`
 	StatusCode   int    `json:"status_code,omitempty"`
+	// TODO: Add parsed problem detail?
 }
 
 type Http struct {
