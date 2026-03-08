@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -18,6 +19,7 @@ import (
 )
 
 var jsonMapBodyParser = json_body_parser.New[map[string]any]()
+var jsonArrayBodyParser = json_body_parser.New[[]any]()
 
 type Parser[T any] struct {
 	schema     *jsonschema.Schema
@@ -37,13 +39,20 @@ func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_erro
 		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
 	}
 
-	dataMap, responseError := jsonMapBodyParser.Parse(request, body)
+	var data any
+	var responseError *response_error.ResponseError
+
+	if reflect.TypeFor[T]().Kind() == reflect.Slice {
+		data, responseError = jsonArrayBodyParser.Parse(request, body)
+	} else {
+		data, responseError = jsonMapBodyParser.Parse(request, body)
+	}
 	if responseError != nil {
 		return zero, responseError
 	}
 
-	if err := schema.Validate(dataMap); err != nil {
-		wrappedErr := motmedelErrors.New(fmt.Errorf("validate (input): %w", err), dataMap, schema)
+	if err := schema.Validate(data); err != nil {
+		wrappedErr := motmedelErrors.New(fmt.Errorf("validate (input): %w", err), data, schema)
 
 		var validateError *jsonschemaErrors.ValidateError
 		if errors.As(err, &validateError) {
@@ -62,9 +71,9 @@ func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_erro
 	}
 
 	var result T
-	result, responseError = bodyParser.Parse(request, body)
-	if responseError != nil {
-		return zero, responseError
+	result, parseResponseError := bodyParser.Parse(request, body)
+	if parseResponseError != nil {
+		return zero, parseResponseError
 	}
 
 	return result, nil
