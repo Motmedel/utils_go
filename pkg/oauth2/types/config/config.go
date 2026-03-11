@@ -1,12 +1,12 @@
-package oauth2
+package config
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -14,43 +14,24 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	oauth2Errors "github.com/Motmedel/utils_go/pkg/oauth2/errors"
+	"github.com/Motmedel/utils_go/pkg/oauth2/types/auth_code_option"
+	"github.com/Motmedel/utils_go/pkg/oauth2/types/endpoint"
 	"github.com/Motmedel/utils_go/pkg/oauth2/types/token"
+	"github.com/Motmedel/utils_go/pkg/oauth2/types/token_source"
+	"github.com/Motmedel/utils_go/pkg/oauth2/types/transport"
 )
-
-type AuthStyle int
-
-const (
-	AuthStyleAutoDetect AuthStyle = iota
-	AuthStyleInParams
-	AuthStyleInHeader
-)
-
-type Endpoint struct {
-	AuthURL   string
-	TokenURL  string
-	AuthStyle AuthStyle
-}
-
-type AuthCodeOption struct {
-	key   string
-	value string
-}
-
-func SetAuthURLParam(key, value string) AuthCodeOption {
-	return AuthCodeOption{key: key, value: value}
-}
 
 type Config struct {
 	ClientID     string
 	ClientSecret string
-	Endpoint     Endpoint
+	Endpoint     endpoint.Endpoint
 	RedirectURL  string
 	Scopes       []string
 
 	FetchOptions []fetch_config.Option
 }
 
-func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
+func (c *Config) AuthCodeURL(state string, opts ...auth_code_option.AuthCodeOption) string {
 	var buf strings.Builder
 	buf.WriteString(c.Endpoint.AuthURL)
 
@@ -68,7 +49,7 @@ func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
 		v.Set("state", state)
 	}
 	for _, opt := range opts {
-		v.Set(opt.key, opt.value)
+		v.Set(opt.Key, opt.Value)
 	}
 
 	if strings.Contains(c.Endpoint.AuthURL, "?") {
@@ -81,7 +62,7 @@ func (c *Config) AuthCodeURL(state string, opts ...AuthCodeOption) string {
 	return buf.String()
 }
 
-func (c *Config) Exchange(ctx context.Context, code string, opts ...AuthCodeOption) (*token.Token, error) {
+func (c *Config) Exchange(ctx context.Context, code string, opts ...auth_code_option.AuthCodeOption) (*token.Token, error) {
 	v := url.Values{
 		"grant_type": {"authorization_code"},
 		"code":       {code},
@@ -90,7 +71,7 @@ func (c *Config) Exchange(ctx context.Context, code string, opts ...AuthCodeOpti
 		v.Set("redirect_uri", c.RedirectURL)
 	}
 	for _, opt := range opts {
-		v.Set(opt.key, opt.value)
+		v.Set(opt.Key, opt.Value)
 	}
 
 	return c.retrieveToken(ctx, v)
@@ -120,7 +101,7 @@ func (c *Config) ClientCredentialsToken(ctx context.Context) (*token.Token, erro
 	return c.retrieveToken(ctx, v)
 }
 
-func (c *Config) TokenSource(ctx context.Context, t *token.Token) TokenSource {
+func (c *Config) TokenSource(ctx context.Context, t *token.Token) token_source.TokenSource {
 	tkr := &tokenRefresher{
 		ctx:  ctx,
 		conf: c,
@@ -129,9 +110,16 @@ func (c *Config) TokenSource(ctx context.Context, t *token.Token) TokenSource {
 		tkr.refreshToken = t.RefreshToken
 	}
 
-	return &reuseTokenSource{
-		t:   t,
-		new: tkr,
+	return token_source.NewReusable(t, tkr)
+}
+
+// Client returns an *http.Client that automatically sets OAuth2 authorization
+// headers using a token source that refreshes the provided token as needed.
+func (c *Config) Client(ctx context.Context, t *token.Token) *http.Client {
+	return &http.Client{
+		Transport: &transport.Transport{
+			Source: c.TokenSource(ctx, t),
+		},
 	}
 }
 
@@ -142,13 +130,13 @@ func (c *Config) retrieveToken(ctx context.Context, v url.Values) (*token.Token,
 
 	authStyle := c.Endpoint.AuthStyle
 
-	if authStyle == AuthStyleAutoDetect {
+	if authStyle == endpoint.AuthStyleAutoDetect {
 		// Try header first, fall back to params.
-		tok, err := c.doRetrieveToken(ctx, v, AuthStyleInHeader)
+		tok, err := c.doRetrieveToken(ctx, v, endpoint.AuthStyleInHeader)
 		if err == nil {
 			return tok, nil
 		}
-		tok, err = c.doRetrieveToken(ctx, v, AuthStyleInParams)
+		tok, err = c.doRetrieveToken(ctx, v, endpoint.AuthStyleInParams)
 		if err == nil {
 			return tok, nil
 		}
@@ -158,15 +146,15 @@ func (c *Config) retrieveToken(ctx context.Context, v url.Values) (*token.Token,
 	return c.doRetrieveToken(ctx, v, authStyle)
 }
 
-func (c *Config) doRetrieveToken(ctx context.Context, v url.Values, authStyle AuthStyle) (*token.Token, error) {
+func (c *Config) doRetrieveToken(ctx context.Context, v url.Values, authStyle endpoint.AuthStyle) (*token.Token, error) {
 	headers := map[string]string{
 		"Content-Type": "application/x-www-form-urlencoded",
 	}
 
 	switch authStyle {
-	case AuthStyleInHeader:
+	case endpoint.AuthStyleInHeader:
 		headers["Authorization"] = "Basic " + motmedelHttpUtils.BasicAuth(c.ClientID, c.ClientSecret)
-	case AuthStyleInParams:
+	case endpoint.AuthStyleInParams:
 		v.Set("client_id", c.ClientID)
 		if c.ClientSecret != "" {
 			v.Set("client_secret", c.ClientSecret)
@@ -259,11 +247,6 @@ func (c *Config) doRetrieveToken(ctx context.Context, v url.Values, authStyle Au
 	return tok, nil
 }
 
-// TokenSource is a source of tokens.
-type TokenSource interface {
-	Token() (*token.Token, error)
-}
-
 type tokenRefresher struct {
 	ctx          context.Context
 	conf         *Config
@@ -295,49 +278,4 @@ func (tf *tokenRefresher) Token() (*token.Token, error) {
 	}
 
 	return tok, nil
-}
-
-type reuseTokenSource struct {
-	new TokenSource
-	mu  sync.Mutex
-	t   *token.Token
-}
-
-func (s *reuseTokenSource) Token() (*token.Token, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if s.t.Valid() {
-		return s.t, nil
-	}
-
-	t, err := s.new.Token()
-	if err != nil {
-		return nil, err
-	}
-
-	s.t = t
-	return t, nil
-}
-
-// StaticTokenSource returns a TokenSource that always returns the same token.
-func StaticTokenSource(t *token.Token) TokenSource {
-	return &staticTokenSource{t: t}
-}
-
-type staticTokenSource struct {
-	t *token.Token
-}
-
-func (s *staticTokenSource) Token() (*token.Token, error) {
-	return s.t, nil
-}
-
-// ReuseTokenSource returns a TokenSource that caches the token from src
-// and refreshes it when expired.
-func ReuseTokenSource(t *token.Token, src TokenSource) TokenSource {
-	return &reuseTokenSource{
-		t:   t,
-		new: src,
-	}
 }

@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+
+	"github.com/Motmedel/utils_go/pkg/oauth2/types/auth_code_option"
 )
 
 const (
@@ -42,15 +44,15 @@ func S256ChallengeFromVerifier(verifier string) string {
 // S256ChallengeOption returns AuthCodeOption values that set the PKCE code challenge
 // and challenge method derived from verifier with method S256.
 // The returned options should be passed to Config.AuthCodeURL only.
-func S256ChallengeOption(verifier string) []AuthCodeOption {
-	return []AuthCodeOption{
-		SetAuthURLParam(codeChallengeMethodKey, "S256"),
-		SetAuthURLParam(codeChallengeKey, S256ChallengeFromVerifier(verifier)),
+func S256ChallengeOption(verifier string) []auth_code_option.AuthCodeOption {
+	return []auth_code_option.AuthCodeOption{
+		auth_code_option.New(codeChallengeMethodKey, "S256"),
+		auth_code_option.New(codeChallengeKey, S256ChallengeFromVerifier(verifier)),
 	}
 }
 
 // VerifierOption returns a PKCE code verifier AuthCodeOption.
 // It should be passed to Config.Exchange only.
-func VerifierOption(verifier string) AuthCodeOption {
-	return SetAuthURLParam(codeVerifierKey, verifier)
+func VerifierOption(verifier string) auth_code_option.AuthCodeOption {
+	return auth_code_option.New(codeVerifierKey, verifier)
 }

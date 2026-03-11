@@ -40,13 +40,13 @@ func TestS256ChallengeOption(t *testing.T) {
 		t.Fatalf("expected 2 options, got %d", len(opts))
 	}
 
-	if opts[0].key != codeChallengeMethodKey || opts[0].value != "S256" {
-		t.Errorf("expected challenge method option, got key=%q value=%q", opts[0].key, opts[0].value)
+	if opts[0].Key != codeChallengeMethodKey || opts[0].Value != "S256" {
+		t.Errorf("expected challenge method option, got key=%q value=%q", opts[0].Key, opts[0].Value)
 	}
 
 	expectedChallenge := S256ChallengeFromVerifier(verifier)
-	if opts[1].key != codeChallengeKey || opts[1].value != expectedChallenge {
-		t.Errorf("expected challenge option, got key=%q value=%q", opts[1].key, opts[1].value)
+	if opts[1].Key != codeChallengeKey || opts[1].Value != expectedChallenge {
+		t.Errorf("expected challenge option, got key=%q value=%q", opts[1].Key, opts[1].Value)
 	}
 }
 
@@ -54,10 +54,10 @@ func TestVerifierOption(t *testing.T) {
 	verifier := "test_verifier"
 	opt := VerifierOption(verifier)
 
-	if opt.key != codeVerifierKey {
-		t.Errorf("expected key %q, got %q", codeVerifierKey, opt.key)
+	if opt.Key != codeVerifierKey {
+		t.Errorf("expected key %q, got %q", codeVerifierKey, opt.Key)
 	}
-	if opt.value != verifier {
-		t.Errorf("expected value %q, got %q", verifier, opt.value)
+	if opt.Value != verifier {
+		t.Errorf("expected value %q, got %q", verifier, opt.Value)
 	}
 }
