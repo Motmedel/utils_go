@@ -32,11 +32,11 @@ const (
 	credentialTypeAuthorizedUser = "authorized_user"
 	credentialTypeServiceAccount = "service_account"
 
-	googleTokenURL = "https://oauth2.googleapis.com/token"
+	DefaultTokenUrl = "https://oauth2.googleapis.com/token"
 )
 
 var (
-	metadataBaseUrl = &url.URL{
+	defaultMetadataBaseUrl = &url.URL{
 		Scheme: "http",
 		Host:   "metadata.google.internal",
 		Path:   "/computeMetadata/v1",
@@ -44,6 +44,22 @@ var (
 
 	ErrNoDefaultCredentials = errors.New("could not find default credentials")
 )
+
+type Client struct {
+	metadataBaseUrl *url.URL
+	tokenUrl        string
+}
+
+func NewClient() *Client {
+	return NewClientWithUrls(defaultMetadataBaseUrl, DefaultTokenUrl)
+}
+
+func NewClientWithUrls(metadataBaseUrl *url.URL, tokenUrl string) *Client {
+	return &Client{
+		metadataBaseUrl: metadataBaseUrl,
+		tokenUrl:        tokenUrl,
+	}
+}
 
 type credentialsFile struct {
 	Type string `json:"type"`
@@ -67,7 +83,7 @@ type tokenResponse struct {
 	TokenType   string `json:"token_type"`
 }
 
-func GetIdToken(ctx context.Context, audience string) (string, error) {
+func (c *Client) GetIdToken(ctx context.Context, audience string) (string, error) {
 	if audience == "" {
 		return "", motmedelErrors.NewWithTrace(empty_error.New("audience"))
 	}
@@ -76,7 +92,7 @@ func GetIdToken(ctx context.Context, audience string) (string, error) {
 		return "", fmt.Errorf("context err: %w", err)
 	}
 
-	identityUrl := *metadataBaseUrl
+	identityUrl := *c.metadataBaseUrl
 	identityUrl.Path += "/instance/service-accounts/default/identity"
 	identityUrl.RawQuery = url.Values{"audience": {audience}}.Encode()
 
@@ -93,12 +109,12 @@ func GetIdToken(ctx context.Context, audience string) (string, error) {
 	return string(responseBody), nil
 }
 
-func GetProjectId(ctx context.Context) (string, error) {
+func (c *Client) GetProjectId(ctx context.Context) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", fmt.Errorf("context err: %w", err)
 	}
 
-	requestUrl := *metadataBaseUrl
+	requestUrl := *c.metadataBaseUrl
 	requestUrl.Path += "/project/project-id"
 
 	urlString := requestUrl.String()
@@ -119,6 +135,7 @@ type authorizedUserTokenSource struct {
 	clientID     string
 	clientSecret string
 	refreshToken string
+	tokenUrl     string
 	options      []fetch_config.Option
 }
 
@@ -145,9 +162,9 @@ func (s *authorizedUserTokenSource) Token() (*token.Token, error) {
 		s.options...,
 	)
 
-	_, responseBody, err := motmedelHttpUtils.Fetch(s.ctx, googleTokenURL, options...)
+	_, responseBody, err := motmedelHttpUtils.Fetch(s.ctx, s.tokenUrl, options...)
 	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), googleTokenURL)
+		return nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), s.tokenUrl)
 	}
 
 	return parseTokenResponse(responseBody)
@@ -227,9 +244,10 @@ func (s *serviceAccountTokenSource) Token() (*token.Token, error) {
 }
 
 type metadataTokenSource struct {
-	ctx     context.Context
-	scopes  []string
-	options []fetch_config.Option
+	ctx             context.Context
+	metadataBaseUrl *url.URL
+	scopes          []string
+	options         []fetch_config.Option
 }
 
 func (s *metadataTokenSource) Token() (*token.Token, error) {
@@ -237,7 +255,7 @@ func (s *metadataTokenSource) Token() (*token.Token, error) {
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	tokenUrl := *metadataBaseUrl
+	tokenUrl := *s.metadataBaseUrl
 	tokenUrl.Path += "/instance/service-accounts/default/token"
 	if len(s.scopes) > 0 {
 		tokenUrl.RawQuery = url.Values{"scopes": {strings.Join(s.scopes, ",")}}.Encode()
@@ -325,7 +343,7 @@ func parsePrivateKey(pemData string) (*rsa.PrivateKey, error) {
 	}
 }
 
-func credentialsFileTokenSource(ctx context.Context, data []byte, scopes []string, options ...fetch_config.Option) (token_source.TokenSource, error) {
+func (c *Client) credentialsFileTokenSource(ctx context.Context, data []byte, scopes []string, options ...fetch_config.Option) (token_source.TokenSource, error) {
 	var cf credentialsFile
 	if err := json.Unmarshal(data, &cf); err != nil {
 		return nil, motmedelErrors.NewWithTrace(
@@ -340,6 +358,7 @@ func credentialsFileTokenSource(ctx context.Context, data []byte, scopes []strin
 			clientID:     cf.ClientID,
 			clientSecret: cf.ClientSecret,
 			refreshToken: cf.RefreshToken,
+			tokenUrl:     c.tokenUrl,
 			options:      options,
 		}
 		return token_source.NewReusable(nil, ts), nil
@@ -347,7 +366,7 @@ func credentialsFileTokenSource(ctx context.Context, data []byte, scopes []strin
 	case credentialTypeServiceAccount:
 		tokenURI := cf.TokenURI
 		if tokenURI == "" {
-			tokenURI = googleTokenURL
+			tokenURI = c.tokenUrl
 		}
 
 		rsaKey, err := parsePrivateKey(cf.PrivateKey)
@@ -378,7 +397,7 @@ func credentialsFileTokenSource(ctx context.Context, data []byte, scopes []strin
 //  2. Well-known file — user credentials from gcloud auth application-default login.
 //  3. Metadata server — if running on GCP (Compute Engine, Cloud Run, etc.).
 //  4. Error — if none of the above succeed.
-func FindDefaultCredentials(ctx context.Context, scopes []string, fetchOptions ...fetch_config.Option) (token_source.TokenSource, error) {
+func (c *Client) FindDefaultCredentials(ctx context.Context, scopes []string, fetchOptions ...fetch_config.Option) (token_source.TokenSource, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("context err: %w", err)
 	}
@@ -391,21 +410,22 @@ func FindDefaultCredentials(ctx context.Context, scopes []string, fetchOptions .
 				fmt.Errorf("read file (%s): %w", envPath, err),
 			)
 		}
-		return credentialsFileTokenSource(ctx, data, scopes, fetchOptions...)
+		return c.credentialsFileTokenSource(ctx, data, scopes, fetchOptions...)
 	}
 
 	// 2. Well-known file.
 	if wellKnownPath := wellKnownCredentialsPath(); wellKnownPath != "" {
 		if data, err := os.ReadFile(wellKnownPath); err == nil {
-			return credentialsFileTokenSource(ctx, data, scopes, fetchOptions...)
+			return c.credentialsFileTokenSource(ctx, data, scopes, fetchOptions...)
 		}
 	}
 
 	// 3. Metadata server.
 	metadataSource := &metadataTokenSource{
-		ctx:     ctx,
-		scopes:  scopes,
-		options: fetchOptions,
+		ctx:             ctx,
+		metadataBaseUrl: c.metadataBaseUrl,
+		scopes:          scopes,
+		options:         fetchOptions,
 	}
 	if tok, err := metadataSource.Token(); err == nil {
 		return token_source.NewReusable(tok, metadataSource), nil

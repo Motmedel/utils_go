@@ -16,20 +16,33 @@ import (
 
 const Domain = "groups.googleapis.com"
 
-var baseUrl = &url.URL{
+var defaultBaseUrl = &url.URL{
 	Scheme: "https",
 	Host:   Domain,
-	Path:   "/groups/v1/groups/",
 }
 
-func groupUrl(groupEmail string) string {
+type Client struct {
+	baseUrl *url.URL
+}
+
+func NewClient() *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl)
+}
+
+func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
 	u := *baseUrl
+	u.Path = "/groups/v1/groups/"
+	return &Client{baseUrl: &u}
+}
+
+func (c *Client) groupUrl(groupEmail string) string {
+	u := *c.baseUrl
 	u.Path += url.PathEscape(groupEmail)
 	return u.String()
 }
 
 // Get retrieves a group's settings identified by the group email address.
-func Get(ctx context.Context, groupEmail string, options ...fetch_config.Option) (*group.Group, error) {
+func (c *Client) Get(ctx context.Context, groupEmail string, options ...fetch_config.Option) (*group.Group, error) {
 	if groupEmail == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group email"))
 	}
@@ -38,7 +51,7 @@ func Get(ctx context.Context, groupEmail string, options ...fetch_config.Option)
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	urlString := groupUrl(groupEmail)
+	urlString := c.groupUrl(groupEmail)
 	_, groupSettings, err := motmedelHttpUtils.FetchJson[*group.Group](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -48,7 +61,7 @@ func Get(ctx context.Context, groupEmail string, options ...fetch_config.Option)
 }
 
 // Update updates an existing group's settings identified by the group email address.
-func Update(ctx context.Context, groupEmail string, groupSettings *group.Group, options ...fetch_config.Option) (*group.Group, error) {
+func (c *Client) Update(ctx context.Context, groupEmail string, groupSettings *group.Group, options ...fetch_config.Option) (*group.Group, error) {
 	if groupEmail == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group email"))
 	}
@@ -57,7 +70,7 @@ func Update(ctx context.Context, groupEmail string, groupSettings *group.Group, 
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	urlString := groupUrl(groupEmail)
+	urlString := c.groupUrl(groupEmail)
 	options = append(options, fetch_config.WithMethod(http.MethodPut))
 	_, updatedGroupSettings, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, groupSettings, options...)
 	if err != nil {
@@ -68,7 +81,7 @@ func Update(ctx context.Context, groupEmail string, groupSettings *group.Group, 
 }
 
 // Patch updates an existing group's settings using patch semantics.
-func Patch(ctx context.Context, groupEmail string, groupSettings *group.Group, options ...fetch_config.Option) (*group.Group, error) {
+func (c *Client) Patch(ctx context.Context, groupEmail string, groupSettings *group.Group, options ...fetch_config.Option) (*group.Group, error) {
 	if groupEmail == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group email"))
 	}
@@ -77,7 +90,7 @@ func Patch(ctx context.Context, groupEmail string, groupSettings *group.Group, o
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	urlString := groupUrl(groupEmail)
+	urlString := c.groupUrl(groupEmail)
 	options = append(options, fetch_config.WithMethod(http.MethodPatch))
 	_, patchedGroupSettings, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, groupSettings, options...)
 	if err != nil {

@@ -16,21 +16,34 @@ import (
 
 const Domain = "gmail.googleapis.com"
 
-var baseUrl = &url.URL{
+var defaultBaseUrl = &url.URL{
 	Scheme: "https",
 	Host:   Domain,
-	Path:   "/gmail/v1/users/",
 }
 
-func sendUrl(userId string) string {
+type Client struct {
+	baseUrl *url.URL
+}
+
+func NewClient() *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl)
+}
+
+func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
 	u := *baseUrl
+	u.Path = "/gmail/v1/users/"
+	return &Client{baseUrl: &u}
+}
+
+func (c *Client) sendUrl(userId string) string {
+	u := *c.baseUrl
 	u.Path += url.PathEscape(userId) + "/messages/send"
 	return u.String()
 }
 
 // Send sends the specified message to the recipients in the To, Cc, and Bcc headers.
 // The message should have its Raw field set to a base64url-encoded RFC 2822 email.
-func Send(ctx context.Context, userId string, msg *message.Message, options ...fetch_config.Option) (*message.Message, error) {
+func (c *Client) Send(ctx context.Context, userId string, msg *message.Message, options ...fetch_config.Option) (*message.Message, error) {
 	if userId == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
@@ -43,7 +56,7 @@ func Send(ctx context.Context, userId string, msg *message.Message, options ...f
 		return nil, nil
 	}
 
-	urlString := sendUrl(userId)
+	urlString := c.sendUrl(userId)
 	options = append(options, fetch_config.WithMethod(http.MethodPost))
 	_, sentMessage, err := motmedelHttpUtils.FetchJsonWithBody[*message.Message](ctx, urlString, msg, options...)
 	if err != nil {

@@ -18,16 +18,29 @@ import (
 
 const Domain = "admin.googleapis.com"
 
-var baseUrl = &url.URL{
+var defaultBaseUrl = &url.URL{
 	Scheme: "https",
 	Host:   Domain,
-	Path:   "/admin/directory/v1/",
+}
+
+type Client struct {
+	baseUrl *url.URL
+}
+
+func NewClient() *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl)
+}
+
+func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
+	u := *baseUrl
+	u.Path = "/admin/directory/v1/"
+	return &Client{baseUrl: &u}
 }
 
 // User operations
 
 // CreateUser creates a new user account.
-func CreateUser(ctx context.Context, u *user.User, options ...fetch_config.Option) (*user.User, error) {
+func (c *Client) CreateUser(ctx context.Context, u *user.User, options ...fetch_config.Option) (*user.User, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("context err: %w", err)
 	}
@@ -36,7 +49,7 @@ func CreateUser(ctx context.Context, u *user.User, options ...fetch_config.Optio
 		return nil, nil
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "users"
 	urlString := urlObj.String()
 
@@ -50,7 +63,7 @@ func CreateUser(ctx context.Context, u *user.User, options ...fetch_config.Optio
 }
 
 // GetUser retrieves a user account identified by userKey (primary email address, alias email address, or unique user ID).
-func GetUser(ctx context.Context, userKey string, options ...fetch_config.Option) (*user.User, error) {
+func (c *Client) GetUser(ctx context.Context, userKey string, options ...fetch_config.Option) (*user.User, error) {
 	if userKey == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user key"))
 	}
@@ -59,7 +72,7 @@ func GetUser(ctx context.Context, userKey string, options ...fetch_config.Option
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "users/" + url.PathEscape(userKey)
 	urlString := urlObj.String()
 
@@ -72,7 +85,7 @@ func GetUser(ctx context.Context, userKey string, options ...fetch_config.Option
 }
 
 // UpdateUser updates a user account identified by userKey.
-func UpdateUser(ctx context.Context, userKey string, u *user.User, options ...fetch_config.Option) (*user.User, error) {
+func (c *Client) UpdateUser(ctx context.Context, userKey string, u *user.User, options ...fetch_config.Option) (*user.User, error) {
 	if userKey == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user key"))
 	}
@@ -85,7 +98,7 @@ func UpdateUser(ctx context.Context, userKey string, u *user.User, options ...fe
 		return nil, nil
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "users/" + url.PathEscape(userKey)
 	urlString := urlObj.String()
 
@@ -99,7 +112,7 @@ func UpdateUser(ctx context.Context, userKey string, u *user.User, options ...fe
 }
 
 // DeleteUser deletes a user account identified by userKey.
-func DeleteUser(ctx context.Context, userKey string, options ...fetch_config.Option) error {
+func (c *Client) DeleteUser(ctx context.Context, userKey string, options ...fetch_config.Option) error {
 	if userKey == "" {
 		return motmedelErrors.NewWithTrace(empty_error.New("user key"))
 	}
@@ -108,7 +121,7 @@ func DeleteUser(ctx context.Context, userKey string, options ...fetch_config.Opt
 		return fmt.Errorf("context err: %w", err)
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "users/" + url.PathEscape(userKey)
 	urlString := urlObj.String()
 
@@ -124,7 +137,7 @@ func DeleteUser(ctx context.Context, userKey string, options ...fetch_config.Opt
 // Group operations
 
 // CreateGroup creates a new group.
-func CreateGroup(ctx context.Context, g *group.Group, options ...fetch_config.Option) (*group.Group, error) {
+func (c *Client) CreateGroup(ctx context.Context, g *group.Group, options ...fetch_config.Option) (*group.Group, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("context err: %w", err)
 	}
@@ -133,7 +146,7 @@ func CreateGroup(ctx context.Context, g *group.Group, options ...fetch_config.Op
 		return nil, nil
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups"
 	urlString := urlObj.String()
 
@@ -147,7 +160,7 @@ func CreateGroup(ctx context.Context, g *group.Group, options ...fetch_config.Op
 }
 
 // GetGroup retrieves a group identified by groupKey (group email address, group alias, or unique group ID).
-func GetGroup(ctx context.Context, groupKey string, options ...fetch_config.Option) (*group.Group, error) {
+func (c *Client) GetGroup(ctx context.Context, groupKey string, options ...fetch_config.Option) (*group.Group, error) {
 	if groupKey == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group key"))
 	}
@@ -156,7 +169,7 @@ func GetGroup(ctx context.Context, groupKey string, options ...fetch_config.Opti
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups/" + url.PathEscape(groupKey)
 	urlString := urlObj.String()
 
@@ -169,7 +182,7 @@ func GetGroup(ctx context.Context, groupKey string, options ...fetch_config.Opti
 }
 
 // UpdateGroup updates a group identified by groupKey.
-func UpdateGroup(ctx context.Context, groupKey string, g *group.Group, options ...fetch_config.Option) (*group.Group, error) {
+func (c *Client) UpdateGroup(ctx context.Context, groupKey string, g *group.Group, options ...fetch_config.Option) (*group.Group, error) {
 	if groupKey == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group key"))
 	}
@@ -182,7 +195,7 @@ func UpdateGroup(ctx context.Context, groupKey string, g *group.Group, options .
 		return nil, nil
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups/" + url.PathEscape(groupKey)
 	urlString := urlObj.String()
 
@@ -196,7 +209,7 @@ func UpdateGroup(ctx context.Context, groupKey string, g *group.Group, options .
 }
 
 // DeleteGroup deletes a group identified by groupKey.
-func DeleteGroup(ctx context.Context, groupKey string, options ...fetch_config.Option) error {
+func (c *Client) DeleteGroup(ctx context.Context, groupKey string, options ...fetch_config.Option) error {
 	if groupKey == "" {
 		return motmedelErrors.NewWithTrace(empty_error.New("group key"))
 	}
@@ -205,7 +218,7 @@ func DeleteGroup(ctx context.Context, groupKey string, options ...fetch_config.O
 		return fmt.Errorf("context err: %w", err)
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups/" + url.PathEscape(groupKey)
 	urlString := urlObj.String()
 
@@ -221,7 +234,7 @@ func DeleteGroup(ctx context.Context, groupKey string, options ...fetch_config.O
 // Group member operations
 
 // CreateMember adds a member to a group identified by groupKey.
-func CreateMember(ctx context.Context, groupKey string, m *member.Member, options ...fetch_config.Option) (*member.Member, error) {
+func (c *Client) CreateMember(ctx context.Context, groupKey string, m *member.Member, options ...fetch_config.Option) (*member.Member, error) {
 	if groupKey == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group key"))
 	}
@@ -234,7 +247,7 @@ func CreateMember(ctx context.Context, groupKey string, m *member.Member, option
 		return nil, nil
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members"
 	urlString := urlObj.String()
 
@@ -248,7 +261,7 @@ func CreateMember(ctx context.Context, groupKey string, m *member.Member, option
 }
 
 // GetMember retrieves a member of a group identified by groupKey and memberKey (member email address or unique member ID).
-func GetMember(ctx context.Context, groupKey string, memberKey string, options ...fetch_config.Option) (*member.Member, error) {
+func (c *Client) GetMember(ctx context.Context, groupKey string, memberKey string, options ...fetch_config.Option) (*member.Member, error) {
 	if groupKey == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group key"))
 	}
@@ -260,7 +273,7 @@ func GetMember(ctx context.Context, groupKey string, memberKey string, options .
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members/" + url.PathEscape(memberKey)
 	urlString := urlObj.String()
 
@@ -273,7 +286,7 @@ func GetMember(ctx context.Context, groupKey string, memberKey string, options .
 }
 
 // UpdateMember updates a member of a group identified by groupKey and memberKey.
-func UpdateMember(ctx context.Context, groupKey string, memberKey string, m *member.Member, options ...fetch_config.Option) (*member.Member, error) {
+func (c *Client) UpdateMember(ctx context.Context, groupKey string, memberKey string, m *member.Member, options ...fetch_config.Option) (*member.Member, error) {
 	if groupKey == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("group key"))
 	}
@@ -289,7 +302,7 @@ func UpdateMember(ctx context.Context, groupKey string, memberKey string, m *mem
 		return nil, nil
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members/" + url.PathEscape(memberKey)
 	urlString := urlObj.String()
 
@@ -303,7 +316,7 @@ func UpdateMember(ctx context.Context, groupKey string, memberKey string, m *mem
 }
 
 // DeleteMember removes a member from a group identified by groupKey and memberKey.
-func DeleteMember(ctx context.Context, groupKey string, memberKey string, options ...fetch_config.Option) error {
+func (c *Client) DeleteMember(ctx context.Context, groupKey string, memberKey string, options ...fetch_config.Option) error {
 	if groupKey == "" {
 		return motmedelErrors.NewWithTrace(empty_error.New("group key"))
 	}
@@ -315,7 +328,7 @@ func DeleteMember(ctx context.Context, groupKey string, memberKey string, option
 		return fmt.Errorf("context err: %w", err)
 	}
 
-	urlObj := *baseUrl
+	urlObj := *c.baseUrl
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members/" + url.PathEscape(memberKey)
 	urlString := urlObj.String()
 

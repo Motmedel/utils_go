@@ -21,20 +21,32 @@ import (
 
 const Domain = "storage.googleapis.com"
 
-var baseUrl = &url.URL{
+var defaultBaseUrl = &url.URL{
 	Scheme: "https",
 	Host:   Domain,
-	Path:   "/storage/v1/",
 }
 
-var uploadBaseUrl = &url.URL{
-	Scheme: "https",
-	Host:   Domain,
-	Path:   "/upload/storage/v1/",
+type Client struct {
+	baseUrl       *url.URL
+	uploadBaseUrl *url.URL
+}
+
+func NewClient() *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl)
+}
+
+func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
+	u := *baseUrl
+	u.Path = "/storage/v1/"
+
+	uploadU := *baseUrl
+	uploadU.Path = "/upload/storage/v1/"
+
+	return &Client{baseUrl: &u, uploadBaseUrl: &uploadU}
 }
 
 // InsertBucket creates a new bucket in the specified project.
-func InsertBucket(ctx context.Context, project string, bucketConfig *bucket.Bucket, options ...fetch_config.Option) (*bucket.Bucket, error) {
+func (c *Client) InsertBucket(ctx context.Context, project string, bucketConfig *bucket.Bucket, options ...fetch_config.Option) (*bucket.Bucket, error) {
 	if project == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("project"))
 	}
@@ -47,7 +59,7 @@ func InsertBucket(ctx context.Context, project string, bucketConfig *bucket.Buck
 		return nil, nil
 	}
 
-	u := *baseUrl
+	u := *c.baseUrl
 	u.Path += "b"
 	u.RawQuery = url.Values{"project": {project}}.Encode()
 	urlString := u.String()
@@ -62,7 +74,7 @@ func InsertBucket(ctx context.Context, project string, bucketConfig *bucket.Buck
 }
 
 // PatchBucket updates an existing bucket using patch semantics.
-func PatchBucket(ctx context.Context, bucketName string, bucketConfig *bucket.Bucket, options ...fetch_config.Option) (*bucket.Bucket, error) {
+func (c *Client) PatchBucket(ctx context.Context, bucketName string, bucketConfig *bucket.Bucket, options ...fetch_config.Option) (*bucket.Bucket, error) {
 	if bucketName == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
 	}
@@ -75,7 +87,7 @@ func PatchBucket(ctx context.Context, bucketName string, bucketConfig *bucket.Bu
 		return nil, nil
 	}
 
-	u := *baseUrl
+	u := *c.baseUrl
 	u.Path += "b/" + url.PathEscape(bucketName)
 	urlString := u.String()
 
@@ -89,7 +101,7 @@ func PatchBucket(ctx context.Context, bucketName string, bucketConfig *bucket.Bu
 }
 
 // GetObject retrieves an object's metadata.
-func GetObject(ctx context.Context, bucketName string, objectName string, options ...fetch_config.Option) (*object.Object, error) {
+func (c *Client) GetObject(ctx context.Context, bucketName string, objectName string, options ...fetch_config.Option) (*object.Object, error) {
 	if bucketName == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
 	}
@@ -101,7 +113,7 @@ func GetObject(ctx context.Context, bucketName string, objectName string, option
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	u := *baseUrl
+	u := *c.baseUrl
 	u.Path += "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
 	urlString := u.String()
 
@@ -114,7 +126,7 @@ func GetObject(ctx context.Context, bucketName string, objectName string, option
 }
 
 // DownloadObject downloads an object's content.
-func DownloadObject(ctx context.Context, bucketName string, objectName string, options ...fetch_config.Option) ([]byte, error) {
+func (c *Client) DownloadObject(ctx context.Context, bucketName string, objectName string, options ...fetch_config.Option) ([]byte, error) {
 	if bucketName == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
 	}
@@ -126,7 +138,7 @@ func DownloadObject(ctx context.Context, bucketName string, objectName string, o
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	u := *baseUrl
+	u := *c.baseUrl
 	u.Path += "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
 	u.RawQuery = url.Values{"alt": {"media"}}.Encode()
 	urlString := u.String()
@@ -141,7 +153,7 @@ func DownloadObject(ctx context.Context, bucketName string, objectName string, o
 
 // ListObjects lists objects in a bucket. Use the query parameter to specify prefix, delimiter,
 // maxResults, pageToken, and other query parameters.
-func ListObjects(ctx context.Context, bucketName string, query url.Values, options ...fetch_config.Option) (*object_list.ObjectList, error) {
+func (c *Client) ListObjects(ctx context.Context, bucketName string, query url.Values, options ...fetch_config.Option) (*object_list.ObjectList, error) {
 	if bucketName == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
 	}
@@ -150,7 +162,7 @@ func ListObjects(ctx context.Context, bucketName string, query url.Values, optio
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	u := *baseUrl
+	u := *c.baseUrl
 	u.Path += "b/" + url.PathEscape(bucketName) + "/o"
 	if query != nil {
 		u.RawQuery = query.Encode()
@@ -168,7 +180,7 @@ func ListObjects(ctx context.Context, bucketName string, query url.Values, optio
 // InsertObject uploads an object to a bucket using a multipart upload.
 // The metadata should have at least its Name field set. The data parameter contains
 // the object content, and contentType specifies its MIME type.
-func InsertObject(ctx context.Context, bucketName string, metadata *object.Object, data []byte, contentType string, options ...fetch_config.Option) (*object.Object, error) {
+func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *object.Object, data []byte, contentType string, options ...fetch_config.Option) (*object.Object, error) {
 	if bucketName == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
 	}
@@ -216,7 +228,7 @@ func InsertObject(ctx context.Context, bucketName string, metadata *object.Objec
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("multipart writer close: %w", err))
 	}
 
-	u := *uploadBaseUrl
+	u := *c.uploadBaseUrl
 	u.Path += "b/" + url.PathEscape(bucketName) + "/o"
 	u.RawQuery = url.Values{"uploadType": {"multipart"}}.Encode()
 	urlString := u.String()
