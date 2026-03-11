@@ -264,7 +264,8 @@ func (err *ExtendedError) GetContext() *context.Context {
 		return nil
 	}
 
-	if contextError, ok := includedErr.(ContextErrorI); ok {
+	var contextError ContextErrorI
+	if errors.As(includedErr, &contextError) {
 		return contextError.GetContext()
 	}
 

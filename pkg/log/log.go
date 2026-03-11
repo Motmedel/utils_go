@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os/exec"
@@ -219,7 +220,8 @@ func (extractor *ErrorContextExtractor) Handle(ctx context.Context, record *slog
 	if logErr, ok := ctx.Value(context2.ErrorContextKey).(error); ok {
 		record.Add(slog.Group("error", extractor.MakeErrorAttrs(logErr)...))
 
-		if contextErr, ok := logErr.(motmedelErrors.ContextErrorI); ok {
+		var contextErr motmedelErrors.ContextErrorI
+		if errors.As(logErr, &contextErr) {
 			if contextErrCtxPtr := contextErr.GetContext(); contextErrCtxPtr != nil {
 				contextErrCtx := *contextErrCtxPtr
 
