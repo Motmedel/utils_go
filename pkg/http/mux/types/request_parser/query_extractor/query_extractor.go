@@ -23,6 +23,7 @@ import (
 )
 
 var uuidRegexp = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+var urlSchemeRegexp = regexp.MustCompile(`^https?://`)
 
 func validateFormat(value string, format string) error {
 	switch format {
@@ -35,6 +36,12 @@ func validateFormat(value string, format string) error {
 	case "uuid":
 		if !uuidRegexp.MatchString(value) {
 			return fmt.Errorf("invalid uuid format: %q", value)
+		}
+		return nil
+	case "url":
+		_, err := url.ParseRequestURI(value)
+		if err != nil || !urlSchemeRegexp.MatchString(value) {
+			return fmt.Errorf("invalid url format: %q", value)
 		}
 		return nil
 	default:

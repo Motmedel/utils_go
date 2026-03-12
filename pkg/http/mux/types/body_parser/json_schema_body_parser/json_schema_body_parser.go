@@ -57,7 +57,6 @@ func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_erro
 		var validateError *jsonschemaErrors.ValidateError
 		if errors.As(err, &validateError) {
 			return zero, &response_error.ResponseError{
-				// TODO: The error messages could be made nicer.
 				ProblemDetail: problem_detail.New(
 					http.StatusUnprocessableEntity,
 					problem_detail_config.WithDetail("Invalid body."),

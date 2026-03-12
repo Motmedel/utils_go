@@ -40,6 +40,10 @@ type uuidQuery struct {
 	ID string `query:"id,format=uuid"`
 }
 
+type urlQuery struct {
+	Link string `query:"link,format=url"`
+}
+
 func makeRequest(rawQuery string) *http.Request {
 	return &http.Request{
 		URL: &url.URL{RawQuery: rawQuery},
@@ -162,5 +166,24 @@ func TestParse_UuidFormatInvalid(t *testing.T) {
 	_, respErr := parser.Parse(makeRequest("id=not-a-uuid"))
 	if respErr == nil {
 		t.Fatal("expected error for invalid uuid format")
+	}
+}
+
+func TestParse_UrlFormatValid(t *testing.T) {
+	parser := New[urlQuery](query_extractor_config.WithAllowAdditionalParameters(true))
+	result, respErr := parser.Parse(makeRequest("link=https%3A%2F%2Fexample.com%2Fpath"))
+	if respErr != nil {
+		t.Fatalf("unexpected error: %v", respErr)
+	}
+	if result.Link != "https://example.com/path" {
+		t.Fatalf("expected 'https://example.com/path', got %q", result.Link)
+	}
+}
+
+func TestParse_UrlFormatInvalid(t *testing.T) {
+	parser := New[urlQuery](query_extractor_config.WithAllowAdditionalParameters(true))
+	_, respErr := parser.Parse(makeRequest("link=not-a-url"))
+	if respErr == nil {
+		t.Fatal("expected error for invalid url format")
 	}
 }
