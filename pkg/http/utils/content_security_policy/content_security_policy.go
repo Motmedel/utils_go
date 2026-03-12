@@ -98,6 +98,54 @@ func PatchCspFrameSrcWithHostSrc(contentSecurityPolicy *csp.ContentSecurityPolic
 	}
 }
 
+func PatchCspImageSrc(contentSecurityPolicy *csp.ContentSecurityPolicy, urls ...*url.URL) {
+	if contentSecurityPolicy == nil {
+		return
+	}
+
+	var newSources []csp.SourceI
+	for _, u := range urls {
+		if u == nil {
+			continue
+		}
+		if u.Scheme == "data" {
+			newSources = append(newSources, &csp.SchemeSource{Scheme: "data"})
+		} else if hostSource := csp.HostSourceFromUrl(u); hostSource != nil {
+			newSources = append(newSources, hostSource)
+		}
+	}
+
+	if len(newSources) == 0 {
+		return
+	}
+
+	imgSrcDirective := &csp.ImgSrcDirective{
+		SourceDirective: csp.SourceDirective{
+			Sources: slices.Concat(
+				[]csp.SourceI{
+					&csp.KeywordSource{Keyword: "self"},
+				},
+				newSources,
+			),
+		},
+	}
+
+	if existingImgSrcDirective := contentSecurityPolicy.GetImgSrc(); existingImgSrcDirective != nil {
+		sourceMap := make(map[string]struct{})
+		for _, source := range existingImgSrcDirective.Sources {
+			sourceMap[source.String()] = struct{}{}
+		}
+
+		for _, newSource := range newSources {
+			if _, found := sourceMap[newSource.String()]; !found {
+				existingImgSrcDirective.Sources = append(existingImgSrcDirective.Sources, newSource)
+			}
+		}
+	} else {
+		contentSecurityPolicy.Directives = append(contentSecurityPolicy.Directives, imgSrcDirective)
+	}
+}
+
 func PatchCspStyleSrcWithNonce(contentSecurityPolicy *csp.ContentSecurityPolicy, nonces ...string) {
 	if contentSecurityPolicy == nil {
 		return
