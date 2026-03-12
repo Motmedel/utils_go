@@ -7,6 +7,6 @@ type Report[T any] struct {
 	Age       int    `json:"age"`
 	Type      string `json:"type"`
 	URL       string `json:"url"`
-	UserAgent string `json:"user_agent"`
+	UserAgent string `json:"user_agent" jsonschema:"user_agent,minlength:0"`
 	Body      T      `json:"body"`
 }

@@ -202,7 +202,7 @@ func (r *Report) Message() string {
 // via the Reporting API (report-to directive). Defined in CSP Level 3 section 5.
 type CSPViolationReportBody struct {
 	DocumentURL        string  `json:"documentURL,omitempty"`
-	Referrer           string  `json:"referrer,omitempty"`
+	Referrer           string  `json:"referrer,omitempty" jsonschema:"referrer,minlength:0"`
 	BlockedURL         string  `json:"blockedURL,omitempty"`
 	EffectiveDirective string  `json:"effectiveDirective,omitempty"`
 	OriginalPolicy     string  `json:"originalPolicy,omitempty"`
