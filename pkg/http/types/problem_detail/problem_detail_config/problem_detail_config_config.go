@@ -2,10 +2,6 @@ package problem_detail_config
 
 import "github.com/Motmedel/utils_go/pkg/uuid"
 
-var (
-	DefaultType = "about:blank"
-)
-
 type Config struct {
 	Type      string
 	Instance  string
@@ -17,8 +13,7 @@ type Option func(*Config)
 
 func New(options ...Option) *Config {
 	config := &Config{
-		Type:     DefaultType,
-		Instance: uuid.New().String(),
+		Instance: uuid.NewString(),
 	}
 	for _, option := range options {
 		option(config)
