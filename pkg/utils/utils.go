@@ -160,3 +160,13 @@ func MapGetConvertNonZero[U comparable, T comparable](m map[T]any, key T) (U, er
 
 	return v, nil
 }
+
+func AnyNonZero[T comparable](vals ...T) bool {
+	var zero T
+	for _, v := range vals {
+		if v != zero {
+			return true
+		}
+	}
+	return false
+}
