@@ -708,6 +708,7 @@ type TlsClient struct {
 	Hash             *TlsHash `json:"hash,omitempty"`
 	Issuer           string   `json:"issuer,omitempty"`
 	Ja3              string   `json:"ja3,omitempty"`
+	Ja4              string   `json:"ja4,omitempty"`
 	NotAfter         string   `json:"not_after,omitempty"`
 	NotBefore        string   `json:"not_before,omitempty"`
 	ServerName       string   `json:"server_name,omitempty"`
