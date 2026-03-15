@@ -323,6 +323,7 @@ func ParseHttp(
 
 				if ip := net.ParseIP(forwardedForIpAddress); ip != nil {
 					client = &schema.Target{Ip: forwardedForIpAddress, Address: forwardedForIpAddress}
+					network.ForwardedIp = forwardedForIpAddress
 				}
 
 				if len(forwardedForSplit) > 1 {
