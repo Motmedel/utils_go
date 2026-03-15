@@ -47,6 +47,15 @@ func TestParseAuthorization(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		// NOTE: There was a bug in `go-abnf`; once fixed, the grammar can be updated from `[1*"="] to `*"="`.
+		{
+			name:  "scheme with jws token68",
+			input: []byte("Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.Q70dVMtrOQzEFmGOxPAKbNOUSQMISCLhEDfGpMG0WM4"),
+			expected: &motmedelHttpTypes.Authorization{
+				Scheme:  "Bearer",
+				Token68: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.Q70dVMtrOQzEFmGOxPAKbNOUSQMISCLhEDfGpMG0WM4",
+			},
+		},
 		{
 			name:  "scheme with single token parameter (key lowercased)",
 			input: []byte("Digest Realm=foo"),
