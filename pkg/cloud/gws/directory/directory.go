@@ -136,6 +136,56 @@ func (c *Client) DeleteUser(ctx context.Context, userKey string, options ...fetc
 
 // Group operations
 
+type listGroupsResponse struct {
+	Groups        []*group.Group `json:"groups"`
+	NextPageToken string         `json:"nextPageToken"`
+}
+
+// ListGroups retrieves all groups for the given customer ID (use "my_customer" for the authenticated account).
+func (c *Client) ListGroups(ctx context.Context, customer string, options ...fetch_config.Option) ([]*group.Group, error) {
+	if customer == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("customer"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	var allGroups []*group.Group
+	pageToken := ""
+
+	for {
+		urlObj := *c.baseUrl
+		urlObj.Path += "groups"
+
+		query := url.Values{}
+		query.Set("customer", customer)
+		if pageToken != "" {
+			query.Set("pageToken", pageToken)
+		}
+		urlObj.RawQuery = query.Encode()
+		urlString := urlObj.String()
+
+		_, resp, err := motmedelHttpUtils.FetchJson[*listGroupsResponse](ctx, urlString, options...)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+		}
+
+		if resp != nil {
+			allGroups = append(allGroups, resp.Groups...)
+
+			if resp.NextPageToken == "" {
+				break
+			}
+			pageToken = resp.NextPageToken
+		} else {
+			break
+		}
+	}
+
+	return allGroups, nil
+}
+
 // CreateGroup creates a new group.
 func (c *Client) CreateGroup(ctx context.Context, g *group.Group, options ...fetch_config.Option) (*group.Group, error) {
 	if err := ctx.Err(); err != nil {
