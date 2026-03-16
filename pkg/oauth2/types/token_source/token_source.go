@@ -3,54 +3,54 @@ package token_source
 import (
 	"sync"
 
-	"github.com/Motmedel/utils_go/pkg/oauth2/types/token"
+	oauth2Token "github.com/Motmedel/utils_go/pkg/oauth2/types/token"
 )
 
 type TokenSource interface {
-	Token() (*token.Token, error)
+	Token() (*oauth2Token.Token, error)
 }
 
-type staticTokenSource struct {
-	t *token.Token
+type StaticTokenSource struct {
+	t *oauth2Token.Token
 }
 
-func (s *staticTokenSource) Token() (*token.Token, error) {
+func (s *StaticTokenSource) Token() (*oauth2Token.Token, error) {
 	return s.t, nil
 }
 
-// NewStatic returns a TokenSource that always returns the same token.
-func NewStatic(t *token.Token) TokenSource {
-	return &staticTokenSource{t: t}
+// NewStatic returns a TokenSource that always returns the same oauth2Token.
+func NewStatic(t *oauth2Token.Token) TokenSource {
+	return &StaticTokenSource{t: t}
 }
 
-type reuseTokenSource struct {
-	new TokenSource
-	mu  sync.Mutex
-	t   *token.Token
+type ReusableTokenSource struct {
+	TokenSource TokenSource
+	mu          sync.Mutex
+	token       *oauth2Token.Token
 }
 
-func (s *reuseTokenSource) Token() (*token.Token, error) {
+func (s *ReusableTokenSource) Token() (*oauth2Token.Token, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.t.Valid() {
-		return s.t, nil
+	if s.token != nil && s.token.Valid() {
+		return s.token, nil
 	}
 
-	t, err := s.new.Token()
+	t, err := s.TokenSource.Token()
 	if err != nil {
 		return nil, err
 	}
 
-	s.t = t
+	s.token = t
 	return t, nil
 }
 
 // NewReusable returns a TokenSource that caches the token from src
 // and refreshes it when expired.
-func NewReusable(t *token.Token, src TokenSource) TokenSource {
-	return &reuseTokenSource{
-		t:   t,
-		new: src,
+func NewReusable(t *oauth2Token.Token, src TokenSource) TokenSource {
+	return &ReusableTokenSource{
+		token:       t,
+		TokenSource: src,
 	}
 }

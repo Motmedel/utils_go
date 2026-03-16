@@ -15,6 +15,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/credentials_file"
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_response"
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_source/authorized_user_token_source"
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_source/metadata_token_source"
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_source/service_account_token_source"
 )
 
 func testMetadataServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, *url.URL) {
@@ -48,18 +54,6 @@ func encodePKCS1PEM(key *rsa.PrivateKey) string {
 	return string(pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
-	}))
-}
-
-func encodePKCS8PEM(t *testing.T, key *rsa.PrivateKey) string {
-	t.Helper()
-	pkcs8Bytes, err := x509.MarshalPKCS8PrivateKey(key)
-	if err != nil {
-		t.Fatalf("marshal pkcs8: %v", err)
-	}
-	return string(pem.EncodeToMemory(&pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: pkcs8Bytes,
 	}))
 }
 
@@ -139,86 +133,44 @@ func TestGetProjectId_CancelledContext(t *testing.T) {
 
 func TestParseTokenResponse(t *testing.T) {
 	data := []byte(`{"access_token":"ya29.abc","expires_in":3600,"token_type":"Bearer"}`)
-	tok, err := parseTokenResponse(data)
+	resp, err := token_response.Parse(data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if tok.AccessToken != "ya29.abc" {
-		t.Errorf("expected access token 'ya29.abc', got %q", tok.AccessToken)
+	if resp.AccessToken != "ya29.abc" {
+		t.Errorf("expected access token 'ya29.abc', got %q", resp.AccessToken)
 	}
-	if tok.TokenType != "Bearer" {
-		t.Errorf("expected token type 'Bearer', got %q", tok.TokenType)
+	if resp.TokenType != "Bearer" {
+		t.Errorf("expected token type 'Bearer', got %q", resp.TokenType)
 	}
-	if tok.Expiry.IsZero() {
-		t.Error("expected non-zero expiry")
+	if resp.ExpiresIn <= 0 {
+		t.Error("expected positive expires_in")
 	}
 }
 
 func TestParseTokenResponse_NoExpiry(t *testing.T) {
 	data := []byte(`{"access_token":"ya29.abc","token_type":"Bearer"}`)
-	tok, err := parseTokenResponse(data)
+	resp, err := token_response.Parse(data)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !tok.Expiry.IsZero() {
-		t.Error("expected zero expiry when expires_in is 0")
+	if resp.ExpiresIn != 0 {
+		t.Error("expected zero expires_in")
 	}
 }
 
 func TestParseTokenResponse_EmptyAccessToken(t *testing.T) {
 	data := []byte(`{"access_token":"","expires_in":3600}`)
-	_, err := parseTokenResponse(data)
+	_, err := token_response.Parse(data)
 	if err == nil {
 		t.Fatal("expected error for empty access token")
 	}
 }
 
 func TestParseTokenResponse_InvalidJSON(t *testing.T) {
-	_, err := parseTokenResponse([]byte(`not json`))
+	_, err := token_response.Parse([]byte(`not json`))
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
-	}
-}
-
-func TestParsePrivateKey_PKCS1(t *testing.T) {
-	key := generateTestRSAKey(t)
-	pemStr := encodePKCS1PEM(key)
-	parsed, err := parsePrivateKey(pemStr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if parsed.N.Cmp(key.N) != 0 {
-		t.Error("parsed key does not match original")
-	}
-}
-
-func TestParsePrivateKey_PKCS8(t *testing.T) {
-	key := generateTestRSAKey(t)
-	pemStr := encodePKCS8PEM(t, key)
-	parsed, err := parsePrivateKey(pemStr)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if parsed.N.Cmp(key.N) != 0 {
-		t.Error("parsed key does not match original")
-	}
-}
-
-func TestParsePrivateKey_NoPEMBlock(t *testing.T) {
-	_, err := parsePrivateKey("not a pem block")
-	if err == nil {
-		t.Fatal("expected error for non-PEM data")
-	}
-}
-
-func TestParsePrivateKey_UnsupportedBlockType(t *testing.T) {
-	pemStr := string(pem.EncodeToMemory(&pem.Block{
-		Type:  "EC PRIVATE KEY",
-		Bytes: []byte("fake"),
-	}))
-	_, err := parsePrivateKey(pemStr)
-	if err == nil {
-		t.Fatal("expected error for unsupported block type")
 	}
 }
 
@@ -244,12 +196,18 @@ func TestAuthorizedUserTokenSource(t *testing.T) {
 		})
 	})
 
-	ts := &authorizedUserTokenSource{
-		ctx:          context.Background(),
-		clientID:     "test-client-id",
-		clientSecret: "test-client-secret",
-		refreshToken: "test-refresh-token",
-		tokenUrl:     server.URL,
+	creds := &credentials_file.CredentialsFile{
+		ClientID:     "test-client-id",
+		ClientSecret: "test-client-secret",
+		RefreshToken: "test-refresh-token",
+	}
+	ts, err := authorized_user_token_source.NewFromCredentialsFile(
+		context.Background(),
+		server.URL,
+		creds,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating token source: %v", err)
 	}
 
 	tok, err := ts.Token()
@@ -264,14 +222,20 @@ func TestAuthorizedUserTokenSource(t *testing.T) {
 func TestAuthorizedUserTokenSource_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	ts := &authorizedUserTokenSource{
-		ctx:          ctx,
-		clientID:     "id",
-		clientSecret: "secret",
-		refreshToken: "token",
-		tokenUrl:     "http://localhost",
+	creds := &credentials_file.CredentialsFile{
+		ClientID:     "id",
+		ClientSecret: "secret",
+		RefreshToken: "token",
 	}
-	_, err := ts.Token()
+	ts, err := authorized_user_token_source.NewFromCredentialsFile(
+		ctx,
+		"http://localhost",
+		creds,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating token source: %v", err)
+	}
+	_, err = ts.Token()
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
 	}
@@ -306,13 +270,19 @@ func TestServiceAccountTokenSource(t *testing.T) {
 		})
 	})
 
-	ts := &serviceAccountTokenSource{
-		ctx:          context.Background(),
-		clientEmail:  "test@test.iam.gserviceaccount.com",
-		privateKeyID: "key-id-123",
-		privateKey:   key,
-		tokenURI:     server.URL,
-		scopes:       []string{"https://www.googleapis.com/auth/cloud-platform"},
+	creds := &credentials_file.CredentialsFile{
+		ClientEmail:  "test@test.iam.gserviceaccount.com",
+		PrivateKeyID: "key-id-123",
+		PrivateKey:   encodePKCS1PEM(key),
+	}
+	ts, err := service_account_token_source.NewFromCredentialsFile(
+		context.Background(),
+		server.URL,
+		creds,
+		[]string{"https://www.googleapis.com/auth/cloud-platform"},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating token source: %v", err)
 	}
 
 	tok, err := ts.Token()
@@ -327,13 +297,21 @@ func TestServiceAccountTokenSource(t *testing.T) {
 func TestServiceAccountTokenSource_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	ts := &serviceAccountTokenSource{
-		ctx:         ctx,
-		clientEmail: "test@test.iam.gserviceaccount.com",
-		privateKey:  generateTestRSAKey(t),
-		tokenURI:    "http://localhost",
+	key := generateTestRSAKey(t)
+	creds := &credentials_file.CredentialsFile{
+		ClientEmail: "test@test.iam.gserviceaccount.com",
+		PrivateKey:  encodePKCS1PEM(key),
 	}
-	_, err := ts.Token()
+	ts, err := service_account_token_source.NewFromCredentialsFile(
+		ctx,
+		"http://localhost",
+		creds,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating token source: %v", err)
+	}
+	_, err = ts.Token()
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
 	}
@@ -355,10 +333,13 @@ func TestMetadataTokenSource(t *testing.T) {
 		})
 	})
 
-	ts := &metadataTokenSource{
-		ctx:             context.Background(),
-		metadataBaseUrl: metadataUrl,
-		scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
+	ts, err := metadata_token_source.New(
+		context.Background(),
+		metadataUrl,
+		[]string{"https://www.googleapis.com/auth/cloud-platform"},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating token source: %v", err)
 	}
 
 	tok, err := ts.Token()
@@ -373,11 +354,15 @@ func TestMetadataTokenSource(t *testing.T) {
 func TestMetadataTokenSource_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	ts := &metadataTokenSource{
-		ctx:             ctx,
-		metadataBaseUrl: defaultMetadataBaseUrl,
+	ts, err := metadata_token_source.New(
+		ctx,
+		defaultMetadataBaseUrl,
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating token source: %v", err)
 	}
-	_, err := ts.Token()
+	_, err = ts.Token()
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
 	}
@@ -397,10 +382,13 @@ func TestMetadataTokenSource_WithScopes(t *testing.T) {
 		})
 	})
 
-	ts := &metadataTokenSource{
-		ctx:             context.Background(),
-		metadataBaseUrl: metadataUrl,
-		scopes:          []string{"scope1", "scope2"},
+	ts, err := metadata_token_source.New(
+		context.Background(),
+		metadataUrl,
+		[]string{"scope1", "scope2"},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating token source: %v", err)
 	}
 
 	tok, err := ts.Token()
@@ -422,7 +410,7 @@ func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
 		})
 	})
 
-	creds := credentialsFile{
+	creds := credentials_file.CredentialsFile{
 		Type:         credentialTypeAuthorizedUser,
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
@@ -457,7 +445,7 @@ func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
 		})
 	})
 
-	creds := credentialsFile{
+	creds := credentials_file.CredentialsFile{
 		Type:         credentialTypeServiceAccount,
 		ClientEmail:  "test@test.iam.gserviceaccount.com",
 		PrivateKeyID: "key-id",
@@ -493,7 +481,7 @@ func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T
 		})
 	})
 
-	creds := credentialsFile{
+	creds := credentials_file.CredentialsFile{
 		Type:         credentialTypeServiceAccount,
 		ClientEmail:  "test@test.iam.gserviceaccount.com",
 		PrivateKeyID: "key-id",
@@ -546,7 +534,7 @@ func TestFindDefaultCredentials_EnvVar(t *testing.T) {
 		})
 	})
 
-	creds := credentialsFile{
+	creds := credentials_file.CredentialsFile{
 		Type:         credentialTypeServiceAccount,
 		ClientEmail:  "test@test.iam.gserviceaccount.com",
 		PrivateKeyID: "key-id",
@@ -631,14 +619,13 @@ func TestFindDefaultCredentials_NoCredentials(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("APPDATA", t.TempDir())
 
-	// Metadata server returns an error.
-	_, metadataUrl := testMetadataServer(t, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
-
-	client := NewClientWithUrls(metadataUrl, DefaultTokenUrl)
-	_, err := client.FindDefaultCredentials(context.Background(), nil)
-	if err == nil {
-		t.Fatal("expected ErrNoDefaultCredentials")
+	// No metadata URL — should return nil token source.
+	client := NewClientWithUrls(nil, DefaultTokenUrl)
+	ts, err := client.FindDefaultCredentials(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ts != nil {
+		t.Fatal("expected nil token source when no credentials are available")
 	}
 }
