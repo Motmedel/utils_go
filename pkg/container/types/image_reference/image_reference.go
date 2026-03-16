@@ -3,6 +3,8 @@ package image_reference
 import (
 	"fmt"
 	"strings"
+
+	"github.com/Motmedel/utils_go/pkg/schema"
 )
 
 type Reference struct {
@@ -10,6 +12,25 @@ type Reference struct {
 	Repository string
 	Tag        string
 	Digest     string
+}
+
+func (r *Reference) ContainerImage() *schema.ContainerImage {
+
+	var name string
+	if r.Registry != "" && r.Repository != "" {
+		name = r.Registry + "/" + r.Repository
+	}
+
+	var imageHash *schema.ContainerImageHash
+	if r.Digest != "" {
+		imageHash = &schema.ContainerImageHash{All: []string{r.Digest}}
+	}
+
+	if name == "" && imageHash == nil {
+		return nil
+	}
+
+	return &schema.ContainerImage{Name: name, Tag: r.Tag, Hash: imageHash}
 }
 
 func Parse(data string) (*Reference, error) {
