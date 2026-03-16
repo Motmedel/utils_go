@@ -40,6 +40,7 @@ type Base struct {
 
 	Client        *Target        `json:"client,omitempty"`
 	Cloud         *Cloud         `json:"cloud,omitempty"`
+	Container     *Container     `json:"container,omitempty"`
 	Destination   *Target        `json:"destination,omitempty"`
 	Dns           *Dns           `json:"dns,omitempty"`
 	Email         *Email         `json:"email,omitempty"`
@@ -200,15 +201,22 @@ type Cloud struct {
 	Target           *CloudOriginTarget `json:"target,omitempty"`
 }
 
+type ContainerImageHash struct {
+	All []string `json:"all,omitempty"`
+}
+
+type ContainerImage struct {
+	Hash *ContainerImageHash `json:"hash,omitempty"`
+	Name string              `json:"name,omitempty"`
+	Tag  string              `json:"tag,omitempty"`
+}
+
 type Container struct {
-	Id    string `json:"id,omitempty"`
-	Image struct {
-		Name string `json:"name,omitempty"`
-		Tag  string `json:"tag,omitempty"`
-	} `json:"image,omitempty"`
-	Labels  any    `json:"labels,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Runtime string `json:"runtime,omitempty"`
+	Id      string          `json:"id,omitempty"`
+	Image   *ContainerImage `json:"image,omitempty"`
+	Labels  any             `json:"labels,omitempty"`
+	Name    string          `json:"name,omitempty"`
+	Runtime string          `json:"runtime,omitempty"`
 }
 
 type DnsAnswer struct {
