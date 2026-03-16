@@ -196,7 +196,7 @@ func TestAuthorizedUserTokenSource(t *testing.T) {
 		})
 	})
 
-	creds := &credentials_file.CredentialsFile{
+	creds := &credentials_file.File{
 		ClientID:     "test-client-id",
 		ClientSecret: "test-client-secret",
 		RefreshToken: "test-refresh-token",
@@ -222,7 +222,7 @@ func TestAuthorizedUserTokenSource(t *testing.T) {
 func TestAuthorizedUserTokenSource_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	creds := &credentials_file.CredentialsFile{
+	creds := &credentials_file.File{
 		ClientID:     "id",
 		ClientSecret: "secret",
 		RefreshToken: "token",
@@ -270,7 +270,7 @@ func TestServiceAccountTokenSource(t *testing.T) {
 		})
 	})
 
-	creds := &credentials_file.CredentialsFile{
+	creds := &credentials_file.File{
 		ClientEmail:  "test@test.iam.gserviceaccount.com",
 		PrivateKeyID: "key-id-123",
 		PrivateKey:   encodePKCS1PEM(key),
@@ -298,7 +298,7 @@ func TestServiceAccountTokenSource_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	key := generateTestRSAKey(t)
-	creds := &credentials_file.CredentialsFile{
+	creds := &credentials_file.File{
 		ClientEmail: "test@test.iam.gserviceaccount.com",
 		PrivateKey:  encodePKCS1PEM(key),
 	}
@@ -410,7 +410,7 @@ func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
 		})
 	})
 
-	creds := credentials_file.CredentialsFile{
+	creds := credentials_file.File{
 		Type:         credentialTypeAuthorizedUser,
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
@@ -445,12 +445,12 @@ func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
 		})
 	})
 
-	creds := credentials_file.CredentialsFile{
+	creds := credentials_file.File{
 		Type:         credentialTypeServiceAccount,
 		ClientEmail:  "test@test.iam.gserviceaccount.com",
 		PrivateKeyID: "key-id",
 		PrivateKey:   encodePKCS1PEM(key),
-		TokenURI:     server.URL,
+		TokenURL:     server.URL,
 	}
 	data, _ := json.Marshal(creds)
 
@@ -481,7 +481,7 @@ func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T
 		})
 	})
 
-	creds := credentials_file.CredentialsFile{
+	creds := credentials_file.File{
 		Type:         credentialTypeServiceAccount,
 		ClientEmail:  "test@test.iam.gserviceaccount.com",
 		PrivateKeyID: "key-id",
@@ -534,12 +534,12 @@ func TestFindDefaultCredentials_EnvVar(t *testing.T) {
 		})
 	})
 
-	creds := credentials_file.CredentialsFile{
+	creds := credentials_file.File{
 		Type:         credentialTypeServiceAccount,
 		ClientEmail:  "test@test.iam.gserviceaccount.com",
 		PrivateKeyID: "key-id",
 		PrivateKey:   encodePKCS1PEM(key),
-		TokenURI:     server.URL,
+		TokenURL:     server.URL,
 	}
 	data, _ := json.Marshal(creds)
 

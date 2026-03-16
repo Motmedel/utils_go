@@ -394,10 +394,13 @@ func MakeHttpMessage(base *schema.Base) string {
 		return ""
 	}
 
-	clientIp := "-"
-	if client := base.Client; client != nil {
-		if client.Ip != "" {
-			clientIp = client.Ip
+	sourceTargetIpAddress := "-"
+	for _, target := range []*schema.Target{base.Client, base.Source} {
+		if target == nil {
+			continue
+		}
+		if target.Ip != "" {
+			sourceTargetIpAddress = target.Ip
 		}
 	}
 
@@ -469,7 +472,7 @@ func MakeHttpMessage(base *schema.Base) string {
 
 	return fmt.Sprintf(
 		"%s - %s \"%s\" %s %s \"%s\" \"%s\"",
-		clientIp,
+		sourceTargetIpAddress,
 		userName,
 		requestLine,
 		statusCodeString,

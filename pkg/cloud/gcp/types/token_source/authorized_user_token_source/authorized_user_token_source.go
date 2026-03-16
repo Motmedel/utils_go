@@ -24,7 +24,7 @@ type TokenSource struct {
 	tokenUrl     string
 	options      []fetch_config.Option
 
-	credentialsFile *credentials_file.CredentialsFile
+	credentialsFile *credentials_file.File
 }
 
 func (ts *TokenSource) Token() (*token.Token, error) {
@@ -61,14 +61,14 @@ func (ts *TokenSource) Token() (*token.Token, error) {
 	return tokenResponse.Token(), nil
 }
 
-func (ts *TokenSource) CredentialsFile() *credentials_file.CredentialsFile {
+func (ts *TokenSource) CredentialsFile() *credentials_file.File {
 	return ts.credentialsFile
 }
 
 func NewFromCredentialsFile(
 	ctx context.Context,
 	tokenUrl string,
-	credentialsFile *credentials_file.CredentialsFile,
+	credentialsFile *credentials_file.File,
 	options ...fetch_config.Option,
 ) (*TokenSource, error) {
 	if tokenUrl == "" {

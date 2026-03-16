@@ -114,7 +114,7 @@ func wellKnownCredentialsPath() string {
 }
 
 func (c *Client) credentialsFileTokenSource(ctx context.Context, data []byte, scopes []string, options ...fetch_config.Option) (token_source.TokenSource, error) {
-	var credentialsFile credentials_file.CredentialsFile
+	var credentialsFile credentials_file.File
 	if err := json.Unmarshal(data, &credentialsFile); err != nil {
 		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("json unmarshal (credentials file): %w", err),
@@ -130,12 +130,12 @@ func (c *Client) credentialsFileTokenSource(ctx context.Context, data []byte, sc
 
 		return token_source.NewReusable(nil, tokenSource), nil
 	case credentialTypeServiceAccount:
-		tokenURI := credentialsFile.TokenURI
-		if tokenURI == "" {
-			tokenURI = c.tokenUrl
+		tokenUrl := credentialsFile.TokenURL
+		if tokenUrl == "" {
+			tokenUrl = c.tokenUrl
 		}
 
-		tokenSource, err := service_account_token_source.NewFromCredentialsFile(ctx, tokenURI, &credentialsFile, scopes, options...)
+		tokenSource, err := service_account_token_source.NewFromCredentialsFile(ctx, tokenUrl, &credentialsFile, scopes, options...)
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("service account token source new: %w", err), credentialsFile)
 		}

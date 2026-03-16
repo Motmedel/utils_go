@@ -63,13 +63,15 @@ type TokenSource struct {
 	scopes       []string
 	options      []fetch_config.Option
 
-	credentialsFile *credentials_file.CredentialsFile
+	credentialsFile *credentials_file.File
 }
 
 func (s *TokenSource) Token() (*token.Token, error) {
 	if err := s.ctx.Err(); err != nil {
 		return nil, fmt.Errorf("context err: %w", err)
 	}
+
+	// TODO: Use JWT library?
 
 	now := time.Now()
 
@@ -132,14 +134,14 @@ func (s *TokenSource) Token() (*token.Token, error) {
 	return tokenResponse.Token(), nil
 }
 
-func (s *TokenSource) CredentialsFile() *credentials_file.CredentialsFile {
+func (s *TokenSource) CredentialsFile() *credentials_file.File {
 	return s.credentialsFile
 }
 
 func NewFromCredentialsFile(
 	ctx context.Context,
 	tokenUrl string,
-	credentialsFile *credentials_file.CredentialsFile,
+	credentialsFile *credentials_file.File,
 	scopes []string,
 	options ...fetch_config.Option,
 ) (*TokenSource, error) {
