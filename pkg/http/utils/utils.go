@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptrace"
 	"strconv"
@@ -268,6 +269,11 @@ func FetchWithRequest(ctx context.Context, request *http.Request, options ...fet
 	}
 
 	fetchConfig := fetch_config.New(options...)
+	if request.Header != nil {
+		for key, value := range fetchConfig.Headers {
+			request.Header.Set(key, value)
+		}
+	}
 
 	var response *http.Response
 	var responseBody []byte
@@ -312,10 +318,6 @@ func Fetch(ctx context.Context, url string, options ...fetch_config.Option) (*ht
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader)
 	}
 
-	for key, value := range fetchConfig.Headers {
-		request.Header.Set(key, value)
-	}
-
 	return FetchWithRequest(ctx, request, options...)
 }
 
@@ -332,7 +334,7 @@ func FetchJson[U any](ctx context.Context, url string, options ...fetch_config.O
 
 	fetchConfig := fetch_config.New(options...)
 
-	headers := fetchConfig.Headers
+	headers := maps.Clone(fetchConfig.Headers)
 	if headers == nil {
 		headers = make(map[string]string)
 	}
