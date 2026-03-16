@@ -157,12 +157,13 @@ func NewFromCredentialsFile(
 	}
 
 	return &TokenSource{
-		ctx:          ctx,
-		clientEmail:  credentialsFile.ClientEmail,
-		privateKeyID: credentialsFile.PrivateKeyID,
-		privateKey:   rsaKey,
-		tokenURI:     tokenUrl,
-		scopes:       scopes,
-		options:      options,
+		ctx:             ctx,
+		clientEmail:     credentialsFile.ClientEmail,
+		privateKeyID:    credentialsFile.PrivateKeyID,
+		privateKey:      rsaKey,
+		tokenURI:        tokenUrl,
+		scopes:          scopes,
+		options:         options,
+		credentialsFile: credentialsFile,
 	}, nil
 }

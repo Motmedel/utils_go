@@ -80,11 +80,12 @@ func NewFromCredentialsFile(
 	}
 
 	return &TokenSource{
-		ctx:          ctx,
-		clientID:     credentialsFile.ClientID,
-		clientSecret: credentialsFile.ClientSecret,
-		refreshToken: credentialsFile.RefreshToken,
-		tokenUrl:     tokenUrl,
-		options:      options,
+		ctx:             ctx,
+		clientID:        credentialsFile.ClientID,
+		clientSecret:    credentialsFile.ClientSecret,
+		refreshToken:    credentialsFile.RefreshToken,
+		tokenUrl:        tokenUrl,
+		options:         options,
+		credentialsFile: credentialsFile,
 	}, nil
 }
