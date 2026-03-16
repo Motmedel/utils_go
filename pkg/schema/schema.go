@@ -57,6 +57,7 @@ type Base struct {
 	Related       *Related       `json:"related,omitempty"`
 	Rule          *Rule          `json:"rule,omitempty"`
 	Server        *Target        `json:"server,omitempty"`
+	Service       *Service       `json:"service,omitempty"`
 	Source        *Target        `json:"source,omitempty"`
 	Threat        *Threat        `json:"threat,omitempty"`
 	Tls           *Tls           `json:"tls,omitempty"`
@@ -589,11 +590,25 @@ type Rule struct {
 	Version     string `json:"version,omitempty"`
 }
 
+type ServiceNode struct {
+	Name  string   `json:"name,omitempty"`
+	Role  string   `json:"role,omitempty"`
+	Roles []string `json:"roles,omitempty"`
+}
+
 type Service struct {
-	Id    string `json:"id,omitempty"`
-	Name  string `json:"name,omitempty"`
-	State string `json:"state,omitempty"`
-	Type  string `json:"type,omitempty"`
+	Address     string       `json:"address,omitempty"`
+	Environment string       `json:"environment,omitempty"`
+	EphemeralId string       `json:"ephemeral_id,omitempty"`
+	Id          string       `json:"id,omitempty"`
+	Name        string       `json:"name,omitempty"`
+	Node        *ServiceNode `json:"node,omitempty"`
+	State       string       `json:"state,omitempty"`
+	Type        string       `json:"type,omitempty"`
+	Version     string       `json:"version,omitempty"`
+
+	Origin *Service `json:"origin,omitempty"`
+	Target *Service `json:"target,omitempty"`
 }
 
 // NOTE: Custom
