@@ -88,7 +88,8 @@ func (c *Client) PatchBucket(ctx context.Context, bucketName string, bucketConfi
 	}
 
 	u := *c.baseUrl
-	u.Path += "b/" + url.PathEscape(bucketName)
+	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName)
+	u.Path += "b/" + bucketName
 	urlString := u.String()
 
 	options = append(options, fetch_config.WithMethod(http.MethodPatch))
@@ -114,7 +115,8 @@ func (c *Client) GetObject(ctx context.Context, bucketName string, objectName st
 	}
 
 	u := *c.baseUrl
-	u.Path += "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
+	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
+	u.Path += "b/" + bucketName + "/o/" + objectName
 	urlString := u.String()
 
 	_, obj, err := motmedelHttpUtils.FetchJson[*object.Object](ctx, urlString, options...)
@@ -139,7 +141,8 @@ func (c *Client) DownloadObject(ctx context.Context, bucketName string, objectNa
 	}
 
 	u := *c.baseUrl
-	u.Path += "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
+	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
+	u.Path += "b/" + bucketName + "/o/" + objectName
 	u.RawQuery = url.Values{"alt": {"media"}}.Encode()
 	urlString := u.String()
 
@@ -163,7 +166,8 @@ func (c *Client) ListObjects(ctx context.Context, bucketName string, query url.V
 	}
 
 	u := *c.baseUrl
-	u.Path += "b/" + url.PathEscape(bucketName) + "/o"
+	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName) + "/o"
+	u.Path += "b/" + bucketName + "/o"
 	if query != nil {
 		u.RawQuery = query.Encode()
 	}
@@ -229,7 +233,8 @@ func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *
 	}
 
 	u := *c.uploadBaseUrl
-	u.Path += "b/" + url.PathEscape(bucketName) + "/o"
+	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName) + "/o"
+	u.Path += "b/" + bucketName + "/o"
 	u.RawQuery = url.Values{"uploadType": {"multipart"}}.Encode()
 	urlString := u.String()
 

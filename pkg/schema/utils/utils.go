@@ -401,6 +401,7 @@ func MakeHttpMessage(base *schema.Base) string {
 		}
 		if target.Ip != "" {
 			sourceTargetIpAddress = target.Ip
+			break
 		}
 	}
 
