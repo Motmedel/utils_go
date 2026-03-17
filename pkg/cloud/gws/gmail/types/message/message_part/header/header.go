@@ -1,6 +1,6 @@
 package header
 
 type Header struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
+	Name  string `json:"name,omitzero"`
+	Value string `json:"value,omitzero"`
 }

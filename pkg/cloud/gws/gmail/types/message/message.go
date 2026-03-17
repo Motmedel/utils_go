@@ -5,14 +5,14 @@ import (
 )
 
 type Message struct {
-	Id           string   `json:"id,omitempty"`
-	ThreadId     string   `json:"threadId,omitempty"`
-	LabelIds     []string `json:"labelIds,omitempty"`
-	Snippet      string   `json:"snippet,omitempty"`
-	HistoryId    string   `json:"historyId,omitempty"`
-	InternalDate string   `json:"internalDate,omitempty"`
-	SizeEstimate int      `json:"sizeEstimate,omitempty"`
-	Raw          string   `json:"raw,omitempty"`
+	Id           string   `json:"id,omitzero"`
+	ThreadId     string   `json:"threadId,omitzero"`
+	LabelIds     []string `json:"labelIds,omitzero"`
+	Snippet      string   `json:"snippet,omitzero"`
+	HistoryId    string   `json:"historyId,omitzero"`
+	InternalDate string   `json:"internalDate,omitzero"`
+	SizeEstimate int      `json:"sizeEstimate,omitzero"`
+	Raw          string   `json:"raw,omitzero"`
 
-	Payload *message_part.MessagePart `json:"payload,omitempty"`
+	Payload *message_part.MessagePart `json:"payload,omitzero"`
 }

@@ -6,10 +6,10 @@ import (
 )
 
 type MessagePart struct {
-	PartId   string           `json:"partId,omitempty"`
-	MimeType string           `json:"mimeType,omitempty"`
-	Filename string           `json:"filename,omitempty"`
-	Headers  []*header.Header `json:"headers,omitempty"`
-	Body     *body.Body       `json:"body,omitempty"`
-	Parts    []*MessagePart   `json:"parts,omitempty"`
+	PartId   string           `json:"partId,omitzero"`
+	MimeType string           `json:"mimeType,omitzero"`
+	Filename string           `json:"filename,omitzero"`
+	Headers  []*header.Header `json:"headers,omitzero"`
+	Body     *body.Body       `json:"body,omitzero"`
+	Parts    []*MessagePart   `json:"parts,omitzero"`
 }
