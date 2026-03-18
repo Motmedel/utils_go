@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/artifact_registry_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/types/index"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/types/manifest"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -16,22 +17,22 @@ import (
 const DomainSuffix = "docker.pkg.dev"
 
 type Client struct {
-	baseUrl      *url.URL
-	fetchOptions []fetch_config.Option
+	baseUrl *url.URL
+	config  *artifact_registry_config.Config
 }
 
-func NewClient(location string, fetchOptions ...fetch_config.Option) *Client {
+func NewClient(location string, options ...artifact_registry_config.Option) *Client {
 	return NewClientWithBaseUrl(&url.URL{
 		Scheme: "https",
 		Host:   location + "-" + DomainSuffix,
-	}, fetchOptions...)
+	}, options...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, options ...artifact_registry_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/v2/"
 
-	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
+	return &Client{baseUrl: &u, config: artifact_registry_config.New(options...)}
 }
 
 // GetManifest fetches an OCI image manifest by tag or digest.
@@ -53,7 +54,7 @@ func (c *Client) GetManifest(ctx context.Context, name string, reference string,
 	urlString := u.String()
 
 	options = append(
-		append(c.fetchOptions, fetch_config.WithHeaders(map[string]string{
+		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{
 			"Accept": "application/vnd.oci.image.manifest.v1+json",
 		})),
 		options...,
@@ -93,7 +94,7 @@ func (c *Client) ListReferrers(ctx context.Context, name string, digest string, 
 	}
 	urlString := u.String()
 
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, idx, err := motmedelHttpUtils.FetchJson[*index.Index](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -119,7 +120,7 @@ func (c *Client) GetBlob(ctx context.Context, name string, digest string, option
 	u.Path += name + "/blobs/" + digest
 	urlString := u.String()
 
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, responseBody, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)

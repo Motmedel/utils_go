@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/gcp_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/credentials_file"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_source/authorized_user_token_source"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_source/metadata_token_source"
@@ -38,18 +39,18 @@ var (
 type Client struct {
 	metadataBaseUrl *url.URL
 	tokenUrl        string
-	fetchOptions    []fetch_config.Option
+	config          *gcp_config.Config
 }
 
-func NewClient(fetchOptions ...fetch_config.Option) *Client {
-	return NewClientWithUrls(defaultMetadataBaseUrl, DefaultTokenUrl, fetchOptions...)
+func NewClient(options ...gcp_config.Option) *Client {
+	return NewClientWithUrls(defaultMetadataBaseUrl, DefaultTokenUrl, options...)
 }
 
-func NewClientWithUrls(metadataBaseUrl *url.URL, tokenUrl string, fetchOptions ...fetch_config.Option) *Client {
+func NewClientWithUrls(metadataBaseUrl *url.URL, tokenUrl string, options ...gcp_config.Option) *Client {
 	return &Client{
 		metadataBaseUrl: metadataBaseUrl,
 		tokenUrl:        tokenUrl,
-		fetchOptions:    fetchOptions,
+		config:          gcp_config.New(options...),
 	}
 }
 
@@ -68,7 +69,7 @@ func (c *Client) GetIdToken(ctx context.Context, audience string, options ...fet
 
 	identityUrlString := identityUrl.String()
 	options = append(
-		append(c.fetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
 		options...,
 	)
 	_, responseBody, err := motmedelHttpUtils.Fetch(
@@ -93,7 +94,7 @@ func (c *Client) GetProjectId(ctx context.Context, options ...fetch_config.Optio
 
 	urlString := requestUrl.String()
 	options = append(
-		append(c.fetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
 		options...,
 	)
 	_, responseBody, err := motmedelHttpUtils.Fetch(
@@ -173,21 +174,21 @@ func (c *Client) FindDefaultCredentials(ctx context.Context, scopes []string, op
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("os read file: %w", err), envPath)
 		}
-		options = append(c.fetchOptions, options...)
+		options = append(c.config.FetchOptions, options...)
 		return c.credentialsFileTokenSource(ctx, data, scopes, options...)
 	}
 
 	// 2. Well-known file.
 	if wellKnownPath := wellKnownCredentialsPath(); wellKnownPath != "" {
 		if data, err := os.ReadFile(wellKnownPath); err == nil {
-			options = append(c.fetchOptions, options...)
+			options = append(c.config.FetchOptions, options...)
 			return c.credentialsFileTokenSource(ctx, data, scopes, options...)
 		}
 	}
 
 	// 3. Metadata server.
 	if metadataBaseUrl := c.metadataBaseUrl; metadataBaseUrl != nil {
-		options = append(c.fetchOptions, options...)
+		options = append(c.config.FetchOptions, options...)
 		metadataTokenSource, err := metadata_token_source.New(ctx, c.metadataBaseUrl, scopes, options...)
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("metadata token source new: %w", err))

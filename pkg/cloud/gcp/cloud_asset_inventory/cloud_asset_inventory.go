@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/cloud_asset_inventory_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/types/asset_list"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/types/resource_search_result_list"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -21,19 +22,19 @@ var defaultBaseUrl = &url.URL{
 }
 
 type Client struct {
-	baseUrl      *url.URL
-	fetchOptions []fetch_config.Option
+	baseUrl *url.URL
+	config  *cloud_asset_inventory_config.Config
 }
 
-func NewClient(fetchOptions ...fetch_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, fetchOptions...)
+func NewClient(options ...cloud_asset_inventory_config.Option) *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl, options...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, options ...cloud_asset_inventory_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/v1/"
 
-	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
+	return &Client{baseUrl: &u, config: cloud_asset_inventory_config.New(options...)}
 }
 
 // ListAssets lists assets under the specified parent (e.g. "organizations/123456", "projects/my-project", or "folders/123456").
@@ -54,7 +55,7 @@ func (c *Client) ListAssets(ctx context.Context, parent string, query url.Values
 	}
 	urlString := u.String()
 
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, list, err := motmedelHttpUtils.FetchJson[*asset_list.AssetList](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -81,7 +82,7 @@ func (c *Client) SearchAllResources(ctx context.Context, scope string, query url
 	}
 	urlString := u.String()
 
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, list, err := motmedelHttpUtils.FetchJson[*resource_search_result_list.ResourceSearchResultList](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)

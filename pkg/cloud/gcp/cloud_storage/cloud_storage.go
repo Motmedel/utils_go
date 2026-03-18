@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"net/url"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/cloud_storage_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/bucket"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object_list"
@@ -29,21 +30,21 @@ var defaultBaseUrl = &url.URL{
 type Client struct {
 	baseUrl       *url.URL
 	uploadBaseUrl *url.URL
-	fetchOptions  []fetch_config.Option
+	config        *cloud_storage_config.Config
 }
 
-func NewClient(fetchOptions ...fetch_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, fetchOptions...)
+func NewClient(options ...cloud_storage_config.Option) *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl, options...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, options ...cloud_storage_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/storage/v1/"
 
 	uploadU := *baseUrl
 	uploadU.Path = "/upload/storage/v1/"
 
-	return &Client{baseUrl: &u, uploadBaseUrl: &uploadU, fetchOptions: fetchOptions}
+	return &Client{baseUrl: &u, uploadBaseUrl: &uploadU, config: cloud_storage_config.New(options...)}
 }
 
 // InsertBucket creates a new bucket in the specified project.
@@ -65,7 +66,7 @@ func (c *Client) InsertBucket(ctx context.Context, project string, bucketConfig 
 	u.RawQuery = url.Values{"project": {project}}.Encode()
 	urlString := u.String()
 
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
 	_, createdBucket, err := motmedelHttpUtils.FetchJsonWithBody[*bucket.Bucket](ctx, urlString, bucketConfig, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -93,7 +94,7 @@ func (c *Client) PatchBucket(ctx context.Context, bucketName string, bucketConfi
 	u.Path += "b/" + bucketName
 	urlString := u.String()
 
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPatch))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPatch))
 	_, patchedBucket, err := motmedelHttpUtils.FetchJsonWithBody[*bucket.Bucket](ctx, urlString, bucketConfig, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -120,7 +121,7 @@ func (c *Client) GetObject(ctx context.Context, bucketName string, objectName st
 	u.Path += "b/" + bucketName + "/o/" + objectName
 	urlString := u.String()
 
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, obj, err := motmedelHttpUtils.FetchJson[*object.Object](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -148,7 +149,7 @@ func (c *Client) DownloadObject(ctx context.Context, bucketName string, objectNa
 	u.RawQuery = url.Values{"alt": {"media"}}.Encode()
 	urlString := u.String()
 
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, responseBody, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
@@ -176,7 +177,7 @@ func (c *Client) ListObjects(ctx context.Context, bucketName string, query url.V
 	}
 	urlString := u.String()
 
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, list, err := motmedelHttpUtils.FetchJson[*object_list.ObjectList](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -243,7 +244,7 @@ func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *
 	urlString := u.String()
 
 	options = append(
-		append(c.fetchOptions, options...),
+		append(c.config.FetchOptions, options...),
 		fetch_config.WithMethod(http.MethodPost),
 		fetch_config.WithBody(buf.Bytes()),
 		fetch_config.WithHeaders(map[string]string{

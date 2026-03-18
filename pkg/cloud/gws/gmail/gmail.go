@@ -11,6 +11,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/gmail_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
 )
@@ -23,18 +24,18 @@ var defaultBaseUrl = &url.URL{
 }
 
 type Client struct {
-	baseUrl      *url.URL
-	fetchOptions []fetch_config.Option
+	baseUrl *url.URL
+	config  *gmail_config.Config
 }
 
-func NewClient(fetchOptions ...fetch_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, fetchOptions...)
+func NewClient(options ...gmail_config.Option) *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl, options...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, options ...gmail_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/gmail/v1/users/"
-	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
+	return &Client{baseUrl: &u, config: gmail_config.New(options...)}
 }
 
 func (c *Client) sendUrl(userId string) string {
@@ -68,7 +69,7 @@ func (c *Client) Send(ctx context.Context, userId string, msg *message.Message, 
 	}
 
 	urlString := c.sendUrl(userId)
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
 	_, sentMessage, err := motmedelHttpUtils.FetchJsonWithBody[*message.Message](ctx, urlString, msg, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -92,7 +93,7 @@ func (c *Client) CreateSendAs(ctx context.Context, userId string, s *send_as.Sen
 	}
 
 	urlString := c.sendAsUrl(userId, "")
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
 	_, created, err := motmedelHttpUtils.FetchJsonWithBody[*send_as.SendAs](ctx, urlString, s, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -115,7 +116,7 @@ func (c *Client) GetSendAs(ctx context.Context, userId string, sendAsEmail strin
 	}
 
 	urlString := c.sendAsUrl(userId, sendAsEmail)
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, s, err := motmedelHttpUtils.FetchJson[*send_as.SendAs](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -142,7 +143,7 @@ func (c *Client) UpdateSendAs(ctx context.Context, userId string, sendAsEmail st
 	}
 
 	urlString := c.sendAsUrl(userId, sendAsEmail)
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
 	_, updated, err := motmedelHttpUtils.FetchJsonWithBody[*send_as.SendAs](ctx, urlString, s, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -165,7 +166,7 @@ func (c *Client) DeleteSendAs(ctx context.Context, userId string, sendAsEmail st
 	}
 
 	urlString := c.sendAsUrl(userId, sendAsEmail)
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
 	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
 		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)

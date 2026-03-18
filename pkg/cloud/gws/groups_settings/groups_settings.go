@@ -11,6 +11,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/groups_settings/groups_settings_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/groups_settings/types/group"
 )
 
@@ -22,18 +23,18 @@ var defaultBaseUrl = &url.URL{
 }
 
 type Client struct {
-	baseUrl      *url.URL
-	fetchOptions []fetch_config.Option
+	baseUrl *url.URL
+	config  *groups_settings_config.Config
 }
 
-func NewClient(fetchOptions ...fetch_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, fetchOptions...)
+func NewClient(options ...groups_settings_config.Option) *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl, options...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, options ...groups_settings_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/groups/v1/groups/"
-	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
+	return &Client{baseUrl: &u, config: groups_settings_config.New(options...)}
 }
 
 func (c *Client) groupUrl(groupEmail string) string {
@@ -53,7 +54,7 @@ func (c *Client) Get(ctx context.Context, groupEmail string, options ...fetch_co
 	}
 
 	urlString := c.groupUrl(groupEmail)
-	options = append(c.fetchOptions, options...)
+	options = append(c.config.FetchOptions, options...)
 	_, groupSettings, err := motmedelHttpUtils.FetchJson[*group.Group](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -73,7 +74,7 @@ func (c *Client) Update(ctx context.Context, groupEmail string, groupSettings *g
 	}
 
 	urlString := c.groupUrl(groupEmail)
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
 	_, updatedGroupSettings, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, groupSettings, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -93,7 +94,7 @@ func (c *Client) Patch(ctx context.Context, groupEmail string, groupSettings *gr
 	}
 
 	urlString := c.groupUrl(groupEmail)
-	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPatch))
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPatch))
 	_, patchedGroupSettings, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, groupSettings, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
