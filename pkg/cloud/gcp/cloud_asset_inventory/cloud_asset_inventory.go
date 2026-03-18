@@ -21,18 +21,19 @@ var defaultBaseUrl = &url.URL{
 }
 
 type Client struct {
-	baseUrl *url.URL
+	baseUrl      *url.URL
+	fetchOptions []fetch_config.Option
 }
 
-func NewClient() *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl)
+func NewClient(fetchOptions ...fetch_config.Option) *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl, fetchOptions...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/v1/"
 
-	return &Client{baseUrl: &u}
+	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
 }
 
 // ListAssets lists assets under the specified parent (e.g. "organizations/123456", "projects/my-project", or "folders/123456").
@@ -53,6 +54,7 @@ func (c *Client) ListAssets(ctx context.Context, parent string, query url.Values
 	}
 	urlString := u.String()
 
+	options = append(c.fetchOptions, options...)
 	_, list, err := motmedelHttpUtils.FetchJson[*asset_list.AssetList](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -79,6 +81,7 @@ func (c *Client) SearchAllResources(ctx context.Context, scope string, query url
 	}
 	urlString := u.String()
 
+	options = append(c.fetchOptions, options...)
 	_, list, err := motmedelHttpUtils.FetchJson[*resource_search_result_list.ResourceSearchResultList](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)

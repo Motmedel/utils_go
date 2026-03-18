@@ -38,20 +38,22 @@ var (
 type Client struct {
 	metadataBaseUrl *url.URL
 	tokenUrl        string
+	fetchOptions    []fetch_config.Option
 }
 
-func NewClient() *Client {
-	return NewClientWithUrls(defaultMetadataBaseUrl, DefaultTokenUrl)
+func NewClient(fetchOptions ...fetch_config.Option) *Client {
+	return NewClientWithUrls(defaultMetadataBaseUrl, DefaultTokenUrl, fetchOptions...)
 }
 
-func NewClientWithUrls(metadataBaseUrl *url.URL, tokenUrl string) *Client {
+func NewClientWithUrls(metadataBaseUrl *url.URL, tokenUrl string, fetchOptions ...fetch_config.Option) *Client {
 	return &Client{
 		metadataBaseUrl: metadataBaseUrl,
 		tokenUrl:        tokenUrl,
+		fetchOptions:    fetchOptions,
 	}
 }
 
-func (c *Client) GetIdToken(ctx context.Context, audience string) (string, error) {
+func (c *Client) GetIdToken(ctx context.Context, audience string, options ...fetch_config.Option) (string, error) {
 	if audience == "" {
 		return "", motmedelErrors.NewWithTrace(empty_error.New("audience"))
 	}
@@ -65,10 +67,14 @@ func (c *Client) GetIdToken(ctx context.Context, audience string) (string, error
 	identityUrl.RawQuery = url.Values{"audience": {audience}}.Encode()
 
 	identityUrlString := identityUrl.String()
+	options = append(
+		append(c.fetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		options...,
+	)
 	_, responseBody, err := motmedelHttpUtils.Fetch(
 		ctx,
 		identityUrlString,
-		fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"}),
+		options...,
 	)
 	if err != nil {
 		return "", motmedelErrors.New(fmt.Errorf("fetch: %w", err), identityUrlString)
@@ -77,7 +83,7 @@ func (c *Client) GetIdToken(ctx context.Context, audience string) (string, error
 	return string(responseBody), nil
 }
 
-func (c *Client) GetProjectId(ctx context.Context) (string, error) {
+func (c *Client) GetProjectId(ctx context.Context, options ...fetch_config.Option) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", fmt.Errorf("context err: %w", err)
 	}
@@ -86,10 +92,14 @@ func (c *Client) GetProjectId(ctx context.Context) (string, error) {
 	requestUrl.Path += "/project/project-id"
 
 	urlString := requestUrl.String()
+	options = append(
+		append(c.fetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		options...,
+	)
 	_, responseBody, err := motmedelHttpUtils.Fetch(
 		ctx,
 		urlString,
-		fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"}),
+		options...,
 	)
 	if err != nil {
 		return "", motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
@@ -152,7 +162,7 @@ func (c *Client) credentialsFileTokenSource(ctx context.Context, data []byte, sc
 //  1. GOOGLE_APPLICATION_CREDENTIALS env var — reads the JSON file it points to.
 //  2. Well-known file — user credentials from gcloud auth application-default login.
 //  3. Metadata server — if running on GCP (Compute Engine, Cloud Run, etc.).
-func (c *Client) FindDefaultCredentials(ctx context.Context, scopes []string, fetchOptions ...fetch_config.Option) (token_source.TokenSource, error) {
+func (c *Client) FindDefaultCredentials(ctx context.Context, scopes []string, options ...fetch_config.Option) (token_source.TokenSource, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, fmt.Errorf("context err: %w", err)
 	}
@@ -163,19 +173,22 @@ func (c *Client) FindDefaultCredentials(ctx context.Context, scopes []string, fe
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("os read file: %w", err), envPath)
 		}
-		return c.credentialsFileTokenSource(ctx, data, scopes, fetchOptions...)
+		options = append(c.fetchOptions, options...)
+		return c.credentialsFileTokenSource(ctx, data, scopes, options...)
 	}
 
 	// 2. Well-known file.
 	if wellKnownPath := wellKnownCredentialsPath(); wellKnownPath != "" {
 		if data, err := os.ReadFile(wellKnownPath); err == nil {
-			return c.credentialsFileTokenSource(ctx, data, scopes, fetchOptions...)
+			options = append(c.fetchOptions, options...)
+			return c.credentialsFileTokenSource(ctx, data, scopes, options...)
 		}
 	}
 
 	// 3. Metadata server.
 	if metadataBaseUrl := c.metadataBaseUrl; metadataBaseUrl != nil {
-		metadataTokenSource, err := metadata_token_source.New(ctx, c.metadataBaseUrl, scopes, fetchOptions...)
+		options = append(c.fetchOptions, options...)
+		metadataTokenSource, err := metadata_token_source.New(ctx, c.metadataBaseUrl, scopes, options...)
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("metadata token source new: %w", err))
 		}

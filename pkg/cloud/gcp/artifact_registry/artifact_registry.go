@@ -16,21 +16,22 @@ import (
 const DomainSuffix = "docker.pkg.dev"
 
 type Client struct {
-	baseUrl *url.URL
+	baseUrl      *url.URL
+	fetchOptions []fetch_config.Option
 }
 
-func NewClient(location string) *Client {
+func NewClient(location string, fetchOptions ...fetch_config.Option) *Client {
 	return NewClientWithBaseUrl(&url.URL{
 		Scheme: "https",
 		Host:   location + "-" + DomainSuffix,
-	})
+	}, fetchOptions...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/v2/"
 
-	return &Client{baseUrl: &u}
+	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
 }
 
 // GetManifest fetches an OCI image manifest by tag or digest.
@@ -52,10 +53,10 @@ func (c *Client) GetManifest(ctx context.Context, name string, reference string,
 	urlString := u.String()
 
 	options = append(
-		options,
-		fetch_config.WithHeaders(map[string]string{
+		append(c.fetchOptions, fetch_config.WithHeaders(map[string]string{
 			"Accept": "application/vnd.oci.image.manifest.v1+json",
-		}),
+		})),
+		options...,
 	)
 
 	response, m, err := motmedelHttpUtils.FetchJson[*manifest.Manifest](ctx, urlString, options...)
@@ -92,6 +93,7 @@ func (c *Client) ListReferrers(ctx context.Context, name string, digest string, 
 	}
 	urlString := u.String()
 
+	options = append(c.fetchOptions, options...)
 	_, idx, err := motmedelHttpUtils.FetchJson[*index.Index](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -117,6 +119,7 @@ func (c *Client) GetBlob(ctx context.Context, name string, digest string, option
 	u.Path += name + "/blobs/" + digest
 	urlString := u.String()
 
+	options = append(c.fetchOptions, options...)
 	_, responseBody, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)

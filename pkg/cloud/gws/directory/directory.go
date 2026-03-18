@@ -24,17 +24,18 @@ var defaultBaseUrl = &url.URL{
 }
 
 type Client struct {
-	baseUrl *url.URL
+	baseUrl      *url.URL
+	fetchOptions []fetch_config.Option
 }
 
-func NewClient() *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl)
+func NewClient(fetchOptions ...fetch_config.Option) *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl, fetchOptions...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/admin/directory/v1/"
-	return &Client{baseUrl: &u}
+	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
 }
 
 // User operations
@@ -53,7 +54,7 @@ func (c *Client) CreateUser(ctx context.Context, u *user.User, options ...fetch_
 	urlObj.Path += "users"
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodPost))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
 	_, createdUser, err := motmedelHttpUtils.FetchJsonWithBody[*user.User](ctx, urlString, u, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -76,6 +77,7 @@ func (c *Client) GetUser(ctx context.Context, userKey string, options ...fetch_c
 	urlObj.Path += "users/" + url.PathEscape(userKey)
 	urlString := urlObj.String()
 
+	options = append(c.fetchOptions, options...)
 	_, u, err := motmedelHttpUtils.FetchJson[*user.User](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -102,7 +104,7 @@ func (c *Client) UpdateUser(ctx context.Context, userKey string, u *user.User, o
 	urlObj.Path += "users/" + url.PathEscape(userKey)
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodPut))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
 	_, updatedUser, err := motmedelHttpUtils.FetchJsonWithBody[*user.User](ctx, urlString, u, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -125,7 +127,7 @@ func (c *Client) DeleteUser(ctx context.Context, userKey string, options ...fetc
 	urlObj.Path += "users/" + url.PathEscape(userKey)
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodDelete))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
 	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
 		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
@@ -164,7 +166,8 @@ func (c *Client) ListUsers(ctx context.Context, customer string, options ...fetc
 		urlObj.RawQuery = query.Encode()
 		urlString := urlObj.String()
 
-		_, resp, err := motmedelHttpUtils.FetchJson[*listUsersResponse](ctx, urlString, options...)
+		paginatedOptions := append(c.fetchOptions, options...)
+		_, resp, err := motmedelHttpUtils.FetchJson[*listUsersResponse](ctx, urlString, paginatedOptions...)
 		if err != nil {
 			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 		}
@@ -216,7 +219,8 @@ func (c *Client) ListGroups(ctx context.Context, customer string, options ...fet
 		urlObj.RawQuery = query.Encode()
 		urlString := urlObj.String()
 
-		_, resp, err := motmedelHttpUtils.FetchJson[*listGroupsResponse](ctx, urlString, options...)
+		paginatedOptions := append(c.fetchOptions, options...)
+		_, resp, err := motmedelHttpUtils.FetchJson[*listGroupsResponse](ctx, urlString, paginatedOptions...)
 		if err != nil {
 			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 		}
@@ -250,7 +254,7 @@ func (c *Client) CreateGroup(ctx context.Context, g *group.Group, options ...fet
 	urlObj.Path += "groups"
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodPost))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
 	_, createdGroup, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, g, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -273,6 +277,7 @@ func (c *Client) GetGroup(ctx context.Context, groupKey string, options ...fetch
 	urlObj.Path += "groups/" + url.PathEscape(groupKey)
 	urlString := urlObj.String()
 
+	options = append(c.fetchOptions, options...)
 	_, g, err := motmedelHttpUtils.FetchJson[*group.Group](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -299,7 +304,7 @@ func (c *Client) UpdateGroup(ctx context.Context, groupKey string, g *group.Grou
 	urlObj.Path += "groups/" + url.PathEscape(groupKey)
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodPut))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
 	_, updatedGroup, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, g, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -322,7 +327,7 @@ func (c *Client) DeleteGroup(ctx context.Context, groupKey string, options ...fe
 	urlObj.Path += "groups/" + url.PathEscape(groupKey)
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodDelete))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
 	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
 		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
@@ -362,7 +367,8 @@ func (c *Client) ListMembers(ctx context.Context, groupKey string, options ...fe
 		urlObj.RawQuery = query.Encode()
 		urlString := urlObj.String()
 
-		_, resp, err := motmedelHttpUtils.FetchJson[*listMembersResponse](ctx, urlString, options...)
+		paginatedOptions := append(c.fetchOptions, options...)
+		_, resp, err := motmedelHttpUtils.FetchJson[*listMembersResponse](ctx, urlString, paginatedOptions...)
 		if err != nil {
 			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 		}
@@ -400,7 +406,7 @@ func (c *Client) CreateMember(ctx context.Context, groupKey string, m *member.Me
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members"
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodPost))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
 	_, createdMember, err := motmedelHttpUtils.FetchJsonWithBody[*member.Member](ctx, urlString, m, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -426,6 +432,7 @@ func (c *Client) GetMember(ctx context.Context, groupKey string, memberKey strin
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members/" + url.PathEscape(memberKey)
 	urlString := urlObj.String()
 
+	options = append(c.fetchOptions, options...)
 	_, m, err := motmedelHttpUtils.FetchJson[*member.Member](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -455,7 +462,7 @@ func (c *Client) UpdateMember(ctx context.Context, groupKey string, memberKey st
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members/" + url.PathEscape(memberKey)
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodPut))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
 	_, updatedMember, err := motmedelHttpUtils.FetchJsonWithBody[*member.Member](ctx, urlString, m, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -481,7 +488,7 @@ func (c *Client) DeleteMember(ctx context.Context, groupKey string, memberKey st
 	urlObj.Path += "groups/" + url.PathEscape(groupKey) + "/members/" + url.PathEscape(memberKey)
 	urlString := urlObj.String()
 
-	options = append(options, fetch_config.WithMethod(http.MethodDelete))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
 	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
 		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)

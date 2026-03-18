@@ -22,17 +22,18 @@ var defaultBaseUrl = &url.URL{
 }
 
 type Client struct {
-	baseUrl *url.URL
+	baseUrl      *url.URL
+	fetchOptions []fetch_config.Option
 }
 
-func NewClient() *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl)
+func NewClient(fetchOptions ...fetch_config.Option) *Client {
+	return NewClientWithBaseUrl(defaultBaseUrl, fetchOptions...)
 }
 
-func NewClientWithBaseUrl(baseUrl *url.URL) *Client {
+func NewClientWithBaseUrl(baseUrl *url.URL, fetchOptions ...fetch_config.Option) *Client {
 	u := *baseUrl
 	u.Path = "/groups/v1/groups/"
-	return &Client{baseUrl: &u}
+	return &Client{baseUrl: &u, fetchOptions: fetchOptions}
 }
 
 func (c *Client) groupUrl(groupEmail string) string {
@@ -52,6 +53,7 @@ func (c *Client) Get(ctx context.Context, groupEmail string, options ...fetch_co
 	}
 
 	urlString := c.groupUrl(groupEmail)
+	options = append(c.fetchOptions, options...)
 	_, groupSettings, err := motmedelHttpUtils.FetchJson[*group.Group](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
@@ -71,7 +73,7 @@ func (c *Client) Update(ctx context.Context, groupEmail string, groupSettings *g
 	}
 
 	urlString := c.groupUrl(groupEmail)
-	options = append(options, fetch_config.WithMethod(http.MethodPut))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
 	_, updatedGroupSettings, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, groupSettings, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
@@ -91,7 +93,7 @@ func (c *Client) Patch(ctx context.Context, groupEmail string, groupSettings *gr
 	}
 
 	urlString := c.groupUrl(groupEmail)
-	options = append(options, fetch_config.WithMethod(http.MethodPatch))
+	options = append(append(c.fetchOptions, options...), fetch_config.WithMethod(http.MethodPatch))
 	_, patchedGroupSettings, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, groupSettings, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
