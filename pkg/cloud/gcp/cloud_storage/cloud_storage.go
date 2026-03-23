@@ -103,6 +103,37 @@ func (c *Client) PatchBucket(ctx context.Context, bucketName string, bucketConfi
 	return patchedBucket, nil
 }
 
+// PatchObject updates an object's metadata using patch semantics.
+func (c *Client) PatchObject(ctx context.Context, bucketName string, objectName string, objectConfig *object.Object, options ...fetch_config.Option) (*object.Object, error) {
+	if bucketName == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
+	}
+	if objectName == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("object name"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	if objectConfig == nil {
+		return nil, nil
+	}
+
+	u := *c.baseUrl
+	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
+	u.Path += "b/" + bucketName + "/o/" + objectName
+	urlString := u.String()
+
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPatch))
+	_, patchedObject, err := motmedelHttpUtils.FetchJsonWithBody[*object.Object](ctx, urlString, objectConfig, options...)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	return patchedObject, nil
+}
+
 // GetObject retrieves an object's metadata.
 func (c *Client) GetObject(ctx context.Context, bucketName string, objectName string, options ...fetch_config.Option) (*object.Object, error) {
 	if bucketName == "" {

@@ -17,5 +17,6 @@ type Object struct {
 	MediaLink       string            `json:"mediaLink,omitempty"`
 	Crc32c          string            `json:"crc32c,omitempty"`
 	Etag            string            `json:"etag,omitempty"`
+	CustomTime      string            `json:"customTime,omitempty"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 }
