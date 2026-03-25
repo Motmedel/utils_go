@@ -38,6 +38,15 @@ func NewClientWithBaseUrl(baseUrl *url.URL, options ...gmail_config.Option) *Cli
 	return &Client{baseUrl: &u, config: gmail_config.New(options...)}
 }
 
+func (c *Client) messagesUrl(userId string, messageId string) string {
+	u := *c.baseUrl
+	u.Path += url.PathEscape(userId) + "/messages"
+	if messageId != "" {
+		u.Path += "/" + url.PathEscape(messageId)
+	}
+	return u.String()
+}
+
 func (c *Client) sendUrl(userId string) string {
 	u := *c.baseUrl
 	u.Path += url.PathEscape(userId) + "/messages/send"
@@ -76,6 +85,87 @@ func (c *Client) Send(ctx context.Context, userId string, msg *message.Message, 
 	}
 
 	return sentMessage, nil
+}
+
+type listMessagesResponse struct {
+	Messages           []*message.Message `json:"messages"`
+	NextPageToken      string             `json:"nextPageToken"`
+	ResultSizeEstimate int                `json:"resultSizeEstimate"`
+}
+
+// ListMessages retrieves all messages for the given user matching the optional query.
+// The query string uses the same format as the Gmail search box (e.g. "in:inbox", "from:user@example.com").
+// Only message IDs and thread IDs are populated; use GetMessage to retrieve the full message.
+func (c *Client) ListMessages(ctx context.Context, userId string, q string, options ...fetch_config.Option) ([]*message.Message, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	var allMessages []*message.Message
+	pageToken := ""
+
+	for {
+		urlObj, err := url.Parse(c.messagesUrl(userId, ""))
+		if err != nil {
+			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err))
+		}
+
+		query := url.Values{}
+		if q != "" {
+			query.Set("q", q)
+		}
+		if pageToken != "" {
+			query.Set("pageToken", pageToken)
+		}
+		urlObj.RawQuery = query.Encode()
+		urlString := urlObj.String()
+
+		paginatedOptions := append(c.config.FetchOptions, options...)
+		_, resp, err := motmedelHttpUtils.FetchJson[*listMessagesResponse](ctx, urlString, paginatedOptions...)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+		}
+
+		if resp != nil {
+			allMessages = append(allMessages, resp.Messages...)
+
+			if resp.NextPageToken == "" {
+				break
+			}
+			pageToken = resp.NextPageToken
+		} else {
+			break
+		}
+	}
+
+	return allMessages, nil
+}
+
+// GetMessage retrieves a message identified by messageId for the given user.
+func (c *Client) GetMessage(ctx context.Context, userId string, messageId string, options ...fetch_config.Option) (*message.Message, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+	if messageId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("message id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	urlString := c.messagesUrl(userId, messageId)
+	options = append(c.config.FetchOptions, options...)
+	_, msg, err := motmedelHttpUtils.FetchJson[*message.Message](ctx, urlString, options...)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	return msg, nil
 }
 
 // CreateSendAs creates a custom "from" send-as alias for the given user.

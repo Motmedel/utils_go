@@ -292,6 +292,177 @@ func TestDeleteSendAs_EmptySendAsEmail(t *testing.T) {
 	}
 }
 
+func TestListMessages(t *testing.T) {
+	callCount := 0
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/messages") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("q") != "in:inbox" {
+			t.Errorf("expected q=in:inbox, got %q", r.URL.Query().Get("q"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		callCount++
+		if callCount == 1 {
+			json.MarshalWrite(w, map[string]any{
+				"messages": []map[string]string{
+					{"id": "msg-1", "threadId": "thread-1"},
+					{"id": "msg-2", "threadId": "thread-2"},
+				},
+				"nextPageToken":      "token-abc",
+				"resultSizeEstimate": 3,
+			})
+		} else {
+			json.MarshalWrite(w, map[string]any{
+				"messages": []map[string]string{
+					{"id": "msg-3", "threadId": "thread-3"},
+				},
+				"resultSizeEstimate": 3,
+			})
+		}
+	})
+
+	messages, err := client.ListMessages(context.Background(), "me", "in:inbox")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(messages) != 3 {
+		t.Fatalf("expected 3 messages, got %d", len(messages))
+	}
+	if messages[0].Id != "msg-1" {
+		t.Errorf("expected first message id 'msg-1', got %q", messages[0].Id)
+	}
+	if messages[2].Id != "msg-3" {
+		t.Errorf("expected third message id 'msg-3', got %q", messages[2].Id)
+	}
+	if callCount != 2 {
+		t.Errorf("expected 2 API calls for pagination, got %d", callCount)
+	}
+}
+
+func TestListMessages_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.ListMessages(context.Background(), "", "in:inbox")
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestListMessages_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.ListMessages(ctx, "me", "in:inbox")
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestListMessages_EmptyQuery(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("q") != "" {
+			t.Errorf("expected no q parameter, got %q", r.URL.Query().Get("q"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, map[string]any{
+			"messages": []map[string]string{
+				{"id": "msg-1", "threadId": "thread-1"},
+			},
+		})
+	})
+
+	messages, err := client.ListMessages(context.Background(), "me", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(messages))
+	}
+}
+
+func TestGetMessage(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/messages/msg-123") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, &message.Message{
+			Id:           "msg-123",
+			ThreadId:     "thread-456",
+			LabelIds:     []string{"INBOX"},
+			Snippet:      "Hello world",
+			InternalDate: "1234567890000",
+			SizeEstimate: 1024,
+		})
+	})
+
+	msg, err := client.GetMessage(context.Background(), "me", "msg-123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if msg.Id != "msg-123" {
+		t.Errorf("expected id 'msg-123', got %q", msg.Id)
+	}
+	if msg.ThreadId != "thread-456" {
+		t.Errorf("expected thread id 'thread-456', got %q", msg.ThreadId)
+	}
+	if msg.Snippet != "Hello world" {
+		t.Errorf("expected snippet 'Hello world', got %q", msg.Snippet)
+	}
+}
+
+func TestGetMessage_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.GetMessage(context.Background(), "", "msg-123")
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestGetMessage_EmptyMessageId(t *testing.T) {
+	client := NewClient()
+	_, err := client.GetMessage(context.Background(), "me", "")
+	if err == nil {
+		t.Fatal("expected error for empty message id")
+	}
+}
+
+func TestGetMessage_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.GetMessage(ctx, "me", "msg-123")
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestMessagesUrl(t *testing.T) {
+	u, _ := url.Parse("http://localhost:8080")
+	client := NewClientWithBaseUrl(u)
+
+	got := client.messagesUrl("user@example.com", "")
+	expected := "http://localhost:8080/gmail/v1/users/user@example.com/messages"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+
+	got = client.messagesUrl("user@example.com", "msg-123")
+	expected = "http://localhost:8080/gmail/v1/users/user@example.com/messages/msg-123"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+}
+
 func TestSendAsUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClientWithBaseUrl(u)
