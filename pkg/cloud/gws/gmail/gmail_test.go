@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
 )
@@ -417,6 +418,35 @@ func TestGetMessage(t *testing.T) {
 	}
 	if msg.Snippet != "Hello world" {
 		t.Errorf("expected snippet 'Hello world', got %q", msg.Snippet)
+	}
+}
+
+func TestGetMessage_WithFormatAndMetadataHeaders(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("format") != "metadata" {
+			t.Errorf("expected format=metadata, got %q", r.URL.Query().Get("format"))
+		}
+		headers := r.URL.Query()["metadataHeaders"]
+		if len(headers) != 2 || headers[0] != "Subject" || headers[1] != "From" {
+			t.Errorf("expected metadataHeaders=[Subject, From], got %v", headers)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, &message.Message{
+			Id: "msg-123",
+		})
+	})
+
+	msg, err := client.GetMessage(
+		context.Background(), "me", "msg-123",
+		get_message_config.WithFormat(get_message_config.FormatMetadata),
+		get_message_config.WithMetadataHeaders("Subject", "From"),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if msg.Id != "msg-123" {
+		t.Errorf("expected id 'msg-123', got %q", msg.Id)
 	}
 }
 

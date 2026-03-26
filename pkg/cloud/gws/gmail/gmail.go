@@ -11,6 +11,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/gmail_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
@@ -146,7 +147,7 @@ func (c *Client) ListMessages(ctx context.Context, userId string, q string, opti
 }
 
 // GetMessage retrieves a message identified by messageId for the given user.
-func (c *Client) GetMessage(ctx context.Context, userId string, messageId string, options ...fetch_config.Option) (*message.Message, error) {
+func (c *Client) GetMessage(ctx context.Context, userId string, messageId string, options ...get_message_config.Option) (*message.Message, error) {
 	if userId == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
@@ -158,9 +159,25 @@ func (c *Client) GetMessage(ctx context.Context, userId string, messageId string
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	urlString := c.messagesUrl(userId, messageId)
-	options = append(c.config.FetchOptions, options...)
-	_, msg, err := motmedelHttpUtils.FetchJson[*message.Message](ctx, urlString, options...)
+	getMessageConfig := get_message_config.New(options...)
+
+	urlObj, err := url.Parse(c.messagesUrl(userId, messageId))
+	if err != nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err))
+	}
+
+	query := urlObj.Query()
+	if getMessageConfig.Format != "" {
+		query.Set("format", string(getMessageConfig.Format))
+	}
+	for _, header := range getMessageConfig.MetadataHeaders {
+		query.Add("metadataHeaders", header)
+	}
+	urlObj.RawQuery = query.Encode()
+	urlString := urlObj.String()
+
+	fetchOptions := append(c.config.FetchOptions, getMessageConfig.FetchOptions...)
+	_, msg, err := motmedelHttpUtils.FetchJson[*message.Message](ctx, urlString, fetchOptions...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
