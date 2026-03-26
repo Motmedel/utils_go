@@ -202,6 +202,10 @@ var extensionToParameter = map[string]*StaticContentParameter{
 	".txt":   {ContentType: "text/plain", CandidateForCompression: true},
 	".xml":   {ContentType: "text/xml", CandidateForCompression: true},
 	".pdf":   {ContentType: "application/pdf", CandidateForCompression: true},
+	// NOTE: Modern image formats should be used instead.
+	".png":  {ContentType: "image/png"},
+	".jpg":  {ContentType: "image/jpeg"},
+	".jpeg": {ContentType: "image/jpeg"},
 }
 
 // TODO: Use config.
