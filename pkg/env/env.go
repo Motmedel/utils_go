@@ -52,3 +52,33 @@ func ReadEnvFatalCtx(ctx context.Context, name string) string {
 func ReadEnvFatal(name string) string {
 	return ReadEnvFatalCtx(context.Background(), name)
 }
+
+func PopEnv(name string) (string, error) {
+	value, err := ReadEnv(name)
+	if err != nil {
+		return "", err
+	}
+
+	if unsetErr := os.Unsetenv(name); unsetErr != nil {
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("os unsetenv: %w", unsetErr))
+	}
+
+	return value, nil
+}
+
+func PopEnvFatalCtx(ctx context.Context, name string) string {
+	value, err := PopEnv(name)
+	if err != nil {
+		slog.ErrorContext(
+			context2.WithError(ctx, err),
+			"An environment variable could not be popped.",
+		)
+		os.Exit(1)
+	}
+
+	return value
+}
+
+func PopEnvFatal(name string) string {
+	return PopEnvFatalCtx(context.Background(), name)
+}
