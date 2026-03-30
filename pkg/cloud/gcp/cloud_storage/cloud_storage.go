@@ -217,6 +217,33 @@ func (c *Client) ListObjects(ctx context.Context, bucketName string, query url.V
 	return list, nil
 }
 
+// DeleteObject deletes an object from a bucket.
+func (c *Client) DeleteObject(ctx context.Context, bucketName string, objectName string, options ...fetch_config.Option) error {
+	if bucketName == "" {
+		return motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
+	}
+	if objectName == "" {
+		return motmedelErrors.NewWithTrace(empty_error.New("object name"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("context err: %w", err)
+	}
+
+	u := *c.baseUrl
+	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName) + "/o/" + url.PathEscape(objectName)
+	u.Path += "b/" + bucketName + "/o/" + objectName
+	urlString := u.String()
+
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
+	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
+	if err != nil {
+		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
+	}
+
+	return nil
+}
+
 // InsertObject uploads an object to a bucket using a multipart upload.
 // The metadata should have at least its Name field set. The data parameter contains
 // the object content, and contentType specifies its MIME type.

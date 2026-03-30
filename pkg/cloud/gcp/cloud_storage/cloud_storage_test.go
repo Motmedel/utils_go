@@ -269,6 +269,49 @@ func TestListObjects_NilQuery(t *testing.T) {
 	}
 }
 
+func TestDeleteObject(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		if !strings.Contains(r.URL.Path, "/b/my-bucket/o/my-object.txt") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	err := client.DeleteObject(context.Background(), "my-bucket", "my-object.txt")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDeleteObject_EmptyBucketName(t *testing.T) {
+	client := NewClient()
+	err := client.DeleteObject(context.Background(), "", "obj")
+	if err == nil {
+		t.Fatal("expected error for empty bucket name")
+	}
+}
+
+func TestDeleteObject_EmptyObjectName(t *testing.T) {
+	client := NewClient()
+	err := client.DeleteObject(context.Background(), "bucket", "")
+	if err == nil {
+		t.Fatal("expected error for empty object name")
+	}
+}
+
+func TestDeleteObject_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := client.DeleteObject(ctx, "bucket", "obj")
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
 func TestInsertObject(t *testing.T) {
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
