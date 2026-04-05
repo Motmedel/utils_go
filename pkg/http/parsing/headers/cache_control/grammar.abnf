@@ -1,0 +1,11 @@
+root=Cache-Control
+Cache-Control=[cache-directive] *(OWS "," OWS [cache-directive])
+cache-directive=directive-name ["=" directive-value]
+directive-name=token
+directive-value=token/quoted-string
+OWS=*(SP/HTAB)
+token=1*tchar
+tchar="!"/"#"/"$"/"%"/"&"/"'"/"*"/"+"/"-"/"."/"^"/"_"/"`"/"|"/"~"/DIGIT/ALPHA
+quoted-string=DQUOTE *(qdtext/quoted-pair) DQUOTE
+qdtext=HTAB/SP/%x21/%x23-5B/%x5D-7E
+quoted-pair="\" (HTAB/SP/VCHAR)

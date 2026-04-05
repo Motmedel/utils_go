@@ -15,7 +15,7 @@ import (
 
 var Grammar *goabnf.Grammar
 
-//go:embed grammar.txt
+//go:embed grammar.abnf
 var grammar []byte
 
 var (

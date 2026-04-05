@@ -106,7 +106,7 @@ func Parse(data []byte) (*motmedelHttpTypes.Authorization, error) {
 	return &authorization, nil
 }
 
-//go:embed grammar.txt
+//go:embed grammar.abnf
 var grammar []byte
 
 func init() {

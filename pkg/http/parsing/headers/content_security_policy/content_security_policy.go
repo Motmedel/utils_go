@@ -13,7 +13,7 @@ import (
 	goabnf "github.com/pandatix/go-abnf"
 )
 
-//go:embed grammar.txt
+//go:embed grammar.abnf
 var grammar []byte
 
 var sourceListDirectiveNames = map[string]struct{}{
