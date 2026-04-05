@@ -1,12 +1,15 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/schema"
 	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 )
@@ -418,4 +421,142 @@ type ForwardedElement struct {
 // different proxies in the request chain.
 type Forwarded struct {
 	Elements []*ForwardedElement
+}
+
+type CacheControlDirective struct {
+	Name  string
+	Value string
+}
+
+type CacheControl struct {
+	Directives []*CacheControlDirective
+	Raw        string
+}
+
+func (cacheControl *CacheControl) findDirective(name string) *CacheControlDirective {
+	for _, directive := range cacheControl.Directives {
+		if directive.Name == name {
+			return directive
+		}
+	}
+	return nil
+}
+
+func (cacheControl *CacheControl) hasDirective(name string) bool {
+	return cacheControl.findDirective(name) != nil
+}
+
+var ErrDirectiveNotPresent = errors.New("directive not present")
+
+func (cacheControl *CacheControl) deltaSeconds(name string) (int, error) {
+	directive := cacheControl.findDirective(name)
+	if directive == nil {
+		return 0, motmedelErrors.NewWithTrace(ErrDirectiveNotPresent)
+	}
+
+	value, err := strconv.Atoi(directive.Value)
+	if err != nil {
+		return 0, motmedelErrors.NewWithTrace(fmt.Errorf("strconv atoi: %w", err), directive.Value)
+	}
+
+	return value, nil
+}
+
+func splitFieldNames(value string) []string {
+	parts := strings.Split(value, ",")
+	var result []string
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// Request and response directives.
+
+func (cacheControl *CacheControl) MaxAge() (int, error) {
+	return cacheControl.deltaSeconds("max-age")
+}
+
+func (cacheControl *CacheControl) NoCache() bool {
+	return cacheControl.hasDirective("no-cache")
+}
+
+func (cacheControl *CacheControl) NoCacheFieldNames() []string {
+	directive := cacheControl.findDirective("no-cache")
+	if directive == nil || directive.Value == "" {
+		return nil
+	}
+
+	return splitFieldNames(directive.Value)
+}
+
+func (cacheControl *CacheControl) NoStore() bool {
+	return cacheControl.hasDirective("no-store")
+}
+
+func (cacheControl *CacheControl) NoTransform() bool {
+	return cacheControl.hasDirective("no-transform")
+}
+
+// Request-only directives.
+
+func (cacheControl *CacheControl) MaxStale() (value int, hasValue bool, err error) {
+	directive := cacheControl.findDirective("max-stale")
+	if directive == nil {
+		return 0, false, fmt.Errorf("max-stale: %w", ErrDirectiveNotPresent)
+	}
+	if directive.Value == "" {
+		return 0, false, nil
+	}
+
+	v, err := strconv.Atoi(directive.Value)
+	if err != nil {
+		return 0, true, fmt.Errorf("invalid delta-seconds for max-stale: %w", err)
+	}
+
+	return v, true, nil
+}
+
+func (cacheControl *CacheControl) MinFresh() (int, error) {
+	return cacheControl.deltaSeconds("min-fresh")
+}
+
+func (cacheControl *CacheControl) OnlyIfCached() bool {
+	return cacheControl.hasDirective("only-if-cached")
+}
+
+// Response-only directives.
+
+func (cacheControl *CacheControl) MustRevalidate() bool {
+	return cacheControl.hasDirective("must-revalidate")
+}
+
+func (cacheControl *CacheControl) MustUnderstand() bool {
+	return cacheControl.hasDirective("must-understand")
+}
+
+func (cacheControl *CacheControl) Private() bool {
+	return cacheControl.hasDirective("private")
+}
+
+func (cacheControl *CacheControl) PrivateFieldNames() []string {
+	directive := cacheControl.findDirective("private")
+	if directive == nil || directive.Value == "" {
+		return nil
+	}
+	return splitFieldNames(directive.Value)
+}
+
+func (cacheControl *CacheControl) ProxyRevalidate() bool {
+	return cacheControl.hasDirective("proxy-revalidate")
+}
+
+func (cacheControl *CacheControl) Public() bool {
+	return cacheControl.hasDirective("public")
+}
+
+func (cacheControl *CacheControl) SMaxAge() (int, error) {
+	return cacheControl.deltaSeconds("s-maxage")
 }
