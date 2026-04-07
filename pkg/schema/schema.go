@@ -1,11 +1,17 @@
 package schema
 
 import (
+	"fmt"
+	"net"
+	"strconv"
+
 	csp "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 	"github.com/Motmedel/utils_go/pkg/http/types/integrity_policy"
 	"github.com/Motmedel/utils_go/pkg/http/types/reporting_api"
 	"github.com/Motmedel/utils_go/pkg/net/types/domain_parts"
 )
+
+const unknownPlaceholder = "(unknown)"
 
 type HttpHeaders struct {
 	Normalized string `json:"normalized,omitempty"`
@@ -71,6 +77,60 @@ type Base struct {
 	// NOTE: Custom namespaces
 	Whois *Whois `json:"whois,omitempty"`
 	Tcp   *Tcp   `json:"tcp,omitempty"`
+}
+
+func (b *Base) MakeConnectionMessage() string {
+	var sourceIpAddress string
+	var destinationIpAddress string
+	var sourcePort int
+	var destinationPort int
+
+	if ecsSource := b.Source; ecsSource != nil {
+		sourceIpAddress = ecsSource.Ip
+		sourcePort = ecsSource.Port
+	}
+
+	if ecsDestination := b.Destination; ecsDestination != nil {
+		destinationIpAddress = ecsDestination.Ip
+		destinationPort = ecsDestination.Port
+	}
+
+	sourcePart := unknownPlaceholder
+	if sourceIpAddress != "" && sourcePort != 0 {
+		sourcePart = net.JoinHostPort(sourceIpAddress, strconv.Itoa(sourcePort))
+	} else if sourceIpAddress != "" {
+		sourcePart = sourceIpAddress
+	} else if sourcePort != 0 {
+		sourcePart = fmt.Sprintf(":%d", sourcePort)
+	}
+
+	destinationPart := unknownPlaceholder
+	if destinationIpAddress != "" && destinationPort != 0 {
+		destinationPart = net.JoinHostPort(destinationIpAddress, strconv.Itoa(destinationPort))
+	} else if destinationIpAddress != "" {
+		destinationPart = destinationIpAddress
+	} else if destinationPort != 0 {
+		destinationPart = fmt.Sprintf(":%d", destinationPort)
+	}
+
+	transportPart := unknownPlaceholder
+	if ecsNetwork := b.Network; ecsNetwork != nil {
+		if ecsNetwork.Transport != "" {
+			transportPart = ecsNetwork.Transport
+		} else if ecsNetwork.IanaNumber != "" {
+			transportPart = fmt.Sprintf("(%s)", ecsNetwork.IanaNumber)
+		}
+	}
+
+	var message string
+
+	if sourcePart == unknownPlaceholder && destinationPart == unknownPlaceholder && transportPart == unknownPlaceholder {
+		message = unknownPlaceholder
+	} else {
+		message = fmt.Sprintf("%s -> %s %s", sourcePart, destinationPart, transportPart)
+	}
+
+	return message
 }
 
 type AgentBuild struct {
