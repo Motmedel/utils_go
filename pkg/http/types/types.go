@@ -423,6 +423,27 @@ type Forwarded struct {
 	Elements []*ForwardedElement
 }
 
+type ETag struct {
+	Weak bool
+	Tag  string
+}
+
+func (etag *ETag) String() string {
+	if etag == nil {
+		return ""
+	}
+
+	var b strings.Builder
+	b.Grow(len(etag.Tag) + 4)
+	if etag.Weak {
+		b.WriteString("W/")
+	}
+	b.WriteByte('"')
+	b.WriteString(etag.Tag)
+	b.WriteByte('"')
+	return b.String()
+}
+
 type CacheControlDirective struct {
 	Name  string
 	Value string

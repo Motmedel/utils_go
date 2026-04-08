@@ -682,8 +682,8 @@ func TimestampReplaceAttr(groups []string, attr slog.Attr) slog.Attr {
 	case slog.TimeKey:
 		attr.Key = "@timestamp"
 	case slog.LevelKey:
-		if value, ok := attr.Value.Any().(string); ok {
-			return slog.Group("log", slog.String("level", strings.ToLower(value)))
+		if level, ok := attr.Value.Any().(slog.Level); ok {
+			return slog.Group("log", slog.String("level", strings.ToLower(level.String())))
 		}
 	case slog.MessageKey:
 		attr.Key = "message"
