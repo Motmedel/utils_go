@@ -14,69 +14,69 @@ import (
 const unknownPlaceholder = "(unknown)"
 
 type HttpHeaders struct {
-	Normalized string `json:"normalized,omitempty"`
-	Original   string `json:"original,omitempty"`
+	Normalized string `json:"normalized,omitzero"`
+	Original   string `json:"original,omitzero"`
 }
 
 type Body struct {
-	Bytes   int    `json:"bytes,omitempty"`
-	Content string `json:"content,omitempty"`
+	Bytes   int    `json:"bytes,omitzero"`
+	Content string `json:"content,omitzero"`
 }
 
 type Target struct {
 	domain_parts.Parts
-	Address string            `json:"address,omitempty"`
-	Bytes   int               `json:"bytes,omitempty"`
-	Domain  string            `json:"domain,omitempty"`
-	Ip      string            `json:"ip,omitempty"`
-	Mac     string            `json:"mac,omitempty"`
-	Nat     *Nat              `json:"nat,omitempty"`
-	Packets int               `json:"packets,omitempty"`
-	Port    int               `json:"port,omitempty"`
-	As      *AutonomousSystem `json:"as,omitempty"`
-	Geo     *Geo              `json:"geo,omitempty"`
-	User    *User             `json:"user,omitempty"`
+	Address string            `json:"address,omitzero"`
+	Bytes   int               `json:"bytes,omitzero"`
+	Domain  string            `json:"domain,omitzero"`
+	Ip      string            `json:"ip,omitzero"`
+	Mac     string            `json:"mac,omitzero"`
+	Nat     *Nat              `json:"nat,omitzero"`
+	Packets int               `json:"packets,omitzero"`
+	Port    int               `json:"port,omitzero"`
+	As      *AutonomousSystem `json:"as,omitzero"`
+	Geo     *Geo              `json:"geo,omitzero"`
+	User    *User             `json:"user,omitzero"`
 }
 
 type Base struct {
-	Timestamp string            `json:"@timestamp,omitempty"`
-	Labels    map[string]string `json:"labels,omitempty"`
-	Message   string            `json:"message,omitempty"`
-	Tags      []string          `json:"tags,omitempty"`
+	Timestamp string            `json:"@timestamp,omitzero"`
+	Labels    map[string]string `json:"labels,omitzero"`
+	Message   string            `json:"message,omitzero"`
+	Tags      []string          `json:"tags,omitzero"`
 
-	Client        *Target        `json:"client,omitempty"`
-	Cloud         *Cloud         `json:"cloud,omitempty"`
-	Container     *Container     `json:"container,omitempty"`
-	Destination   *Target        `json:"destination,omitempty"`
-	Dns           *Dns           `json:"dns,omitempty"`
-	Email         *Email         `json:"email,omitempty"`
-	Error         *Error         `json:"error,omitempty"`
-	Event         *Event         `json:"event,omitempty"`
-	File          *File          `json:"file,omitempty"`
-	Group         *Group         `json:"group,omitempty"`
-	Host          *Host          `json:"host,omitempty"`
-	Http          *Http          `json:"http,omitempty"`
-	Log           *Log           `json:"log,omitempty"`
-	Observer      *Observer      `json:"observer,omitempty"`
-	Package       *Package       `json:"package,omitempty"`
-	Process       *Process       `json:"process,omitempty"`
-	Registry      *Registry      `json:"registry,omitempty"`
-	Related       *Related       `json:"related,omitempty"`
-	Rule          *Rule          `json:"rule,omitempty"`
-	Server        *Target        `json:"server,omitempty"`
-	Service       *Service       `json:"service,omitempty"`
-	Source        *Target        `json:"source,omitempty"`
-	Threat        *Threat        `json:"threat,omitempty"`
-	Tls           *Tls           `json:"tls,omitempty"`
-	Network       *Network       `json:"network,omitempty"`
-	Url           *Url           `json:"url,omitempty"`
-	User          *User          `json:"user,omitempty"`
-	UserAgent     *UserAgent     `json:"user_agent,omitempty"`
-	Vulnerability *Vulnerability `json:"vulnerability,omitempty"`
+	Client        *Target        `json:"client,omitzero"`
+	Cloud         *Cloud         `json:"cloud,omitzero"`
+	Container     *Container     `json:"container,omitzero"`
+	Destination   *Target        `json:"destination,omitzero"`
+	Dns           *Dns           `json:"dns,omitzero"`
+	Email         *Email         `json:"email,omitzero"`
+	Error         *Error         `json:"error,omitzero"`
+	Event         *Event         `json:"event,omitzero"`
+	File          *File          `json:"file,omitzero"`
+	Group         *Group         `json:"group,omitzero"`
+	Host          *Host          `json:"host,omitzero"`
+	Http          *Http          `json:"http,omitzero"`
+	Log           *Log           `json:"log,omitzero"`
+	Observer      *Observer      `json:"observer,omitzero"`
+	Package       *Package       `json:"package,omitzero"`
+	Process       *Process       `json:"process,omitzero"`
+	Registry      *Registry      `json:"registry,omitzero"`
+	Related       *Related       `json:"related,omitzero"`
+	Rule          *Rule          `json:"rule,omitzero"`
+	Server        *Target        `json:"server,omitzero"`
+	Service       *Service       `json:"service,omitzero"`
+	Source        *Target        `json:"source,omitzero"`
+	Threat        *Threat        `json:"threat,omitzero"`
+	Tls           *Tls           `json:"tls,omitzero"`
+	Network       *Network       `json:"network,omitzero"`
+	Url           *Url           `json:"url,omitzero"`
+	User          *User          `json:"user,omitzero"`
+	UserAgent     *UserAgent     `json:"user_agent,omitzero"`
+	Vulnerability *Vulnerability `json:"vulnerability,omitzero"`
 
 	// NOTE: Custom namespaces
-	Whois *Whois `json:"whois,omitempty"`
-	Tcp   *Tcp   `json:"tcp,omitempty"`
+	Whois *Whois `json:"whois,omitzero"`
+	Tcp   *Tcp   `json:"tcp,omitzero"`
 }
 
 func (b *Base) MakeConnectionMessage() string {
@@ -134,796 +134,796 @@ func (b *Base) MakeConnectionMessage() string {
 }
 
 type AgentBuild struct {
-	Original string `json:"original,omitempty"`
+	Original string `json:"original,omitzero"`
 }
 
 type Agent struct {
-	Build       *AgentBuild `json:"build,omitempty"`
-	EphemeralId string      `json:"ephemeral_id,omitempty"`
-	Id          string      `json:"id,omitempty"`
-	Name        string      `json:"name,omitempty"`
-	Type        string      `json:"type,omitempty"`
-	Version     string      `json:"version,omitempty"`
+	Build       *AgentBuild `json:"build,omitzero"`
+	EphemeralId string      `json:"ephemeral_id,omitzero"`
+	Id          string      `json:"id,omitzero"`
+	Name        string      `json:"name,omitzero"`
+	Type        string      `json:"type,omitzero"`
+	Version     string      `json:"version,omitzero"`
 }
 
 type AutonomousSystem struct {
-	Number       int64         `json:"number,omitempty"`
-	Organization *Organization `json:"organization,omitempty"`
+	Number       int64         `json:"number,omitzero"`
+	Organization *Organization `json:"organization,omitzero"`
 }
 
 type Geo struct {
-	CityName       string `json:"city_name,omitempty"`
-	ContinentCode  string `json:"continent_code,omitempty"`
-	ContinentName  string `json:"continent_name,omitempty"`
-	CountryIsoCode string `json:"country_iso_code,omitempty"`
-	CountryName    string `json:"country_name,omitempty"`
-	Location       any    `json:"location,omitempty"`
-	Name           string `json:"name,omitempty"`
-	PostalCode     string `json:"postal_code,omitempty"`
-	RegionIsoCode  string `json:"region_iso_code,omitempty"`
-	RegionName     string `json:"region_name,omitempty"`
-	Timezone       string `json:"timezone,omitempty"`
+	CityName       string `json:"city_name,omitzero"`
+	ContinentCode  string `json:"continent_code,omitzero"`
+	ContinentName  string `json:"continent_name,omitzero"`
+	CountryIsoCode string `json:"country_iso_code,omitzero"`
+	CountryName    string `json:"country_name,omitzero"`
+	Location       any    `json:"location,omitzero"`
+	Name           string `json:"name,omitzero"`
+	PostalCode     string `json:"postal_code,omitzero"`
+	RegionIsoCode  string `json:"region_iso_code,omitzero"`
+	RegionName     string `json:"region_name,omitzero"`
+	Timezone       string `json:"timezone,omitzero"`
 }
 
 type Nat struct {
-	Ip   string `json:"ip,omitempty"`
-	Port int    `json:"port,omitempty"`
+	Ip   string `json:"ip,omitzero"`
+	Port int    `json:"port,omitzero"`
 }
 
 type Group struct {
-	Domain string `json:"domain,omitempty"`
-	Id     string `json:"id,omitempty"`
-	Name   string `json:"name,omitempty"`
+	Domain string `json:"domain,omitzero"`
+	Id     string `json:"id,omitzero"`
+	Name   string `json:"name,omitzero"`
 }
 
 type User struct {
-	Domain   string   `json:"domain,omitempty"`
-	Email    string   `json:"email,omitempty"`
-	FullName string   `json:"full_name,omitempty"`
-	Hash     string   `json:"hash,omitempty"`
-	Id       string   `json:"id,omitempty"`
-	Name     string   `json:"name,omitempty"`
-	Roles    []string `json:"roles,omitempty"`
-	Changes  *User    `json:"changes,omitempty"`
-	Group    *Group   `json:"group,omitempty"`
-	Target   *User    `json:"target,omitempty"`
+	Domain   string   `json:"domain,omitzero"`
+	Email    string   `json:"email,omitzero"`
+	FullName string   `json:"full_name,omitzero"`
+	Hash     string   `json:"hash,omitzero"`
+	Id       string   `json:"id,omitzero"`
+	Name     string   `json:"name,omitzero"`
+	Roles    []string `json:"roles,omitzero"`
+	Changes  *User    `json:"changes,omitzero"`
+	Group    *Group   `json:"group,omitzero"`
+	Target   *User    `json:"target,omitzero"`
 	// NOTE: Custom
-	Unverified bool `json:"unverified,omitempty"`
+	Unverified bool `json:"unverified,omitzero"`
 }
 
 type CloudAccount struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   string `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudInstance struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   string `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudMachine struct {
-	Type string `json:"type,omitempty"`
+	Type string `json:"type,omitzero"`
 }
 
 type CloudProject struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   string `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudService struct {
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudOriginTargetAccount struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   string `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudOriginTargetInstance struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   string `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudOriginTargetMachine struct {
-	Type string `json:"type,omitempty"`
+	Type string `json:"type,omitzero"`
 }
 
 type CloudOriginTargetProject struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   string `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudOriginTargetService struct {
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitzero"`
 }
 
 type CloudOriginTarget struct {
-	Account          *CloudOriginTargetAccount  `json:"account,omitempty"`
-	AvailabilityZone string                     `json:"availability_zone,omitempty"`
-	Instance         *CloudOriginTargetInstance `json:"instance,omitempty"`
-	Machine          *CloudOriginTargetMachine  `json:"machine,omitempty"`
-	Project          *CloudOriginTargetProject  `json:"project,omitempty"`
-	Provider         string                     `json:"provider,omitempty"`
-	Region           string                     `json:"region,omitempty"`
-	Service          *CloudOriginTargetService  `json:"service,omitempty"`
+	Account          *CloudOriginTargetAccount  `json:"account,omitzero"`
+	AvailabilityZone string                     `json:"availability_zone,omitzero"`
+	Instance         *CloudOriginTargetInstance `json:"instance,omitzero"`
+	Machine          *CloudOriginTargetMachine  `json:"machine,omitzero"`
+	Project          *CloudOriginTargetProject  `json:"project,omitzero"`
+	Provider         string                     `json:"provider,omitzero"`
+	Region           string                     `json:"region,omitzero"`
+	Service          *CloudOriginTargetService  `json:"service,omitzero"`
 }
 
 type Cloud struct {
-	Account          *CloudAccount      `json:"account,omitempty"`
-	AvailabilityZone string             `json:"availability_zone,omitempty"`
-	Instance         *CloudInstance     `json:"instance,omitempty"`
-	Machine          *CloudMachine      `json:"machine,omitempty"`
-	Origin           *CloudOriginTarget `json:"origin,omitempty"`
-	Project          *CloudProject      `json:"project,omitempty"`
-	Provider         string             `json:"provider,omitempty"`
-	Region           string             `json:"region,omitempty"`
-	Service          *CloudService      `json:"service,omitempty"`
-	Target           *CloudOriginTarget `json:"target,omitempty"`
+	Account          *CloudAccount      `json:"account,omitzero"`
+	AvailabilityZone string             `json:"availability_zone,omitzero"`
+	Instance         *CloudInstance     `json:"instance,omitzero"`
+	Machine          *CloudMachine      `json:"machine,omitzero"`
+	Origin           *CloudOriginTarget `json:"origin,omitzero"`
+	Project          *CloudProject      `json:"project,omitzero"`
+	Provider         string             `json:"provider,omitzero"`
+	Region           string             `json:"region,omitzero"`
+	Service          *CloudService      `json:"service,omitzero"`
+	Target           *CloudOriginTarget `json:"target,omitzero"`
 }
 
 type ContainerImageHash struct {
-	All []string `json:"all,omitempty"`
+	All []string `json:"all,omitzero"`
 }
 
 type ContainerImage struct {
-	Hash *ContainerImageHash `json:"hash,omitempty"`
-	Name string              `json:"name,omitempty"`
-	Tag  string              `json:"tag,omitempty"`
+	Hash *ContainerImageHash `json:"hash,omitzero"`
+	Name string              `json:"name,omitzero"`
+	Tag  string              `json:"tag,omitzero"`
 }
 
 type Container struct {
-	Id      string          `json:"id,omitempty"`
-	Image   *ContainerImage `json:"image,omitempty"`
-	Labels  any             `json:"labels,omitempty"`
-	Name    string          `json:"name,omitempty"`
-	Runtime string          `json:"runtime,omitempty"`
+	Id      string          `json:"id,omitzero"`
+	Image   *ContainerImage `json:"image,omitzero"`
+	Labels  any             `json:"labels,omitzero"`
+	Name    string          `json:"name,omitzero"`
+	Runtime string          `json:"runtime,omitzero"`
 }
 
 type DnsAnswer struct {
-	Class string `json:"class,omitempty"`
-	Data  string `json:"data,omitempty"`
-	Name  string `json:"name,omitempty"`
-	Ttl   int    `json:"ttl,omitempty"`
-	Type  string `json:"type,omitempty"`
+	Class string `json:"class,omitzero"`
+	Data  string `json:"data,omitzero"`
+	Name  string `json:"name,omitzero"`
+	Ttl   int    `json:"ttl,omitzero"`
+	Type  string `json:"type,omitzero"`
 }
 
 type DnsQuestion struct {
 	domain_parts.Parts
-	Class string `json:"class,omitempty"`
-	Name  string `json:"name,omitempty"`
-	Type  string `json:"type,omitempty"`
+	Class string `json:"class,omitzero"`
+	Name  string `json:"name,omitzero"`
+	Type  string `json:"type,omitzero"`
 }
 
 type Dns struct {
-	Answers      []*DnsAnswer `json:"answers,omitempty"`
-	HeaderFlags  []string     `json:"header_flags,omitempty"`
-	Id           string       `json:"id,omitempty"`
-	OpCode       string       `json:"op_code,omitempty"`
-	Question     *DnsQuestion `json:"question,omitempty"`
-	ResolvedIp   []string     `json:"resolved_ip,omitempty"`
-	ResponseCode string       `json:"response_code,omitempty"`
-	Type         string       `json:"type,omitempty"`
+	Answers      []*DnsAnswer `json:"answers,omitzero"`
+	HeaderFlags  []string     `json:"header_flags,omitzero"`
+	Id           string       `json:"id,omitzero"`
+	OpCode       string       `json:"op_code,omitzero"`
+	Question     *DnsQuestion `json:"question,omitzero"`
+	ResolvedIp   []string     `json:"resolved_ip,omitzero"`
+	ResponseCode string       `json:"response_code,omitzero"`
+	Type         string       `json:"type,omitzero"`
 }
 
 type Error struct {
 	// NOTE: Custom
-	Cause      *Error `json:"cause,omitempty"`
-	Code       string `json:"code,omitempty"`
-	Id         string `json:"id,omitempty"`
-	Message    string `json:"message,omitempty"`
-	StackTrace string `json:"stack_trace,omitempty"`
-	Type       string `json:"type,omitempty"`
+	Cause      *Error `json:"cause,omitzero"`
+	Code       string `json:"code,omitzero"`
+	Id         string `json:"id,omitzero"`
+	Message    string `json:"message,omitzero"`
+	StackTrace string `json:"stack_trace,omitzero"`
+	Type       string `json:"type,omitzero"`
 }
 
 type EmailAttachmentFile struct {
-	Extension string `json:"extension,omitempty"`
-	MimeType  string `json:"mime_type,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Size      int    `json:"size,omitempty"`
-	Hash      *Hash  `json:"hash,omitempty"`
+	Extension string `json:"extension,omitzero"`
+	MimeType  string `json:"mime_type,omitzero"`
+	Name      string `json:"name,omitzero"`
+	Size      int    `json:"size,omitzero"`
+	Hash      *Hash  `json:"hash,omitzero"`
 }
 
 type EmailAttachment struct {
-	File *EmailAttachmentFile `json:"file,omitempty"`
+	File *EmailAttachmentFile `json:"file,omitzero"`
 }
 
 type EmailAddress struct {
 	// NOTE: Custom
-	Name    string `json:"name,omitempty"`
-	Address string `json:"address,omitempty"`
+	Name    string `json:"name,omitzero"`
+	Address string `json:"address,omitzero"`
 }
 
 type Email struct {
-	Attachments          []*EmailAttachment `json:"attachments,omitempty"`
-	Bcc                  []*EmailAddress    `json:"bcc,omitempty"`
-	Cc                   []*EmailAddress    `json:"cc,omitempty"`
-	ContentType          string             `json:"content_type,omitempty"`
-	DeliveryTimestamp    string             `json:"delivery_timestamp,omitempty"`
-	Direction            string             `json:"direction,omitempty"`
-	From                 []*EmailAddress    `json:"from,omitempty"`
-	LocalId              string             `json:"local_id,omitempty"`
-	MessageId            string             `json:"message_id,omitempty"`
-	OriginationTimestamp string             `json:"origination_timestamp,omitempty"`
-	ReplyTo              []*EmailAddress    `json:"reply_to,omitempty"`
-	Sender               *EmailAddress      `json:"sender,omitempty"`
-	Subject              string             `json:"subject,omitempty"`
-	To                   []*EmailAddress    `json:"to,omitempty"`
-	XMailer              string             `json:"x_mailer,omitempty"`
+	Attachments          []*EmailAttachment `json:"attachments,omitzero"`
+	Bcc                  []*EmailAddress    `json:"bcc,omitzero"`
+	Cc                   []*EmailAddress    `json:"cc,omitzero"`
+	ContentType          string             `json:"content_type,omitzero"`
+	DeliveryTimestamp    string             `json:"delivery_timestamp,omitzero"`
+	Direction            string             `json:"direction,omitzero"`
+	From                 []*EmailAddress    `json:"from,omitzero"`
+	LocalId              string             `json:"local_id,omitzero"`
+	MessageId            string             `json:"message_id,omitzero"`
+	OriginationTimestamp string             `json:"origination_timestamp,omitzero"`
+	ReplyTo              []*EmailAddress    `json:"reply_to,omitzero"`
+	Sender               *EmailAddress      `json:"sender,omitzero"`
+	Subject              string             `json:"subject,omitzero"`
+	To                   []*EmailAddress    `json:"to,omitzero"`
+	XMailer              string             `json:"x_mailer,omitzero"`
 }
 
 type Event struct {
-	Action        string   `json:"action,omitempty"`
-	AgentIdStatus string   `json:"agent_id_status,omitempty"`
-	Category      []string `json:"category,omitempty"`
-	Code          string   `json:"code,omitempty"`
-	Created       string   `json:"created,omitempty"`
-	Dataset       string   `json:"dataset,omitempty"`
-	Duration      int64    `json:"duration,omitempty"`
-	End           string   `json:"end,omitempty"`
-	Hash          string   `json:"hash,omitempty"`
-	Id            string   `json:"id,omitempty"`
-	Ingested      string   `json:"ingested,omitempty"`
-	Kind          string   `json:"kind,omitempty"`
-	Module        string   `json:"module,omitempty"`
-	Original      string   `json:"original,omitempty"`
-	Outcome       string   `json:"outcome,omitempty"`
-	Provider      string   `json:"provider,omitempty"`
-	Reason        string   `json:"reason,omitempty"`
-	Reference     string   `json:"reference,omitempty"`
-	RiskScore     float64  `json:"risk_score,omitempty"`
-	Sequence      int      `json:"sequence,omitempty"`
-	Severity      int      `json:"severity,omitempty"`
-	Start         string   `json:"start,omitempty"`
-	Timezone      string   `json:"timezone,omitempty"`
-	Type          []string `json:"type,omitempty"`
-	Url           string   `json:"url,omitempty"`
+	Action        string   `json:"action,omitzero"`
+	AgentIdStatus string   `json:"agent_id_status,omitzero"`
+	Category      []string `json:"category,omitzero"`
+	Code          string   `json:"code,omitzero"`
+	Created       string   `json:"created,omitzero"`
+	Dataset       string   `json:"dataset,omitzero"`
+	Duration      int64    `json:"duration,omitzero"`
+	End           string   `json:"end,omitzero"`
+	Hash          string   `json:"hash,omitzero"`
+	Id            string   `json:"id,omitzero"`
+	Ingested      string   `json:"ingested,omitzero"`
+	Kind          string   `json:"kind,omitzero"`
+	Module        string   `json:"module,omitzero"`
+	Original      string   `json:"original,omitzero"`
+	Outcome       string   `json:"outcome,omitzero"`
+	Provider      string   `json:"provider,omitzero"`
+	Reason        string   `json:"reason,omitzero"`
+	Reference     string   `json:"reference,omitzero"`
+	RiskScore     float64  `json:"risk_score,omitzero"`
+	Sequence      int      `json:"sequence,omitzero"`
+	Severity      int      `json:"severity,omitzero"`
+	Start         string   `json:"start,omitzero"`
+	Timezone      string   `json:"timezone,omitzero"`
+	Type          []string `json:"type,omitzero"`
+	Url           string   `json:"url,omitzero"`
 }
 
 type Hash struct {
-	Cdhash string `json:"cdhash,omitempty"`
-	Md5    string `json:"md5,omitempty"`
-	Sha1   string `json:"sha1,omitempty"`
-	Sha256 string `json:"sha256,omitempty"`
-	Sha384 string `json:"sha384,omitempty"`
-	Sha512 string `json:"sha512,omitempty"`
-	Ssdeep string `json:"ssdeep,omitempty"`
-	Tlsh   string `json:"tlsh,omitempty"`
+	Cdhash string `json:"cdhash,omitzero"`
+	Md5    string `json:"md5,omitzero"`
+	Sha1   string `json:"sha1,omitzero"`
+	Sha256 string `json:"sha256,omitzero"`
+	Sha384 string `json:"sha384,omitzero"`
+	Sha512 string `json:"sha512,omitzero"`
+	Ssdeep string `json:"ssdeep,omitzero"`
+	Tlsh   string `json:"tlsh,omitzero"`
 }
 
 type File struct {
-	Accessed    string   `json:"accessed,omitempty"`
-	Attributes  []string `json:"attributes,omitempty"`
-	Created     string   `json:"created,omitempty"`
-	Ctime       string   `json:"ctime,omitempty"`
-	Device      string   `json:"device,omitempty"`
-	Directory   string   `json:"directory,omitempty"`
-	DriveLetter string   `json:"drive_letter,omitempty"`
-	Extension   string   `json:"extension,omitempty"`
-	Gid         string   `json:"gid,omitempty"`
-	Group       string   `json:"group,omitempty"`
-	Hash        *Hash    `json:"hash,omitempty"`
-	Inode       string   `json:"inode,omitempty"`
-	Mode        string   `json:"mode,omitempty"`
-	Mtime       string   `json:"mtime,omitempty"`
-	Name        string   `json:"name,omitempty"`
-	Owner       string   `json:"owner,omitempty"`
-	Path        string   `json:"path,omitempty"`
-	Size        int64    `json:"size,omitempty"`
-	Type        string   `json:"type,omitempty"`
-	Uid         string   `json:"uid,omitempty"`
+	Accessed    string   `json:"accessed,omitzero"`
+	Attributes  []string `json:"attributes,omitzero"`
+	Created     string   `json:"created,omitzero"`
+	Ctime       string   `json:"ctime,omitzero"`
+	Device      string   `json:"device,omitzero"`
+	Directory   string   `json:"directory,omitzero"`
+	DriveLetter string   `json:"drive_letter,omitzero"`
+	Extension   string   `json:"extension,omitzero"`
+	Gid         string   `json:"gid,omitzero"`
+	Group       string   `json:"group,omitzero"`
+	Hash        *Hash    `json:"hash,omitzero"`
+	Inode       string   `json:"inode,omitzero"`
+	Mode        string   `json:"mode,omitzero"`
+	Mtime       string   `json:"mtime,omitzero"`
+	Name        string   `json:"name,omitzero"`
+	Owner       string   `json:"owner,omitzero"`
+	Path        string   `json:"path,omitzero"`
+	Size        int64    `json:"size,omitzero"`
+	Type        string   `json:"type,omitzero"`
+	Uid         string   `json:"uid,omitzero"`
 }
 
 type Host struct {
-	Architecture string   `json:"architecture,omitempty"`
-	Domain       string   `json:"domain,omitempty"`
-	Hostname     string   `json:"hostname,omitempty"`
-	Id           string   `json:"id,omitempty"`
-	Ip           []string `json:"ip,omitempty"`
-	Mac          []string `json:"mac,omitempty"`
-	Name         string   `json:"name,omitempty"`
-	Type         string   `json:"type,omitempty"`
-	Uptime       int64    `json:"uptime,omitempty"`
-	Os           Os       `json:"os,omitempty"`
+	Architecture string   `json:"architecture,omitzero"`
+	Domain       string   `json:"domain,omitzero"`
+	Hostname     string   `json:"hostname,omitzero"`
+	Id           string   `json:"id,omitzero"`
+	Ip           []string `json:"ip,omitzero"`
+	Mac          []string `json:"mac,omitzero"`
+	Name         string   `json:"name,omitzero"`
+	Type         string   `json:"type,omitzero"`
+	Uptime       int64    `json:"uptime,omitzero"`
+	Os           Os       `json:"os,omitzero"`
 }
 
 type HttpReporting struct {
-	IntegrityViolations []*reporting_api.Report[*integrity_policy.IntegrityViolationReportBody] `json:"integrity_violations,omitempty"`
-	CspViolations       []*reporting_api.Report[*csp.CSPViolationReportBody]                    `json:"csp_violations,omitempty"`
-	CspReport           *csp.ReportEnvelope                                                     `json:"csp_report,omitempty"`
+	IntegrityViolations []*reporting_api.Report[*integrity_policy.IntegrityViolationReportBody] `json:"integrity_violations,omitzero"`
+	CspViolations       []*reporting_api.Report[*csp.CSPViolationReportBody]                    `json:"csp_violations,omitzero"`
+	CspReport           *csp.ReportEnvelope                                                     `json:"csp_report,omitzero"`
 }
 
 type HttpRequest struct {
-	Body  *Body `json:"body,omitempty"`
-	Bytes int   `json:"bytes,omitempty"`
+	Body  *Body `json:"body,omitzero"`
+	Bytes int   `json:"bytes,omitzero"`
 	// NOTE: Custom
-	ContentType string `json:"content_type,omitempty"`
+	ContentType string `json:"content_type,omitzero"`
 	// NOTE: Custom
-	HttpHeaders *HttpHeaders `json:"headers,omitempty"`
-	Id          string       `json:"id,omitempty"`
-	Method      string       `json:"method,omitempty"`
-	MimeType    string       `json:"mime_type,omitempty"`
-	Referrer    string       `json:"referrer,omitempty"`
+	HttpHeaders *HttpHeaders `json:"headers,omitzero"`
+	Id          string       `json:"id,omitzero"`
+	Method      string       `json:"method,omitzero"`
+	MimeType    string       `json:"mime_type,omitzero"`
+	Referrer    string       `json:"referrer,omitzero"`
 	// NOTE: Custom
-	Reporting *HttpReporting `json:"reporting,omitempty"`
+	Reporting *HttpReporting `json:"reporting,omitzero"`
 }
 
 type HttpResponse struct {
-	Body  *Body `json:"body,omitempty"`
-	Bytes int   `json:"bytes,omitempty"`
+	Body  *Body `json:"body,omitzero"`
+	Bytes int   `json:"bytes,omitzero"`
 	// NOTE: Custom
-	ContentType string `json:"content_type,omitempty"`
+	ContentType string `json:"content_type,omitzero"`
 	// NOTE: Custom
-	HttpHeaders *HttpHeaders `json:"headers,omitempty"`
-	MimeType    string       `json:"mime_type,omitempty"`
+	HttpHeaders *HttpHeaders `json:"headers,omitzero"`
+	MimeType    string       `json:"mime_type,omitzero"`
 	// NOTE: Custom
-	ReasonPhrase string `json:"reason_phrase,omitempty"`
-	StatusCode   int    `json:"status_code,omitempty"`
+	ReasonPhrase string `json:"reason_phrase,omitzero"`
+	StatusCode   int    `json:"status_code,omitzero"`
 	// TODO: Add parsed problem detail?
 }
 
 type Http struct {
-	Request  *HttpRequest  `json:"request,omitempty"`
-	Response *HttpResponse `json:"response,omitempty"`
-	Version  string        `json:"version,omitempty"`
+	Request  *HttpRequest  `json:"request,omitzero"`
+	Response *HttpResponse `json:"response,omitzero"`
+	Version  string        `json:"version,omitzero"`
 }
 
 type Interface struct {
-	Alias string `json:"alias,omitempty"`
-	Id    string `json:"id,omitempty"`
-	Name  string `json:"name,omitempty"`
+	Alias string `json:"alias,omitzero"`
+	Id    string `json:"id,omitzero"`
+	Name  string `json:"name,omitzero"`
 }
 
 type Network struct {
-	Application string `json:"application,omitempty"`
-	Bytes       int64  `json:"bytes,omitempty"`
+	Application string `json:"application,omitzero"`
+	Bytes       int64  `json:"bytes,omitzero"`
 	// NOTE: Made into an array to be able to capture both Source-Destination and Client-Server, which can differ.
-	CommunityId []string `json:"community_id,omitempty"`
-	Direction   string   `json:"direction,omitempty"`
-	ForwardedIp string   `json:"forwarded_ip,omitempty"`
-	IanaNumber  string   `json:"iana_number,omitempty"`
-	Inner       any      `json:"inner,omitempty"`
-	Name        string   `json:"name,omitempty"`
-	Packets     int64    `json:"packets,omitempty"`
-	Protocol    string   `json:"protocol,omitempty"`
-	Transport   string   `json:"transport,omitempty"`
-	Type        string   `json:"type,omitempty"`
+	CommunityId []string `json:"community_id,omitzero"`
+	Direction   string   `json:"direction,omitzero"`
+	ForwardedIp string   `json:"forwarded_ip,omitzero"`
+	IanaNumber  string   `json:"iana_number,omitzero"`
+	Inner       any      `json:"inner,omitzero"`
+	Name        string   `json:"name,omitzero"`
+	Packets     int64    `json:"packets,omitzero"`
+	Protocol    string   `json:"protocol,omitzero"`
+	Transport   string   `json:"transport,omitzero"`
+	Type        string   `json:"type,omitzero"`
 }
 
 type LogOriginFile struct {
-	Line int    `json:"line,omitempty"`
-	Name string `json:"name,omitempty"`
+	Line int    `json:"line,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type LogFile struct {
-	Path string `json:"path,omitempty"`
+	Path string `json:"path,omitzero"`
 }
 
 type LogOrigin struct {
-	File     *LogOriginFile `json:"file,omitempty"`
-	Function string         `json:"function,omitempty"`
+	File     *LogOriginFile `json:"file,omitzero"`
+	Function string         `json:"function,omitzero"`
 	// NOTE: Custom
-	Process *Process `json:"process,omitempty"`
+	Process *Process `json:"process,omitzero"`
 }
 
 type LogSyslogFacility struct {
-	Code int    `json:"code,omitempty"`
-	Name string `json:"name,omitempty"`
+	Code int    `json:"code,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type LogSyslogSeverity struct {
-	Code int    `json:"code,omitempty"`
-	Name string `json:"name,omitempty"`
+	Code int    `json:"code,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type LogSyslog struct {
-	Appname        string             `json:"appname,omitempty"`
-	Facility       *LogSyslogFacility `json:"facility,omitempty"`
-	Hostname       string             `json:"hostname,omitempty"`
-	Msgid          string             `json:"msgid,omitempty"`
-	Priority       int                `json:"priority,omitempty"`
-	Procid         string             `json:"procid,omitempty"`
-	StructuredData map[string]any     `json:"structured_data,omitempty"`
-	Version        string             `json:"version,omitempty"`
+	Appname        string             `json:"appname,omitzero"`
+	Facility       *LogSyslogFacility `json:"facility,omitzero"`
+	Hostname       string             `json:"hostname,omitzero"`
+	Msgid          string             `json:"msgid,omitzero"`
+	Priority       int                `json:"priority,omitzero"`
+	Procid         string             `json:"procid,omitzero"`
+	StructuredData map[string]any     `json:"structured_data,omitzero"`
+	Version        string             `json:"version,omitzero"`
 }
 
 type Log struct {
-	LogFile *LogFile   `json:"file,omitempty"`
-	Level   string     `json:"level,omitempty"`
-	Logger  string     `json:"logger,omitempty"`
-	Origin  *LogOrigin `json:"origin,omitempty"`
-	Syslog  *LogSyslog `json:"syslog,omitempty"`
+	LogFile *LogFile   `json:"file,omitzero"`
+	Level   string     `json:"level,omitzero"`
+	Logger  string     `json:"logger,omitzero"`
+	Origin  *LogOrigin `json:"origin,omitzero"`
+	Syslog  *LogSyslog `json:"syslog,omitzero"`
 }
 
 type ObserverIngressEgress struct {
-	Interface *Interface `json:"interface,omitempty"`
-	Zone      string     `json:"zone,omitempty"`
+	Interface *Interface `json:"interface,omitzero"`
+	Zone      string     `json:"zone,omitzero"`
 }
 
 type Observer struct {
-	Egress *ObserverIngressEgress `json:"egress,omitempty"`
+	Egress *ObserverIngressEgress `json:"egress,omitzero"`
 	// NOTE: Custom
-	Hook         string                 `json:"hook,omitempty"`
-	Hostname     string                 `json:"hostname,omitempty"`
-	Ingress      *ObserverIngressEgress `json:"ingress,omitempty"`
-	Ip           string                 `json:"ip,omitempty"`
-	Mac          string                 `json:"mac,omitempty"`
-	Name         string                 `json:"name,omitempty"`
-	Os           *Os                    `json:"os,omitempty"`
-	Product      string                 `json:"product,omitempty"`
-	SerialNumber string                 `json:"serial_number,omitempty"`
-	Type         string                 `json:"type,omitempty"`
-	Vendor       string                 `json:"vendor,omitempty"`
-	Version      string                 `json:"version,omitempty"`
+	Hook         string                 `json:"hook,omitzero"`
+	Hostname     string                 `json:"hostname,omitzero"`
+	Ingress      *ObserverIngressEgress `json:"ingress,omitzero"`
+	Ip           string                 `json:"ip,omitzero"`
+	Mac          string                 `json:"mac,omitzero"`
+	Name         string                 `json:"name,omitzero"`
+	Os           *Os                    `json:"os,omitzero"`
+	Product      string                 `json:"product,omitzero"`
+	SerialNumber string                 `json:"serial_number,omitzero"`
+	Type         string                 `json:"type,omitzero"`
+	Vendor       string                 `json:"vendor,omitzero"`
+	Version      string                 `json:"version,omitzero"`
 }
 
 type Organization struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   string `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type Os struct {
-	Family   string `json:"family,omitempty"`
-	Full     string `json:"full,omitempty"`
-	Kernel   string `json:"kernel,omitempty"`
-	Name     string `json:"name,omitempty"`
-	Platform string `json:"platform,omitempty"`
-	Type     string `json:"type,omitempty"`
-	Version  string `json:"version,omitempty"`
+	Family   string `json:"family,omitzero"`
+	Full     string `json:"full,omitzero"`
+	Kernel   string `json:"kernel,omitzero"`
+	Name     string `json:"name,omitzero"`
+	Platform string `json:"platform,omitzero"`
+	Type     string `json:"type,omitzero"`
+	Version  string `json:"version,omitzero"`
 }
 
 type Package struct {
-	Architecture string `json:"architecture,omitempty"`
-	BuildVersion string `json:"build_version,omitempty"`
-	Checksum     string `json:"checksum,omitempty"`
-	Description  string `json:"description,omitempty"`
-	InstallScope string `json:"install_scope,omitempty"`
-	Installed    string `json:"installed,omitempty"`
-	Licence      string `json:"licence,omitempty"`
-	Name         string `json:"name,omitempty"`
-	Path         string `json:"path,omitempty"`
-	Reference    string `json:"reference,omitempty"`
-	Size         string `json:"size,omitempty"`
-	Type         string `json:"type,omitempty"`
-	Version      string `json:"version,omitempty"`
+	Architecture string `json:"architecture,omitzero"`
+	BuildVersion string `json:"build_version,omitzero"`
+	Checksum     string `json:"checksum,omitzero"`
+	Description  string `json:"description,omitzero"`
+	InstallScope string `json:"install_scope,omitzero"`
+	Installed    string `json:"installed,omitzero"`
+	Licence      string `json:"licence,omitzero"`
+	Name         string `json:"name,omitzero"`
+	Path         string `json:"path,omitzero"`
+	Reference    string `json:"reference,omitzero"`
+	Size         string `json:"size,omitzero"`
+	Type         string `json:"type,omitzero"`
+	Version      string `json:"version,omitzero"`
 }
 
 type ProcessIo struct {
-	Text string `json:"text,omitempty"`
+	Text string `json:"text,omitzero"`
 }
 
 type ProcessThreadCapabilities struct {
-	Effective []string `json:"effective,omitempty"`
-	Permitted []string `json:"permitted,omitempty"`
+	Effective []string `json:"effective,omitzero"`
+	Permitted []string `json:"permitted,omitzero"`
 }
 
 type ProcessThread struct {
-	Id   int    `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+	Id   int    `json:"id,omitzero"`
+	Name string `json:"name,omitzero"`
 }
 
 type Process struct {
-	Args             []string       `json:"args,omitempty"`
-	ArgsCount        int            `json:"args_count,omitempty"`
-	CommandLine      string         `json:"command_line,omitempty"`
-	End              string         `json:"end,omitempty"`
-	EnvVars          []string       `json:"env_vars,omitempty"`
-	Executable       string         `json:"executable,omitempty"`
-	ExitCode         int            `json:"exit_code,omitempty"`
-	Group            *Group         `json:"group,omitempty"`
-	Interactive      bool           `json:"interactive,omitempty"`
-	Io               *ProcessIo     `json:"io,omitempty"`
-	Name             string         `json:"name,omitempty"`
-	Parent           *Process       `json:"parent,omitempty"`
-	Pid              int            `json:"pid,omitempty"`
-	Previous         *Process       `json:"previous,omitempty"`
-	Start            string         `json:"start,omitempty"`
-	Thread           *ProcessThread `json:"thread,omitempty"`
-	Title            string         `json:"title,omitempty"`
-	Uptime           int            `json:"uptime,omitempty"`
-	User             *User          `json:"user,omitempty"`
-	WorkingDirectory string         `json:"working_directory,omitempty"`
+	Args             []string       `json:"args,omitzero"`
+	ArgsCount        int            `json:"args_count,omitzero"`
+	CommandLine      string         `json:"command_line,omitzero"`
+	End              string         `json:"end,omitzero"`
+	EnvVars          []string       `json:"env_vars,omitzero"`
+	Executable       string         `json:"executable,omitzero"`
+	ExitCode         int            `json:"exit_code,omitzero"`
+	Group            *Group         `json:"group,omitzero"`
+	Interactive      bool           `json:"interactive,omitzero"`
+	Io               *ProcessIo     `json:"io,omitzero"`
+	Name             string         `json:"name,omitzero"`
+	Parent           *Process       `json:"parent,omitzero"`
+	Pid              int            `json:"pid,omitzero"`
+	Previous         *Process       `json:"previous,omitzero"`
+	Start            string         `json:"start,omitzero"`
+	Thread           *ProcessThread `json:"thread,omitzero"`
+	Title            string         `json:"title,omitzero"`
+	Uptime           int            `json:"uptime,omitzero"`
+	User             *User          `json:"user,omitzero"`
+	WorkingDirectory string         `json:"working_directory,omitzero"`
 }
 
 type RegistryData struct {
-	Bytes   string   `json:"bytes,omitempty"`
-	Strings []string `json:"strings,omitempty"`
-	Type    string   `json:"type,omitempty"`
+	Bytes   string   `json:"bytes,omitzero"`
+	Strings []string `json:"strings,omitzero"`
+	Type    string   `json:"type,omitzero"`
 }
 
 type Registry struct {
-	Data  *RegistryData `json:"data,omitempty"`
-	Hive  string        `json:"hive,omitempty"`
-	Key   string        `json:"key,omitempty"`
-	Path  string        `json:"path,omitempty"`
-	Value string        `json:"value,omitempty"`
+	Data  *RegistryData `json:"data,omitzero"`
+	Hive  string        `json:"hive,omitzero"`
+	Key   string        `json:"key,omitzero"`
+	Path  string        `json:"path,omitzero"`
+	Value string        `json:"value,omitzero"`
 }
 
 type Related struct {
-	Hash  []string `json:"hash,omitempty"`
-	Hosts []string `json:"hosts,omitempty"`
-	Ip    []string `json:"ip,omitempty"`
-	User  []string `json:"user,omitempty"`
+	Hash  []string `json:"hash,omitzero"`
+	Hosts []string `json:"hosts,omitzero"`
+	Ip    []string `json:"ip,omitzero"`
+	User  []string `json:"user,omitzero"`
 }
 
 type Rule struct {
-	Author      string `json:"author,omitempty"`
-	Category    string `json:"category,omitempty"`
-	Description string `json:"description,omitempty"`
-	Id          string `json:"id,omitempty"`
-	License     string `json:"license,omitempty"`
-	Name        string `json:"name,omitempty"`
-	Reference   string `json:"reference,omitempty"`
-	Ruleset     string `json:"ruleset,omitempty"`
-	UUID        string `json:"uuid,omitempty"`
-	Version     string `json:"version,omitempty"`
+	Author      string `json:"author,omitzero"`
+	Category    string `json:"category,omitzero"`
+	Description string `json:"description,omitzero"`
+	Id          string `json:"id,omitzero"`
+	License     string `json:"license,omitzero"`
+	Name        string `json:"name,omitzero"`
+	Reference   string `json:"reference,omitzero"`
+	Ruleset     string `json:"ruleset,omitzero"`
+	UUID        string `json:"uuid,omitzero"`
+	Version     string `json:"version,omitzero"`
 }
 
 type ServiceNode struct {
-	Name  string   `json:"name,omitempty"`
-	Role  string   `json:"role,omitempty"`
-	Roles []string `json:"roles,omitempty"`
+	Name  string   `json:"name,omitzero"`
+	Role  string   `json:"role,omitzero"`
+	Roles []string `json:"roles,omitzero"`
 }
 
 type Service struct {
-	Address     string       `json:"address,omitempty"`
-	Environment string       `json:"environment,omitempty"`
-	EphemeralId string       `json:"ephemeral_id,omitempty"`
-	Id          string       `json:"id,omitempty"`
-	Name        string       `json:"name,omitempty"`
-	Node        *ServiceNode `json:"node,omitempty"`
-	State       string       `json:"state,omitempty"`
-	Type        string       `json:"type,omitempty"`
-	Version     string       `json:"version,omitempty"`
+	Address     string       `json:"address,omitzero"`
+	Environment string       `json:"environment,omitzero"`
+	EphemeralId string       `json:"ephemeral_id,omitzero"`
+	Id          string       `json:"id,omitzero"`
+	Name        string       `json:"name,omitzero"`
+	Node        *ServiceNode `json:"node,omitzero"`
+	State       string       `json:"state,omitzero"`
+	Type        string       `json:"type,omitzero"`
+	Version     string       `json:"version,omitzero"`
 
-	Origin *Service `json:"origin,omitempty"`
-	Target *Service `json:"target,omitempty"`
+	Origin *Service `json:"origin,omitzero"`
+	Target *Service `json:"target,omitzero"`
 }
 
 // NOTE: Custom
 
 type Tcp struct {
-	Flags                 []string `json:"flags,omitempty"`
-	AcknowledgementNumber *int     `json:"acknowledgement_number,omitempty"`
-	SequenceNumber        *int     `json:"sequence_number,omitempty"`
-	State                 string   `json:"state,omitempty"`
+	Flags                 []string `json:"flags,omitzero"`
+	AcknowledgementNumber *int     `json:"acknowledgement_number,omitzero"`
+	SequenceNumber        *int     `json:"sequence_number,omitzero"`
+	State                 string   `json:"state,omitzero"`
 }
 
 type ThreatGroup struct {
-	Alias     []string `json:"alias,omitempty"`
-	Id        string   `json:"id,omitempty"`
-	Name      string   `json:"name,omitempty"`
-	Reference string   `json:"reference,omitempty"`
+	Alias     []string `json:"alias,omitzero"`
+	Id        string   `json:"id,omitzero"`
+	Name      string   `json:"name,omitzero"`
+	Reference string   `json:"reference,omitzero"`
 }
 
 type ThreatFeed struct {
-	Name      string `json:"name,omitempty"`
-	Reference string `json:"reference,omitempty"`
+	Name      string `json:"name,omitzero"`
+	Reference string `json:"reference,omitzero"`
 }
 
 type ThreatTechnique struct {
-	Id           []string         `json:"id,omitempty"`
-	Name         []string         `json:"name,omitempty"`
-	Reference    []string         `json:"reference,omitempty"`
-	Subtechnique *ThreatTechnique `json:"subtechnique,omitempty"`
+	Id           []string         `json:"id,omitzero"`
+	Name         []string         `json:"name,omitzero"`
+	Reference    []string         `json:"reference,omitzero"`
+	Subtechnique *ThreatTechnique `json:"subtechnique,omitzero"`
 }
 
 type ThreatTactic struct {
-	Id        []string `json:"id,omitempty"`
-	Name      []string `json:"name,omitempty"`
-	Reference []string `json:"reference,omitempty"`
+	Id        []string `json:"id,omitzero"`
+	Name      []string `json:"name,omitzero"`
+	Reference []string `json:"reference,omitzero"`
 }
 
 type ThreatSoftware struct {
-	Alias     string   `json:"alias,omitempty"`
-	Id        string   `json:"id,omitempty"`
-	Name      string   `json:"name,omitempty"`
-	Platforms []string `json:"platforms,omitempty"`
-	Reference string   `json:"reference,omitempty"`
-	Type      string   `json:"type,omitempty"`
+	Alias     string   `json:"alias,omitzero"`
+	Id        string   `json:"id,omitzero"`
+	Name      string   `json:"name,omitzero"`
+	Platforms []string `json:"platforms,omitzero"`
+	Reference string   `json:"reference,omitzero"`
+	Type      string   `json:"type,omitzero"`
 }
 
 type ThreatIndicatorMarking struct {
-	Tlp        string `json:"tlp,omitempty"`
-	TlpVersion string `json:"tlp_version,omitempty"`
+	Tlp        string `json:"tlp,omitzero"`
+	TlpVersion string `json:"tlp_version,omitzero"`
 }
 
 type ThreatIndicatorEmail struct {
-	Address string `json:"address,omitempty"`
+	Address string `json:"address,omitzero"`
 }
 
 type ThreatIndicator struct {
-	Confidence   string                  `json:"confidence,omitempty"`
-	Description  string                  `json:"description,omitempty"`
-	Email        *ThreatIndicatorEmail   `json:"email,omitempty"`
-	File         *File                   `json:"file,omitempty"`
-	Geo          *Geo                    `json:"geo,omitempty"`
-	FirstSeen    string                  `json:"first_seen,omitempty"`
-	Id           string                  `json:"id,omitempty"`
-	Ip           string                  `json:"ip,omitempty"`
-	LastSeen     string                  `json:"last_seen,omitempty"`
-	Marking      *ThreatIndicatorMarking `json:"marking,omitempty"`
-	ModifiedAt   string                  `json:"modified_at,omitempty"`
-	Name         string                  `json:"name,omitempty"`
-	Port         *int                    `json:"port,omitempty"`
-	Provider     string                  `json:"provider,omitempty"`
-	Reference    string                  `json:"reference,omitempty"`
-	Registry     *Registry               `json:"registry,omitempty"`
-	ScannerStats *int                    `json:"scanner_stats,omitempty"`
-	Sightings    *int                    `json:"sightings,omitempty"`
-	Type         string                  `json:"type,omitempty"`
-	Url          *Url                    `json:"url,omitempty"`
+	Confidence   string                  `json:"confidence,omitzero"`
+	Description  string                  `json:"description,omitzero"`
+	Email        *ThreatIndicatorEmail   `json:"email,omitzero"`
+	File         *File                   `json:"file,omitzero"`
+	Geo          *Geo                    `json:"geo,omitzero"`
+	FirstSeen    string                  `json:"first_seen,omitzero"`
+	Id           string                  `json:"id,omitzero"`
+	Ip           string                  `json:"ip,omitzero"`
+	LastSeen     string                  `json:"last_seen,omitzero"`
+	Marking      *ThreatIndicatorMarking `json:"marking,omitzero"`
+	ModifiedAt   string                  `json:"modified_at,omitzero"`
+	Name         string                  `json:"name,omitzero"`
+	Port         *int                    `json:"port,omitzero"`
+	Provider     string                  `json:"provider,omitzero"`
+	Reference    string                  `json:"reference,omitzero"`
+	Registry     *Registry               `json:"registry,omitzero"`
+	ScannerStats *int                    `json:"scanner_stats,omitzero"`
+	Sightings    *int                    `json:"sightings,omitzero"`
+	Type         string                  `json:"type,omitzero"`
+	Url          *Url                    `json:"url,omitzero"`
 }
 
 type ThreatEnrichmentMatched struct {
-	Atomic   string `json:"atomic,omitempty"`
-	Field    string `json:"field,omitempty"`
-	Id       string `json:"id,omitempty"`
-	Index    string `json:"index,omitempty"`
-	Occurred string `json:"occurred,omitempty"`
-	Type     string `json:"type,omitempty"`
+	Atomic   string `json:"atomic,omitzero"`
+	Field    string `json:"field,omitzero"`
+	Id       string `json:"id,omitzero"`
+	Index    string `json:"index,omitzero"`
+	Occurred string `json:"occurred,omitzero"`
+	Type     string `json:"type,omitzero"`
 }
 
 type ThreatEnrichment struct {
-	Indicator *ThreatIndicator         `json:"indicator,omitempty"`
-	Matched   *ThreatEnrichmentMatched `json:"matched,omitempty"`
+	Indicator *ThreatIndicator         `json:"indicator,omitzero"`
+	Matched   *ThreatEnrichmentMatched `json:"matched,omitzero"`
 }
 
 type Threat struct {
-	Enrichments []*ThreatEnrichment `json:"enrichments,omitempty"`
-	Feed        *ThreatFeed         `json:"feed,omitempty"`
-	Framework   string              `json:"framework,omitempty"`
-	Group       *ThreatGroup        `json:"group,omitempty"`
-	Indicator   *ThreatIndicator    `json:"indicator,omitempty"`
-	Software    *ThreatSoftware     `json:"software,omitempty"`
-	Tactic      *ThreatTactic       `json:"tactic,omitempty"`
-	Technique   *ThreatTechnique    `json:"technique,omitempty"`
+	Enrichments []*ThreatEnrichment `json:"enrichments,omitzero"`
+	Feed        *ThreatFeed         `json:"feed,omitzero"`
+	Framework   string              `json:"framework,omitzero"`
+	Group       *ThreatGroup        `json:"group,omitzero"`
+	Indicator   *ThreatIndicator    `json:"indicator,omitzero"`
+	Software    *ThreatSoftware     `json:"software,omitzero"`
+	Tactic      *ThreatTactic       `json:"tactic,omitzero"`
+	Technique   *ThreatTechnique    `json:"technique,omitzero"`
 }
 
 type TlsHash struct {
-	Md5    string `json:"md5,omitempty"`
-	Sha1   string `json:"sha1,omitempty"`
-	Sha256 string `json:"sha256,omitempty"`
+	Md5    string `json:"md5,omitzero"`
+	Sha1   string `json:"sha1,omitzero"`
+	Sha256 string `json:"sha256,omitzero"`
 }
 
 type TlsClient struct {
-	Certificate      string   `json:"certificate,omitempty"`
-	CertificateChain []string `json:"certificate_chain,omitempty"`
-	Hash             *TlsHash `json:"hash,omitempty"`
-	Issuer           string   `json:"issuer,omitempty"`
-	Ja3              string   `json:"ja3,omitempty"`
-	Ja4              string   `json:"ja4,omitempty"`
-	NotAfter         string   `json:"not_after,omitempty"`
-	NotBefore        string   `json:"not_before,omitempty"`
-	ServerName       string   `json:"server_name,omitempty"`
-	Subject          string   `json:"subject,omitempty"`
-	SupportedCiphers []string `json:"supported_ciphers,omitempty"`
-	X509             *X509    `json:"x509,omitempty"`
+	Certificate      string   `json:"certificate,omitzero"`
+	CertificateChain []string `json:"certificate_chain,omitzero"`
+	Hash             *TlsHash `json:"hash,omitzero"`
+	Issuer           string   `json:"issuer,omitzero"`
+	Ja3              string   `json:"ja3,omitzero"`
+	Ja4              string   `json:"ja4,omitzero"`
+	NotAfter         string   `json:"not_after,omitzero"`
+	NotBefore        string   `json:"not_before,omitzero"`
+	ServerName       string   `json:"server_name,omitzero"`
+	Subject          string   `json:"subject,omitzero"`
+	SupportedCiphers []string `json:"supported_ciphers,omitzero"`
+	X509             *X509    `json:"x509,omitzero"`
 }
 
 type TlsServer struct {
-	Certificate      string   `json:"certificate,omitempty"`
-	CertificateChain []string `json:"certificate_chain,omitempty"`
-	Hash             *TlsHash `json:"hash,omitempty"`
-	Issuer           string   `json:"issuer,omitempty"`
-	Ja3s             string   `json:"ja3s,omitempty"`
-	NotAfter         string   `json:"not_after,omitempty"`
-	NotBefore        string   `json:"not_before,omitempty"`
-	Subject          string   `json:"subject,omitempty"`
-	X509             *X509    `json:"x509,omitempty"`
+	Certificate      string   `json:"certificate,omitzero"`
+	CertificateChain []string `json:"certificate_chain,omitzero"`
+	Hash             *TlsHash `json:"hash,omitzero"`
+	Issuer           string   `json:"issuer,omitzero"`
+	Ja3s             string   `json:"ja3s,omitzero"`
+	NotAfter         string   `json:"not_after,omitzero"`
+	NotBefore        string   `json:"not_before,omitzero"`
+	Subject          string   `json:"subject,omitzero"`
+	X509             *X509    `json:"x509,omitzero"`
 }
 
 // NOTE: Custom/OpenTelemetry
 
 type TlsProtocol struct {
-	Name    string `json:"name,omitempty"`
-	Version string `json:"version,omitempty"`
+	Name    string `json:"name,omitzero"`
+	Version string `json:"version,omitzero"`
 }
 
 type Tls struct {
-	Cipher          string       `json:"cipher,omitempty"`
-	Client          *TlsClient   `json:"client,omitempty"`
-	Curve           string       `json:"curve,omitempty"`
-	Established     bool         `json:"established,omitempty"`
-	NextProtocol    string       `json:"next_protocol,omitempty"`
-	Resumed         bool         `json:"resumed,omitempty"`
-	Server          *TlsServer   `json:"server,omitempty"`
-	TlsProtocol     *TlsProtocol `json:"protocol,omitempty"`
-	Version         string       `json:"version,omitempty"`
-	VersionProtocol string       `json:"version_protocol,omitempty"`
+	Cipher          string       `json:"cipher,omitzero"`
+	Client          *TlsClient   `json:"client,omitzero"`
+	Curve           string       `json:"curve,omitzero"`
+	Established     bool         `json:"established,omitzero"`
+	NextProtocol    string       `json:"next_protocol,omitzero"`
+	Resumed         bool         `json:"resumed,omitzero"`
+	Server          *TlsServer   `json:"server,omitzero"`
+	TlsProtocol     *TlsProtocol `json:"protocol,omitzero"`
+	Version         string       `json:"version,omitzero"`
+	VersionProtocol string       `json:"version_protocol,omitzero"`
 }
 
 type Url struct {
 	domain_parts.Parts
-	Domain    string `json:"domain,omitempty"`
-	Extension string `json:"extension,omitempty"`
-	Fragment  string `json:"fragment,omitempty"`
-	Full      string `json:"full,omitempty"`
-	Original  string `json:"original,omitempty"`
-	Password  string `json:"password,omitempty"`
-	Path      string `json:"path,omitempty"`
-	Port      int    `json:"port,omitempty"`
-	Query     string `json:"query,omitempty"`
-	Scheme    string `json:"scheme,omitempty"`
-	Username  string `json:"username,omitempty"`
+	Domain    string `json:"domain,omitzero"`
+	Extension string `json:"extension,omitzero"`
+	Fragment  string `json:"fragment,omitzero"`
+	Full      string `json:"full,omitzero"`
+	Original  string `json:"original,omitzero"`
+	Password  string `json:"password,omitzero"`
+	Path      string `json:"path,omitzero"`
+	Port      int    `json:"port,omitzero"`
+	Query     string `json:"query,omitzero"`
+	Scheme    string `json:"scheme,omitzero"`
+	Username  string `json:"username,omitzero"`
 }
 
 type UserAgentDevice struct {
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitzero"`
 }
 
 type UserAgent struct {
-	Device   *UserAgentDevice `json:"device,omitempty"`
-	Name     string           `json:"name,omitempty"`
-	Original string           `json:"original,omitempty"`
-	Os       *Os              `json:"os,omitempty"`
-	Version  string           `json:"version,omitempty"`
+	Device   *UserAgentDevice `json:"device,omitzero"`
+	Name     string           `json:"name,omitzero"`
+	Original string           `json:"original,omitzero"`
+	Os       *Os              `json:"os,omitzero"`
+	Version  string           `json:"version,omitzero"`
 }
 
 type VulnerabilityScanner struct {
-	Vendor string `json:"vendor,omitempty"`
+	Vendor string `json:"vendor,omitzero"`
 }
 
 type VulnerabilityScore struct {
-	Base          float64 `json:"base,omitempty"`
-	Environmental float64 `json:"environmental,omitempty"`
-	Temporal      float64 `json:"temporal,omitempty"`
-	Version       string  `json:"version,omitempty"`
+	Base          float64 `json:"base,omitzero"`
+	Environmental float64 `json:"environmental,omitzero"`
+	Temporal      float64 `json:"temporal,omitzero"`
+	Version       string  `json:"version,omitzero"`
 }
 
 type Vulnerability struct {
-	Category       string                `json:"category,omitempty"`
-	Classification string                `json:"classification,omitempty"`
-	Description    string                `json:"description,omitempty"`
-	Enumeration    string                `json:"enumeration,omitempty"`
-	Id             string                `json:"id,omitempty"`
-	Reference      string                `json:"reference,omitempty"`
-	ReportId       string                `json:"report_id,omitempty"`
-	Scanner        *VulnerabilityScanner `json:"scanner,omitempty"`
-	Score          *VulnerabilityScore   `json:"score,omitempty"`
-	Severity       string                `json:"severity,omitempty"`
+	Category       string                `json:"category,omitzero"`
+	Classification string                `json:"classification,omitzero"`
+	Description    string                `json:"description,omitzero"`
+	Enumeration    string                `json:"enumeration,omitzero"`
+	Id             string                `json:"id,omitzero"`
+	Reference      string                `json:"reference,omitzero"`
+	ReportId       string                `json:"report_id,omitzero"`
+	Scanner        *VulnerabilityScanner `json:"scanner,omitzero"`
+	Score          *VulnerabilityScore   `json:"score,omitzero"`
+	Severity       string                `json:"severity,omitzero"`
 }
 
 type X509Target struct {
-	CommonName         []string `json:"common_name,omitempty"`
-	Country            []string `json:"country,omitempty"`
-	DistinguishedName  string   `json:"distinguished_name,omitempty"`
-	Locality           []string `json:"locality,omitempty"`
-	Organization       []string `json:"organization,omitempty"`
-	OrganizationalUnit []string `json:"organizational_unit,omitempty"`
-	StateOrProvince    []string `json:"state_or_province,omitempty"`
+	CommonName         []string `json:"common_name,omitzero"`
+	Country            []string `json:"country,omitzero"`
+	DistinguishedName  string   `json:"distinguished_name,omitzero"`
+	Locality           []string `json:"locality,omitzero"`
+	Organization       []string `json:"organization,omitzero"`
+	OrganizationalUnit []string `json:"organizational_unit,omitzero"`
+	StateOrProvince    []string `json:"state_or_province,omitzero"`
 }
 
 type X509 struct {
-	AlternativeNames   []string    `json:"alternate_names,omitempty"`
-	Issuer             *X509Target `json:"issuer,omitempty"`
-	NotAfter           string      `json:"not_after,omitempty"`
-	NotBefore          string      `json:"not_before,omitempty"`
-	PublicKeyAlgorithm string      `json:"public_key_algorithm,omitempty"`
-	PublicKeyCurve     string      `json:"public_key_curve,omitempty"`
-	PublicKeyExponent  int         `json:"public_key_exponent,omitempty"`
-	PublicKeySize      int         `json:"public_key_size,omitempty"`
-	SerialNumber       string      `json:"serial_number,omitempty"`
-	SignatureAlgorithm string      `json:"signature_algorithm,omitempty"`
-	Subject            *X509Target `json:"subject,omitempty"`
-	VersionNumber      string      `json:"version_number,omitempty"`
+	AlternativeNames   []string    `json:"alternate_names,omitzero"`
+	Issuer             *X509Target `json:"issuer,omitzero"`
+	NotAfter           string      `json:"not_after,omitzero"`
+	NotBefore          string      `json:"not_before,omitzero"`
+	PublicKeyAlgorithm string      `json:"public_key_algorithm,omitzero"`
+	PublicKeyCurve     string      `json:"public_key_curve,omitzero"`
+	PublicKeyExponent  int         `json:"public_key_exponent,omitzero"`
+	PublicKeySize      int         `json:"public_key_size,omitzero"`
+	SerialNumber       string      `json:"serial_number,omitzero"`
+	SignatureAlgorithm string      `json:"signature_algorithm,omitzero"`
+	Subject            *X509Target `json:"subject,omitzero"`
+	VersionNumber      string      `json:"version_number,omitzero"`
 }
 
 // NOTE: Custom
 
 type WhoisRequest struct {
-	Body *Body  `json:"body,omitempty"`
-	Id   string `json:"id,omitempty"`
+	Body *Body  `json:"body,omitzero"`
+	Id   string `json:"id,omitzero"`
 }
 
 // NOTE: Custom
 
 type WhoisResponse struct {
-	Body *Body `json:"body,omitempty"`
+	Body *Body `json:"body,omitzero"`
 }
 
 // NOTE: Custom
 
 type Whois struct {
-	Request  *WhoisRequest  `json:"request,omitempty"`
-	Response *WhoisResponse `json:"response,omitempty"`
+	Request  *WhoisRequest  `json:"request,omitzero"`
+	Response *WhoisResponse `json:"response,omitzero"`
 }
