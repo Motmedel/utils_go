@@ -183,26 +183,42 @@ func cspViolationMessage(effectiveDirective, originalPolicy, blockedURL string, 
 // Report is the deprecated report body sent via the report-uri directive
 // (CSP Level 3 section 5.3). JSON keys use hyphenated names.
 type Report struct {
-	DocumentURI        string `json:"document-uri,omitempty" required:"true"`
-	Referrer           string `json:"referrer,omitempty" required:"true"`
-	ViolatedDirective  string `json:"violated-directive,omitempty" required:"true"`
-	EffectiveDirective string `json:"effective-directive,omitempty"`
-	OriginalPolicy     string `json:"original-policy,omitempty" required:"true"`
-	BlockedUri         string `json:"blocked-uri,omitempty" required:"true"`
-	LineNumber         int    `json:"line-number,omitempty"`
-	ColumnNumber       int    `json:"column-number,omitempty"`
-	SourceFile         string `json:"source-file,omitempty"`
+	DocumentURI        string  `json:"document-uri,omitempty"`
+	Referrer           *string `json:"referrer,omitempty" jsonschema:"referrer,minlength:0"`
+	ViolatedDirective  string  `json:"violated-directive,omitempty"`
+	EffectiveDirective string  `json:"effective-directive,omitempty"`
+	OriginalPolicy     string  `json:"original-policy,omitempty"`
+	BlockedUri         string  `json:"blocked-uri,omitempty" jsonschema:"blocked-uri,minlength:0"`
+	Disposition        string  `json:"disposition,omitempty"`
+	StatusCode         int     `json:"status-code,omitempty"`
+	Sample             *string `json:"sample,omitempty" jsonschema:"sample,minlength:0"`
+	SourceFile         *string `json:"source-file,omitempty"`
+	LineNumber         *int    `json:"line-number,omitempty"`
+	ColumnNumber       *int    `json:"column-number,omitempty"`
 }
 
 func (r *Report) Message() string {
-	return cspViolationMessage(r.EffectiveDirective, r.OriginalPolicy, r.BlockedUri, false)
+	return cspViolationMessage(r.EffectiveDirective, r.OriginalPolicy, r.BlockedUri, r.Disposition == "report")
+}
+
+// ReportEnvelope is the outer JSON object sent by browsers via the report-uri
+// directive (CSP Level 2 §4.4). It wraps the violation report in a "csp-report" key.
+type ReportEnvelope struct {
+	CspReport *Report `json:"csp-report"`
+}
+
+func (e *ReportEnvelope) Message() string {
+	if e.CspReport == nil {
+		return ""
+	}
+	return e.CspReport.Message()
 }
 
 // CSPViolationReportBody is the report body for "csp-violation" reports sent
 // via the Reporting API (report-to directive). Defined in CSP Level 3 section 5.
 type CSPViolationReportBody struct {
 	DocumentURL        string  `json:"documentURL,omitempty"`
-	Referrer           string  `json:"referrer,omitempty" jsonschema:"referrer,minlength:0"`
+	Referrer           *string `json:"referrer,omitempty" jsonschema:"referrer,minlength:0"`
 	BlockedURL         string  `json:"blockedURL,omitempty"`
 	EffectiveDirective string  `json:"effectiveDirective,omitempty"`
 	OriginalPolicy     string  `json:"originalPolicy,omitempty"`
