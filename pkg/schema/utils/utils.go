@@ -692,17 +692,9 @@ func TimestampReplaceAttr(groups []string, attr slog.Attr) slog.Attr {
 	return attr
 }
 
-func CommunityIdFromTargets(sourceTarget, destinationTarget *schema.Target, protocolNumber int) string {
-	if sourceTarget == nil {
-		return ""
-	}
-
-	if destinationTarget == nil {
-		return ""
-	}
-
-	if protocolNumber == 0 {
-		return ""
+func FlowTupleFromTargets(sourceTarget, destinationTarget *schema.Target, protocolNumber int) *flow_tuple.Tuple {
+	if sourceTarget == nil || destinationTarget == nil || protocolNumber == 0 {
+		return nil
 	}
 
 	sourceTargetIp := net.ParseIP(sourceTarget.Ip)
@@ -711,16 +703,20 @@ func CommunityIdFromTargets(sourceTarget, destinationTarget *schema.Target, prot
 	destinationTargetPort := destinationTarget.Port
 
 	if sourceTargetIp == nil || destinationTargetIp == nil || sourceTargetPort == 0 || destinationTargetPort == 0 {
-		return ""
+		return nil
 	}
 
-	flowTuple := flow_tuple.New(
+	return flow_tuple.New(
 		sourceTargetIp,
 		destinationTargetIp,
 		uint16(sourceTargetPort),
 		uint16(destinationTargetPort),
 		uint8(protocolNumber),
 	)
+}
+
+func CommunityIdFromTargets(sourceTarget, destinationTarget *schema.Target, protocolNumber int) string {
+	flowTuple := FlowTupleFromTargets(sourceTarget, destinationTarget, protocolNumber)
 	if flowTuple == nil {
 		return ""
 	}
