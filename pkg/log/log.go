@@ -2,12 +2,19 @@ package log
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
+	"net"
+	"net/url"
 	"os/exec"
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
 
 	context2 "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -220,8 +227,7 @@ func (extractor *ErrorContextExtractor) Handle(ctx context.Context, record *slog
 	if logErr, ok := ctx.Value(context2.ErrorContextKey).(error); ok {
 		record.Add(slog.Group("error", extractor.MakeErrorAttrs(logErr)...))
 
-		var contextErr motmedelErrors.ContextErrorI
-		if errors.As(logErr, &contextErr) {
+		if contextErr, ok := errors.AsType[motmedelErrors.ContextErrorI](logErr); ok {
 			if contextErrCtxPtr := contextErr.GetContext(); contextErrCtxPtr != nil {
 				contextErrCtx := *contextErrCtxPtr
 
@@ -247,9 +253,194 @@ func (extractor *ErrorContextExtractor) Handle(ctx context.Context, record *slog
 				}
 			}
 		}
+
+		if opErr, ok := errors.AsType[*net.OpError](logErr); ok {
+			var contextAttrs []any
+
+			if source := opErr.Source; source != nil {
+				if clientAttrs := makeNetAddrAttrs(source); len(clientAttrs) > 0 {
+					contextAttrs = append(contextAttrs, slog.Group("client", clientAttrs...))
+				}
+			}
+
+			if addr := opErr.Addr; addr != nil {
+				if serverAttrs := makeNetAddrAttrs(addr); len(serverAttrs) > 0 {
+					contextAttrs = append(contextAttrs, slog.Group("server", serverAttrs...))
+				}
+			}
+
+			if networkAttrs := makeNetworkAttrs(opErr); len(networkAttrs) > 0 {
+				contextAttrs = append(contextAttrs, slog.Group("network", networkAttrs...))
+			}
+
+			if len(contextAttrs) > 0 {
+				record.Add(slog.Group("error", slog.Group("context", contextAttrs...)))
+			}
+		}
+
+		if dnsErr, ok := errors.AsType[*net.DNSError](logErr); ok {
+			var contextAttrs []any
+
+			if name := dnsErr.Name; name != "" {
+				contextAttrs = append(contextAttrs, slog.Group("dns", slog.Group("question", slog.String("name", name))))
+			}
+
+			if server := dnsErr.Server; server != "" {
+				contextAttrs = append(contextAttrs, slog.Group("server", slog.String("address", server)))
+			}
+
+			if len(contextAttrs) > 0 {
+				record.Add(slog.Group("error", slog.Group("context", contextAttrs...)))
+			}
+		}
+
+		if urlErr, ok := errors.AsType[*url.Error](logErr); ok {
+			var contextAttrs []any
+
+			if urlStr := urlErr.URL; urlStr != "" {
+				contextAttrs = append(contextAttrs, slog.Group("url", slog.String("original", urlStr)))
+			}
+
+			if op := urlErr.Op; op != "" {
+				contextAttrs = append(contextAttrs, slog.Group("http", slog.Group("request", slog.String("method", strings.ToUpper(op)))))
+			}
+
+			if len(contextAttrs) > 0 {
+				record.Add(slog.Group("error", slog.Group("context", contextAttrs...)))
+			}
+		}
+
+		if pathErr, ok := errors.AsType[*fs.PathError](logErr); ok {
+			if path := pathErr.Path; path != "" {
+				record.Add(slog.Group("error", slog.Group("context", slog.Group("file", slog.String("path", path)))))
+			}
+		}
+
+		if certVerErr, ok := errors.AsType[*tls.CertificateVerificationError](logErr); ok {
+			if certs := certVerErr.UnverifiedCertificates; len(certs) > 0 {
+				if serverAttrs := makeTlsCertAttrs(certs[0]); len(serverAttrs) > 0 {
+					record.Add(slog.Group("error", slog.Group("context", slog.Group("tls", slog.Group("server", serverAttrs...)))))
+				}
+			}
+		}
+
+		if hostErr, ok := errors.AsType[*x509.HostnameError](logErr); ok {
+			var tlsAttrs []any
+
+			if host := hostErr.Host; host != "" {
+				tlsAttrs = append(tlsAttrs, slog.Group("client", slog.String("server_name", host)))
+			}
+
+			if serverAttrs := makeTlsCertAttrs(hostErr.Certificate); len(serverAttrs) > 0 {
+				tlsAttrs = append(tlsAttrs, slog.Group("server", serverAttrs...))
+			}
+
+			if len(tlsAttrs) > 0 {
+				record.Add(slog.Group("error", slog.Group("context", slog.Group("tls", tlsAttrs...))))
+			}
+		}
 	}
 
 	return nil
+}
+
+func makeNetAddrAttrs(addr net.Addr) []any {
+	switch typedAddr := addr.(type) {
+	case *net.TCPAddr:
+		return []any{
+			slog.String("ip", typedAddr.IP.String()),
+			slog.Int("port", typedAddr.Port),
+		}
+	case *net.UDPAddr:
+		return []any{
+			slog.String("ip", typedAddr.IP.String()),
+			slog.Int("port", typedAddr.Port),
+		}
+	default:
+		return []any{slog.String("address", addr.String())}
+	}
+}
+
+func makeTlsCertAttrs(cert *x509.Certificate) []any {
+	if cert == nil {
+		return nil
+	}
+
+	var attrs []any
+
+	if subject := cert.Subject.String(); subject != "" {
+		attrs = append(attrs, slog.String("subject", subject))
+	}
+
+	if issuer := cert.Issuer.String(); issuer != "" {
+		attrs = append(attrs, slog.String("issuer", issuer))
+	}
+
+	if notAfter := cert.NotAfter; !notAfter.IsZero() {
+		attrs = append(attrs, slog.String("not_after", notAfter.UTC().Format(time.RFC3339Nano)))
+	}
+
+	if notBefore := cert.NotBefore; !notBefore.IsZero() {
+		attrs = append(attrs, slog.String("not_before", notBefore.UTC().Format(time.RFC3339Nano)))
+	}
+
+	return attrs
+}
+
+func makeNetworkAttrs(opErr *net.OpError) []any {
+	netStr := opErr.Net
+
+	var transport string
+	var ianaNumber string
+
+	if strings.HasPrefix(netStr, "tcp") {
+		transport = "tcp"
+		ianaNumber = "6"
+	} else if strings.HasPrefix(netStr, "udp") {
+		transport = "udp"
+		ianaNumber = "17"
+	}
+
+	var networkType string
+	if strings.HasSuffix(netStr, "4") {
+		networkType = "ipv4"
+	} else if strings.HasSuffix(netStr, "6") {
+		networkType = "ipv6"
+	} else {
+		for _, addr := range []net.Addr{opErr.Source, opErr.Addr} {
+			if addr == nil {
+				continue
+			}
+			var ip net.IP
+			switch typedAddr := addr.(type) {
+			case *net.TCPAddr:
+				ip = typedAddr.IP
+			case *net.UDPAddr:
+				ip = typedAddr.IP
+			}
+			if ip != nil {
+				if ip.To4() != nil {
+					networkType = "ipv4"
+				} else {
+					networkType = "ipv6"
+				}
+				break
+			}
+		}
+	}
+
+	var attrs []any
+	if transport != "" {
+		attrs = append(attrs, slog.String("transport", transport))
+	}
+	if ianaNumber != "" {
+		attrs = append(attrs, slog.String("iana_number", ianaNumber))
+	}
+	if networkType != "" {
+		attrs = append(attrs, slog.String("type", networkType))
+	}
+
+	return attrs
 }
 
 func AttrsFromMap(m map[string]any) []any {
