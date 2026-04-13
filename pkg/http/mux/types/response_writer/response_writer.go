@@ -24,14 +24,16 @@ var DefaultHeaders = map[string]string{
 }
 
 const (
-	DefaultContentSecurityPolicyString = "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+	// object-src 'none' — OWASP ASVS 5.0.0, V3.4.3 (L2): "Verify that the application's Content Security Policy
+	// includes object-src 'none' to prevent plugin-based code execution vulnerabilities."
+	DefaultContentSecurityPolicyString = "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
 )
 
 var DefaultDocumentHeaders = map[string]string{
 	"Cross-Origin-Opener-Policy":   "same-origin",
 	"Cross-Origin-Embedder-Policy": "require-corp",
 	"Content-Security-Policy":      DefaultContentSecurityPolicyString,
-	"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
+	"Permissions-Policy":           "geolocation=(), microphone=(), camera=(), payment=(), usb=(), display-capture=()",
 	"Referrer-Policy":              "same-origin",
 }
 
