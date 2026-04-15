@@ -12,6 +12,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/watch_request"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/watch_response"
 )
 
 func testServer(t *testing.T, handler http.HandlerFunc) *Client {
@@ -85,6 +87,87 @@ func TestSend_CancelledContext(t *testing.T) {
 	_, err := client.Send(ctx, "me", &message.Message{Raw: "dGVzdA=="})
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestWatch(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/watch") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		var input watch_request.WatchRequest
+		json.UnmarshalRead(r.Body, &input)
+
+		if input.TopicName != "projects/my-project/topics/my-topic" {
+			t.Errorf("expected topic 'projects/my-project/topics/my-topic', got %q", input.TopicName)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, &watch_response.WatchResponse{
+			HistoryId:  "12345",
+			Expiration: "1431990098200",
+		})
+	})
+
+	resp, err := client.Watch(context.Background(), "me", &watch_request.WatchRequest{
+		TopicName: "projects/my-project/topics/my-topic",
+		LabelIds:  []string{"INBOX"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp.HistoryId != "12345" {
+		t.Errorf("expected history id '12345', got %q", resp.HistoryId)
+	}
+	if resp.Expiration != "1431990098200" {
+		t.Errorf("expected expiration '1431990098200', got %q", resp.Expiration)
+	}
+}
+
+func TestWatch_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.Watch(context.Background(), "", &watch_request.WatchRequest{
+		TopicName: "projects/my-project/topics/my-topic",
+	})
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestWatch_NilRequest(t *testing.T) {
+	client := NewClient()
+	resp, err := client.Watch(context.Background(), "me", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if resp != nil {
+		t.Error("expected nil for nil request")
+	}
+}
+
+func TestWatch_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.Watch(ctx, "me", &watch_request.WatchRequest{
+		TopicName: "projects/my-project/topics/my-topic",
+	})
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestWatchUrl(t *testing.T) {
+	u, _ := url.Parse("http://localhost:8080")
+	client := NewClientWithBaseUrl(u)
+	got := client.watchUrl("user@example.com")
+	expected := "http://localhost:8080/gmail/v1/users/user@example.com/watch"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
 	}
 }
 

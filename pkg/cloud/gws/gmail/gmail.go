@@ -15,6 +15,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/gmail_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/watch_request"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/watch_response"
 )
 
 const Domain = "gmail.googleapis.com"
@@ -54,6 +56,12 @@ func (c *Client) sendUrl(userId string) string {
 	return u.String()
 }
 
+func (c *Client) watchUrl(userId string) string {
+	u := *c.baseUrl
+	u.Path += url.PathEscape(userId) + "/watch"
+	return u.String()
+}
+
 func (c *Client) sendAsUrl(userId string, sendAsEmail string) string {
 	u := *c.baseUrl
 	u.Path += url.PathEscape(userId) + "/settings/sendAs"
@@ -86,6 +94,31 @@ func (c *Client) Send(ctx context.Context, userId string, msg *message.Message, 
 	}
 
 	return sentMessage, nil
+}
+
+// Watch sets up or renews a push notification watch on the given user's mailbox.
+// Notifications are delivered to the Cloud Pub/Sub topic specified in the request's TopicName.
+func (c *Client) Watch(ctx context.Context, userId string, request *watch_request.WatchRequest, options ...fetch_config.Option) (*watch_response.WatchResponse, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	if request == nil {
+		return nil, nil
+	}
+
+	urlString := c.watchUrl(userId)
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
+	_, response, err := motmedelHttpUtils.FetchJsonWithBody[*watch_response.WatchResponse](ctx, urlString, request, options...)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	return response, nil
 }
 
 type listMessagesResponse struct {
