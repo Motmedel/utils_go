@@ -13,6 +13,8 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/gmail_config"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/list_history_config"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/history"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/watch_request"
@@ -59,6 +61,12 @@ func (c *Client) sendUrl(userId string) string {
 func (c *Client) watchUrl(userId string) string {
 	u := *c.baseUrl
 	u.Path += url.PathEscape(userId) + "/watch"
+	return u.String()
+}
+
+func (c *Client) historyUrl(userId string) string {
+	u := *c.baseUrl
+	u.Path += url.PathEscape(userId) + "/history"
 	return u.String()
 }
 
@@ -119,6 +127,71 @@ func (c *Client) Watch(ctx context.Context, userId string, request *watch_reques
 	}
 
 	return response, nil
+}
+
+type listHistoryResponse struct {
+	History       []*history.Record `json:"history"`
+	NextPageToken string            `json:"nextPageToken"`
+	HistoryId     string            `json:"historyId"`
+}
+
+// ListHistory retrieves all history records for the given user after the specified startHistoryId.
+func (c *Client) ListHistory(ctx context.Context, userId string, startHistoryId string, options ...list_history_config.Option) ([]*history.Record, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+	if startHistoryId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("start history id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	listHistoryConfig := list_history_config.New(options...)
+
+	var allRecords []*history.Record
+	pageToken := ""
+
+	for {
+		urlObj, err := url.Parse(c.historyUrl(userId))
+		if err != nil {
+			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err))
+		}
+
+		query := url.Values{}
+		query.Set("startHistoryId", startHistoryId)
+		for _, historyType := range listHistoryConfig.HistoryTypes {
+			query.Add("historyTypes", string(historyType))
+		}
+		if listHistoryConfig.LabelId != "" {
+			query.Set("labelId", listHistoryConfig.LabelId)
+		}
+		if pageToken != "" {
+			query.Set("pageToken", pageToken)
+		}
+		urlObj.RawQuery = query.Encode()
+		urlString := urlObj.String()
+
+		fetchOptions := append(c.config.FetchOptions, listHistoryConfig.FetchOptions...)
+		_, resp, err := motmedelHttpUtils.FetchJson[*listHistoryResponse](ctx, urlString, fetchOptions...)
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+		}
+
+		if resp != nil {
+			allRecords = append(allRecords, resp.History...)
+
+			if resp.NextPageToken == "" {
+				break
+			}
+			pageToken = resp.NextPageToken
+		} else {
+			break
+		}
+	}
+
+	return allRecords, nil
 }
 
 type listMessagesResponse struct {

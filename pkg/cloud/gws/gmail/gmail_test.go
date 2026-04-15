@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/list_history_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/watch_request"
@@ -166,6 +167,134 @@ func TestWatchUrl(t *testing.T) {
 	client := NewClientWithBaseUrl(u)
 	got := client.watchUrl("user@example.com")
 	expected := "http://localhost:8080/gmail/v1/users/user@example.com/watch"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+}
+
+func TestListHistory(t *testing.T) {
+	callCount := 0
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/history") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("startHistoryId") != "12345" {
+			t.Errorf("expected startHistoryId=12345, got %q", r.URL.Query().Get("startHistoryId"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		callCount++
+		if callCount == 1 {
+			json.MarshalWrite(w, map[string]any{
+				"history": []map[string]any{
+					{
+						"id": "12346",
+						"messagesAdded": []map[string]any{
+							{"message": map[string]string{"id": "msg-1", "threadId": "thread-1"}},
+						},
+					},
+				},
+				"nextPageToken": "token-abc",
+				"historyId":     "12350",
+			})
+		} else {
+			json.MarshalWrite(w, map[string]any{
+				"history": []map[string]any{
+					{
+						"id": "12347",
+						"messagesAdded": []map[string]any{
+							{"message": map[string]string{"id": "msg-2", "threadId": "thread-2"}},
+						},
+					},
+				},
+				"historyId": "12350",
+			})
+		}
+	})
+
+	records, err := client.ListHistory(context.Background(), "me", "12345",
+		list_history_config.WithHistoryTypes(list_history_config.HistoryTypeMessageAdded),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(records) != 2 {
+		t.Fatalf("expected 2 records, got %d", len(records))
+	}
+	if records[0].Id != "12346" {
+		t.Errorf("expected first record id '12346', got %q", records[0].Id)
+	}
+	if len(records[0].MessagesAdded) != 1 || records[0].MessagesAdded[0].Message.Id != "msg-1" {
+		t.Errorf("unexpected first record messagesAdded")
+	}
+	if records[1].MessagesAdded[0].Message.Id != "msg-2" {
+		t.Errorf("expected second message id 'msg-2', got %q", records[1].MessagesAdded[0].Message.Id)
+	}
+	if callCount != 2 {
+		t.Errorf("expected 2 API calls for pagination, got %d", callCount)
+	}
+}
+
+func TestListHistory_WithHistoryTypesAndLabelId(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		historyTypes := r.URL.Query()["historyTypes"]
+		if len(historyTypes) != 2 || historyTypes[0] != "messageAdded" || historyTypes[1] != "labelAdded" {
+			t.Errorf("expected historyTypes=[messageAdded, labelAdded], got %v", historyTypes)
+		}
+		if r.URL.Query().Get("labelId") != "INBOX" {
+			t.Errorf("expected labelId=INBOX, got %q", r.URL.Query().Get("labelId"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, map[string]any{
+			"history":   []map[string]any{},
+			"historyId": "12345",
+		})
+	})
+
+	_, err := client.ListHistory(context.Background(), "me", "12345",
+		list_history_config.WithHistoryTypes(list_history_config.HistoryTypeMessageAdded, list_history_config.HistoryTypeLabelAdded),
+		list_history_config.WithLabelId("INBOX"),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestListHistory_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.ListHistory(context.Background(), "", "12345")
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestListHistory_EmptyStartHistoryId(t *testing.T) {
+	client := NewClient()
+	_, err := client.ListHistory(context.Background(), "me", "")
+	if err == nil {
+		t.Fatal("expected error for empty start history id")
+	}
+}
+
+func TestListHistory_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.ListHistory(ctx, "me", "12345")
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestHistoryUrl(t *testing.T) {
+	u, _ := url.Parse("http://localhost:8080")
+	client := NewClientWithBaseUrl(u)
+	got := client.historyUrl("user@example.com")
+	expected := "http://localhost:8080/gmail/v1/users/user@example.com/history"
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)
 	}
