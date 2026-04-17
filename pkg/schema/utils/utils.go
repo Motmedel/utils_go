@@ -8,10 +8,14 @@ import (
 	"net/http"
 	"net/mail"
 	"net/url"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	gmailMessage "github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
+	gmailMessagePart "github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message/message_part"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
@@ -829,4 +833,140 @@ func ParseEmailAddress(value string) (*schema.EmailAddress, error) {
 		return nil, fmt.Errorf("mail parse address: %w", err)
 	}
 	return &schema.EmailAddress{Address: addr.Address, Name: addr.Name}, nil
+}
+
+func getHeader(msg *gmailMessage.Message, name string) string {
+	if msg == nil || msg.Payload == nil {
+		return ""
+	}
+
+	for _, h := range msg.Payload.Headers {
+		if strings.EqualFold(h.Name, name) {
+			return h.Value
+		}
+	}
+
+	return ""
+}
+
+func parseEmailAddresses(value string) []*schema.EmailAddress {
+	if value == "" {
+		return nil
+	}
+
+	addrs, err := mail.ParseAddressList(value)
+	if err != nil {
+		addr, err := mail.ParseAddress(value)
+		if err != nil {
+			return nil
+		}
+		return []*schema.EmailAddress{{Address: addr.Address, Name: addr.Name}}
+	}
+
+	var result []*schema.EmailAddress
+	for _, addr := range addrs {
+		result = append(result, &schema.EmailAddress{Address: addr.Address, Name: addr.Name})
+	}
+	return result
+}
+
+func collectAttachments(part *gmailMessagePart.MessagePart) []*schema.EmailAttachment {
+	if part == nil {
+		return nil
+	}
+
+	var attachments []*schema.EmailAttachment
+
+	if part.Filename != "" && part.Body != nil {
+		attachment := &schema.EmailAttachment{
+			File: &schema.EmailAttachmentFile{
+				Name:     part.Filename,
+				MimeType: part.MimeType,
+				Size:     part.Body.Size,
+			},
+		}
+		if ext := filepath.Ext(part.Filename); ext != "" {
+			attachment.File.Extension = strings.TrimPrefix(ext, ".")
+		}
+		attachments = append(attachments, attachment)
+	}
+
+	for _, child := range part.Parts {
+		attachments = append(attachments, collectAttachments(child)...)
+	}
+
+	return attachments
+}
+
+func EnrichWithGmailMessage(base *schema.Base, msg *gmailMessage.Message) {
+	if base == nil {
+		return
+	}
+
+	if msg == nil || msg.Payload == nil {
+		return
+	}
+
+	email := base.Email
+	if email == nil {
+		email = &schema.Email{}
+		base.Email = email
+	}
+
+	if messageId := getHeader(msg, "Message-ID"); messageId != "" {
+		email.MessageId = messageId
+	}
+
+	if subject := getHeader(msg, "Subject"); subject != "" {
+		email.Subject = subject
+	}
+
+	if contentType := msg.Payload.MimeType; contentType != "" {
+		email.ContentType = contentType
+	}
+
+	if localId := msg.Id; localId != "" {
+		email.LocalId = localId
+	}
+
+	if from := parseEmailAddresses(getHeader(msg, "From")); len(from) > 0 {
+		email.From = from
+		email.Sender = from[0]
+	}
+
+	if to := parseEmailAddresses(getHeader(msg, "To")); len(to) > 0 {
+		email.To = to
+	}
+
+	if cc := parseEmailAddresses(getHeader(msg, "Cc")); len(cc) > 0 {
+		email.Cc = cc
+	}
+
+	if bcc := parseEmailAddresses(getHeader(msg, "Bcc")); len(bcc) > 0 {
+		email.Bcc = bcc
+	}
+
+	if replyTo := parseEmailAddresses(getHeader(msg, "Reply-To")); len(replyTo) > 0 {
+		email.ReplyTo = replyTo
+	}
+
+	if date := getHeader(msg, "Date"); date != "" {
+		if t, err := mail.ParseDate(date); err == nil {
+			email.OriginationTimestamp = t.UTC().Format(timestampFormat)
+		}
+	}
+
+	if msg.InternalDate != "" {
+		if millis, err := strconv.ParseInt(msg.InternalDate, 10, 64); err == nil {
+			email.DeliveryTimestamp = time.UnixMilli(millis).UTC().Format(timestampFormat)
+		}
+	}
+
+	if deliveryTimestamp := email.DeliveryTimestamp; deliveryTimestamp != "" {
+		base.Timestamp = email.DeliveryTimestamp
+	}
+
+	if attachments := collectAttachments(msg.Payload); len(attachments) > 0 {
+		email.Attachments = attachments
+	}
 }
