@@ -11,6 +11,7 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/list_history_config"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/filter"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/watch_request"
@@ -717,6 +718,244 @@ func TestSendAsUrl(t *testing.T) {
 
 	got = client.sendAsUrl("user@example.com", "alias@example.com")
 	expected = "http://localhost:8080/gmail/v1/users/user@example.com/settings/sendAs/alias@example.com"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+}
+
+func TestCreateFilter(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/settings/filters") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		var input filter.Filter
+		json.UnmarshalRead(r.Body, &input)
+
+		if input.Criteria == nil || input.Criteria.From != "boss@example.com" {
+			t.Errorf("unexpected criteria: %+v", input.Criteria)
+		}
+		if input.Action == nil || len(input.Action.AddLabelIds) != 1 || input.Action.AddLabelIds[0] != "Label_1" {
+			t.Errorf("unexpected action: %+v", input.Action)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, &filter.Filter{
+			Id:       "filter-1",
+			Criteria: input.Criteria,
+			Action:   input.Action,
+		})
+	})
+
+	created, err := client.CreateFilter(context.Background(), "me", &filter.Filter{
+		Criteria: &filter.Criteria{From: "boss@example.com"},
+		Action:   &filter.Action{AddLabelIds: []string{"Label_1"}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if created.Id != "filter-1" {
+		t.Errorf("expected id 'filter-1', got %q", created.Id)
+	}
+	if created.Criteria.From != "boss@example.com" {
+		t.Errorf("expected criteria from 'boss@example.com', got %q", created.Criteria.From)
+	}
+}
+
+func TestCreateFilter_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.CreateFilter(context.Background(), "", &filter.Filter{})
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestCreateFilter_NilFilter(t *testing.T) {
+	client := NewClient()
+	result, err := client.CreateFilter(context.Background(), "me", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != nil {
+		t.Error("expected nil for nil filter")
+	}
+}
+
+func TestCreateFilter_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.CreateFilter(ctx, "me", &filter.Filter{})
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestGetFilter(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/settings/filters/filter-1") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		err := json.MarshalWrite(w, &filter.Filter{
+			Id:       "filter-1",
+			Criteria: &filter.Criteria{From: "boss@example.com"},
+			Action:   &filter.Action{AddLabelIds: []string{"Label_1"}},
+		})
+		if err != nil {
+			t.Fatalf("json marshal write: %v", err)
+		}
+	})
+
+	f, err := client.GetFilter(context.Background(), "me", "filter-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f.Id != "filter-1" {
+		t.Errorf("expected id 'filter-1', got %q", f.Id)
+	}
+	if f.Criteria == nil || f.Criteria.From != "boss@example.com" {
+		t.Errorf("unexpected criteria: %+v", f.Criteria)
+	}
+}
+
+func TestGetFilter_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.GetFilter(context.Background(), "", "filter-1")
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestGetFilter_EmptyFilterId(t *testing.T) {
+	client := NewClient()
+	_, err := client.GetFilter(context.Background(), "me", "")
+	if err == nil {
+		t.Fatal("expected error for empty filter id")
+	}
+}
+
+func TestGetFilter_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.GetFilter(ctx, "me", "filter-1")
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestListFilters(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/settings/filters") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, map[string]any{
+			"filter": []map[string]any{
+				{
+					"id":       "filter-1",
+					"criteria": map[string]string{"from": "a@example.com"},
+					"action":   map[string]any{"addLabelIds": []string{"Label_1"}},
+				},
+				{
+					"id":       "filter-2",
+					"criteria": map[string]string{"subject": "Important"},
+					"action":   map[string]any{"removeLabelIds": []string{"INBOX"}},
+				},
+			},
+		})
+	})
+
+	filters, err := client.ListFilters(context.Background(), "me")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(filters) != 2 {
+		t.Fatalf("expected 2 filters, got %d", len(filters))
+	}
+	if filters[0].Id != "filter-1" {
+		t.Errorf("expected first id 'filter-1', got %q", filters[0].Id)
+	}
+	if filters[1].Criteria == nil || filters[1].Criteria.Subject != "Important" {
+		t.Errorf("unexpected second filter criteria: %+v", filters[1].Criteria)
+	}
+}
+
+func TestListFilters_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.ListFilters(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestListFilters_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.ListFilters(ctx, "me")
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestDeleteFilter(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/settings/filters/filter-1") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	err := client.DeleteFilter(context.Background(), "me", "filter-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDeleteFilter_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	err := client.DeleteFilter(context.Background(), "", "filter-1")
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestDeleteFilter_EmptyFilterId(t *testing.T) {
+	client := NewClient()
+	err := client.DeleteFilter(context.Background(), "me", "")
+	if err == nil {
+		t.Fatal("expected error for empty filter id")
+	}
+}
+
+func TestFiltersUrl(t *testing.T) {
+	u, _ := url.Parse("http://localhost:8080")
+	client := NewClientWithBaseUrl(u)
+
+	got := client.filtersUrl("user@example.com", "")
+	expected := "http://localhost:8080/gmail/v1/users/user@example.com/settings/filters"
+	if got != expected {
+		t.Errorf("expected %q, got %q", expected, got)
+	}
+
+	got = client.filtersUrl("user@example.com", "filter-1")
+	expected = "http://localhost:8080/gmail/v1/users/user@example.com/settings/filters/filter-1"
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)
 	}

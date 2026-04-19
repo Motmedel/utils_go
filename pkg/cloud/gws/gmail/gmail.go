@@ -14,6 +14,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/gmail_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/list_history_config"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/filter"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/history"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/send_as"
@@ -75,6 +76,15 @@ func (c *Client) sendAsUrl(userId string, sendAsEmail string) string {
 	u.Path += url.PathEscape(userId) + "/settings/sendAs"
 	if sendAsEmail != "" {
 		u.Path += "/" + url.PathEscape(sendAsEmail)
+	}
+	return u.String()
+}
+
+func (c *Client) filtersUrl(userId string, filterId string) string {
+	u := *c.baseUrl
+	u.Path += url.PathEscape(userId) + "/settings/filters"
+	if filterId != "" {
+		u.Path += "/" + url.PathEscape(filterId)
 	}
 	return u.String()
 }
@@ -379,6 +389,104 @@ func (c *Client) DeleteSendAs(ctx context.Context, userId string, sendAsEmail st
 	}
 
 	urlString := c.sendAsUrl(userId, sendAsEmail)
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
+	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
+	if err != nil {
+		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
+	}
+
+	return nil
+}
+
+type listFiltersResponse struct {
+	Filter []*filter.Filter `json:"filter"`
+}
+
+// CreateFilter creates a filter for the given user.
+func (c *Client) CreateFilter(ctx context.Context, userId string, f *filter.Filter, options ...fetch_config.Option) (*filter.Filter, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	if f == nil {
+		return nil, nil
+	}
+
+	urlString := c.filtersUrl(userId, "")
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
+	_, created, err := motmedelHttpUtils.FetchJsonWithBody[*filter.Filter](ctx, urlString, f, options...)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	return created, nil
+}
+
+// GetFilter retrieves a filter identified by filterId for the given user.
+func (c *Client) GetFilter(ctx context.Context, userId string, filterId string, options ...fetch_config.Option) (*filter.Filter, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+	if filterId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("filter id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	urlString := c.filtersUrl(userId, filterId)
+	options = append(c.config.FetchOptions, options...)
+	_, f, err := motmedelHttpUtils.FetchJson[*filter.Filter](ctx, urlString, options...)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	return f, nil
+}
+
+// ListFilters retrieves all filters for the given user.
+func (c *Client) ListFilters(ctx context.Context, userId string, options ...fetch_config.Option) ([]*filter.Filter, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	urlString := c.filtersUrl(userId, "")
+	options = append(c.config.FetchOptions, options...)
+	_, resp, err := motmedelHttpUtils.FetchJson[*listFiltersResponse](ctx, urlString, options...)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if resp == nil {
+		return nil, nil
+	}
+
+	return resp.Filter, nil
+}
+
+// DeleteFilter deletes a filter identified by filterId for the given user.
+func (c *Client) DeleteFilter(ctx context.Context, userId string, filterId string, options ...fetch_config.Option) error {
+	if userId == "" {
+		return motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+	if filterId == "" {
+		return motmedelErrors.NewWithTrace(empty_error.New("filter id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("context err: %w", err)
+	}
+
+	urlString := c.filtersUrl(userId, filterId)
 	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
 	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
 	if err != nil {
