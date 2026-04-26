@@ -115,10 +115,7 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 	}
 	responseBody := response.Body
 	if utils.IsNil(responseBody) {
-		return nil, nil, motmedelErrors.NewWithTraceCtx(
-			ctxWithHttpContext,
-			nil_error.New("http response body"),
-		)
+		return nil, nil, motmedelErrors.NewWithTraceCtx(ctxWithHttpContext, nil_error.New("http response body"))
 	}
 
 	var responseBodyData []byte

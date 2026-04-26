@@ -286,8 +286,9 @@ func (acceptLanguage *AcceptLanguage) GetPriorityOrderedLanguages() []*LanguageQ
 }
 
 type StrictTransportSecurityPolicy struct {
-	MaxAga            int
+	MaxAge            int
 	IncludeSubdomains bool
+	Preload           bool
 	Raw               string
 }
 
