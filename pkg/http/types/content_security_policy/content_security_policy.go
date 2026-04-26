@@ -10,11 +10,16 @@ import (
 )
 
 type SourceI interface {
+	GetRaw() string
 	String() string
 }
 
 type ParsedSource struct {
 	Raw string `json:"raw,omitempty"`
+}
+
+func (parsedSource *ParsedSource) GetRaw() string {
+	return parsedSource.Raw
 }
 
 func (parsedSource *ParsedSource) String() string {
@@ -134,6 +139,7 @@ func (hashSource *HashSource) String() string {
 
 type DirectiveI interface {
 	GetName() string
+	GetRawValue() string
 	String() string
 }
 
@@ -147,18 +153,20 @@ func (directive *ParsedDirective) GetName() string {
 	return directive.Name
 }
 
+func (directive *ParsedDirective) GetRawValue() string {
+	return directive.Value
+}
+
 func (directive *ParsedDirective) String() string {
-	name := directive.Name
-	if name == "" {
+	if directive.Name == "" {
 		return ""
 	}
 
-	value := directive.Value
-	if value == "" {
-		return ""
+	if directive.Value == "" {
+		return directive.Name
 	}
 
-	return fmt.Sprintf("%s %s", name, value)
+	return fmt.Sprintf("%s %s", directive.Name, directive.Value)
 }
 
 type SourceDirectiveI interface {
