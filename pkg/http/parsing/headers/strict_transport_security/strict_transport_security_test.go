@@ -86,8 +86,8 @@ func TestParseStrictTransportSecurityCorrectness(t *testing.T) {
 				t.Fatalf("nil result (header=%q)", c.header)
 			}
 
-			if p.MaxAga != c.want.maxAge {
-				t.Fatalf("MaxAga=%d, want %d (header=%q)", p.MaxAga, c.want.maxAge, c.header)
+			if p.MaxAge != c.want.maxAge {
+				t.Fatalf("MaxAge=%d, want %d (header=%q)", p.MaxAge, c.want.maxAge, c.header)
 			}
 			if p.IncludeSubdomains != c.want.incl {
 				t.Fatalf("IncludeSubdomains=%v, want %v (header=%q)", p.IncludeSubdomains, c.want.incl, c.header)

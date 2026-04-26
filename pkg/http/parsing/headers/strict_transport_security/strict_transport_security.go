@@ -123,7 +123,7 @@ func Parse(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error
 				)
 			}
 
-			strictTransportPolicy.MaxAga = maxAgeNumber
+			strictTransportPolicy.MaxAge = maxAgeNumber
 		case "includesubdomains":
 			if directiveValuePath != nil {
 				return nil, nil
@@ -135,6 +135,11 @@ func Parse(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error
 				//}
 			}
 			strictTransportPolicy.IncludeSubdomains = true
+		case "preload":
+			if directiveValuePath != nil {
+				return nil, nil
+			}
+			strictTransportPolicy.Preload = true
 		}
 	}
 
