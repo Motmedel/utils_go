@@ -54,6 +54,46 @@ func TestIsSigned(t *testing.T) {
 	}
 }
 
+func TestIsEncrypted(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		data []byte
+		want bool
+	}{
+		{
+			name: "encrypted document",
+			data: []byte("trailer\n<< /Size 42 /Encrypt 5 0 R /Root 1 0 R >>"),
+			want: true,
+		},
+		{
+			name: "unencrypted document",
+			data: []byte("trailer\n<< /Size 42 /Root 1 0 R >>"),
+			want: false,
+		},
+		{
+			name: "empty data",
+			data: []byte(""),
+			want: false,
+		},
+		{
+			name: "nil data",
+			data: nil,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := IsEncrypted(tt.data); got != tt.want {
+				t.Fatalf("IsEncrypted() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNewPdfFileValidator(t *testing.T) {
 	t.Parallel()
 	v := NewPdfFileValidator()

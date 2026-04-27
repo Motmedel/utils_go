@@ -84,6 +84,34 @@ func (c *Client) GetIdToken(ctx context.Context, audience string, options ...fet
 	return string(responseBody), nil
 }
 
+// GetServiceAccountEmail returns the email address of the runtime's default service
+// account by querying the GCP metadata server. Only works when running inside a GCP
+// environment that exposes the metadata server (Compute Engine, Cloud Run, GKE, etc.).
+func (c *Client) GetServiceAccountEmail(ctx context.Context, options ...fetch_config.Option) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", fmt.Errorf("context err: %w", err)
+	}
+
+	requestUrl := *c.metadataBaseUrl
+	requestUrl.Path += "/instance/service-accounts/default/email"
+
+	urlString := requestUrl.String()
+	options = append(
+		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		options...,
+	)
+	_, responseBody, err := motmedelHttpUtils.Fetch(
+		ctx,
+		urlString,
+		options...,
+	)
+	if err != nil {
+		return "", motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
+	}
+
+	return string(responseBody), nil
+}
+
 func (c *Client) GetProjectId(ctx context.Context, options ...fetch_config.Option) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", fmt.Errorf("context err: %w", err)

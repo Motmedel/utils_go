@@ -3,19 +3,27 @@ package cloud_storage
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
 	"net/url"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/cloud_storage_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/bucket"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object_list"
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/signer"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
@@ -316,4 +324,157 @@ func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *
 	}
 
 	return insertedObject, nil
+}
+
+// MaxSignedUrlExpires is the upper bound on V4 signed URL lifetime enforced by GCS.
+const MaxSignedUrlExpires = 7 * 24 * time.Hour
+
+// rfc3986Escape percent-encodes per RFC 3986 unreserved-character rules.
+// Used for V4 canonical path segments and query parts: every byte outside
+// A-Z / a-z / 0-9 / '-' / '_' / '.' / '~' is encoded as %XX (uppercase hex).
+// Multi-byte UTF-8 is handled correctly because each byte is encoded individually.
+func rfc3986Escape(s string) string {
+	const upperhex = "0123456789ABCDEF"
+
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'):
+			b.WriteByte(c)
+		case c == '-' || c == '_' || c == '.' || c == '~':
+			b.WriteByte(c)
+		default:
+			b.WriteByte('%')
+			b.WriteByte(upperhex[c>>4])
+			b.WriteByte(upperhex[c&0x0f])
+		}
+	}
+	return b.String()
+}
+
+// rfc3986EscapeObjectPath escapes an object name preserving '/' literals as required
+// by the V4 canonical request format.
+func rfc3986EscapeObjectPath(name string) string {
+	parts := strings.Split(name, "/")
+	for i, p := range parts {
+		parts[i] = rfc3986Escape(p)
+	}
+	return strings.Join(parts, "/")
+}
+
+// canonicalQueryString builds the canonical query string from sorted (key, value) pairs,
+// percent-encoding both keys and values per RFC 3986. Sorting is by encoded key, which
+// — for our standard X-Goog-* parameters — matches sorting by raw key.
+func canonicalQueryString(values url.Values) string {
+	keys := make([]string, 0, len(values))
+	for k := range values {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var parts []string
+	for _, k := range keys {
+		ek := rfc3986Escape(k)
+		for _, v := range values[k] {
+			parts = append(parts, ek+"="+rfc3986Escape(v))
+		}
+	}
+
+	return strings.Join(parts, "&")
+}
+
+// SignedUrl returns a V4 signed URL for the given object. The URL grants temporary
+// access to perform the given HTTP method against the object, valid for the given
+// duration (capped at 7 days by GCS). The signer's identity is embedded in the URL —
+// the runtime must be able to sign on behalf of that identity (e.g. an in-process
+// RSA key, or via IAM Credentials' signBlob).
+//
+// Only the host header is signed; payloads are sent as UNSIGNED-PAYLOAD, so the
+// resulting URL works with any request body content.
+func (c *Client) SignedUrl(
+	ctx context.Context,
+	s signer.Signer,
+	method string,
+	bucketName string,
+	objectName string,
+	expires time.Duration,
+) (string, error) {
+	if s == nil {
+		return "", motmedelErrors.NewWithTrace(nil_error.New("signer"))
+	}
+	if bucketName == "" {
+		return "", motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
+	}
+	if objectName == "" {
+		return "", motmedelErrors.NewWithTrace(empty_error.New("object name"))
+	}
+	if method == "" {
+		method = http.MethodGet
+	}
+
+	if err := ctx.Err(); err != nil {
+		return "", fmt.Errorf("context err: %w", err)
+	}
+
+	expiresSeconds := int64(expires / time.Second)
+	if expiresSeconds <= 0 || expires > MaxSignedUrlExpires {
+		return "", motmedelErrors.NewWithTrace(
+			fmt.Errorf("expires out of range (must be > 0 and <= 7 days): %s", expires),
+		)
+	}
+
+	signerEmail := s.Email()
+	if signerEmail == "" {
+		return "", motmedelErrors.NewWithTrace(empty_error.New("signer email"))
+	}
+
+	now := time.Now().UTC()
+	datestamp := now.Format("20060102")
+	datetime := now.Format("20060102T150405Z")
+
+	credentialScope := datestamp + "/auto/storage/goog4_request"
+	credential := signerEmail + "/" + credentialScope
+
+	host := c.baseUrl.Host
+	encodedPath := "/" + rfc3986Escape(bucketName) + "/" + rfc3986EscapeObjectPath(objectName)
+
+	const signedHeaders = "host"
+	canonicalHeaders := "host:" + host + "\n"
+
+	queryValues := url.Values{}
+	queryValues.Set("X-Goog-Algorithm", "GOOG4-RSA-SHA256")
+	queryValues.Set("X-Goog-Credential", credential)
+	queryValues.Set("X-Goog-Date", datetime)
+	queryValues.Set("X-Goog-Expires", strconv.FormatInt(expiresSeconds, 10))
+	queryValues.Set("X-Goog-SignedHeaders", signedHeaders)
+
+	canonicalQuery := canonicalQueryString(queryValues)
+
+	canonicalRequest := strings.Join([]string{
+		method,
+		encodedPath,
+		canonicalQuery,
+		canonicalHeaders,
+		signedHeaders,
+		"UNSIGNED-PAYLOAD",
+	}, "\n")
+
+	canonicalRequestHash := sha256.Sum256([]byte(canonicalRequest))
+
+	stringToSign := strings.Join([]string{
+		"GOOG4-RSA-SHA256",
+		datetime,
+		credentialScope,
+		hex.EncodeToString(canonicalRequestHash[:]),
+	}, "\n")
+
+	signature, err := s.Sign(ctx, []byte(stringToSign))
+	if err != nil {
+		return "", motmedelErrors.New(fmt.Errorf("signer sign: %w", err))
+	}
+
+	return c.baseUrl.Scheme + "://" + host + encodedPath + "?" + canonicalQuery +
+		"&X-Goog-Signature=" + hex.EncodeToString(signature), nil
 }

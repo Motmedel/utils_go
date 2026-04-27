@@ -138,6 +138,14 @@ func (s *TokenSource) CredentialsFile() *credentials_file.File {
 	return s.credentialsFile
 }
 
+func (s *TokenSource) Signer() crypto.Signer {
+	return s.privateKey
+}
+
+func (s *TokenSource) ClientEmail() string {
+	return s.clientEmail
+}
+
 func NewFromCredentialsFile(
 	ctx context.Context,
 	tokenUrl string,
