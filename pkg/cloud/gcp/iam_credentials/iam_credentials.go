@@ -52,11 +52,11 @@ func (c *Client) SignBlob(ctx context.Context, serviceAccountEmail string, paylo
 		return nil, fmt.Errorf("context err: %w", err)
 	}
 
-	resourceName := "projects/-/serviceAccounts/" + serviceAccountEmail
-
+	// gRPC transcoding requires the slashes in the resource name to remain literal —
+	// only the email itself is per-request user input that needs path-segment escaping.
 	u := *c.baseUrl
-	u.RawPath = u.Path + url.PathEscape(resourceName) + ":signBlob"
-	u.Path += resourceName + ":signBlob"
+	u.RawPath = u.Path + "projects/-/serviceAccounts/" + url.PathEscape(serviceAccountEmail) + ":signBlob"
+	u.Path += "projects/-/serviceAccounts/" + serviceAccountEmail + ":signBlob"
 	urlString := u.String()
 
 	body := &sign_blob_request.Request{Payload: base64.StdEncoding.EncodeToString(payload)}

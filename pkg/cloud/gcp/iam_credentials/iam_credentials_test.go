@@ -34,8 +34,14 @@ func TestSignBlob(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if !strings.HasSuffix(r.URL.Path, "projects/-/serviceAccounts/"+email+":signBlob") {
-			t.Errorf("unexpected path: %s", r.URL.Path)
+		// Assert the on-the-wire URL keeps the resource-name slashes literal — gRPC
+		// transcoding routes against the raw path and rejects %2F-encoded separators.
+		wantSuffix := "/projects/-/serviceAccounts/" + email + ":signBlob"
+		if !strings.HasSuffix(r.RequestURI, wantSuffix) {
+			t.Errorf("unexpected RequestURI: want suffix %q, got %q", wantSuffix, r.RequestURI)
+		}
+		if strings.Contains(r.RequestURI, "%2F") {
+			t.Errorf("RequestURI must not percent-encode resource-name slashes: %s", r.RequestURI)
 		}
 
 		var body sign_blob_request.Request
