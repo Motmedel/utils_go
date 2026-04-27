@@ -2,6 +2,7 @@ package cloud_storage
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -9,11 +10,26 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/bucket"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object_list"
 )
+
+// fakeSigner records the payload it was asked to sign and returns a fixed signature.
+type fakeSigner struct {
+	email     string
+	signature []byte
+	gotPayload []byte
+}
+
+func (f *fakeSigner) Email() string { return f.email }
+
+func (f *fakeSigner) Sign(_ context.Context, payload []byte) ([]byte, error) {
+	f.gotPayload = append(f.gotPayload[:0], payload...)
+	return f.signature, nil
+}
 
 func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
@@ -392,5 +408,124 @@ func TestInsertObject_CancelledContext(t *testing.T) {
 	_, err := client.InsertObject(ctx, "bucket", &object.Object{Name: "o"}, []byte("x"), "text/plain")
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
+	}
+}
+
+
+func TestSignedUrl(t *testing.T) {
+	client := NewClient()
+
+	signer := &fakeSigner{
+		email:     "robot@example.iam.gserviceaccount.com",
+		signature: []byte{0xde, 0xad, 0xbe, 0xef},
+	}
+
+	urlString, err := client.SignedUrl(
+		context.Background(),
+		signer,
+		http.MethodGet,
+		"my-bucket",
+		"reports/foo bar.pdf",
+		15*time.Minute,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	parsed, err := url.Parse(urlString)
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+
+	if parsed.Scheme != "https" || parsed.Host != "storage.googleapis.com" {
+		t.Errorf("unexpected scheme/host: %s://%s", parsed.Scheme, parsed.Host)
+	}
+	// Slashes within the object name must be preserved literally; the space must be %20 (not '+').
+	if !strings.HasPrefix(urlString, "https://storage.googleapis.com/my-bucket/reports/foo%20bar.pdf?") {
+		t.Errorf("unexpected URL prefix: %s", urlString)
+	}
+
+	q := parsed.Query()
+	if got := q.Get("X-Goog-Algorithm"); got != "GOOG4-RSA-SHA256" {
+		t.Errorf("X-Goog-Algorithm: want GOOG4-RSA-SHA256, got %s", got)
+	}
+	if got := q.Get("X-Goog-Expires"); got != "900" {
+		t.Errorf("X-Goog-Expires: want 900, got %s", got)
+	}
+	if got := q.Get("X-Goog-SignedHeaders"); got != "host" {
+		t.Errorf("X-Goog-SignedHeaders: want host, got %s", got)
+	}
+	cred := q.Get("X-Goog-Credential")
+	if !strings.HasPrefix(cred, signer.email+"/") || !strings.HasSuffix(cred, "/auto/storage/goog4_request") {
+		t.Errorf("unexpected X-Goog-Credential: %s", cred)
+	}
+	if got := q.Get("X-Goog-Signature"); got != hex.EncodeToString(signer.signature) {
+		t.Errorf("X-Goog-Signature: want %s, got %s", hex.EncodeToString(signer.signature), got)
+	}
+	if got := q.Get("X-Goog-Date"); len(got) != len("20060102T150405Z") {
+		t.Errorf("X-Goog-Date has unexpected length: %s", got)
+	}
+
+	stringToSign := string(signer.gotPayload)
+	lines := strings.Split(stringToSign, "\n")
+	if len(lines) != 4 {
+		t.Fatalf("string-to-sign should have 4 lines, got %d: %q", len(lines), stringToSign)
+	}
+	if lines[0] != "GOOG4-RSA-SHA256" {
+		t.Errorf("string-to-sign line 0: want GOOG4-RSA-SHA256, got %s", lines[0])
+	}
+	if lines[2] != strings.TrimPrefix(cred, signer.email+"/") {
+		t.Errorf("string-to-sign credential scope mismatch: %s vs %s", lines[2], cred)
+	}
+}
+
+func TestSignedUrl_NilSigner(t *testing.T) {
+	client := NewClient()
+	_, err := client.SignedUrl(context.Background(), nil, http.MethodGet, "b", "o", time.Hour)
+	if err == nil {
+		t.Fatal("expected error for nil signer")
+	}
+}
+
+func TestSignedUrl_EmptyBucket(t *testing.T) {
+	client := NewClient()
+	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
+	_, err := client.SignedUrl(context.Background(), signer, http.MethodGet, "", "o", time.Hour)
+	if err == nil {
+		t.Fatal("expected error for empty bucket")
+	}
+}
+
+func TestSignedUrl_EmptyObject(t *testing.T) {
+	client := NewClient()
+	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
+	_, err := client.SignedUrl(context.Background(), signer, http.MethodGet, "b", "", time.Hour)
+	if err == nil {
+		t.Fatal("expected error for empty object")
+	}
+}
+
+func TestSignedUrl_ExpiresOutOfRange(t *testing.T) {
+	client := NewClient()
+	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
+
+	if _, err := client.SignedUrl(context.Background(), signer, http.MethodGet, "b", "o", 0); err == nil {
+		t.Error("expected error for zero expires")
+	}
+	if _, err := client.SignedUrl(context.Background(), signer, http.MethodGet, "b", "o", 8*24*time.Hour); err == nil {
+		t.Error("expected error for expires > 7 days")
+	}
+}
+
+func TestSignedUrl_DefaultMethod(t *testing.T) {
+	client := NewClient()
+	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
+	if _, err := client.SignedUrl(context.Background(), signer, "", "b", "o", time.Hour); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	stringToSign := string(signer.gotPayload)
+	canonicalRequestHash := strings.Split(stringToSign, "\n")[3]
+	if canonicalRequestHash == "" {
+		t.Error("expected non-empty canonical request hash")
 	}
 }
