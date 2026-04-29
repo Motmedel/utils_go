@@ -88,7 +88,7 @@ func (p *Parser[T]) Parse(request *http.Request) (*authenticated_token.Token, *m
 			continue
 		}
 
-		if e, ok := motmedelErrors.AsType[*mismatch_error.Error](err); ok && e.Field == "sub" {
+		if e, ok := errors.AsType[*mismatch_error.Error](err); ok && e.Field == "sub" {
 			return nil, &muxResponseError.ResponseError{
 				ClientError: err,
 				ProblemDetail: problem_detail.New(
