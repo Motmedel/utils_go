@@ -10,7 +10,7 @@ type Error struct {
 func (e *Error) Error() string {
 	msg := fmt.Sprintf("nil %s", e.Field)
 	if e.Instance != "" {
-		msg += fmt.Sprintf("(%s)", e.Instance)
+		msg += fmt.Sprintf(" (%s)", e.Instance)
 	}
 	return msg
 }
