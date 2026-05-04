@@ -45,7 +45,7 @@ func MakeArchiveFromReader(reader io.Reader) (motmedelTarTypes.Archive, error) {
 	return archive, nil
 }
 
-func MakeArchiveFrommData(data []byte) (motmedelTarTypes.Archive, error) {
+func MakeArchiveFromData(data []byte) (motmedelTarTypes.Archive, error) {
 	if len(data) == 0 {
 		return nil, nil
 	}

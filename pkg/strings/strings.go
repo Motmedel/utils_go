@@ -68,7 +68,7 @@ func quote(s string) string {
 func isSafe(s string) bool {
 	for _, r := range s {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) &&
-			!strings.ContainsRune("@%+=:,./-", r) {
+			!strings.ContainsRune("@%+=:,./-_", r) {
 			return false
 		}
 	}
