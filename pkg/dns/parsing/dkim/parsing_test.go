@@ -7,6 +7,8 @@ import (
 	parsingUtilsErrors "github.com/Motmedel/parsing_utils/pkg/errors"
 	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/google/go-cmp/cmp"
 	goabnf "github.com/pandatix/go-abnf"
 )
@@ -259,6 +261,7 @@ func TestExtractTagPath(t *testing.T) {
 		tagTypeInput   string
 		expected       *goabnf.Path
 		expectedErrors []error
+		checkErr       func(*testing.T, error)
 	}{
 		{
 			name: "empty tag name",
@@ -267,10 +270,18 @@ func TestExtractTagPath(t *testing.T) {
 			name: "empty tag value",
 		},
 		{
-			name:           "empty tag type",
-			tagNameInput:   "x",
-			tagValueInput:  []byte("x"),
-			expectedErrors: []error{ErrEmptyTagType},
+			name:          "empty tag type",
+			tagNameInput:  "x",
+			tagValueInput: []byte("x"),
+			checkErr: func(t *testing.T, err error) {
+				ee, ok := errors.AsType[*empty_error.Error](err)
+				if !ok {
+					t.Fatalf("err type = %T (%v), want *empty_error.Error", err, err)
+				}
+				if ee.Field != "tag type" {
+					t.Errorf("Field = %q, want %q", ee.Field, "tag type")
+				}
+			},
 		},
 		{
 			name:           "unexpected tag type",
@@ -300,12 +311,16 @@ func TestExtractTagPath(t *testing.T) {
 			path, err := extractTagPath(testCase.tagNameInput, testCase.tagValueInput, testCase.tagTypeInput)
 			expectedErrors := testCase.expectedErrors
 
-			if len(expectedErrors) == 0 && err != nil {
+			if len(expectedErrors) == 0 && testCase.checkErr == nil && err != nil {
 				t.Fatalf("expected no errors, got: %v", err)
 			}
 
 			if !motmedelErrors.IsAll(err, expectedErrors...) {
 				t.Fatalf("expected errors: %v, got: %v", expectedErrors, err)
+			}
+
+			if testCase.checkErr != nil {
+				testCase.checkErr(t, err)
 			}
 
 			expected := testCase.expected
@@ -331,8 +346,12 @@ func TestGetTagSpecItems(t *testing.T) {
 		if len(seen) != 1 {
 			t.Fatalf("expected exactly one yield, got %d", len(seen))
 		}
-		if !errors.Is(seen[0], ErrNilTagMap) {
-			t.Fatalf("expected ErrNilTagMap, got %v", seen[0])
+		ne, ok := errors.AsType[*nil_error.Error](seen[0])
+		if !ok {
+			t.Fatalf("err type = %T (%v), want *nil_error.Error", seen[0], seen[0])
+		}
+		if ne.Field != "tag map" {
+			t.Errorf("Field = %q, want %q", ne.Field, "tag map")
 		}
 	})
 
@@ -348,8 +367,12 @@ func TestGetTagSpecItems(t *testing.T) {
 		if len(seen) != 1 {
 			t.Fatalf("expected exactly one yield, got %d", len(seen))
 		}
-		if !errors.Is(seen[0], ErrEmptyPathInput) {
-			t.Fatalf("expected ErrEmptyPathInput, got %v", seen[0])
+		ee, ok := errors.AsType[*empty_error.Error](seen[0])
+		if !ok {
+			t.Fatalf("err type = %T (%v), want *empty_error.Error", seen[0], seen[0])
+		}
+		if ee.Field != "path input" {
+			t.Errorf("Field = %q, want %q", ee.Field, "path input")
 		}
 	})
 }
@@ -363,14 +386,23 @@ func TestExtractBase64String(t *testing.T) {
 		valueInput     []byte
 		expected       string
 		expectedErrors []error
+		checkErr       func(*testing.T, error)
 	}{
 		{
 			name: "empty path",
 		},
 		{
-			name:           "empty value",
-			pathInput:      &goabnf.Path{},
-			expectedErrors: []error{ErrEmptyPathInput},
+			name:      "empty value",
+			pathInput: &goabnf.Path{},
+			checkErr: func(t *testing.T, err error) {
+				ee, ok := errors.AsType[*empty_error.Error](err)
+				if !ok {
+					t.Fatalf("err type = %T (%v), want *empty_error.Error", err, err)
+				}
+				if ee.Field != "path input" {
+					t.Errorf("Field = %q, want %q", ee.Field, "path input")
+				}
+			},
 		},
 	}
 
@@ -381,12 +413,16 @@ func TestExtractBase64String(t *testing.T) {
 			path, err := extractBase64String(testCase.pathInput, testCase.valueInput)
 			expectedErrors := testCase.expectedErrors
 
-			if len(expectedErrors) == 0 && err != nil {
+			if len(expectedErrors) == 0 && testCase.checkErr == nil && err != nil {
 				t.Fatalf("expected no errors, got: %v", err)
 			}
 
 			if !motmedelErrors.IsAll(err, expectedErrors...) {
 				t.Fatalf("expected errors: %v, got: %v", expectedErrors, err)
+			}
+
+			if testCase.checkErr != nil {
+				testCase.checkErr(t, err)
 			}
 
 			expected := testCase.expected

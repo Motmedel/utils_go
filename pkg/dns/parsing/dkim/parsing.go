@@ -12,11 +12,12 @@ import (
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	goabnf "github.com/pandatix/go-abnf"
 )
 
 var (
-	ErrNilTagNamePath         = errors.New("nil tag name path")
 	ErrVNotFirstTag           = errors.New("v not first tag")
 	ErrMalformedTag           = errors.New("malformed tag")
 	ErrMultipleTagPaths       = errors.New("multiple tag paths")
@@ -24,13 +25,7 @@ var (
 	ErrMissingPublicKeyData   = errors.New("missing public key data")
 	ErrMalformedPublicKeyData = errors.New("malformed public key data")
 	ErrUnexpectedTag          = errors.New("unexpected tag")
-	ErrNilHeaderName          = errors.New("nil header name")
-	ErrNilHeaderValue         = errors.New("nil header value")
-	ErrEmptyTagType           = errors.New("empty tag type")
 	ErrUnexpectedTagType      = errors.New("unexpected tag type")
-	ErrEmptyPathInput         = errors.New("empty path input")
-	ErrNilItem                = errors.New("nil item")
-	ErrNilTagMap              = errors.New("nil tag map")
 
 	ErrMissingRequiredTag = errors.New("missing required tag")
 )
@@ -47,7 +42,7 @@ func extractTagPath(tagName string, tagValue []byte, tagType string) (*goabnf.Pa
 	}
 
 	if tagType == "" {
-		return nil, motmedelErrors.NewWithTrace(ErrEmptyTagType)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("tag type"))
 	}
 
 	var ruleName string
@@ -93,7 +88,7 @@ func extractBase64String(path *goabnf.Path, value []byte) (string, error) {
 	}
 
 	if len(value) == 0 {
-		return "", motmedelErrors.NewWithTrace(ErrEmptyPathInput)
+		return "", motmedelErrors.NewWithTrace(empty_error.New("path input"))
 	}
 
 	var segments []string
@@ -124,19 +119,19 @@ type tagSpecItem struct {
 func getTagSpecItems(path *goabnf.Path, tagMap map[string]struct{}, data []byte) iter.Seq2[*tagSpecItem, error] {
 	return func(yield func(*tagSpecItem, error) bool) {
 		if tagMap == nil {
-			yield(nil, motmedelErrors.NewWithTrace(ErrNilTagMap))
+			yield(nil, motmedelErrors.NewWithTrace(nil_error.New("tag map")))
 			return
 		}
 
 		if len(data) == 0 {
-			yield(nil, motmedelErrors.NewWithTrace(ErrEmptyPathInput))
+			yield(nil, motmedelErrors.NewWithTrace(empty_error.New("path input")))
 			return
 		}
 
 		for _, tagSpecPath := range parsing_utils.SearchPath(path, []string{"tag-spec"}, 2, false) {
 			tagNamePath := parsing_utils.SearchPathSingleName(tagSpecPath, "tag-name", 1, false)
 			if tagNamePath == nil {
-				yield(nil, motmedelErrors.NewWithTrace(ErrNilTagNamePath))
+				yield(nil, motmedelErrors.NewWithTrace(nil_error.New("tag name path")))
 				return
 			}
 			tagName := string(parsing_utils.ExtractPathValue(data, tagNamePath))
@@ -184,7 +179,7 @@ func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
 			return nil, fmt.Errorf("get tag spec item: %w", err)
 		}
 		if item == nil {
-			return nil, motmedelErrors.NewWithTrace(ErrNilItem)
+			return nil, motmedelErrors.NewWithTrace(nil_error.New("item"))
 		}
 
 		i += 1
@@ -289,7 +284,7 @@ func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
 			return nil, fmt.Errorf("get tag spec item: %w", err)
 		}
 		if item == nil {
-			return nil, motmedelErrors.NewWithTrace(ErrNilItem)
+			return nil, motmedelErrors.NewWithTrace(nil_error.New("item"))
 		}
 
 		tagName := item.Name
@@ -355,12 +350,12 @@ func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
 			for _, path := range parsing_utils.SearchPath(tagPath, []string{"sig-z-tag-copy"}, 2, false) {
 				namePath := parsing_utils.SearchPathSingleName(path, "hdr-name", 1, false)
 				if namePath == nil {
-					return nil, motmedelErrors.NewWithTrace(ErrNilHeaderName)
+					return nil, motmedelErrors.NewWithTrace(nil_error.New("header name"))
 				}
 
 				valuePath := parsing_utils.SearchPathSingleName(path, "qp-hdr-value", 1, false)
 				if valuePath == nil {
-					return nil, motmedelErrors.NewWithTrace(ErrNilHeaderValue)
+					return nil, motmedelErrors.NewWithTrace(nil_error.New("header value"))
 				}
 
 				name := string(parsing_utils.ExtractPathValue(tagValue, namePath))

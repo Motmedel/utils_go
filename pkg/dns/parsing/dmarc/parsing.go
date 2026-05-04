@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	ErrNilRecord       = errors.New("nil record")
 	ErrUnexpectedKey   = errors.New("unexpected key")
 	ErrMultipleSameKey = errors.New("multiple keys with the same name")
 )
