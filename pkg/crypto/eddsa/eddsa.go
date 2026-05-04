@@ -7,6 +7,7 @@ import (
 	motmedelCrypto "github.com/Motmedel/utils_go/pkg/crypto"
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -20,7 +21,7 @@ type Method struct {
 func (method *Method) Sign(message []byte) ([]byte, error) {
 	privateKey := method.PrivateKey
 	if len(privateKey) == 0 {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPrivateKey)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("private key"))
 	}
 
 	return ed25519.Sign(privateKey, message), nil
@@ -42,7 +43,7 @@ func (method *Method) Verify(message []byte, signature []byte) error {
 	}
 
 	if len(publicKey) == 0 {
-		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+		return motmedelErrors.NewWithTrace(empty_error.New("public key"))
 	}
 
 	if ok := ed25519.Verify(publicKey, message, signature); ok {
@@ -62,7 +63,7 @@ func FromPem(pemKey string) (*Method, error) {
 		return nil, fmt.Errorf("private key from pem: %w", err)
 	}
 	if len(privateKey) == 0 {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPrivateKey)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("private key"))
 	}
 
 	publicKey := privateKey.Public()

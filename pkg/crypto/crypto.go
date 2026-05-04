@@ -7,8 +7,8 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelUtils "github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -83,7 +83,7 @@ func PrivateKeyFromPem[T any](pemKey string) (T, error) {
 	var zero T
 	block, _ := pem.Decode([]byte(pemKey))
 	if block == nil {
-		return zero, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilBlock)
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("block"))
 	}
 
 	blockBytes := block.Bytes
@@ -100,17 +100,12 @@ func PrivateKeyFromPem[T any](pemKey string) (T, error) {
 	return convertedPrivateKey, nil
 }
 
-func PublicKeyFromPem[T any](pemKey string) (T, error) {
+func PublicKeyFromDer[T any](der []byte) (T, error) {
 	var zero T
-	block, _ := pem.Decode([]byte(pemKey))
-	if block == nil {
-		return zero, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilBlock)
-	}
 
-	blockBytes := block.Bytes
-	publicKey, err := x509.ParsePKIXPublicKey(blockBytes)
+	publicKey, err := x509.ParsePKIXPublicKey(der)
 	if err != nil {
-		return zero, motmedelErrors.NewWithTrace(fmt.Errorf("x509 parse pkcs8 private key: %w", err), blockBytes)
+		return zero, motmedelErrors.NewWithTrace(fmt.Errorf("x509 parse pkix public key: %w", err), der)
 	}
 
 	convertedPublicKey, err := motmedelUtils.Convert[T](publicKey)
@@ -119,4 +114,19 @@ func PublicKeyFromPem[T any](pemKey string) (T, error) {
 	}
 
 	return convertedPublicKey, nil
+}
+
+func PublicKeyFromPem[T any](pemKey string) (T, error) {
+	var zero T
+	block, _ := pem.Decode([]byte(pemKey))
+	if block == nil {
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("block"))
+	}
+
+	publicKey, err := PublicKeyFromDer[T](block.Bytes)
+	if err != nil {
+		return zero, fmt.Errorf("public key from der: %w", err)
+	}
+
+	return publicKey, nil
 }

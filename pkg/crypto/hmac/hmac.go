@@ -9,6 +9,7 @@ import (
 
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 )
 
 type Method struct {
@@ -20,7 +21,7 @@ type Method struct {
 func (method *Method) Sign(message []byte) ([]byte, error) {
 	secret := method.Secret
 	if len(secret) == 0 {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptySecret)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("secret"))
 	}
 
 	mac := hmac.New(method.HashFunc, secret)
@@ -35,7 +36,7 @@ func (method *Method) Sign(message []byte) ([]byte, error) {
 func (method *Method) Verify(message []byte, signature []byte) error {
 	secret := method.Secret
 	if len(secret) == 0 {
-		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+		return motmedelErrors.NewWithTrace(empty_error.New("secret"))
 	}
 
 	expectedMac := hmac.New(method.HashFunc, secret)

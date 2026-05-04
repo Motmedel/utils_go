@@ -15,6 +15,8 @@ import (
 
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -55,7 +57,7 @@ func (m *Method) hash(message []byte) ([]byte, error) {
 
 func (m *Method) Sign(message []byte) ([]byte, error) {
 	if m.PrivateKey == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptySecret)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("secret"))
 	}
 
 	digest, err := m.hash(message)
@@ -85,7 +87,7 @@ func (m *Method) Verify(message []byte, signature []byte) error {
 		pub = &m.PrivateKey.PublicKey
 	}
 	if pub == nil {
-		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+		return motmedelErrors.NewWithTrace(empty_error.New("public key"))
 	}
 
 	// Expect R||S with fixed lengths
@@ -175,7 +177,7 @@ func New(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) (*Method, err
 	}
 
 	if utils.IsNil(curve) {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilCurve)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("curve"))
 	}
 
 	if privateKeyCurveParams != nil && publicKeyCurveParams != nil && privateKeyCurveParams.Name != publicKeyCurveParams.Name {
@@ -233,7 +235,7 @@ func (m *Asn1DerEncodedMethod) Verify(message []byte, signature []byte) error {
 		publicKey = &m.PrivateKey.PublicKey
 	}
 	if publicKey == nil {
-		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+		return motmedelErrors.NewWithTrace(empty_error.New("public key"))
 	}
 
 	var decodedSignature struct {
@@ -259,7 +261,7 @@ func (m *Asn1DerEncodedMethod) Verify(message []byte, signature []byte) error {
 func FromPem(pemKey string) (*Method, error) {
 	block, _ := pem.Decode([]byte(pemKey))
 	if block == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilBlock)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("block"))
 	}
 
 	blockBytes := block.Bytes
@@ -268,7 +270,7 @@ func FromPem(pemKey string) (*Method, error) {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("x509 parse pkcs8 private key: %w", err), blockBytes)
 	}
 	if privateKey == nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (private)", motmedelCryptoErrors.ErrNilKey))
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("private key"))
 	}
 
 	method, err := New(privateKey, &privateKey.PublicKey)

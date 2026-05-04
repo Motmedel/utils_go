@@ -3,12 +3,12 @@ package types
 import (
 	"crypto"
 	"crypto/ed25519"
-	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
 
+	motmedelCrypto "github.com/Motmedel/utils_go/pkg/crypto"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 )
@@ -139,12 +139,9 @@ func ParseDkimKey(data string, keyType string) (crypto.PublicKey, error) {
 
 	switch strings.ToLower(keyType) {
 	case "rsa":
-		key, err := x509.ParsePKIXPublicKey(keyData)
+		key, err := motmedelCrypto.PublicKeyFromDer[crypto.PublicKey](keyData)
 		if err != nil {
-			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("x509 parse pkix public key: %w", err),
-				keyData,
-			)
+			return nil, fmt.Errorf("public key from der: %w", err)
 		}
 
 		return key, nil

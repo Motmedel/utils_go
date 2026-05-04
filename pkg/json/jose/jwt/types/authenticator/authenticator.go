@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
@@ -93,7 +92,7 @@ func (a *AuthenticatorWithKeyHandler) Authenticate(ctx context.Context, tokenStr
 		return nil, motmedelErrors.New(fmt.Errorf("handler get named verifier: %w", err), kid)
 	}
 	if utils.IsNil(signatureVerifier) {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("verifier"))
 	}
 
 	validator := &motmedelJwtValidator.Validator{

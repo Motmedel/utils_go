@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	jwkKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
@@ -132,7 +132,7 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 			return nil, motmedelErrors.New(fmt.Errorf("key named verifier: %w", err), key)
 		}
 		if utils.IsNil(namedVerifier) {
-			return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
+			return nil, motmedelErrors.NewWithTrace(nil_error.New("verifier"))
 		}
 
 		h.mu.Lock()

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
@@ -22,7 +21,7 @@ const (
 
 func Verify(header string, payload string, signature []byte, verifier motmedelCryptoInterfaces.Verifier) error {
 	if utils.IsNil(verifier) {
-		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrNilVerifier)
+		return motmedelErrors.NewWithTrace(nil_error.New("verifier"))
 	}
 
 	err := verifier.Verify([]byte(strings.Join([]string{header, payload}, ".")), signature)

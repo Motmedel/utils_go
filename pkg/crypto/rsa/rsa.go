@@ -11,6 +11,7 @@ import (
 
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 )
 
 // NOTE: Not tested (AI-generated...)
@@ -35,7 +36,7 @@ func (m *Method) hash(message []byte) ([]byte, error) {
 
 func (m *Method) Sign(message []byte) ([]byte, error) {
 	if m.PrivateKey == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptySecret)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("secret"))
 	}
 
 	digest, err := m.hash(message)
@@ -67,7 +68,7 @@ func (m *Method) Verify(message []byte, signature []byte) error {
 		pub = &m.PrivateKey.PublicKey
 	}
 	if pub == nil {
-		return motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+		return motmedelErrors.NewWithTrace(empty_error.New("public key"))
 	}
 
 	digest, err := m.hash(message)
@@ -162,7 +163,7 @@ func New(algorithm string, privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey)
 // from the key alone. This helper defaults to RS* for maximum interoperability.
 func NewFromPublicKey(publicKey *rsa.PublicKey) (*Method, error) {
 	if publicKey == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelCryptoErrors.ErrEmptyPublicKey)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("public key"))
 	}
 
 	bits := publicKey.N.BitLen()

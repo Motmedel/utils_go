@@ -3,7 +3,6 @@ package authenticated_token
 import (
 	"fmt"
 
-	errors2 "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	"github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
@@ -83,7 +82,7 @@ func New(tokenString string, options ...authenticated_token_config.Option) (*Tok
 			return authenticatedToken, errors.New(fmt.Errorf("raw token verify: %w", err), rawToken)
 		}
 	} else if !config.AllowUnauthenticated {
-		return authenticatedToken, errors.NewWithTrace(errors2.ErrNilVerifier)
+		return authenticatedToken, errors.NewWithTrace(nil_error.New("verifier"))
 	}
 
 	tokenValidator := config.TokenValidator
