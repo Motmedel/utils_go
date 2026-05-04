@@ -1,0 +1,108 @@
+root=tag-list
+tag-list=tag-spec *(";" tag-spec) [";"]
+tag-spec=[FWS] tag-name [FWS] "=" tag-value
+tag-name=ALPHA *ALNUMPUNC
+tag-value=*(VALCHAR/WSP/CRLF WSP)
+VALCHAR=%x21-3A/%x3C-7E
+ALNUMPUNC=ALPHA/DIGIT/"_"
+FWS=[*WSP CRLF] 1*WSP
+hyphenated-word=ALPHA [*(ALPHA/DIGIT/"-") (ALPHA/DIGIT)]
+ALPHADIGITPS=(ALPHA/DIGIT/"+"/"/"/"=")
+base64string=ALPHADIGITPS *([FWS] ALPHADIGITPS)
+qp-section=[*(ptext/SPACE/TAB) ptext]
+ptext=hex-octet/safe-char
+hex-octet="=" 2(DIGIT/"A"/"B"/"C"/"D"/"E"/"F")
+safe-char=%x21-3C/%x3E-7E
+SPACE=%x20
+TAB=%x09
+
+key-v-tag-root=key-v-tag-value
+key-v-tag-value=%x44.4B.49.4D.31
+
+key-h-tag-root=key-h-tag-value
+key-h-tag-value=key-h-tag-alg *([FWS] ":" [FWS] key-h-tag-alg)
+key-h-tag-alg=hyphenated-word
+
+key-k-tag-root=key-k-tag-value
+key-k-tag-value=key-k-tag-type
+key-k-tag-type=hyphenated-word
+
+key-n-tag-root=key-n-tag-value
+key-n-tag-value=qp-section
+
+key-p-tag-root=key-p-tag-value
+key-p-tag-value=[[FWS] base64string]
+
+key-s-tag-root=key-s-tag-value
+key-s-tag-value=key-s-tag-type *([FWS] ":" [FWS] key-s-tag-type)
+key-s-tag-type="*"/hyphenated-word
+
+key-t-tag-root=key-t-tag-value
+key-t-tag-value=key-t-tag-flag *([FWS] ":" [FWS] key-t-tag-flag)
+key-t-tag-flag=hyphenated-word
+
+dkim-quoted-printable=*(FWS/hex-octet/dkim-safe-char)
+dkim-safe-char=%x21-3A/%x3C/%x3E-7E
+qp-hdr-value=*(FWS/hex-octet/%x21-3A/%x3C/%x3E-7B/%x7D-7E)
+selector=sub-domain *( "." sub-domain )
+sub-domain=Let-dig [Ldh-str]
+Let-dig=ALPHA/DIGIT
+Ldh-str=*(ALPHA/DIGIT/"-") Let-dig
+Local-part=Dot-string/Quoted-string
+Dot-string=Atom *("."  Atom)
+Atom=1*atext
+atext=ALPHA/DIGIT/"!"/"#"/"$"/"%"/"&"/"'"/"*"/"+"/"-"/"/"/"="/"?"/"^"/"_"/"`"/"{"/"|"/"}"/"~"
+Quoted-string=DQUOTE *QcontentSMTP DQUOTE
+QcontentSMTP=qtextSMTP/quoted-pairSMTP
+quoted-pairSMTP=%d92 %d32-126
+qtextSMTP=%d32-33/%d35-91/%d93-126
+domain-name=sub-domain 1*("." sub-domain)
+hdr-name=field-name
+field-name=1*ftext
+ftext=%d33-57/%d59-126
+
+sig-v-tag-root=sig-v-tag-value
+sig-v-tag-value=1*DIGIT
+
+sig-a-tag-root=sig-a-tag-value
+sig-a-tag-value=hyphenated-word
+
+sig-b-tag-root=sig-b-tag-value
+sig-b-tag-value=base64string
+
+sig-bh-tag-root=sig-bh-tag-value
+sig-bh-tag-value=base64string
+
+sig-c-tag-root=sig-c-tag-value
+sig-c-tag-value=hyphenated-word ["/" hyphenated-word]
+
+sig-d-tag-root=sig-d-tag-value
+sig-d-tag-value=domain-name
+
+sig-h-tag-root=sig-h-tag-value
+sig-h-tag-value=hdr-name *([FWS] ":" [FWS] hdr-name)
+
+sig-i-tag-root=sig-i-tag-value
+sig-i-tag-value=[Local-part] "@" domain-name
+
+sig-l-tag-root=sig-l-tag-value
+sig-l-tag-value=1*76DIGIT
+
+sig-q-tag-root=sig-q-tag-value
+sig-q-tag-value=sig-q-tag-method *([FWS] ":" [FWS] sig-q-tag-method)
+sig-q-tag-method=x-sig-q-tag-type ["/" x-sig-q-tag-args]
+x-sig-q-tag-type=hyphenated-word
+x-sig-q-tag-args=qp-hdr-value
+
+sig-s-tag-root=sig-s-tag-value
+sig-s-tag-value=selector
+
+sig-t-tag-root=sig-t-tag-value
+sig-t-tag-value=1*76DIGIT
+
+sig-x-tag-root=sig-x-tag-value
+sig-x-tag-value=1*76DIGIT
+
+sig-z-tag-root=sig-z-tag-value
+sig-z-tag-value=sig-z-tag-copy *("|" [FWS] sig-z-tag-copy)
+sig-z-tag-copy=hdr-name [FWS] ":" qp-hdr-value

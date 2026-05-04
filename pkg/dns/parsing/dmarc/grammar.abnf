@@ -1,0 +1,45 @@
+sub-delims="$"/"&"/"'" /"("/")"/"*"/"+" /"="
+unreserved=ALPHA/DIGIT/"-" /"." /"_" /"~"
+pct-encoded="%" HEXDIG HEXDIG
+pchar=unreserved/pct-encoded/sub-delims /":" /"@"
+fragment=*(pchar/"/"/"?")
+query=*(pchar/"/"/"?")
+segment-nz=1*pchar
+segment=*pchar
+path-empty=""
+path-rootless=segment-nz *("/" segment)
+path-absolute="/" [segment-nz *("/" segment)]
+path-abempty=*( "/" segment)
+reg-name=*(unreserved/pct-encoded/sub-delims)
+dec-octet=DIGIT/%x31-39 DIGIT/"1" 2DIGIT/"2" %x30-34 DIGIT/"25" %x30-35
+IPv4address=dec-octet "." dec-octet "." dec-octet "." dec-octet
+h16=1*4HEXDIG
+ls32=(h16 ":" h16)/IPv4address
+IPv6address=6(h16 ":") ls32/"::" 5(h16 ":") ls32/[h16] "::" 4(h16 ":") ls32/[ *1(h16 ":") h16] "::" 3(h16 ":") ls32/[ *2(h16 ":") h16] "::" 2(h16 ":") ls32/[ *3(h16 ":") h16] "::" h16 ":" ls32/[ *4(h16 ":") h16] "::" ls32/[ *5(h16 ":") h16] "::" h16/[ *6(h16 ":") h16] "::"
+IPvFuture="v" 1*HEXDIG "." 1*(unreserved/sub-delims /":")
+IP-literal="[" (IPv6address/IPvFuture) "]"
+port=*DIGIT
+host=IP-literal/IPv4address/reg-name
+userinfo=*(unreserved/pct-encoded/sub-delims /":")
+authority=[userinfo "@"] host [":" port]
+scheme=ALPHA *(ALPHA/DIGIT/"+" /"-" /".")
+hier-part="//" authority path-abempty/path-absolute/path-rootless/path-empty
+URI=scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+dmarc-uri=URI [ "!" 1*DIGIT ["k"/"m"/"g"/"t"] ]
+root=dmarc-record
+dmarc-record=dmarc-version dmarc-sep [dmarc-request/dmarc-srequest/dmarc-auri/dmarc-furi/dmarc-adkim/dmarc-aspf/dmarc-ainterval/dmarc-fo/dmarc-rfmt/dmarc-percent] *(dmarc-sep (dmarc-request/dmarc-srequest/dmarc-auri/dmarc-furi/dmarc-adkim/dmarc-aspf/dmarc-ainterval/dmarc-fo/dmarc-rfmt/dmarc-percent)) [dmarc-sep]
+dmarc-version="v" *WSP "=" *WSP %x44 %x4d %x41 %x52 %x43 %x31
+dmarc-sep=*WSP %x3b *WSP
+dmarc-request="p" *WSP "=" *WSP ("none"/"quarantine"/"reject")
+dmarc-srequest="sp" *WSP "=" *WSP ("none"/"quarantine"/"reject")
+dmarc-auri="rua" *WSP "=" *WSP dmarc-uri *(*WSP "," *WSP dmarc-uri)
+dmarc-furi="ruf" *WSP "=" *WSP dmarc-uri *(*WSP "," *WSP dmarc-uri)
+dmarc-adkim="adkim" *WSP "=" *WSP ("r"/"s")
+dmarc-aspf="aspf" *WSP "=" *WSP ("r"/"s")
+dmarc-ainterval="ri" *WSP "=" *WSP 1*DIGIT
+dmarc-fo="fo" *WSP "=" *WSP ("0"/"1"/"d"/"s") *(*WSP ":" *WSP ("0"/"1"/"d"/"s"))
+dmarc-rfmt="rf" *WSP "=" *WSP Keyword *(*WSP ":" Keyword)
+dmarc-percent="pct" *WSP "=" *WSP ("100"/%x31-39 DIGIT/DIGIT)
+Let-dig=ALPHA/DIGIT
+Ldh-str=*(ALPHA/DIGIT/"-") Let-dig
+Keyword=Ldh-str
