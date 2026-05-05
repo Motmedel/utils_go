@@ -222,7 +222,7 @@ type CSPViolationReportBody struct {
 	BlockedURL         string  `json:"blockedURL,omitempty"`
 	EffectiveDirective string  `json:"effectiveDirective,omitempty"`
 	OriginalPolicy     string  `json:"originalPolicy,omitempty"`
-	SourceFile         string  `json:"sourceFile,omitempty"`
+	SourceFile         *string `json:"sourceFile,omitempty" jsonschema:"sourceFile,minlength:0"`
 	Sample             *string `json:"sample,omitempty" jsonschema:"sample,minlength:0"`
 	Disposition        string  `json:"disposition,omitempty"`
 	StatusCode         int     `json:"statusCode,omitempty"`
