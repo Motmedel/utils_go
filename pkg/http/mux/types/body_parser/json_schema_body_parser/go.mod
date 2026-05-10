@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/Motmedel/utils_go v0.0.477
 	github.com/Motmedel/utils_go/pkg/http/mux v0.0.186
-	github.com/altshiftab/jsonschema v0.0.17
+	github.com/altshiftab/jsonschema v0.0.18
 )
 
 require (
