@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/gmail_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/list_history_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/filter"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/types/message"
@@ -26,7 +27,7 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	return NewClientWithBaseUrl(u)
+	return NewClient(gmail_config.WithBaseUrl(u))
 }
 
 func TestSend(t *testing.T) {
@@ -165,7 +166,7 @@ func TestWatch_CancelledContext(t *testing.T) {
 
 func TestWatchUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
-	client := NewClientWithBaseUrl(u)
+	client := NewClient(gmail_config.WithBaseUrl(u))
 	got := client.watchUrl("user@example.com")
 	expected := "http://localhost:8080/gmail/v1/users/user@example.com/watch"
 	if got != expected {
@@ -293,7 +294,7 @@ func TestListHistory_CancelledContext(t *testing.T) {
 
 func TestHistoryUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
-	client := NewClientWithBaseUrl(u)
+	client := NewClient(gmail_config.WithBaseUrl(u))
 	got := client.historyUrl("user@example.com")
 	expected := "http://localhost:8080/gmail/v1/users/user@example.com/history"
 	if got != expected {
@@ -303,7 +304,7 @@ func TestHistoryUrl(t *testing.T) {
 
 func TestSendUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
-	client := NewClientWithBaseUrl(u)
+	client := NewClient(gmail_config.WithBaseUrl(u))
 	got := client.sendUrl("user@example.com")
 	expected := "http://localhost:8080/gmail/v1/users/user@example.com/messages/send"
 	if got != expected {
@@ -691,7 +692,7 @@ func TestGetMessage_CancelledContext(t *testing.T) {
 
 func TestMessagesUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
-	client := NewClientWithBaseUrl(u)
+	client := NewClient(gmail_config.WithBaseUrl(u))
 
 	got := client.messagesUrl("user@example.com", "")
 	expected := "http://localhost:8080/gmail/v1/users/user@example.com/messages"
@@ -708,7 +709,7 @@ func TestMessagesUrl(t *testing.T) {
 
 func TestSendAsUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
-	client := NewClientWithBaseUrl(u)
+	client := NewClient(gmail_config.WithBaseUrl(u))
 
 	got := client.sendAsUrl("user@example.com", "")
 	expected := "http://localhost:8080/gmail/v1/users/user@example.com/settings/sendAs"
@@ -946,7 +947,7 @@ func TestDeleteFilter_EmptyFilterId(t *testing.T) {
 
 func TestFiltersUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
-	client := NewClientWithBaseUrl(u)
+	client := NewClient(gmail_config.WithBaseUrl(u))
 
 	got := client.filtersUrl("user@example.com", "")
 	expected := "http://localhost:8080/gmail/v1/users/user@example.com/settings/filters"

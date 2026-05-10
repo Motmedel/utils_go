@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/groups_settings/groups_settings_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/groups_settings/types/group"
 )
 
@@ -20,7 +21,7 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	return NewClientWithBaseUrl(u)
+	return NewClient(groups_settings_config.WithBaseUrl(u))
 }
 
 func TestGet(t *testing.T) {
@@ -164,7 +165,7 @@ func TestPatch_CancelledContext(t *testing.T) {
 
 func TestGroupUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
-	client := NewClientWithBaseUrl(u)
+	client := NewClient(groups_settings_config.WithBaseUrl(u))
 	got := client.groupUrl("group@example.com")
 	expected := "http://localhost:8080/groups/v1/groups/group@example.com"
 	if got != expected {

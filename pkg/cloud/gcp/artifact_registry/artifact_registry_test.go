@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/artifact_registry_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/types/descriptor"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/types/index"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/types/manifest"
@@ -22,7 +23,7 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	return NewClientWithBaseUrl(u)
+	return NewClient("", artifact_registry_config.WithBaseUrl(u))
 }
 
 func TestGetManifest(t *testing.T) {

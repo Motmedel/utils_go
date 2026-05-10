@@ -1,10 +1,13 @@
 package cloud_storage_config
 
 import (
+	"net/url"
+
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 )
 
 type Config struct {
+	BaseUrl      *url.URL
 	FetchOptions []fetch_config.Option
 }
 
@@ -17,6 +20,12 @@ func New(options ...Option) *Config {
 	}
 
 	return config
+}
+
+func WithBaseUrl(baseUrl *url.URL) Option {
+	return func(config *Config) {
+		config.BaseUrl = baseUrl
+	}
 }
 
 func WithFetchOptions(fetchOptions ...fetch_config.Option) Option {

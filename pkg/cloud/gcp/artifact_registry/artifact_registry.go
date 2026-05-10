@@ -22,17 +22,18 @@ type Client struct {
 }
 
 func NewClient(location string, options ...artifact_registry_config.Option) *Client {
-	return NewClientWithBaseUrl(&url.URL{
-		Scheme: "https",
-		Host:   location + "-" + DomainSuffix,
-	}, options...)
-}
-
-func NewClientWithBaseUrl(baseUrl *url.URL, options ...artifact_registry_config.Option) *Client {
+	config := artifact_registry_config.New(options...)
+	baseUrl := config.BaseUrl
+	if baseUrl == nil {
+		baseUrl = &url.URL{
+			Scheme: "https",
+			Host:   location + "-" + DomainSuffix,
+		}
+	}
 	u := *baseUrl
 	u.Path = "/v2/"
 
-	return &Client{baseUrl: &u, config: artifact_registry_config.New(options...)}
+	return &Client{baseUrl: &u, config: config}
 }
 
 // GetManifest fetches an OCI image manifest by tag or digest.

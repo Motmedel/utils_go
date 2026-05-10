@@ -30,14 +30,15 @@ type Client struct {
 }
 
 func NewClient(options ...iam_credentials_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, options...)
-}
-
-func NewClientWithBaseUrl(baseUrl *url.URL, options ...iam_credentials_config.Option) *Client {
+	config := iam_credentials_config.New(options...)
+	baseUrl := config.BaseUrl
+	if baseUrl == nil {
+		baseUrl = defaultBaseUrl
+	}
 	u := *baseUrl
 	u.Path = "/v1/"
 
-	return &Client{baseUrl: &u, config: iam_credentials_config.New(options...)}
+	return &Client{baseUrl: &u, config: config}
 }
 
 // SignBlob signs the given payload bytes on behalf of the specified service account using the

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/cloud_asset_inventory_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/types/asset"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/types/asset_list"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/types/resource"
@@ -24,7 +25,7 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	return NewClientWithBaseUrl(u)
+	return NewClient(cloud_asset_inventory_config.WithBaseUrl(u))
 }
 
 func TestListAssets(t *testing.T) {

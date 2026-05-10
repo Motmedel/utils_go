@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gws/directory/directory_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/directory/types/group"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/directory/types/member"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/directory/types/user"
@@ -23,7 +24,7 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	return NewClientWithBaseUrl(u)
+	return NewClient(directory_config.WithBaseUrl(u))
 }
 
 // User operations

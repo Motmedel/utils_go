@@ -27,14 +27,15 @@ type Client struct {
 }
 
 func NewClient(options ...cloud_asset_inventory_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, options...)
-}
-
-func NewClientWithBaseUrl(baseUrl *url.URL, options ...cloud_asset_inventory_config.Option) *Client {
+	config := cloud_asset_inventory_config.New(options...)
+	baseUrl := config.BaseUrl
+	if baseUrl == nil {
+		baseUrl = defaultBaseUrl
+	}
 	u := *baseUrl
 	u.Path = "/v1/"
 
-	return &Client{baseUrl: &u, config: cloud_asset_inventory_config.New(options...)}
+	return &Client{baseUrl: &u, config: config}
 }
 
 // ListAssets lists assets under the specified parent (e.g. "organizations/123456", "projects/my-project", or "folders/123456").

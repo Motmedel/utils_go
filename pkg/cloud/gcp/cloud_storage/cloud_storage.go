@@ -42,17 +42,18 @@ type Client struct {
 }
 
 func NewClient(options ...cloud_storage_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, options...)
-}
-
-func NewClientWithBaseUrl(baseUrl *url.URL, options ...cloud_storage_config.Option) *Client {
+	config := cloud_storage_config.New(options...)
+	baseUrl := config.BaseUrl
+	if baseUrl == nil {
+		baseUrl = defaultBaseUrl
+	}
 	u := *baseUrl
 	u.Path = "/storage/v1/"
 
 	uploadU := *baseUrl
 	uploadU.Path = "/upload/storage/v1/"
 
-	return &Client{baseUrl: &u, uploadBaseUrl: &uploadU, config: cloud_storage_config.New(options...)}
+	return &Client{baseUrl: &u, uploadBaseUrl: &uploadU, config: config}
 }
 
 // InsertBucket creates a new bucket in the specified project.

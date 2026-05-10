@@ -30,13 +30,14 @@ type Client struct {
 }
 
 func NewClient(options ...directory_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, options...)
-}
-
-func NewClientWithBaseUrl(baseUrl *url.URL, options ...directory_config.Option) *Client {
+	config := directory_config.New(options...)
+	baseUrl := config.BaseUrl
+	if baseUrl == nil {
+		baseUrl = defaultBaseUrl
+	}
 	u := *baseUrl
 	u.Path = "/admin/directory/v1/"
-	return &Client{baseUrl: &u, config: directory_config.New(options...)}
+	return &Client{baseUrl: &u, config: config}
 }
 
 // User operations

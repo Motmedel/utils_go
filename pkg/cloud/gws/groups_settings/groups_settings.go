@@ -28,13 +28,14 @@ type Client struct {
 }
 
 func NewClient(options ...groups_settings_config.Option) *Client {
-	return NewClientWithBaseUrl(defaultBaseUrl, options...)
-}
-
-func NewClientWithBaseUrl(baseUrl *url.URL, options ...groups_settings_config.Option) *Client {
+	config := groups_settings_config.New(options...)
+	baseUrl := config.BaseUrl
+	if baseUrl == nil {
+		baseUrl = defaultBaseUrl
+	}
 	u := *baseUrl
 	u.Path = "/groups/v1/groups/"
-	return &Client{baseUrl: &u, config: groups_settings_config.New(options...)}
+	return &Client{baseUrl: &u, config: config}
 }
 
 func (c *Client) groupUrl(groupEmail string) string {

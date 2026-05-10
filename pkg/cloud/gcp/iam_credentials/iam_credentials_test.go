@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/iam_credentials/iam_credentials_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/iam_credentials/types/sign_blob_request"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/iam_credentials/types/sign_blob_response"
 )
@@ -22,7 +23,7 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	return NewClientWithBaseUrl(u)
+	return NewClient(iam_credentials_config.WithBaseUrl(u))
 }
 
 func TestSignBlob(t *testing.T) {

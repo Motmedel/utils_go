@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/cloud_storage_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/bucket"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_storage/types/object_list"
@@ -39,7 +40,7 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	if err != nil {
 		t.Fatalf("parse url: %v", err)
 	}
-	return NewClientWithBaseUrl(u)
+	return NewClient(cloud_storage_config.WithBaseUrl(u))
 }
 
 func TestInsertBucket(t *testing.T) {
