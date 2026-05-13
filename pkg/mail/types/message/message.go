@@ -8,10 +8,12 @@ import (
 	"time"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelMailErrors "github.com/Motmedel/utils_go/pkg/mail/errors"
+	"github.com/Motmedel/utils_go/pkg/mail/types/message/message_config"
+	"github.com/Motmedel/utils_go/pkg/mail/types/message/message_header"
 )
-
-type Option func(*Message)
 
 type Body struct {
 	Content     []byte
@@ -27,6 +29,7 @@ type Message struct {
 	Body    *Body
 	ReplyTo []*mail.Address
 	Domain  string
+	Headers []*message_header.Header
 }
 
 func (message *Message) String() (string, error) {
@@ -79,7 +82,7 @@ func (message *Message) String() (string, error) {
 		}
 	}
 	if domain == "" {
-		return "", motmedelErrors.NewWithTrace(motmedelMailErrors.ErrEmptyDomain)
+		return "", motmedelErrors.NewWithTrace(empty_error.New("domain"))
 	}
 
 	messageIdRandomBuffer := make([]byte, 16)
@@ -92,6 +95,13 @@ func (message *Message) String() (string, error) {
 			fmt.Sprintf("<%d.%x@%s>", timeNow.UnixNano(), messageIdRandomBuffer, domain),
 		),
 	)
+
+	for _, header := range message.Headers {
+		if header == nil {
+			continue
+		}
+		builder.WriteString(fmt.Sprintf("%s: %s\r\n", header.Name, header.Value))
+	}
 
 	body := message.Body
 
@@ -107,59 +117,34 @@ func (message *Message) String() (string, error) {
 	return builder.String(), nil
 }
 
-func New(from *mail.Address, to []*mail.Address, subject string, body *Body, options ...Option) (*Message, error) {
+func New(from *mail.Address, to []*mail.Address, subject string, body *Body, options ...message_config.Option) (*Message, error) {
 	if from == nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (from)", motmedelMailErrors.ErrNilAddress))
+		return nil, motmedelErrors.NewWithTrace(nil_error.NewWithInstance("address", "from"))
 	}
 
 	if len(to) == 0 {
-		return nil, motmedelErrors.NewWithTrace(motmedelMailErrors.ErrEmptyTo)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("to"))
 	}
 
 	if subject == "" {
-		return nil, motmedelErrors.NewWithTrace(motmedelMailErrors.ErrEmptySubject)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("subject"))
 	}
 
 	if body != nil && body.ContentType == "" {
-		return nil, motmedelErrors.NewWithTrace(motmedelMailErrors.ErrEmptyContentType)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("content type"))
 	}
 
-	config := &Message{
+	config := message_config.New(options...)
+
+	return &Message{
 		From:    from,
 		To:      to,
+		Cc:      config.Cc,
+		Bcc:     config.Bcc,
 		Subject: subject,
 		Body:    body,
-	}
-
-	for _, option := range options {
-		if option != nil {
-			option(config)
-		}
-	}
-
-	return config, nil
-}
-
-func WithCc(cc []*mail.Address) Option {
-	return func(config *Message) {
-		config.Cc = cc
-	}
-}
-
-func WithBcc(bcc []*mail.Address) Option {
-	return func(config *Message) {
-		config.Bcc = bcc
-	}
-}
-
-func WithReplyTo(replyTo []*mail.Address) Option {
-	return func(config *Message) {
-		config.ReplyTo = replyTo
-	}
-}
-
-func WithDomain(domain string) Option {
-	return func(config *Message) {
-		config.Domain = domain
-	}
+		ReplyTo: config.ReplyTo,
+		Domain:  config.Domain,
+		Headers: config.Headers,
+	}, nil
 }
