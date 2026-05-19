@@ -302,6 +302,29 @@ func (c *Client) GetMessage(ctx context.Context, userId string, messageId string
 	return msg, nil
 }
 
+// Trash moves the given message to the user's trash. Requires the gmail.modify scope (or wider).
+func (c *Client) Trash(ctx context.Context, userId string, messageId string, options ...fetch_config.Option) (*message.Message, error) {
+	if userId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
+	}
+	if messageId == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("message id"))
+	}
+
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("context err: %w", err)
+	}
+
+	urlString := c.messagesUrl(userId, messageId) + "/trash"
+	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
+	_, trashedMessage, err := motmedelHttpUtils.FetchJsonWithBody[*message.Message, any](ctx, urlString, nil, options...)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	return trashedMessage, nil
+}
+
 // CreateSendAs creates a custom "from" send-as alias for the given user.
 func (c *Client) CreateSendAs(ctx context.Context, userId string, s *send_as.SendAs, options ...fetch_config.Option) (*send_as.SendAs, error) {
 	if userId == "" {

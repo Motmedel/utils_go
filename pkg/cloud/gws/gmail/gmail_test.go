@@ -690,6 +690,64 @@ func TestGetMessage_CancelledContext(t *testing.T) {
 	}
 }
 
+func TestTrash(t *testing.T) {
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/me/messages/msg-123/trash") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.MarshalWrite(w, &message.Message{
+			Id:       "msg-123",
+			ThreadId: "thread-456",
+			LabelIds: []string{"TRASH"},
+		})
+	})
+
+	msg, err := client.Trash(context.Background(), "me", "msg-123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if msg.Id != "msg-123" {
+		t.Errorf("expected id 'msg-123', got %q", msg.Id)
+	}
+	if msg.ThreadId != "thread-456" {
+		t.Errorf("expected thread id 'thread-456', got %q", msg.ThreadId)
+	}
+	if len(msg.LabelIds) != 1 || msg.LabelIds[0] != "TRASH" {
+		t.Errorf("expected label ids ['TRASH'], got %v", msg.LabelIds)
+	}
+}
+
+func TestTrash_EmptyUserId(t *testing.T) {
+	client := NewClient()
+	_, err := client.Trash(context.Background(), "", "msg-123")
+	if err == nil {
+		t.Fatal("expected error for empty user id")
+	}
+}
+
+func TestTrash_EmptyMessageId(t *testing.T) {
+	client := NewClient()
+	_, err := client.Trash(context.Background(), "me", "")
+	if err == nil {
+		t.Fatal("expected error for empty message id")
+	}
+}
+
+func TestTrash_CancelledContext(t *testing.T) {
+	client := NewClient()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := client.Trash(ctx, "me", "msg-123")
+	if err == nil {
+		t.Fatal("expected error for cancelled context")
+	}
+}
+
 func TestMessagesUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(gmail_config.WithBaseUrl(u))
