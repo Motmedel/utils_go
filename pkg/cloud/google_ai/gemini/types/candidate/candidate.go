@@ -7,5 +7,5 @@ import (
 type Candidate struct {
 	Content      *content.Content `json:"content,omitempty"`
 	FinishReason string           `json:"finishReason,omitempty"`
-	Index        int              `json:"index,omitempty"`
+	Index        int              `json:"index,omitzero"`
 }

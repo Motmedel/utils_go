@@ -1,8 +1,8 @@
 package usage_metadata
 
 type UsageMetadata struct {
-	PromptTokenCount     int `json:"promptTokenCount,omitempty"`
-	CandidatesTokenCount int `json:"candidatesTokenCount,omitempty"`
-	ThoughtsTokenCount   int `json:"thoughtsTokenCount,omitempty"`
-	TotalTokenCount      int `json:"totalTokenCount,omitempty"`
+	PromptTokenCount     int `json:"promptTokenCount,omitzero"`
+	CandidatesTokenCount int `json:"candidatesTokenCount,omitzero"`
+	ThoughtsTokenCount   int `json:"thoughtsTokenCount,omitzero"`
+	TotalTokenCount      int `json:"totalTokenCount,omitzero"`
 }

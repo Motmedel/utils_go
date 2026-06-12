@@ -5,11 +5,13 @@ import (
 )
 
 type GenerationConfig struct {
-	Temperature     *float64 `json:"temperature,omitempty"`
-	TopP            *float64 `json:"topP,omitempty"`
-	TopK            *int     `json:"topK,omitempty"`
-	CandidateCount  int      `json:"candidateCount,omitempty"`
-	MaxOutputTokens int      `json:"maxOutputTokens,omitempty"`
+	Temperature *float64 `json:"temperature,omitempty"`
+	TopP        *float64 `json:"topP,omitempty"`
+	TopK        *int     `json:"topK,omitempty"`
+	// Numeric fields use omitzero: the fetch helpers marshal with encoding/json/v2,
+	// where omitempty no longer omits zero numbers, and the API rejects zero values.
+	CandidateCount  int      `json:"candidateCount,omitzero"`
+	MaxOutputTokens int      `json:"maxOutputTokens,omitzero"`
 	StopSequences   []string `json:"stopSequences,omitempty"`
 	// ResponseMimeType must be "application/json" for ResponseSchema or
 	// ResponseJsonSchema to take effect.

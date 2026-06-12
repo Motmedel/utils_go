@@ -118,6 +118,19 @@ func TestGenerateContent_CancelledContext(t *testing.T) {
 	}
 }
 
+// The fetch helpers marshal request bodies with encoding/json/v2, where omitempty no
+// longer omits zero numbers; unset numeric fields must not reach the API, which
+// rejects zero values (e.g. candidateCount must be in [1, 8]).
+func TestGenerationConfig_MarshalOmitsZeroFields(t *testing.T) {
+	data, err := json.Marshal(&generation_config.GenerationConfig{ResponseMimeType: "application/json"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if expected := `{"responseMimeType":"application/json"}`; string(data) != expected {
+		t.Errorf("expected %s, got %s", expected, data)
+	}
+}
+
 func TestText_SkipsThoughtParts(t *testing.T) {
 	response := &generate_content_response.GenerateContentResponse{
 		Candidates: []*candidate.Candidate{
