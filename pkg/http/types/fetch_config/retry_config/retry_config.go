@@ -7,7 +7,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config/retry_config/response_checker"
 )
 
-var defaultResponseChecker = response_checker.New(
+var DefaultResponseChecker = response_checker.New(
 	func(response *http.Response, err error) bool {
 		if response != nil {
 			return response.StatusCode == http.StatusTooManyRequests || response.StatusCode >= 500
@@ -28,18 +28,25 @@ const (
 	DefaultBaseDelay = time.Duration(500) * time.Millisecond
 )
 
+// RetryAfterFunc extracts a server-advised delay before the next attempt from the
+// previous response and its body, or returns nil when the response advises none. It
+// takes precedence over the Retry-After header and the exponential back-off, letting
+// callers honour provider-specific signals such as a google.rpc.RetryInfo in the body.
+type RetryAfterFunc func(response *http.Response, responseBody []byte) *time.Duration
+
 type Config struct {
 	Count           int
 	BaseDelay       time.Duration
 	MaximumWaitTime time.Duration
 	ResponseChecker response_checker.ResponseChecker
+	RetryAfterFunc  RetryAfterFunc
 }
 
 func New(options ...Option) *Config {
 	config := &Config{
 		Count:           DefaultCount,
 		BaseDelay:       DefaultBaseDelay,
-		ResponseChecker: defaultResponseChecker,
+		ResponseChecker: DefaultResponseChecker,
 	}
 
 	for _, option := range options {
@@ -72,5 +79,11 @@ func WithMaximumWaitTime(maximumWaitTime time.Duration) Option {
 func WithResponseChecker(checker response_checker.ResponseChecker) Option {
 	return func(configuration *Config) {
 		configuration.ResponseChecker = checker
+	}
+}
+
+func WithRetryAfterFunc(retryAfterFunc RetryAfterFunc) Option {
+	return func(configuration *Config) {
+		configuration.RetryAfterFunc = retryAfterFunc
 	}
 }

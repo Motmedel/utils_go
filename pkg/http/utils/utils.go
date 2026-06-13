@@ -23,33 +23,78 @@ import (
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
+	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config/retry_config"
 	motmedelTlsTypes "github.com/Motmedel/utils_go/pkg/tls/types"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
 const AcceptContentIdentity = "identity"
 
-func getRetryAfterTime(retryAfterValue string, referenceTime *time.Time) *time.Time {
+// retryAfterHeaderDelay parses an HTTP Retry-After header into a delay. The header is
+// either a non-negative number of seconds or an HTTP-date; for the latter the response
+// Date header is used as the reference point when present. It returns nil when the
+// header is absent or unparseable.
+func retryAfterHeaderDelay(header http.Header) *time.Duration {
+	if header == nil {
+		return nil
+	}
+
+	retryAfterValue := header.Get("Retry-After")
 	if retryAfterValue == "" {
 		return nil
 	}
 
-	if retryAfterTimestamp, err := time.Parse(time.RFC1123, retryAfterValue); err != nil {
-		return &retryAfterTimestamp
+	if retryAfterSeconds, err := strconv.Atoi(retryAfterValue); err == nil {
+		// Add one more second for rounding.
+		return new(time.Duration(retryAfterSeconds+1) * time.Second)
 	}
 
-	if retryAfterDelay, err := strconv.Atoi(retryAfterValue); err == nil {
-		if referenceTime == nil {
-			t := time.Now()
-			referenceTime = &t
+	if retryAfterTimestamp, err := time.Parse(time.RFC1123, retryAfterValue); err == nil {
+		referenceTime := time.Now()
+		if responseDate, err := time.Parse(time.RFC1123, header.Get("Date")); err == nil {
+			referenceTime = responseDate
 		}
-
-		// Add one more second for rounding.
-		waitTime := referenceTime.Add(time.Duration(retryAfterDelay+1) * time.Second)
-		return &waitTime
+		return new(retryAfterTimestamp.Sub(referenceTime))
 	}
 
 	return nil
+}
+
+// retryWaitDuration determines how long to wait before retry attempt i (1-based),
+// based on the previous response. It prefers, in order: a server-advised delay parsed
+// from the response body by the configured RetryAfterFunc; the Retry-After header; and
+// otherwise exponential back-off. A server-advised delay exceeding MaximumWaitTime
+// yields giveUp=true (the caller would rather stop than wait that long); the back-off
+// fallback is instead clamped to MaximumWaitTime.
+func retryWaitDuration(
+	retryConfig *retry_config.Config,
+	response *http.Response,
+	responseBody []byte,
+	i int,
+) (delay time.Duration, giveUp bool) {
+	maximumWaitTime := retryConfig.MaximumWaitTime
+
+	var advised *time.Duration
+	if retryConfig.RetryAfterFunc != nil {
+		advised = retryConfig.RetryAfterFunc(response, responseBody)
+	}
+	if advised == nil && response != nil {
+		advised = retryAfterHeaderDelay(response.Header)
+	}
+
+	if advised != nil {
+		if maximumWaitTime != 0 && *advised > maximumWaitTime {
+			return 0, true
+		}
+		return max(*advised, 0), false
+	}
+
+	// baseDelay * 2^(i-1)
+	waitDuration := retryConfig.BaseDelay * (1 << (i - 1))
+	if maximumWaitTime != 0 {
+		waitDuration = min(waitDuration, maximumWaitTime)
+	}
+	return waitDuration, false
 }
 
 func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config.Config) (*http.Response, []byte, error) {
@@ -184,8 +229,6 @@ func fetchWithRetryConfig(
 		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilFetchRetryConfig)
 	}
 
-	maximumWaitTime := retryConfig.MaximumWaitTime
-
 	var err error
 	var response *http.Response
 	var responseBody []byte
@@ -194,48 +237,30 @@ func fetchWithRetryConfig(
 
 	for i := 0; i < (1 + retryConfig.Count); i++ {
 		if i != 0 {
-			// Wait before the next response.
-
-			var waitUntil *time.Time
-
-			// Use information from the previous response to ascertain a waiting time.
-			if response != nil {
-				responseHeader := response.Header
-
-				if responseHeader != nil {
-					// Use the response header Date as the reference time for Retry-After delay values if available,
-					// otherwise the current time.
-					referenceTime := time.Now()
-					if responseDate, err := time.Parse(time.RFC1123, responseHeader.Get("Date")); err != nil {
-						referenceTime = responseDate
-					}
-					waitUntil = getRetryAfterTime(responseHeader.Get("Retry-After"), &referenceTime)
-					if waitUntil != nil && maximumWaitTime != 0 {
-						if time.Until(*waitUntil) > maximumWaitTime {
-							break
-						}
-					}
-				}
-			}
-
-			// If the response provided no information about waiting time, use exponential back-off.
-			if waitUntil == nil {
-				// baseDelay * 2^(i-1)
-				waitDuration := retryConfig.BaseDelay * (1 << (i - 1))
-				if maximumWaitTime != 0 {
-					// Don't let the calculated wait time exceed the maximum wait time.
-					waitDuration = min(waitDuration, maximumWaitTime)
-				}
-
-				t := time.Now().Add(waitDuration)
-				waitUntil = &t
+			// Wait before the next attempt, based on the previous response.
+			waitDuration, giveUp := retryWaitDuration(retryConfig, response, responseBody, i)
+			if giveUp {
+				break
 			}
 
 			// TODO: Add jitter?
 
-			duration := time.Until(*waitUntil)
-			if duration > 0 {
-				time.Sleep(duration)
+			if waitDuration > 0 {
+				time.Sleep(waitDuration)
+			}
+
+			// The previous attempt consumed the request body; replay it so the
+			// retried request is not sent with a drained body and a stale
+			// Content-Length. http.NewRequest populates GetBody for the buffer types
+			// used here.
+			if request.GetBody != nil {
+				newBody, bodyErr := request.GetBody()
+				if bodyErr != nil {
+					return nil, nil, motmedelErrors.NewWithTrace(
+						fmt.Errorf("request get body: %w", bodyErr),
+					)
+				}
+				request.Body = newBody
 			}
 		}
 
