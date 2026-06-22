@@ -187,3 +187,34 @@ func TestParse_UrlFormatInvalid(t *testing.T) {
 		t.Fatal("expected error for invalid url format")
 	}
 }
+
+func TestEmpty_AllowsEmptyQuery(t *testing.T) {
+	if _, respErr := Empty.Parse(makeRequest("")); respErr != nil {
+		t.Fatalf("unexpected error for empty query: %v", respErr)
+	}
+}
+
+func TestEmpty_RejectsNonEmptyQuery(t *testing.T) {
+	_, respErr := Empty.Parse(makeRequest("foo=bar"))
+	if respErr == nil {
+		t.Fatal("expected error for non-empty query")
+	}
+	if respErr.ProblemDetail == nil {
+		t.Fatalf("expected a problem detail, got %v", respErr)
+	}
+	if respErr.ProblemDetail.Status != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, respErr.ProblemDetail.Status)
+	}
+}
+
+func TestEmpty_RejectsValuelessParameter(t *testing.T) {
+	if _, respErr := Empty.Parse(makeRequest("foo")); respErr == nil {
+		t.Fatal("expected error for valueless query parameter")
+	}
+}
+
+func TestEmpty_RejectsMultipleParameters(t *testing.T) {
+	if _, respErr := Empty.Parse(makeRequest("a=1&b=2&c=3")); respErr == nil {
+		t.Fatal("expected error for multiple query parameters")
+	}
+}

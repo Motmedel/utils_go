@@ -332,3 +332,9 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 func New[T any](options ...query_extractor_config.Option) *Parser[T] {
 	return &Parser[T]{config: query_extractor_config.New(options...)}
 }
+
+// Empty is a reusable parser that accepts only requests without query parameters.
+// Because struct{} has no fields and additional parameters are disallowed by
+// default, any non-empty query produces a 400 response error, while an empty
+// query yields struct{}{}. It holds no mutable state and is safe for concurrent use.
+var Empty = New[struct{}]()
