@@ -61,6 +61,7 @@ type TokenSource struct {
 	privateKey   *rsa.PrivateKey
 	tokenURI     string
 	scopes       []string
+	subject      string
 	options      []fetch_config.Option
 
 	credentialsFile *credentials_file.File
@@ -84,13 +85,20 @@ func (s *TokenSource) Token() (*token.Token, error) {
 		return nil, errors.NewWithTrace(fmt.Errorf("json marshal (jwt header): %w", err))
 	}
 
-	claimsJSON, err := json.Marshal(map[string]any{
+	claims := map[string]any{
 		"iss":   s.clientEmail,
 		"scope": strings.Join(s.scopes, " "),
 		"aud":   s.tokenURI,
 		"iat":   now.Unix(),
 		"exp":   now.Add(time.Hour).Unix(),
-	})
+	}
+	// For Google Workspace domain-wide delegation, impersonate subject via the
+	// "sub" claim. Omitted when empty (the service account acts as itself).
+	if s.subject != "" {
+		claims["sub"] = s.subject
+	}
+
+	claimsJSON, err := json.Marshal(claims)
 	if err != nil {
 		return nil, errors.NewWithTrace(fmt.Errorf("json marshal (jwt claims): %w", err))
 	}
@@ -153,6 +161,20 @@ func NewFromCredentialsFile(
 	scopes []string,
 	options ...fetch_config.Option,
 ) (*TokenSource, error) {
+	return NewFromCredentialsFileWithSubject(ctx, tokenUrl, credentialsFile, scopes, "", options...)
+}
+
+// NewFromCredentialsFileWithSubject is like NewFromCredentialsFile but mints
+// assertions that impersonate subject via the JWT "sub" claim — i.e. Google
+// Workspace domain-wide delegation. Pass an empty subject for no impersonation.
+func NewFromCredentialsFileWithSubject(
+	ctx context.Context,
+	tokenUrl string,
+	credentialsFile *credentials_file.File,
+	scopes []string,
+	subject string,
+	options ...fetch_config.Option,
+) (*TokenSource, error) {
 	if tokenUrl == "" {
 		return nil, motmedelErrors.NewWithTrace(errors.New("token url"))
 	}
@@ -173,6 +195,7 @@ func NewFromCredentialsFile(
 		privateKey:      rsaKey,
 		tokenURI:        tokenUrl,
 		scopes:          scopes,
+		subject:         subject,
 		options:         options,
 		credentialsFile: credentialsFile,
 	}, nil
