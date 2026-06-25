@@ -15,7 +15,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/groups_settings/types/group"
 )
 
-const Domain = "groups.googleapis.com"
+const Domain = "www.googleapis.com"
 
 var defaultBaseUrl = &url.URL{
 	Scheme: "https",
@@ -41,6 +41,8 @@ func NewClient(options ...groups_settings_config.Option) *Client {
 func (c *Client) groupUrl(groupEmail string) string {
 	u := *c.baseUrl
 	u.Path += url.PathEscape(groupEmail)
+	// The Groups Settings API defaults to Atom XML; request JSON explicitly.
+	u.RawQuery = "alt=json"
 	return u.String()
 }
 

@@ -167,7 +167,7 @@ func TestGroupUrl(t *testing.T) {
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(groups_settings_config.WithBaseUrl(u))
 	got := client.groupUrl("group@example.com")
-	expected := "http://localhost:8080/groups/v1/groups/group@example.com"
+	expected := "http://localhost:8080/groups/v1/groups/group@example.com?alt=json"
 	if got != expected {
 		t.Errorf("expected %q, got %q", expected, got)
 	}
