@@ -347,14 +347,18 @@ func Parse(data []byte) (*contentSecurityPolicyTypes.ContentSecurityPolicy, erro
 			}
 			directive = sandboxDirective
 		case "webrtc":
+			// Per CSP3 the value is the quoted keyword 'allow' or 'block'; directive-value retains the quotes.
 			rawValue := parsedDirective.Value
-			if rawValue != "allow" && rawValue != "block" {
+			if rawValue != "'allow'" && rawValue != "'block'" {
 				return nil, motmedelErrors.New(
 					fmt.Errorf("%w (webrtc directive)", motmedelErrors.ErrSyntaxError),
 					rawValue,
 				)
 			}
-			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{ParsedDirective: parsedDirective, Value: rawValue}
+			webrtcDirective := &contentSecurityPolicyTypes.WebrtcDirective{
+				ParsedDirective: parsedDirective,
+				Value:           strings.Trim(rawValue, "'"),
+			}
 			directive = webrtcDirective
 		case "report-uri":
 			reportUriDirective := &contentSecurityPolicyTypes.ReportUriDirective{ParsedDirective: parsedDirective}

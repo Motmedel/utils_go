@@ -182,13 +182,44 @@ func TestParseContentSecurityPolicy_Directives_TableDriven(t *testing.T) {
 			},
 		},
 		{
-			name: "webrtc allow",
-			args: args{data: []byte("webrtc allow")},
+			name: "webrtc 'block'",
+			args: args{data: []byte("webrtc 'block'")},
 			check: func(t *testing.T, csp *contentSecurityPolicyTypes.ContentSecurityPolicy) {
-				if findDirectiveByName(csp.Directives, "webrtc") == nil {
+				d := findDirectiveByName(csp.Directives, "webrtc")
+				if d == nil {
 					t.Fatalf("webrtc not found")
 				}
+				wd := d.(*contentSecurityPolicyTypes.WebrtcDirective)
+				if wd.Value != "block" {
+					t.Fatalf("webrtc value = %q, want %q", wd.Value, "block")
+				}
+				if got, want := wd.String(), "webrtc 'block'"; got != want {
+					t.Fatalf("webrtc String() = %q, want %q", got, want)
+				}
 			},
+		},
+		{
+			name: "webrtc 'allow'",
+			args: args{data: []byte("webrtc 'allow'")},
+			check: func(t *testing.T, csp *contentSecurityPolicyTypes.ContentSecurityPolicy) {
+				d := findDirectiveByName(csp.Directives, "webrtc")
+				if d == nil {
+					t.Fatalf("webrtc not found")
+				}
+				if wd := d.(*contentSecurityPolicyTypes.WebrtcDirective); wd.Value != "allow" {
+					t.Fatalf("webrtc value = %q, want %q", wd.Value, "allow")
+				}
+			},
+		},
+		{
+			name:    "webrtc unquoted is invalid",
+			args:    args{data: []byte("webrtc block")},
+			wantErr: true,
+		},
+		{
+			name:    "webrtc unknown keyword is invalid",
+			args:    args{data: []byte("webrtc 'foo'")},
+			wantErr: true,
 		},
 		{
 			name: "object-src 'none'",
@@ -274,8 +305,8 @@ func TestParseContentSecurityPolicy_FullCSP_TableDriven(t *testing.T) {
 		"require-sri-for script style",
 		"trusted-types default policy1 'allow-duplicates' 'none'",
 		"require-trusted-types-for 'script'",
-		"upgrade-insecure-request",
-		"webrtc allow",
+		"upgrade-insecure-requests",
+		"webrtc 'block'",
 		"base-uri 'self'",
 		"object-src 'none'",
 		"worker-src data: blob:",
