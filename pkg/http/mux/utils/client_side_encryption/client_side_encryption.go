@@ -1,6 +1,7 @@
 package client_side_encryption
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -132,9 +133,19 @@ func (p *BodyParser) Parse(_ *http.Request, body []byte) ([]byte, *response_erro
 
 	plaintext, err := jwe.Decrypt(p.PrivateKey)
 	if err != nil {
-		return nil, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(fmt.Errorf("jose web encryption decrypt: %w", err)),
+		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("jose web encryption decrypt: %w", err))
+
+		if errors.Is(err, jose.ErrCryptoFailure) {
+			return nil, &response_error.ResponseError{
+				ClientError: wrappedErr,
+				ProblemDetail: problem_detail.New(
+					http.StatusBadRequest,
+					problem_detail_config.WithDetail("The request body could not be decrypted."),
+				),
+			}
 		}
+
+		return nil, &response_error.ResponseError{ServerError: wrappedErr}
 	}
 
 	return plaintext, nil
@@ -149,6 +160,7 @@ func NewBodyParser(privateKey any, options ...body_parser_config.Option) (*BodyP
 
 	return &BodyParser{
 		PrivateKey:        privateKey,
+		KeyIdentifier:     config.KeyIdentifier,
 		KeyAlgorithm:      config.KeyAlgorithm,
 		ContentEncryption: config.ContentEncryption,
 	}, nil
