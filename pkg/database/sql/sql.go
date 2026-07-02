@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	context2 "github.com/Motmedel/utils_go/pkg/context"
-	sqlErrors "github.com/Motmedel/utils_go/pkg/database/sql/errors"
 	"github.com/Motmedel/utils_go/pkg/database/sql/types/tx_caller"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/interfaces/parser"
@@ -27,7 +29,7 @@ func WithTx[T any](
 	}
 
 	if database == nil {
-		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilSqlDatabase)
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("sql database"))
 	}
 
 	if utils.IsNil(txCaller) {
@@ -39,7 +41,7 @@ func WithTx[T any](
 		return zero, motmedelErrors.NewWithTrace(fmt.Errorf("begin transaction: %w", err))
 	}
 	if transaction == nil {
-		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilTx)
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("tx"))
 	}
 
 	out, err := txCaller.Call(ctx, transaction)
@@ -78,15 +80,15 @@ func QueryReturningById[T any](
 	}
 
 	if query == "" {
-		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrEmptyQuery)
+		return zero, motmedelErrors.NewWithTrace(empty_error.New("query"))
 	}
 
 	if database == nil {
-		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilSqlDatabase)
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("sql database"))
 	}
 
 	if utils.IsNil(rowParser) {
-		return zero, motmedelErrors.NewWithTrace(parser.ErrNilParser)
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("parser"))
 	}
 
 	if id == "" {

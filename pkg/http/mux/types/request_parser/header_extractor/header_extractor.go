@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/header_extractor/header_extractor_config"
@@ -15,10 +18,6 @@ import (
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
 
-var (
-	ErrEmptyName = errors.New("empty name")
-)
-
 type Parser struct {
 	Name   string
 	config *header_extractor_config.Config
@@ -27,20 +26,20 @@ type Parser struct {
 func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseError) {
 	if request == nil {
 		return "", &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
 	requestHeader := request.Header
 	if requestHeader == nil {
 		return "", &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
 	name := p.Name
 	if name == "" {
-		return "", &muxResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(ErrEmptyName)}
+		return "", &muxResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(empty_error.New("name"))}
 	}
 
 	headerValue, err := motmedelHttpUtils.GetSingleHeader(name, requestHeader)
@@ -74,7 +73,7 @@ func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseE
 
 func New(name string, options ...header_extractor_config.Option) (*Parser, error) {
 	if name == "" {
-		return nil, motmedelErrors.NewWithTrace(ErrEmptyName)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("name"))
 	}
 
 	return &Parser{Name: name, config: header_extractor_config.New(options...)}, nil

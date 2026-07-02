@@ -2,10 +2,7 @@ package parser
 
 import (
 	"context"
-	"errors"
 )
-
-var ErrNilParser = errors.New("nil parser")
 
 type Parser[T any, U any] interface {
 	Parse(U) (T, error)

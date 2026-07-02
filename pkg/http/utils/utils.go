@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
@@ -221,12 +223,12 @@ func fetchWithRetryConfig(
 	}
 
 	if fetchConfig == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilFetchConfig)
+		return nil, nil, motmedelErrors.NewWithTrace(nil_error.New("fetch config"))
 	}
 
 	retryConfig := fetchConfig.RetryConfig
 	if retryConfig == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilFetchRetryConfig)
+		return nil, nil, motmedelErrors.NewWithTrace(nil_error.New("fetch retry config"))
 	}
 
 	var err error
@@ -321,7 +323,7 @@ func Fetch(ctx context.Context, url string, options ...fetch_config.Option) (*ht
 	}
 
 	if url == "" {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+		return nil, nil, motmedelErrors.NewWithTrace(empty_error.New("url"))
 	}
 
 	fetchConfig := fetch_config.New(options...)
@@ -332,12 +334,12 @@ func Fetch(ctx context.Context, url string, options ...fetch_config.Option) (*ht
 		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method)
 	}
 	if request == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest)
+		return nil, nil, motmedelErrors.NewWithTrace(nil_error.New("request"))
 	}
 
 	requestHeader := request.Header
 	if requestHeader == nil {
-		return nil, nil, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader)
+		return nil, nil, motmedelErrors.NewWithTrace(nil_error.New("request header"))
 	}
 
 	return FetchWithRequest(ctx, request, options...)
@@ -351,7 +353,7 @@ func FetchJson[U any](ctx context.Context, url string, options ...fetch_config.O
 	}
 
 	if url == "" {
-		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+		return nil, zero, motmedelErrors.NewWithTrace(empty_error.New("url"))
 	}
 
 	fetchConfig := fetch_config.New(options...)
@@ -397,7 +399,7 @@ func FetchJsonWithBody[U any, T any](ctx context.Context, url string, bodyValue 
 	}
 
 	if url == "" {
-		return nil, zero, motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyUrl)
+		return nil, zero, motmedelErrors.NewWithTrace(empty_error.New("url"))
 	}
 
 	var requestBody []byte
@@ -569,7 +571,7 @@ func BasicAuth(username, password string) string {
 
 func GetSingleHeader(name string, header http.Header) (string, error) {
 	if header == nil {
-		return "", motmedelErrors.NewWithTrace(motmedelErrors.ErrNilMap)
+		return "", motmedelErrors.NewWithTrace(nil_error.New("map"))
 	}
 
 	name = http.CanonicalHeaderKey(name)

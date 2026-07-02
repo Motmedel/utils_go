@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
@@ -29,7 +31,7 @@ func DefaultResponseErrorHandler(
 		slog.ErrorContext(
 			motmedelContext.WithError(
 				ctx,
-				motmedelErrors.NewWithTrace(muxErrors.ErrNilResponseWriter),
+				motmedelErrors.NewWithTrace(nil_error.New("response writer")),
 			),
 			"The response writer is nil.",
 		)

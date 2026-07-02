@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -26,8 +28,7 @@ var deltaSecondsDirectives = map[string]bool{
 }
 
 var (
-	ErrNilDirectiveNamePath = errors.New("nil directive name path")
-	ErrInvalidDeltaSeconds  = errors.New("invalid delta-seconds")
+	ErrInvalidDeltaSeconds = errors.New("invalid delta-seconds")
 )
 
 func Parse(data []byte) (*motmedelHttpTypes.CacheControl, error) {
@@ -55,7 +56,7 @@ func Parse(data []byte) (*motmedelHttpTypes.CacheControl, error) {
 		)
 		if directiveNamePath == nil {
 			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilDirectiveNamePath),
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("directive name path")),
 			)
 		}
 		directiveName := strings.ToLower(string(parsing_utils.ExtractPathValue(data, directiveNamePath)))

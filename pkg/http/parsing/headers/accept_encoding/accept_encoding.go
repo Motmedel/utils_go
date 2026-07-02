@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -18,9 +20,7 @@ var grammar []byte
 var Grammar *goabnf.Grammar
 
 var (
-	ErrNilAcceptEncoding = errors.New("nil accept encoding")
-	ErrInvalidQvalue     = errors.New("invalid qvalue")
-	ErrNilCodingsPath    = errors.New("nil codings path")
+	ErrInvalidQvalue = errors.New("invalid qvalue")
 )
 
 func Parse(data []byte) (*motmedelHttpTypes.AcceptEncoding, error) {
@@ -47,7 +47,7 @@ func Parse(data []byte) (*motmedelHttpTypes.AcceptEncoding, error) {
 		)
 		if codingsPath == nil {
 			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilCodingsPath),
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("codings path")),
 			)
 		}
 		codingsValue := parsing_utils.ExtractPathValue(data, codingsPath)

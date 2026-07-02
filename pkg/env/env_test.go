@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+
 	motmedelEnvErrors "github.com/Motmedel/utils_go/pkg/env/errors"
 )
 
@@ -57,8 +59,8 @@ func TestReadEnv_Empty(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !errors.Is(err, motmedelEnvErrors.ErrEmpty) {
-		t.Fatalf("expected ErrEmpty, got %v", err)
+	if _, ok := errors.AsType[*empty_error.Error](err); !ok {
+		t.Fatalf("expected an empty error, got %v", err)
 	}
 }
 

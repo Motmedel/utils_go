@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	ErrNilAuthorization                   = errors.New("nil authorization")
 	ErrInvalidQuotedParameterValue        = errors.New("invalid quoted parameter value")
 	ErrDuplicateParameter                 = errors.New("duplicate parameter")
 	ErrMutuallyExclusiveToken68Parameters = errors.New("mutually exclusive token68 or parameters")

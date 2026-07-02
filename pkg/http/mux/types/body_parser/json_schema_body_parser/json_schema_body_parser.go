@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_body_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
@@ -36,7 +37,7 @@ func (p *Parser[T]) Parse(request *http.Request, body []byte) (T, *response_erro
 
 	bodyParser := p.bodyParser
 	if utils.IsNil(bodyParser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("body parser"))}
 	}
 
 	var data any

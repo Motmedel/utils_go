@@ -2,7 +2,6 @@ package strict_transport_security
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -24,10 +23,6 @@ const (
 )
 
 var digitRegexp = regexp.MustCompile(`^\d+$`)
-
-var (
-	ErrNilStrictTransportSecurity = errors.New("nil strict transport security")
-)
 
 // TODO: Update to use proper errors
 

@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+
 	context2 "github.com/Motmedel/utils_go/pkg/context"
 	motmedelEnvErrors "github.com/Motmedel/utils_go/pkg/env/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -26,7 +28,7 @@ func ReadEnv(name string) (string, error) {
 	if !found {
 		err = motmedelErrors.NewWithTrace(fmt.Errorf("%w: %q", motmedelEnvErrors.ErrNotPresent, name), name)
 	} else if value == "" {
-		err = motmedelErrors.NewWithTrace(fmt.Errorf("%w: %q", motmedelEnvErrors.ErrEmpty, name), name)
+		err = motmedelErrors.NewWithTrace(fmt.Errorf("%w: %q", empty_error.New("environment variable"), name), name)
 	}
 
 	if err != nil {

@@ -33,7 +33,7 @@ func (t *Token) Encode(signer motmedelCryptoInterfaces.NamedSigner) (string, err
 	if tokenHeader := t.Header; tokenHeader != nil {
 		header = maps.Clone(tokenHeader)
 		if header == nil {
-			return "", motmedelErrors.NewWithTrace(fmt.Errorf("%w (header clone)", motmedelErrors.ErrNilMap))
+			return "", motmedelErrors.NewWithTrace(nil_error.NewWithInstance("map", "header clone"))
 		}
 	} else {
 		header = make(map[string]any)

@@ -23,7 +23,6 @@ var (
 	ErrZeroValue         = errors.New("zero value")
 	ErrNotInMap          = errors.New("not in map")
 	ErrMapZeroValue      = errors.New("map zero value")
-	ErrNilMap            = errors.New("nil map")
 	ErrUnexpectedType    = errors.New("unexpected type")
 	ErrUnauthorized      = errors.New("unauthorized")
 )

@@ -1,11 +1,5 @@
 package comparer
 
-import (
-	"errors"
-)
-
-var ErrNilComparer = errors.New("nil comparer")
-
 type Comparer[T comparable] interface {
 	Compare(T) (bool, error)
 }

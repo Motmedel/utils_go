@@ -6,17 +6,15 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/cookie_extractor/cookie_extractor_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
-)
-
-var (
-	ErrEmptyName = errors.New("empty name")
 )
 
 type Parser struct {
@@ -27,14 +25,14 @@ type Parser struct {
 func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseError) {
 	if request == nil {
 		return "", &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
 	name := p.Name
 	if name == "" {
 		return "", &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(ErrEmptyName),
+			ServerError: motmedelErrors.NewWithTrace(empty_error.New("name")),
 		}
 	}
 
@@ -55,7 +53,7 @@ func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseE
 	}
 	if cookie == nil {
 		return "", &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilCookie),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("cookie")),
 		}
 	}
 
@@ -64,7 +62,7 @@ func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseE
 
 func New(name string, options ...cookie_extractor_config.Option) (*Parser, error) {
 	if name == "" {
-		return nil, motmedelErrors.NewWithTrace(ErrEmptyName)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("name"))
 	}
 
 	return &Parser{Name: name, config: cookie_extractor_config.New(options...)}, nil

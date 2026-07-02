@@ -19,7 +19,6 @@ var grammar []byte
 var ContentTypeGrammar *goabnf.Grammar
 
 var (
-	ErrNilContentType              = errors.New("nil content type")
 	ErrInvalidQuotedParameterValue = errors.New("invalid quoted parameter value")
 )
 

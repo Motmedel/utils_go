@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelGzip "github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -212,7 +214,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			return motmedelErrors.New(fmt.Errorf("parse content type: %w", err), contentTypeData)
 		}
 		if contentType == nil {
-			return motmedelErrors.NewWithTrace(content_type.ErrNilContentType, contentTypeData)
+			return motmedelErrors.NewWithTrace(nil_error.New("content type"), contentTypeData)
 		}
 
 		var useDocumentHeaders bool

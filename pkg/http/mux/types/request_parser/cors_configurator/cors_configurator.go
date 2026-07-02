@@ -6,8 +6,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
@@ -31,14 +32,14 @@ type Configurator struct {
 func (c *Configurator) Parse(request *http.Request) (*motmedelHttpTypes.CorsConfiguration, *response_error.ResponseError) {
 	if request == nil {
 		return nil, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
 	requestHeader := request.Header
 	if requestHeader == nil {
 		return nil, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 

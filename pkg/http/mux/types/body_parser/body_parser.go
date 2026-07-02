@@ -3,8 +3,9 @@ package body_parser
 import (
 	"net/http"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	processorPkg "github.com/Motmedel/utils_go/pkg/http/mux/types/processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/utils"
@@ -34,12 +35,12 @@ func (p *BodyParserWithProcessor[T, U]) Parse(request *http.Request, body []byte
 
 	bodyParser := p.BodyParser
 	if utils.IsNil(bodyParser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilBodyParser)}
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("body parser"))}
 	}
 
 	processor := p.Processor
 	if utils.IsNil(processor) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilProcessor)}
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("processor"))}
 	}
 
 	result, responseError := bodyParser.Parse(request, body)

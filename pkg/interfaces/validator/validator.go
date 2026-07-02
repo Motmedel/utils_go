@@ -1,9 +1,5 @@
 package validator
 
-import "errors"
-
-var ErrNilValidator = errors.New("nil validator")
-
 type Validator[T any] interface {
 	Validate(T) error
 }

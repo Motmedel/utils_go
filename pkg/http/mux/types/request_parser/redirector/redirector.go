@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
-	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxInternalVhostMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/vhost_mux"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/redirector/redirector_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
-	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -30,34 +30,34 @@ func (parser *Parser[T, S]) Parse(request *http.Request) (S, *response_error.Res
 	requestParser := parser.RequestParser
 	if utils.IsNil(requestParser) {
 		return zero, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request parser")),
 		}
 	}
 
 	if parser.RedirectUrl == nil {
 		return zero, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelNetErrors.ErrNilUrl),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("url")),
 		}
 	}
 
 	requestHeader := request.Header
 	if requestHeader == nil {
 		return zero, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
 	host := request.Host
 	if host == "" {
 		return zero, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyHost),
+			ServerError: motmedelErrors.NewWithTrace(empty_error.New("host")),
 		}
 	}
 
 	requestUrl := request.URL
 	if requestUrl == nil {
 		return zero, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestUrl),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request url")),
 		}
 	}
 
@@ -126,11 +126,11 @@ func New[T request_parser.RequestParser[S], S any](
 	options ...redirector_config.Option,
 ) (*Parser[T, S], error) {
 	if utils.IsNil(requestParser) {
-		return nil, motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("request parser"))
 	}
 
 	if redirectUrl == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelNetErrors.ErrNilUrl)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("url"))
 	}
 
 	requestParserConfig := redirector_config.New(options...)

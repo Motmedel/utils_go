@@ -14,7 +14,6 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxContext "github.com/Motmedel/utils_go/pkg/http/mux/context"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxInternal "github.com/Motmedel/utils_go/pkg/http/mux/internal"
@@ -269,20 +268,20 @@ func muxHandleRequest(
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if mux == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilMux),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("mux")),
 		}
 	}
 
 	if request == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
 	requestHeader := request.Header
 	if requestHeader == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
@@ -294,7 +293,7 @@ func muxHandleRequest(
 	}
 	if httpContext == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpContext),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("http context")),
 		}
 	}
 
@@ -313,7 +312,7 @@ func muxHandleRequest(
 		// and for no other methods either, which is an error (as "Not Found" should be produced by `GetEndpoint`)
 		if len(methodToEndpoint) == 0 {
 			return nil, &muxTypesResponseError.ResponseError{
-				ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilEndpointSpecification),
+				ServerError: motmedelErrors.NewWithTrace(nil_error.New("endpoint specification")),
 			}
 		}
 
@@ -370,7 +369,7 @@ func muxHandleRequest(
 					if utils.IsNil(corsParser) {
 						return nil, &muxTypesResponseError.ResponseError{
 							ServerError: motmedelErrors.NewWithTrace(
-								fmt.Errorf("%w (cors)", muxErrors.ErrNilRequestParser),
+								nil_error.NewWithInstance("request parser", "cors"),
 							),
 						}
 					}
@@ -871,7 +870,7 @@ func (mux *Mux) GetContentSecurityPolicy() (*content_security_policy.ContentSecu
 func (mux *Mux) SetContentSecurityPolicy(csp *content_security_policy.ContentSecurityPolicy) error {
 	defaultDocumentHeaders := mux.DefaultDocumentHeaders
 	if defaultDocumentHeaders == nil {
-		return motmedelErrors.NewWithTrace(fmt.Errorf("%w (default document headers)", motmedelErrors.ErrNilMap))
+		return motmedelErrors.NewWithTrace(nil_error.NewWithInstance("map", "default document headers"))
 	}
 
 	if csp == nil {

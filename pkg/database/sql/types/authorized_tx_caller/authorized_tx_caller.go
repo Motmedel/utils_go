@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	sqlErrors "github.com/Motmedel/utils_go/pkg/database/sql/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/utils_go/pkg/database/sql/types/tx_authorizer"
 	"github.com/Motmedel/utils_go/pkg/database/sql/types/tx_caller"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -22,7 +23,7 @@ func (c *AuthorizedTxCaller[T]) Call(ctx context.Context, tx *sql.Tx) (T, error)
 	var zero T
 
 	if utils.IsNil(c.TxCaller) {
-		return zero, motmedelErrors.NewWithTrace(sqlErrors.ErrNilTxCaller)
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("tx caller"))
 	}
 
 	if !utils.IsNil(c.TxAuthorizer) {

@@ -13,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
@@ -39,7 +42,7 @@ func HandleRateLimiting(
 
 	if request == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
@@ -105,13 +108,13 @@ func HandleRateLimiting(
 func HandleFetchMetadata(requestHeader http.Header, method string) *muxTypesResponseError.ResponseError {
 	if requestHeader == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
 	if method == "" {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrEmptyMethod),
+			ServerError: motmedelErrors.NewWithTrace(empty_error.New("method")),
 		}
 	}
 
@@ -145,7 +148,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 
 	if requestHeader == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
@@ -178,7 +181,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 	}
 	if contentType == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(content_type.ErrNilContentType),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("content type")),
 		}
 	}
 
@@ -206,7 +209,7 @@ func ValidateContentType(expectedContentType string, requestHeader http.Header) 
 func ValidateContentLength(allowEmpty bool, requestHeader http.Header) *muxTypesResponseError.ResponseError {
 	if requestHeader == nil {
 		return &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
@@ -256,7 +259,7 @@ func ObtainRequestBody(
 ) ([]byte, *muxTypesResponseError.ResponseError) {
 	if bodyReader == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestBodyReader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("http request body reader")),
 		}
 	}
 
@@ -323,14 +326,14 @@ func GetEndpoint(
 
 	if request == nil {
 		return nil, nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
 	requestUrl := request.URL
 	if requestUrl == nil {
 		return nil, nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestUrl),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request url")),
 		}
 	}
 
@@ -359,13 +362,13 @@ func GetEndpoint(
 func ObtainIsCached(staticContent *muxTypesStaticContent.StaticContent, requestHeader http.Header) (bool, *muxTypesResponseError.ResponseError) {
 	if staticContent == nil {
 		return false, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilStaticContent),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("static content")),
 		}
 	}
 
 	if requestHeader == nil {
 		return false, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
@@ -406,13 +409,13 @@ func ObtainStaticContentResponse(
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if staticContent == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilStaticContent),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("static content")),
 		}
 	}
 
 	if requestHeader == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestHeader),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request header")),
 		}
 	}
 
@@ -464,7 +467,7 @@ func ObtainStaticContentResponse(
 			contentEncodingToData := staticContent.ContentEncodingToData
 			if contentEncodingToData == nil {
 				return nil, &muxTypesResponseError.ResponseError{
-					ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilContentEncodingToData),
+					ServerError: motmedelErrors.NewWithTrace(nil_error.New("content-encoding to data")),
 				}
 			}
 
@@ -476,7 +479,7 @@ func ObtainStaticContentResponse(
 			}
 			if staticContentData == nil {
 				return nil, &muxTypesResponseError.ResponseError{
-					ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilStaticContentData),
+					ServerError: motmedelErrors.NewWithTrace(nil_error.New("static content data")),
 				}
 			}
 

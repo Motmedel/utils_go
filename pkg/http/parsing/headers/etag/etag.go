@@ -2,8 +2,9 @@ package etag
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
+
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -15,8 +16,6 @@ import (
 var grammar []byte
 
 var Grammar *goabnf.Grammar
-
-var ErrNilOpaqueTagPath = errors.New("nil opaque-tag path")
 
 func Parse(data []byte) (*motmedelHttpTypes.ETag, error) {
 	paths, err := parsing_utils.GetParsedDataPaths(Grammar, data)
@@ -36,7 +35,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ETag, error) {
 	opaqueTagPath := parsing_utils.SearchPathSingleName(paths[0], "opaque-tag", 2, false)
 	if opaqueTagPath == nil {
 		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilOpaqueTagPath),
+			fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("opaque-tag path")),
 			data,
 		)
 	}

@@ -13,6 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -235,10 +238,10 @@ func NewFromDataPath(
 		)
 	}
 	if parameter == nil {
-		return nil, motmedelErrors.NewWithTrace(muxErrors.ErrNilHeaderParameter)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("header parameter"))
 	}
 	if parameter.ContentType == "" {
-		return nil, motmedelErrors.NewWithTrace(muxErrors.ErrEmptyContentType)
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("content type"))
 	}
 
 	if extension == ".html" {

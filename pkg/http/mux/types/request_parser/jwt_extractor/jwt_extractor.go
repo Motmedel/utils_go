@@ -2,15 +2,14 @@ package jwt_extractor
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
+
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
-	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
@@ -28,7 +27,7 @@ type Parser[T request_parser.RequestParser[string]] struct {
 func (p *Parser[T]) Parse(request *http.Request) (*authenticated_token.Token, *muxResponseError.ResponseError) {
 	if request == nil {
 		return nil, &muxResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
@@ -36,7 +35,7 @@ func (p *Parser[T]) Parse(request *http.Request) (*authenticated_token.Token, *m
 	if utils.IsNil(tokenExtractor) {
 		return nil, &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w (token extractor)", muxErrors.ErrNilRequestParser),
+				nil_error.NewWithInstance("request parser", "token extractor"),
 			),
 		}
 	}
@@ -115,7 +114,7 @@ func New[T request_parser.RequestParser[string]](
 	authenticators ...authenticatorPkg.Authenticator[*authenticated_token.Token, string],
 ) (*Parser[T], error) {
 	if utils.IsNil(tokenExtractor) {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (token extractor)", muxErrors.ErrNilRequestParser))
+		return nil, motmedelErrors.NewWithTrace(nil_error.NewWithInstance("request parser", "token extractor"))
 	}
 
 	return &Parser[T]{TokenExtractor: tokenExtractor, Authenticators: authenticators}, nil

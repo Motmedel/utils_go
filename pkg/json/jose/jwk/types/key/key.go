@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+
 	motmedelCryptoEcdsa "github.com/Motmedel/utils_go/pkg/crypto/ecdsa"
 	motmedelCryptoInterfaces "github.com/Motmedel/utils_go/pkg/crypto/interfaces"
 	motmedelCryptoRsa "github.com/Motmedel/utils_go/pkg/crypto/rsa"
@@ -187,7 +189,7 @@ func NewFromPublicKey(publicKey crypto.PublicKey, alg, kid, use string) (*Key, e
 		}, nil
 	case *rsa.PublicKey:
 		if alg == "" {
-			return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrEmptyAlg)
+			return nil, motmedelErrors.NewWithTrace(empty_error.New("alg"))
 		}
 		mat, err := rsaKey.NewFromPublicKey(pk)
 		if err != nil {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -18,9 +20,7 @@ var grammar []byte
 var Grammar *goabnf.Grammar
 
 var (
-	ErrNilAcceptLanguage = errors.New("nil accept language")
-	ErrNilPrimarySubtag  = errors.New("nil primary subtag")
-	ErrInvalidQvalue     = errors.New("invalid qvalue")
+	ErrInvalidQvalue = errors.New("invalid qvalue")
 )
 
 func Parse(data []byte) (*motmedelHttpTypes.AcceptLanguage, error) {
@@ -47,7 +47,7 @@ func Parse(data []byte) (*motmedelHttpTypes.AcceptLanguage, error) {
 		)
 		if primarySubtagPath == nil {
 			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilPrimarySubtag),
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("primary subtag")),
 			)
 		}
 		primarySubtag := parsing_utils.ExtractPathValue(data, primarySubtagPath)

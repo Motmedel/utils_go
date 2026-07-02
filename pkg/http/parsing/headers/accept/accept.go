@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -19,9 +21,7 @@ var grammar []byte
 var Grammar *goabnf.Grammar
 
 var (
-	ErrNilAccept              = errors.New("nil accept")
 	ErrParameterNamedQ        = errors.New("parameter named q")
-	ErrNilQValuePath          = errors.New("nil qvalue path")
 	ErrInvalidQvalue          = errors.New("invalid qvalue")
 	ErrCouldNotSplitParameter = errors.New("could not split parameter")
 )
@@ -77,7 +77,7 @@ func Parse(data []byte) (*motmedelHttpTypes.Accept, error) {
 				qValuePath := parsing_utils.SearchPathSingle(interestingPath, []string{"qvalue"}, 1, false)
 				if qValuePath == nil {
 					return nil, motmedelErrors.NewWithTrace(
-						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrNilQValuePath),
+						fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("qvalue path")),
 					)
 				}
 

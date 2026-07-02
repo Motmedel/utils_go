@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -142,7 +144,7 @@ func (responseError *ResponseError) GetEffectiveProblemDetail() (*problem_detail
 			"%w: %w, %w",
 			muxErrors.ErrUnusableResponseError,
 			nil_error.New("problem detail"),
-			muxErrors.ErrEmptyResponseErrorErrors,
+			empty_error.New("response error errors"),
 		),
 	)
 }
@@ -160,7 +162,7 @@ func (responseError *ResponseError) MakeResponse(
 	statusCode := problemDetail.Status
 	if statusCode == 0 {
 		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("%w: problem detail: %w", muxErrors.ErrUnusableResponseError, muxErrors.ErrEmptyStatus),
+			fmt.Errorf("%w: problem detail: %w", muxErrors.ErrUnusableResponseError, empty_error.New("status")),
 		)
 	}
 
@@ -212,7 +214,7 @@ func (responseError *ResponseError) MakeResponse(
 
 		if len(body) != 0 {
 			if contentType == "" {
-				return nil, motmedelErrors.NewWithTrace(muxErrors.ErrEmptyResponseErrorContentType)
+				return nil, motmedelErrors.NewWithTrace(empty_error.New("response error content type"))
 			}
 
 			headers = append(

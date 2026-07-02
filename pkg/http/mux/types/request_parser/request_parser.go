@@ -3,8 +3,9 @@ package request_parser
 import (
 	"net/http"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	processorPkg "github.com/Motmedel/utils_go/pkg/http/mux/types/processor"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
@@ -35,12 +36,12 @@ func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *res
 
 	requestParser := p.RequestParser
 	if utils.IsNil(requestParser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilRequestParser)}
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("request parser"))}
 	}
 
 	processor := p.Processor
 	if utils.IsNil(processor) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilProcessor)}
+		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("processor"))}
 	}
 
 	result, responseError := requestParser.Parse(request)

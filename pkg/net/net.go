@@ -7,6 +7,8 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 )
@@ -195,7 +197,7 @@ func NetworkFromTarget(target string) (*net.IPNet, error) {
 		_, network, _ := net.ParseCIDR(targetCidrString)
 		if network == nil {
 			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w (single target)", motmedelNetErrors.ErrNilIpNet), targetCidrString,
+				nil_error.NewWithInstance("ip net", "single target"), targetCidrString,
 			)
 		}
 

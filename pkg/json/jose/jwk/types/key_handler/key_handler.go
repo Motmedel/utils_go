@@ -13,10 +13,8 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
-	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	jwkKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
 	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key_handler/key_handler_config"
-	motmedelNetErrors "github.com/Motmedel/utils_go/pkg/net/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
@@ -39,7 +37,7 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 		if expiresAt := h.keysExpiresAt; expiresAt == nil || expiresAt.Before(time.Now()) {
 			jwkUrl := h.JwkUrl
 			if jwkUrl == nil {
-				return motmedelErrors.NewWithTrace(fmt.Errorf("%w (jwk url)", motmedelNetErrors.ErrNilUrl))
+				return motmedelErrors.NewWithTrace(nil_error.NewWithInstance("url", "jwk url"))
 			}
 
 			urlString := jwkUrl.String()
@@ -124,7 +122,7 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 			return nil, motmedelErrors.New(fmt.Errorf("new key: %w", err), keyMap)
 		}
 		if key == nil {
-			return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrNilKey)
+			return nil, motmedelErrors.NewWithTrace(nil_error.New("key"))
 		}
 
 		namedVerifier, err := key.NamedVerifier()
@@ -147,7 +145,7 @@ func (h *Handler) GetNamedVerifier(ctx context.Context, keyId string) (motmedelC
 
 func New(jwkUrl *url.URL, options ...key_handler_config.Option) (*Handler, error) {
 	if jwkUrl == nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (jwk url)", motmedelNetErrors.ErrNilUrl))
+		return nil, motmedelErrors.NewWithTrace(nil_error.NewWithInstance("url", "jwk url"))
 	}
 
 	return &Handler{

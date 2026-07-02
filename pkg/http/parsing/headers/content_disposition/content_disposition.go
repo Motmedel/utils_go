@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -19,17 +22,9 @@ var Grammar *goabnf.Grammar
 var grammar []byte
 
 var (
-	ErrNilContentDisposition              = errors.New("nil content disposition")
 	ErrSemanticError                      = errors.New("semantic error")
 	ErrNoFilenameLabel                    = errors.New("no filename label")
-	ErrNilFilenameLabelPath               = errors.New("nil filename label path")
-	ErrNilExtensionLabelPath              = errors.New("nil extension label path")
-	ErrNilFilenameValuePath               = errors.New("nil filename value path")
-	ErrNilFilenameExtValuePath            = errors.New("nil filename ext value path")
 	ErrNotEnoughExtensionSubpaths         = errors.New("not enough extension subpaths")
-	ErrNilExtensionValuePath              = errors.New("nil extension value path")
-	ErrEmptyExtensionLabel                = errors.New("empty extension label")
-	ErrEmptyExtensionValue                = errors.New("empty extension value")
 	ErrDuplicateLabel                     = errors.New("duplicate label")
 	ErrUnexpectedInterestingPathMatchRule = errors.New("unexpected interesting path match rule")
 	ErrUnexpectedFilenameLabel            = errors.New("unexpected filename label")
@@ -112,7 +107,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 					ErrSemanticError,
 					&motmedelErrors.Error{
 						Message: "A filename label path is nil.",
-						Cause:   ErrNilFilenameLabelPath,
+						Cause:   nil_error.New("filename label path"),
 					},
 				)
 			}
@@ -142,7 +137,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 						ErrSemanticError,
 						&motmedelErrors.Error{
 							Message: "No value path was found for the filename parameter.",
-							Cause:   ErrNilFilenameValuePath,
+							Cause:   nil_error.New("filename value path"),
 						},
 					)
 				}
@@ -180,7 +175,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 						ErrSemanticError,
 						&motmedelErrors.Error{
 							Message: "No value path was found for the filename* parameter.",
-							Cause:   ErrNilFilenameExtValuePath,
+							Cause:   nil_error.New("filename ext value path"),
 						},
 					)
 				}
@@ -212,7 +207,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 					ErrSemanticError,
 					&motmedelErrors.Error{
 						Message: "An extension label path is nil.",
-						Cause:   ErrNilExtensionLabelPath,
+						Cause:   nil_error.New("extension label path"),
 					},
 				)
 			}
@@ -223,7 +218,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 					ErrSemanticError,
 					&motmedelErrors.Error{
 						Message: "An extension label is empty.",
-						Cause:   ErrEmptyExtensionLabel,
+						Cause:   empty_error.New("extension label"),
 					},
 				)
 			}
@@ -245,7 +240,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 					ErrSemanticError,
 					&motmedelErrors.Error{
 						Message: "An extension value path is nil.",
-						Cause:   ErrNilExtensionValuePath,
+						Cause:   nil_error.New("extension value path"),
 					},
 				)
 			}
@@ -264,7 +259,7 @@ func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
 					ErrSemanticError,
 					&motmedelErrors.Error{
 						Message: "An extension value is empty.",
-						Cause:   ErrEmptyExtensionValue,
+						Cause:   empty_error.New("extension value"),
 					},
 				)
 			}

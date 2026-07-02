@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	contentSecurityPolicyTypes "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
@@ -40,9 +42,6 @@ var sourceListDirectiveNames = map[string]struct{}{
 var Grammar *goabnf.Grammar
 
 var (
-	ErrNilContentSecurityPolicy = errors.New("nil content security policy")
-	ErrNilHostPartPath          = errors.New("nil host part path")
-	ErrNilDirectiveNamePath     = errors.New("nil directive name path")
 	ErrUnexpectedSourceRuleName = errors.New("unexpected source rule name")
 )
 
@@ -95,7 +94,7 @@ func makeSourcesFromPaths(
 				false,
 			)
 			if hostPartPath == nil {
-				return nil, motmedelErrors.NewWithTrace(ErrNilHostPartPath, concreteSourcePath)
+				return nil, motmedelErrors.NewWithTrace(nil_error.New("host part path"), concreteSourcePath)
 			}
 
 			hostSource.Host = string(parsing_utils.ExtractPathValue(data, hostPartPath))
@@ -185,7 +184,7 @@ func Parse(data []byte) (*contentSecurityPolicyTypes.ContentSecurityPolicy, erro
 			false,
 		)
 		if directiveNamePath == nil {
-			return nil, motmedelErrors.NewWithTrace(ErrNilDirectiveNamePath, interestingPath)
+			return nil, motmedelErrors.NewWithTrace(nil_error.New("directive name path"), interestingPath)
 		}
 		directiveName := string(parsing_utils.ExtractPathValue(data, directiveNamePath))
 

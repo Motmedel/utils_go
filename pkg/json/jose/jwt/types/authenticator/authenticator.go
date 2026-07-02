@@ -80,19 +80,25 @@ func (a *AuthenticatorWithKeyHandler) Authenticate(ctx context.Context, tokenStr
 
 	kid, err := utils.MapGetConvert[string](tokenHeader, "kid")
 	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("map get convert (kid): %w", err), tokenHeader)
+		return nil, motmedelErrors.New(
+			fmt.Errorf("%w: map get convert (kid): %w", motmedelErrors.ErrValidationError, err),
+			tokenHeader,
+		)
 	}
 
 	keyHandler := a.Handler
 	if keyHandler == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrNilHandler)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("handler"))
 	}
 	signatureVerifier, err := keyHandler.GetNamedVerifier(ctx, kid)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("handler get named verifier: %w", err), kid)
 	}
 	if utils.IsNil(signatureVerifier) {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("verifier"))
+		return nil, motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: %w", motmedelErrors.ErrVerificationError, motmedelJwkErrors.ErrUnknownKeyId),
+			kid,
+		)
 	}
 
 	validator := &motmedelJwtValidator.Validator{
@@ -120,7 +126,7 @@ func (a *AuthenticatorWithKeyHandler) Authenticate(ctx context.Context, tokenStr
 
 func NewWithKeyHandler(handler *key_handler.Handler, options ...authenticator_with_key_handler_config.Option) (*AuthenticatorWithKeyHandler, error) {
 	if handler == nil {
-		return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrNilHandler)
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("handler"))
 	}
 	return &AuthenticatorWithKeyHandler{
 		Handler: handler,

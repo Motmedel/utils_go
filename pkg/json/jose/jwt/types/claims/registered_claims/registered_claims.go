@@ -121,7 +121,7 @@ func NewParsedClaims(claimsMap map[string]any) (ParsedClaims, error) {
 
 	clone := maps.Clone(claimsMap)
 	if clone == nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w (claims map clone)", motmedelErrors.ErrNilMap))
+		return nil, motmedelErrors.NewWithTrace(nil_error.NewWithInstance("map", "claims map clone"))
 	}
 
 	for key, value := range claimsMap {

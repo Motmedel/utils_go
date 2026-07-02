@@ -7,6 +7,8 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelContext "github.com/Motmedel/utils_go/pkg/context"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
@@ -92,7 +94,7 @@ func MapGet[T comparable, U any](m map[T]U, key T) (U, error) {
 	var zero U
 
 	if m == nil {
-		return zero, motmedelErrors.NewWithTrace(motmedelErrors.ErrNilMap)
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("map"))
 	}
 
 	v, ok := m[key]

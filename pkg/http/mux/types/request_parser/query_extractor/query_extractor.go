@@ -10,8 +10,9 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/query_extractor/query_extractor_config"
 	queryTag "github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/query_extractor/tag"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
@@ -66,14 +67,14 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 
 	if request == nil {
 		return zero, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
 	requestUrl := request.URL
 	if requestUrl == nil {
 		return zero, &response_error.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequestUrl),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request url")),
 		}
 	}
 

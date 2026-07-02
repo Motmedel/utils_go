@@ -5,8 +5,9 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
 	muxInternalVhostMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/vhost_mux"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
@@ -46,7 +47,7 @@ func (vhostMux *VhostMux) PatchHttpServer(httpServer *http.Server) {
 
 		hostToSpecification := vhostMux.HostToSpecification
 		if hostToSpecification == nil {
-			return nil, motmedelErrors.NewWithTrace(muxErrors.ErrNilHostToMuxSpecification)
+			return nil, motmedelErrors.NewWithTrace(nil_error.New("host to mux specification"))
 		}
 
 		specification, ok := hostToSpecification[clientHello.ServerName]
@@ -65,13 +66,13 @@ func vhostMuxHandleRequest(
 ) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {
 	if vhostMux == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilVhostMux),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("vhost mux")),
 		}
 	}
 
 	if request == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(motmedelHttpErrors.ErrNilHttpRequest),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),
 		}
 	}
 
@@ -83,7 +84,7 @@ func vhostMuxHandleRequest(
 	hostToSpecification := vhostMux.HostToSpecification
 	if hostToSpecification == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilHostToMuxSpecification),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("host to mux specification")),
 		}
 	}
 
@@ -95,7 +96,7 @@ func vhostMuxHandleRequest(
 	}
 	if muxSpecification == nil {
 		return nil, &muxTypesResponseError.ResponseError{
-			ServerError: motmedelErrors.NewWithTrace(muxErrors.ErrNilMuxSpecification),
+			ServerError: motmedelErrors.NewWithTrace(nil_error.New("mux specification")),
 		}
 	}
 

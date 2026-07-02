@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+
 	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -19,10 +21,7 @@ var grammar []byte
 var RetryAfterGrammar *goabnf.Grammar
 
 var (
-	ErrNilRetryAfter       = errors.New("nil retry after")
-	ErrEmptyHttpDate       = errors.New("empty http date")
 	ErrInvalidHttpDate     = errors.New("invalid http date")
-	ErrEmptyDelaySeconds   = errors.New("empty delay seconds")
 	ErrInvalidDelaySeconds = errors.New("invalid delay seconds")
 	ErrNoPathMatch         = errors.New("neither HTTP-date or delay-seconds matched")
 )
@@ -45,7 +44,7 @@ func Parse(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 		httpDateString := string(parsing_utils.ExtractPathValue(data, httpDatePath))
 		if httpDateString == "" {
 			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrEmptyHttpDate),
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, empty_error.New("http date")),
 			)
 		}
 
@@ -72,7 +71,7 @@ func Parse(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 		delaySecondsString := string(parsing_utils.ExtractPathValue(data, delaySecondsPath))
 		if delaySecondsString == "" {
 			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, ErrEmptyDelaySeconds),
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, empty_error.New("delay seconds")),
 			)
 		}
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/mismatch_error"
 	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
@@ -12,7 +14,7 @@ import (
 
 func Validate(keyMap map[string]any) error {
 	if keyMap == nil {
-		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, motmedelErrors.ErrNilMap)
+		return fmt.Errorf("%w: %w", motmedelErrors.ErrValidationError, nil_error.New("map"))
 	}
 
 	kty, err := utils.MapGetConvert[string](keyMap, "kty")
