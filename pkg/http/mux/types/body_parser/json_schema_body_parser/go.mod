@@ -3,8 +3,8 @@ module github.com/Motmedel/utils_go/pkg/http/mux/types/body_parser/json_schema_b
 go 1.26
 
 require (
-	github.com/Motmedel/utils_go v0.0.477
-	github.com/Motmedel/utils_go/pkg/http/mux v0.0.186
+	github.com/Motmedel/utils_go v0.0.489
+	github.com/Motmedel/utils_go/pkg/http/mux v0.0.188
 	github.com/altshiftab/jsonschema v0.0.18
 )
 
