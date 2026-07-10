@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"maps"
 	"net/http"
 	"reflect"
+	"slices"
 	"strconv"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -20,6 +22,18 @@ type Detail struct {
 	Detail    string         `json:"detail,omitempty"`
 	Instance  string         `json:"instance,omitempty"`
 	Extension map[string]any `json:"extension,omitempty"`
+}
+
+// isReservedMemberName reports whether name is one of the standard problem
+// detail member names (RFC 9457 Section 3.2), which extensions must not
+// override.
+func isReservedMemberName(name string) bool {
+	switch name {
+	case "type", "title", "status", "detail", "instance":
+		return true
+	}
+
+	return false
 }
 
 // MarshalJSON flattens the Extension map into the top-level JSON object,
@@ -49,7 +63,7 @@ func (d *Detail) MarshalJSON() ([]byte, error) {
 
 	if ext := d.Extension; ext != nil {
 		for k, v := range ext {
-			if k == "" {
+			if k == "" || isReservedMemberName(k) {
 				continue
 			}
 			m[k] = v
@@ -159,6 +173,59 @@ func (d *Detail) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// encodeXmlValue writes a JSON-normalized value (map[string]any, []any, or a
+// scalar) as an XML element, following the RFC 9457 Appendix B conventions:
+// objects become elements with one child element per key, and arrays become
+// elements containing one "i" child element per item.
+func encodeXmlValue(encoder *xml.Encoder, localName string, value any) error {
+	startElement := xml.StartElement{Name: xml.Name{Local: localName}}
+
+	switch typedValue := value.(type) {
+	case map[string]any:
+		if err := encoder.EncodeToken(startElement); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (object start): %w", err), localName)
+		}
+
+		for _, key := range slices.Sorted(maps.Keys(typedValue)) {
+			if err := encodeXmlValue(encoder, key, typedValue[key]); err != nil {
+				return err
+			}
+		}
+
+		if err := encoder.EncodeToken(xml.EndElement{Name: startElement.Name}); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (object end): %w", err), localName)
+		}
+	case []any:
+		if err := encoder.EncodeToken(startElement); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (array start): %w", err), localName)
+		}
+
+		for _, item := range typedValue {
+			if err := encodeXmlValue(encoder, "i", item); err != nil {
+				return err
+			}
+		}
+
+		if err := encoder.EncodeToken(xml.EndElement{Name: startElement.Name}); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (array end): %w", err), localName)
+		}
+	case nil:
+		if err := encoder.EncodeToken(startElement); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (null start): %w", err), localName)
+		}
+
+		if err := encoder.EncodeToken(xml.EndElement{Name: startElement.Name}); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("encode token (null end): %w", err), localName)
+		}
+	default:
+		if err := encoder.EncodeElement(typedValue, startElement); err != nil {
+			return motmedelErrors.NewWithTrace(fmt.Errorf("encode element: %w", err), localName, typedValue)
+		}
+	}
+
+	return nil
+}
+
 func (d *Detail) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
 	if encoder == nil {
 		return motmedelErrors.NewWithTrace(nil_error.New("xml encoder"))
@@ -220,8 +287,12 @@ func (d *Detail) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error 
 			)
 		}
 
-		for k, v := range extensionMap {
-			if err := encode(k, v); err != nil {
+		for _, key := range slices.Sorted(maps.Keys(extensionMap)) {
+			if key == "" || isReservedMemberName(key) {
+				continue
+			}
+
+			if err := encodeXmlValue(encoder, key, extensionMap[key]); err != nil {
 				return err
 			}
 		}
@@ -242,7 +313,7 @@ func (d *Detail) String() (string, error) {
 		if title := d.Title; title != "" {
 			text += fmt.Sprintf(" %s", title)
 		}
-	} else if title := d.Type; title != "" {
+	} else if title := d.Title; title != "" {
 		text = title
 	}
 
@@ -258,12 +329,12 @@ func (d *Detail) String() (string, error) {
 	}
 
 	var extensionText string
-	for k, v := range d.Extension {
+	for _, k := range slices.Sorted(maps.Keys(d.Extension)) {
 		if extensionText != "" {
 			extensionText += "\n"
 		}
 
-		extensionText += fmt.Sprintf("%s:%v", k, v)
+		extensionText += fmt.Sprintf("%s:%v", k, d.Extension[k])
 	}
 	if extensionText != "" {
 		if text != "" {
