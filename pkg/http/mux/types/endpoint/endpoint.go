@@ -51,7 +51,7 @@ type Endpoint struct {
 	HeaderParser              request_parser.RequestParser[any]
 	BodyLoader                *body_loader.Loader
 	CorsParser                request_parser.RequestParser[*motmedelHttpTypes.CorsConfiguration]
-	DisableFetchMedata        bool
+	DisableFetchMetadata      bool
 	Public                    bool
 	Hint                      *Hint
 	Handler                   Handler

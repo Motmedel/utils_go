@@ -484,7 +484,7 @@ func muxHandleRequest(
 
 	// Examine fetch metadata
 
-	if !endpoint.DisableFetchMedata {
+	if !endpoint.DisableFetchMetadata {
 		if responseError := muxInternalMux.HandleFetchMetadata(requestHeader, request.Method); responseError != nil {
 			responseError.Headers = append(responseError.Headers, corsHeaderEntries...)
 			return nil, responseError
@@ -688,7 +688,7 @@ func muxHandleRequest(
 		response.Headers = append(response.Headers, handlerResponseHeaders...)
 	}
 
-	if !endpoint.DisableFetchMedata {
+	if !endpoint.DisableFetchMetadata {
 		response.Headers = append(
 			response.Headers,
 			&muxTypesResponse.HeaderEntry{
