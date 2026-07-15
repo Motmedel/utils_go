@@ -3,7 +3,7 @@ module github.com/Motmedel/utils_go/pkg/http/mux
 go 1.26
 
 require (
-	github.com/Motmedel/utils_go v0.0.489
+	github.com/Motmedel/utils_go v0.0.490
 	github.com/Motmedel/utils_go/pkg/http/parsing/headers v0.0.45
 	github.com/google/go-cmp v0.7.0
 	golang.org/x/sync v0.19.0
