@@ -1,6 +1,7 @@
 package cose
 
 import (
+	"bytes"
 	"crypto/ecdh"
 	"crypto/hkdf"
 	"crypto/sha256"
@@ -118,7 +119,9 @@ func Decrypt(message []byte, privateKey *ecdh.PrivateKey, options *DecryptOption
 		options = &DecryptOptions{}
 	}
 
-	decodedMessage, err := cbor.Decode(message)
+	// The decoded envelope values (ciphertext, iv, ephemeral key coordinates) are consumed within
+	// this function, so they can alias the message buffer instead of being copied.
+	decodedMessage, err := cbor.DecodeNoCopy(message)
 	if err != nil {
 		return nil, fmt.Errorf("%w: cbor decode (message): %w", ErrMalformedMessage, err)
 	}
@@ -231,12 +234,14 @@ func Decrypt(message []byte, privateKey *ecdh.PrivateKey, options *DecryptOption
 			continue
 		}
 
+		// Cloned because the envelope decode aliases the message buffer, which the result must
+		// not retain.
 		keyIdentifier, _ := headerBytes(recipient.Unprotected, HeaderLabelKeyIdentifier)
 
 		return &DecryptResult{
 			Plaintext:     plaintext,
 			ContentType:   contentType,
-			KeyIdentifier: keyIdentifier,
+			KeyIdentifier: bytes.Clone(keyIdentifier),
 			Protected:     contentProtectedMap,
 		}, nil
 	}

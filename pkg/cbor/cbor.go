@@ -160,6 +160,7 @@ func Encode(value any) ([]byte, error) {
 type decoder struct {
 	data   []byte
 	offset int
+	noCopy bool
 }
 
 func (d *decoder) readTypeAndArgument() (byte, uint64, byte, error) {
@@ -203,16 +204,32 @@ func (d *decoder) readTypeAndArgument() (byte, uint64, byte, error) {
 	return majorType, argument, additionalInformation, nil
 }
 
-func (d *decoder) readBytes(length uint64) ([]byte, error) {
+// readSlice returns the next length bytes of the input without copying.
+func (d *decoder) readSlice(length uint64) ([]byte, error) {
 	if length > uint64(len(d.data)-d.offset) {
 		return nil, fmt.Errorf("%w: unexpected end of data", ErrMalformed)
 	}
 
-	data := make([]byte, length)
-	copy(data, d.data[d.offset:d.offset+int(length)])
-	d.offset += int(length)
+	end := d.offset + int(length)
+	data := d.data[d.offset:end:end]
+	d.offset = end
 
 	return data, nil
+}
+
+func (d *decoder) readBytes(length uint64) ([]byte, error) {
+	slicedData, err := d.readSlice(length)
+	if err != nil {
+		return nil, err
+	}
+
+	// The capacity of the returned slice is capped so that appending to it cannot overwrite input
+	// bytes following the byte string.
+	if d.noCopy {
+		return slicedData, nil
+	}
+
+	return bytes.Clone(slicedData), nil
 }
 
 func (d *decoder) decodeValue(depth int) (any, error) {
@@ -239,13 +256,15 @@ func (d *decoder) decodeValue(depth int) (any, error) {
 	case 2:
 		return d.readBytes(argument)
 	case 3:
-		data, err := d.readBytes(argument)
+		data, err := d.readSlice(argument)
 		if err != nil {
 			return nil, err
 		}
 		if !utf8.Valid(data) {
 			return nil, fmt.Errorf("%w: invalid utf-8 in text string", ErrMalformed)
 		}
+		// The string conversion is the single copy; strings are immutable and never alias the
+		// input.
 		return string(data), nil
 	case 4:
 		// Each element occupies at least one byte.
@@ -318,12 +337,7 @@ func (d *decoder) decodeValue(depth int) (any, error) {
 	}
 }
 
-// Decode deserializes a single value, rejecting trailing data. Integers are returned as int64,
-// byte strings as []byte, text strings as string, arrays as []any, maps as map[any]any (with
-// int64 or string keys), and tagged data items as Tag.
-func Decode(data []byte) (any, error) {
-	parser := &decoder{data: data}
-
+func decode(parser *decoder) (any, error) {
 	value, err := parser.decodeValue(0)
 	if err != nil {
 		return nil, err
@@ -334,4 +348,18 @@ func Decode(data []byte) (any, error) {
 	}
 
 	return value, nil
+}
+
+// Decode deserializes a single value, rejecting trailing data. Integers are returned as int64,
+// byte strings as []byte, text strings as string, arrays as []any, maps as map[any]any (with
+// int64 or string keys), and tagged data items as Tag.
+func Decode(data []byte) (any, error) {
+	return decode(&decoder{data: data})
+}
+
+// DecodeNoCopy is Decode, except decoded byte strings alias data instead of being copied. The
+// caller must keep data alive and unmodified for as long as the decoded byte strings are in use.
+// The aliasing slices have their capacity capped, so appending to them does not modify data.
+func DecodeNoCopy(data []byte) (any, error) {
+	return decode(&decoder{data: data, noCopy: true})
 }

@@ -129,6 +129,92 @@ func TestDecodeRejectsExcessiveNesting(t *testing.T) {
 	}
 }
 
+func decodedByteString(t *testing.T, value any) []byte {
+	t.Helper()
+
+	array, ok := value.([]any)
+	if !ok || len(array) != 2 {
+		t.Fatalf("unexpected decoded value: %#v", value)
+	}
+
+	byteString, ok := array[0].([]byte)
+	if !ok {
+		t.Fatalf("unexpected first element: %#v", array[0])
+	}
+
+	return byteString
+}
+
+func TestDecodeCopies(t *testing.T) {
+	// ["abc" as bstr, "xy"]: 82, 43 616263, 62 7879
+	data, err := hex.DecodeString("8243616263627879")
+	if err != nil {
+		t.Fatalf("decode hex: %v", err)
+	}
+
+	value, err := Decode(data)
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	byteString := decodedByteString(t, value)
+	data[2] = 'z'
+	if byteString[0] != 'a' {
+		t.Error("expected the decoded byte string to be a copy")
+	}
+}
+
+func TestDecodeNoCopyAliases(t *testing.T) {
+	data, err := hex.DecodeString("8243616263627879")
+	if err != nil {
+		t.Fatalf("decode hex: %v", err)
+	}
+
+	value, err := DecodeNoCopy(data)
+	if err != nil {
+		t.Fatalf("decode no copy: %v", err)
+	}
+
+	byteString := decodedByteString(t, value)
+	data[2] = 'z'
+	if byteString[0] != 'z' {
+		t.Error("expected the decoded byte string to alias the input")
+	}
+
+	// Appending must not overwrite the input bytes following the byte string.
+	_ = append(byteString, 'Q')
+	if data[5] != 0x62 {
+		t.Error("expected append to a decoded byte string to not modify the input")
+	}
+}
+
+func TestDecodeNoCopyMatchesDecode(t *testing.T) {
+	data, err := Encode(
+		map[int64]any{
+			1: []byte{1, 2, 3},
+			2: "text",
+			3: []any{int64(-25), Tag{Number: 96, Content: []byte{4, 5}}},
+		},
+	)
+	if err != nil {
+		t.Fatalf("encode: %v", err)
+	}
+
+	value, err := Decode(data)
+	if err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	noCopyValue, err := DecodeNoCopy(data)
+	if err != nil {
+		t.Fatalf("decode no copy: %v", err)
+	}
+
+	if !reflect.DeepEqual(value, noCopyValue) {
+		t.Errorf("decode mismatch: %#v != %#v", value, noCopyValue)
+	}
+}
+
 func TestEncodeRejectsUnsupportedType(t *testing.T) {
 	if _, err := Encode(1.5); !errors.Is(err, ErrUnsupportedValue) {
 		t.Errorf("expected unsupported value error, got %v", err)
@@ -155,7 +241,18 @@ func FuzzDecode(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		value, err := Decode(data)
 		if err != nil {
+			if _, noCopyErr := DecodeNoCopy(data); noCopyErr == nil {
+				t.Fatal("decode no copy succeeded where decode failed")
+			}
 			return
+		}
+
+		noCopyValue, err := DecodeNoCopy(data)
+		if err != nil {
+			t.Fatalf("decode no copy failed where decode succeeded: %v", err)
+		}
+		if !reflect.DeepEqual(noCopyValue, value) {
+			t.Fatalf("decode no copy mismatch: %#v != %#v", noCopyValue, value)
 		}
 
 		reencoded, err := Encode(value)
