@@ -81,6 +81,31 @@ func TestValidateValid(t *testing.T) {
 	}
 }
 
+func TestValidateBytes(t *testing.T) {
+	data, err := cbor.Encode(validOrderValue())
+	if err != nil {
+		t.Fatalf("cbor encode: %v", err)
+	}
+
+	if err := orderSchema(t).ValidateBytes(data); err != nil {
+		t.Errorf("validate bytes: %v", err)
+	}
+
+	if err := orderSchema(t).ValidateBytes([]byte{0x9f}); !errors.Is(err, cbor.ErrMalformed) {
+		t.Errorf("expected a malformed error, got %v", err)
+	}
+
+	invalidData, err := cbor.Encode(map[any]any{"name": "Meriadoc"})
+	if err != nil {
+		t.Fatalf("cbor encode: %v", err)
+	}
+
+	var validateError *ValidateError
+	if err := orderSchema(t).ValidateBytes(invalidData); !errors.As(err, &validateError) {
+		t.Errorf("expected a validate error, got %v", err)
+	}
+}
+
 func TestValidateThroughCodec(t *testing.T) {
 	data, err := cbor.Encode(validOrderValue())
 	if err != nil {
@@ -209,6 +234,62 @@ func TestValidateOptionalOmitted(t *testing.T) {
 
 	if err := orderSchema(t).Validate(value); err != nil {
 		t.Errorf("validate: %v", err)
+	}
+}
+
+func TestValidateNilSchema(t *testing.T) {
+	var nilSchema *Schema
+	if err := nilSchema.Validate(nil); !errors.Is(err, ErrNilSchema) {
+		t.Errorf("expected a nil schema error, got %v", err)
+	}
+	if err := nilSchema.ValidateBytes(nil); !errors.Is(err, ErrNilSchema) {
+		t.Errorf("expected a nil schema error, got %v", err)
+	}
+}
+
+func TestTypedValidateHelpers(t *testing.T) {
+	minLength := 1
+
+	if err := (&Schema{Type: TypeText}).ValidateText("text"); err != nil {
+		t.Errorf("validate text: %v", err)
+	}
+
+	if err := (&Schema{Type: TypeBytes, MinLength: &minLength}).ValidateByteString([]byte{1}); err != nil {
+		t.Errorf("validate byte string: %v", err)
+	}
+	if err := (&Schema{Type: TypeBytes, MinLength: &minLength}).ValidateByteString([]byte{}); err == nil {
+		t.Error("expected a validation error for an empty byte string")
+	}
+
+	if err := (&Schema{Type: TypeInteger}).ValidateInteger(3); err != nil {
+		t.Errorf("validate integer: %v", err)
+	}
+
+	if err := (&Schema{Type: TypeBoolean}).ValidateBoolean(true); err != nil {
+		t.Errorf("validate boolean: %v", err)
+	}
+
+	if err := (&Schema{Type: TypeArray, Items: &Schema{Type: TypeText}}).ValidateArray([]any{"a"}); err != nil {
+		t.Errorf("validate array: %v", err)
+	}
+
+	mapSchema := &Schema{
+		Type:       TypeMap,
+		Properties: map[string]*Schema{"name": {Type: TypeText}},
+		Required:   []string{"name"},
+	}
+	if err := mapSchema.ValidateMap(map[any]any{"name": "Meriadoc"}); err != nil {
+		t.Errorf("validate map: %v", err)
+	}
+	if err := mapSchema.ValidateMap(map[any]any{}); err == nil {
+		t.Error("expected a validation error for a missing required key")
+	}
+
+	if err := (&Schema{Type: TypeNull}).ValidateNull(); err != nil {
+		t.Errorf("validate null: %v", err)
+	}
+	if err := (&Schema{Type: TypeText}).ValidateNull(); err == nil {
+		t.Error("expected a validation error for null against a text schema")
 	}
 }
 

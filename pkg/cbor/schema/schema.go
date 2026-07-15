@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Motmedel/utils_go/pkg/cbor"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
 var (
@@ -243,10 +244,11 @@ func (s *Schema) validateValue(value any, path string, issues *[]*Issue) {
 }
 
 // Validate checks a decoded CBOR value against the schema, returning a *ValidateError carrying
-// all violations, or nil if the value is valid.
+// all violations, or nil if the value is valid. The value must use the type model produced by
+// cbor.Decode: map[any]any, []any, string, []byte, int64, bool, nil, cbor.Tag, or cbor.Undefined.
 func (s *Schema) Validate(value any) error {
 	if s == nil {
-		return ErrNilSchema
+		return motmedelErrors.NewWithTrace(ErrNilSchema)
 	}
 
 	var issues []*Issue
@@ -257,6 +259,59 @@ func (s *Schema) Validate(value any) error {
 	}
 
 	return nil
+}
+
+// ValidateBytes decodes data and validates the resulting value. When the decoded value is also
+// needed afterwards (for cbor.UnmarshalValue, say), decode once and use Validate instead of
+// decoding twice.
+func (s *Schema) ValidateBytes(data []byte) error {
+	if s == nil {
+		return motmedelErrors.NewWithTrace(ErrNilSchema)
+	}
+
+	// Nothing decoded escapes into the returned issues, so the byte strings can alias data.
+	value, err := cbor.DecodeNoCopy(data)
+	if err != nil {
+		return fmt.Errorf("cbor decode: %w", err)
+	}
+
+	return s.Validate(value)
+}
+
+// ValidateMap validates a map value.
+func (s *Schema) ValidateMap(value map[any]any) error {
+	return s.Validate(value)
+}
+
+// ValidateArray validates an array value.
+func (s *Schema) ValidateArray(value []any) error {
+	return s.Validate(value)
+}
+
+// ValidateText validates a text-string value.
+func (s *Schema) ValidateText(value string) error {
+	return s.Validate(value)
+}
+
+// ValidateByteString validates a byte-string value. Unlike ValidateBytes, the value is not
+// decoded; it is the value.
+func (s *Schema) ValidateByteString(value []byte) error {
+	return s.Validate(value)
+}
+
+// ValidateInteger validates an integer value.
+func (s *Schema) ValidateInteger(value int64) error {
+	return s.Validate(value)
+}
+
+// ValidateBoolean validates a boolean value.
+func (s *Schema) ValidateBoolean(value bool) error {
+	return s.Validate(value)
+}
+
+// ValidateNull validates the null value.
+func (s *Schema) ValidateNull() error {
+	return s.Validate(nil)
 }
 
 // Clone returns a deep copy of the schema.
