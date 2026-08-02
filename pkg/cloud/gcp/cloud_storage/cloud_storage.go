@@ -67,7 +67,7 @@ func (c *Client) InsertBucket(ctx context.Context, project string, bucketConfig 
 	}
 
 	if bucketConfig == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("bucket config"))
 	}
 
 	u := *c.baseUrl
@@ -79,6 +79,10 @@ func (c *Client) InsertBucket(ctx context.Context, project string, bucketConfig 
 	_, createdBucket, err := motmedelHttpUtils.FetchJsonWithBody[*bucket.Bucket](ctx, urlString, bucketConfig, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if createdBucket == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("createdBucket"))
 	}
 
 	return createdBucket, nil
@@ -95,7 +99,7 @@ func (c *Client) PatchBucket(ctx context.Context, bucketName string, bucketConfi
 	}
 
 	if bucketConfig == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("bucket config"))
 	}
 
 	u := *c.baseUrl
@@ -107,6 +111,10 @@ func (c *Client) PatchBucket(ctx context.Context, bucketName string, bucketConfi
 	_, patchedBucket, err := motmedelHttpUtils.FetchJsonWithBody[*bucket.Bucket](ctx, urlString, bucketConfig, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if patchedBucket == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("patchedBucket"))
 	}
 
 	return patchedBucket, nil
@@ -126,7 +134,7 @@ func (c *Client) PatchObject(ctx context.Context, bucketName string, objectName 
 	}
 
 	if objectConfig == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("object config"))
 	}
 
 	u := *c.baseUrl
@@ -138,6 +146,10 @@ func (c *Client) PatchObject(ctx context.Context, bucketName string, objectName 
 	_, patchedObject, err := motmedelHttpUtils.FetchJsonWithBody[*object.Object](ctx, urlString, objectConfig, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if patchedObject == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("patchedObject"))
 	}
 
 	return patchedObject, nil
@@ -165,6 +177,10 @@ func (c *Client) GetObject(ctx context.Context, bucketName string, objectName st
 	_, obj, err := motmedelHttpUtils.FetchJson[*object.Object](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if obj == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("obj"))
 	}
 
 	return obj, nil
@@ -223,6 +239,10 @@ func (c *Client) ListObjects(ctx context.Context, bucketName string, query url.V
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if list == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("list"))
+	}
+
 	return list, nil
 }
 
@@ -269,7 +289,7 @@ func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *
 	}
 
 	if metadata == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("metadata"))
 	}
 
 	metadataBytes, err := json.Marshal(metadata)
@@ -322,6 +342,10 @@ func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *
 	_, insertedObject, err := motmedelHttpUtils.FetchJson[*object.Object](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if insertedObject == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("insertedObject"))
 	}
 
 	return insertedObject, nil

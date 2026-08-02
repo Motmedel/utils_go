@@ -65,12 +65,12 @@ func NewV7() (UUID, error) {
 	ms := now.UnixMilli()
 
 	// Encode the 48-bit timestamp (big-endian) in the first 6 bytes.
-	uuid[0] = byte(ms >> 40)
-	uuid[1] = byte(ms >> 32)
-	uuid[2] = byte(ms >> 24)
-	uuid[3] = byte(ms >> 16)
-	uuid[4] = byte(ms >> 8)
-	uuid[5] = byte(ms)
+	uuid[0] = byte((ms >> 40) & 0xff)
+	uuid[1] = byte((ms >> 32) & 0xff)
+	uuid[2] = byte((ms >> 24) & 0xff)
+	uuid[3] = byte((ms >> 16) & 0xff)
+	uuid[4] = byte((ms >> 8) & 0xff)
+	uuid[5] = byte(ms & 0xff)
 
 	// Fill the remaining bytes with random data.
 	_, err := io.ReadFull(rand.Reader, uuid[6:])
@@ -237,12 +237,12 @@ func NewV7FromTime(t time.Time) (UUID, error) {
 
 	ms := t.UnixMilli()
 
-	uuid[0] = byte(ms >> 40)
-	uuid[1] = byte(ms >> 32)
-	uuid[2] = byte(ms >> 24)
-	uuid[3] = byte(ms >> 16)
-	uuid[4] = byte(ms >> 8)
-	uuid[5] = byte(ms)
+	uuid[0] = byte((ms >> 40) & 0xff)
+	uuid[1] = byte((ms >> 32) & 0xff)
+	uuid[2] = byte((ms >> 24) & 0xff)
+	uuid[3] = byte((ms >> 16) & 0xff)
+	uuid[4] = byte((ms >> 8) & 0xff)
+	uuid[5] = byte(ms & 0xff)
 
 	_, err := io.ReadFull(rand.Reader, uuid[6:])
 	if err != nil {

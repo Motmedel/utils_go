@@ -8,6 +8,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
@@ -63,6 +64,10 @@ func (c *Client) Get(ctx context.Context, groupEmail string, options ...fetch_co
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if groupSettings == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("groupSettings"))
+	}
+
 	return groupSettings, nil
 }
 
@@ -83,6 +88,10 @@ func (c *Client) Update(ctx context.Context, groupEmail string, groupSettings *g
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
 	}
 
+	if updatedGroupSettings == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("updatedGroupSettings"))
+	}
+
 	return updatedGroupSettings, nil
 }
 
@@ -101,6 +110,10 @@ func (c *Client) Patch(ctx context.Context, groupEmail string, groupSettings *gr
 	_, patchedGroupSettings, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, groupSettings, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if patchedGroupSettings == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("patchedGroupSettings"))
 	}
 
 	return patchedGroupSettings, nil

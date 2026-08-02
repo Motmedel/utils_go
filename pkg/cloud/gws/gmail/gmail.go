@@ -8,6 +8,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
@@ -102,7 +103,7 @@ func (c *Client) Send(ctx context.Context, userId string, msg *message.Message, 
 	}
 
 	if msg == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("message"))
 	}
 
 	urlString := c.sendUrl(userId)
@@ -110,6 +111,10 @@ func (c *Client) Send(ctx context.Context, userId string, msg *message.Message, 
 	_, sentMessage, err := motmedelHttpUtils.FetchJsonWithBody[*message.Message](ctx, urlString, msg, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if sentMessage == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("sentMessage"))
 	}
 
 	return sentMessage, nil
@@ -127,7 +132,7 @@ func (c *Client) Watch(ctx context.Context, userId string, request *watch_reques
 	}
 
 	if request == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("request"))
 	}
 
 	urlString := c.watchUrl(userId)
@@ -135,6 +140,10 @@ func (c *Client) Watch(ctx context.Context, userId string, request *watch_reques
 	_, response, err := motmedelHttpUtils.FetchJsonWithBody[*watch_response.WatchResponse](ctx, urlString, request, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if response == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
 	}
 
 	return response, nil
@@ -299,6 +308,10 @@ func (c *Client) GetMessage(ctx context.Context, userId string, messageId string
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if msg == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("msg"))
+	}
+
 	return msg, nil
 }
 
@@ -322,6 +335,10 @@ func (c *Client) Trash(ctx context.Context, userId string, messageId string, opt
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
 	}
 
+	if trashedMessage == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("trashedMessage"))
+	}
+
 	return trashedMessage, nil
 }
 
@@ -336,7 +353,7 @@ func (c *Client) CreateSendAs(ctx context.Context, userId string, s *send_as.Sen
 	}
 
 	if s == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("send as"))
 	}
 
 	urlString := c.sendAsUrl(userId, "")
@@ -344,6 +361,10 @@ func (c *Client) CreateSendAs(ctx context.Context, userId string, s *send_as.Sen
 	_, created, err := motmedelHttpUtils.FetchJsonWithBody[*send_as.SendAs](ctx, urlString, s, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if created == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("created"))
 	}
 
 	return created, nil
@@ -369,6 +390,10 @@ func (c *Client) GetSendAs(ctx context.Context, userId string, sendAsEmail strin
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if s == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("s"))
+	}
+
 	return s, nil
 }
 
@@ -386,7 +411,7 @@ func (c *Client) UpdateSendAs(ctx context.Context, userId string, sendAsEmail st
 	}
 
 	if s == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("send as"))
 	}
 
 	urlString := c.sendAsUrl(userId, sendAsEmail)
@@ -394,6 +419,10 @@ func (c *Client) UpdateSendAs(ctx context.Context, userId string, sendAsEmail st
 	_, updated, err := motmedelHttpUtils.FetchJsonWithBody[*send_as.SendAs](ctx, urlString, s, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if updated == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("updated"))
 	}
 
 	return updated, nil
@@ -437,7 +466,7 @@ func (c *Client) CreateFilter(ctx context.Context, userId string, f *filter.Filt
 	}
 
 	if f == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("filter"))
 	}
 
 	urlString := c.filtersUrl(userId, "")
@@ -445,6 +474,10 @@ func (c *Client) CreateFilter(ctx context.Context, userId string, f *filter.Filt
 	_, created, err := motmedelHttpUtils.FetchJsonWithBody[*filter.Filter](ctx, urlString, f, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if created == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("created"))
 	}
 
 	return created, nil
@@ -470,6 +503,10 @@ func (c *Client) GetFilter(ctx context.Context, userId string, filterId string, 
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if f == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("f"))
+	}
+
 	return f, nil
 }
 
@@ -491,7 +528,7 @@ func (c *Client) ListFilters(ctx context.Context, userId string, options ...fetc
 	}
 
 	if resp == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
 	}
 
 	return resp.Filter, nil

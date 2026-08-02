@@ -73,7 +73,7 @@ func retryWaitDuration(
 	response *http.Response,
 	responseBody []byte,
 	i int,
-) (delay time.Duration, giveUp bool) {
+) (time.Duration, bool) {
 	maximumWaitTime := retryConfig.MaximumWaitTime
 
 	var advised *time.Duration
@@ -149,7 +149,7 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 	}
 	request = request.WithContext(httptrace.WithClientTrace(request.Context(), trace))
 
-	response, err := fetchConfig.HttpClient.Do(request)
+	response, err := fetchConfig.HttpClient.Do(request) //nolint:gosec // generic fetch utility; fetching caller-supplied URLs is intended
 	httpContext.Response = response
 	if err != nil {
 		return nil, nil, motmedelErrors.NewWithTraceCtx(
@@ -329,7 +329,7 @@ func Fetch(ctx context.Context, url string, options ...fetch_config.Option) (*ht
 	fetchConfig := fetch_config.New(options...)
 	method := fetchConfig.Method
 
-	request, err := http.NewRequest(method, url, bytes.NewBuffer(fetchConfig.Body))
+	request, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(fetchConfig.Body))
 	if err != nil {
 		return nil, nil, motmedelErrors.NewWithTrace(fmt.Errorf("http new request: %w", err), method)
 	}

@@ -109,7 +109,7 @@ func Encrypt(plaintext []byte, recipientPublicKey *ecdh.PublicKey, options *Encr
 		return nil, fmt.Errorf("enc structure: %w", err)
 	}
 
-	ciphertext := aead.Seal(nil, nonce, plaintext, additionalData)
+	ciphertext := aead.Seal([]byte{}, nonce, plaintext, additionalData)
 
 	ephemeralKeyMap, err := ec2KeyFromPublicKey(ephemeralPrivateKey.PublicKey())
 	if err != nil {

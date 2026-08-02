@@ -28,7 +28,7 @@ var (
 )
 
 func CollectWrappedErrors(err error) []error {
-	var results []error
+	results := []error{}
 
 	queue := []error{err}
 	isRoot := true

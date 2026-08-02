@@ -104,6 +104,9 @@ func TestPatchCspConnectSrcWithHostSrc_AddsNewDirective(t *testing.T) {
 
 	directive := policy.GetConnectSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected connect-src directive to be added")
 	}
 
@@ -134,6 +137,9 @@ func TestPatchCspConnectSrcWithHostSrc_AppendsToExisting(t *testing.T) {
 	PatchCspConnectSrcWithHostSrc(policy, mustParseURL("https://new.example.com"))
 
 	directive := policy.GetConnectSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	sources := sourceStrings(directive.Sources)
 	if len(sources) != 3 {
 		t.Fatalf("expected 3 sources, got %d: %v", len(sources), sources)
@@ -161,6 +167,9 @@ func TestPatchCspConnectSrcWithHostSrc_NoDuplicates(t *testing.T) {
 	PatchCspConnectSrcWithHostSrc(policy, mustParseURL("https://api.example.com"))
 
 	directive := policy.GetConnectSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if len(directive.Sources) != 2 {
 		t.Fatalf("expected 2 sources (no duplicate), got %d: %v", len(directive.Sources), sourceStrings(directive.Sources))
 	}
@@ -176,6 +185,9 @@ func TestPatchCspConnectSrcWithHostSrc_MultipleUrls(t *testing.T) {
 	)
 
 	directive := policy.GetConnectSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if directive == nil {
 		t.Fatal("expected connect-src directive")
 	}
@@ -211,6 +223,9 @@ func TestPatchCspFrameSrcWithHostSrc_AddsNewDirective(t *testing.T) {
 
 	directive := policy.GetFrameSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected frame-src directive to be added")
 	}
 
@@ -240,6 +255,9 @@ func TestPatchCspFrameSrcWithHostSrc_AppendsToExisting(t *testing.T) {
 	PatchCspFrameSrcWithHostSrc(policy, mustParseURL("https://frame.example.com"))
 
 	directive := policy.GetFrameSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	sources := sourceStrings(directive.Sources)
 	if len(sources) != 2 {
 		t.Fatalf("expected 2 sources, got %d: %v", len(sources), sources)
@@ -263,6 +281,9 @@ func TestPatchCspFrameSrcWithHostSrc_NoDuplicates(t *testing.T) {
 	PatchCspFrameSrcWithHostSrc(policy, mustParseURL("https://frame.example.com"))
 
 	directive := policy.GetFrameSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if len(directive.Sources) != 1 {
 		t.Fatalf("expected 1 source (no duplicate), got %d", len(directive.Sources))
 	}
@@ -304,6 +325,9 @@ func TestPatchCspImageSrc_HostUrl(t *testing.T) {
 
 	directive := policy.GetImgSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected img-src directive to be added")
 	}
 
@@ -324,6 +348,9 @@ func TestPatchCspImageSrc_DataUrl(t *testing.T) {
 	PatchCspImageSrc(policy, dataUrl)
 
 	directive := policy.GetImgSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if directive == nil {
 		t.Fatal("expected img-src directive to be added")
 	}
@@ -346,6 +373,9 @@ func TestPatchCspImageSrc_MixedDataAndHost(t *testing.T) {
 	PatchCspImageSrc(policy, dataUrl, hostUrl)
 
 	directive := policy.GetImgSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if directive == nil {
 		t.Fatal("expected img-src directive to be added")
 	}
@@ -379,6 +409,9 @@ func TestPatchCspImageSrc_AppendsToExisting(t *testing.T) {
 	PatchCspImageSrc(policy, mustParseURL("https://images.example.com"))
 
 	directive := policy.GetImgSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	sources := sourceStrings(directive.Sources)
 	if len(sources) != 2 {
 		t.Fatalf("expected 2 sources, got %d: %v", len(sources), sources)
@@ -404,6 +437,9 @@ func TestPatchCspImageSrc_NoDuplicates(t *testing.T) {
 	PatchCspImageSrc(policy, dataUrl)
 
 	directive := policy.GetImgSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if len(directive.Sources) != 2 {
 		t.Fatalf("expected 2 sources (no duplicate), got %d: %v", len(directive.Sources), sourceStrings(directive.Sources))
 	}
@@ -428,6 +464,9 @@ func TestPatchCspImageSrc_AppendsDataToExistingHost(t *testing.T) {
 	PatchCspImageSrc(policy, dataUrl)
 
 	directive := policy.GetImgSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	sources := sourceStrings(directive.Sources)
 	if len(sources) != 3 {
 		t.Fatalf("expected 3 sources, got %d: %v", len(sources), sources)
@@ -473,6 +512,9 @@ func TestPatchCspStyleSrcWithNonce_AddsNewDirective(t *testing.T) {
 
 	directive := policy.GetStyleSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected style-src directive to be added")
 	}
 
@@ -489,6 +531,9 @@ func TestPatchCspStyleSrcWithNonce_MultipleNonces(t *testing.T) {
 	PatchCspStyleSrcWithNonce(policy, "nonce1", "nonce2")
 
 	directive := policy.GetStyleSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if directive == nil {
 		t.Fatal("expected style-src directive to be added")
 	}
@@ -516,6 +561,9 @@ func TestPatchCspStyleSrcWithNonce_AppendsToExisting(t *testing.T) {
 	PatchCspStyleSrcWithNonce(policy, "abc123")
 
 	directive := policy.GetStyleSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	sources := sourceStrings(directive.Sources)
 	if len(sources) != 2 {
 		t.Fatalf("expected 2 sources, got %d: %v", len(sources), sources)
@@ -542,6 +590,9 @@ func TestPatchCspStyleSrcWithNonce_NoDuplicates(t *testing.T) {
 	PatchCspStyleSrcWithNonce(policy, "abc123")
 
 	directive := policy.GetStyleSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if len(directive.Sources) != 1 {
 		t.Fatalf("expected 1 source (no duplicate), got %d: %v", len(directive.Sources), sourceStrings(directive.Sources))
 	}
@@ -595,6 +646,9 @@ func TestPatchCspStyleSrcWithHash_AddsNewDirective(t *testing.T) {
 
 	directive := policy.GetStyleSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected style-src directive to be added")
 	}
 
@@ -614,6 +668,9 @@ func TestPatchCspStyleSrcWithHash_MultipleHashes(t *testing.T) {
 	}
 
 	directive := policy.GetStyleSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	sources := sourceStrings(directive.Sources)
 	if len(sources) != 2 {
 		t.Fatalf("expected 2 sources, got %d: %v", len(sources), sources)
@@ -650,6 +707,9 @@ func TestPatchCspStyleSrcWithHash_AppendsToExisting(t *testing.T) {
 	}
 
 	directive := policy.GetStyleSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	sources := sourceStrings(directive.Sources)
 	if len(sources) != 2 {
 		t.Fatalf("expected 2 sources, got %d: %v", len(sources), sources)
@@ -679,6 +739,9 @@ func TestPatchCspStyleSrcWithHash_NoDuplicates(t *testing.T) {
 	}
 
 	directive := policy.GetStyleSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if len(directive.Sources) != 1 {
 		t.Fatalf("expected 1 source (no duplicate), got %d: %v", len(directive.Sources), sourceStrings(directive.Sources))
 	}
@@ -698,6 +761,9 @@ func TestPatchCspStyleSrc_NonceAndHash_SharedDirective(t *testing.T) {
 	}
 
 	directive := policy.GetStyleSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if directive == nil {
 		t.Fatal("expected style-src directive")
 	}
@@ -772,6 +838,9 @@ func TestPatchCspSourceDirective_AddsNewDirective(t *testing.T) {
 
 	directive := policy.GetWorkerSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected worker-src directive to be added")
 	}
 	if got := directive.String(); got != "worker-src 'self' blob:" {
@@ -799,6 +868,9 @@ func TestPatchCspSourceDirective_ExtendsExisting(t *testing.T) {
 	}
 	directive := policy.GetWorkerSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected worker-src directive")
 	}
 	if got := directive.String(); got != "worker-src 'self' blob:" {
@@ -819,6 +891,9 @@ func TestPatchCspSourceDirective_DeduplicatesSources(t *testing.T) {
 
 	directive := policy.GetWorkerSrc()
 	if directive == nil {
+		t.Fatal("nil directive")
+	}
+	if directive == nil {
 		t.Fatal("expected worker-src directive")
 	}
 	sources := sourceStrings(directive.Sources)
@@ -838,6 +913,9 @@ func TestPatchCspSourceDirective_OtherDirectiveType(t *testing.T) {
 	)
 
 	directive := policy.GetConnectSrc()
+	if directive == nil {
+		t.Fatal("nil directive")
+	}
 	if directive == nil {
 		t.Fatal("expected connect-src directive to be added")
 	}

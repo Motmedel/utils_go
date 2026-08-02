@@ -16,6 +16,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_source/service_account_token_source"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 	"github.com/Motmedel/utils_go/pkg/oauth2/types/token_source"
@@ -25,7 +26,7 @@ const (
 	credentialTypeAuthorizedUser = "authorized_user"
 	credentialTypeServiceAccount = "service_account"
 
-	DefaultTokenUrl = "https://oauth2.googleapis.com/token"
+	DefaultTokenUrl = "https://oauth2.googleapis.com/token" //nolint:gosec // G101: public OAuth token endpoint URL, not a credential
 )
 
 var (
@@ -198,7 +199,7 @@ func (c *Client) FindDefaultCredentials(ctx context.Context, scopes []string, op
 
 	// 1. GOOGLE_APPLICATION_CREDENTIALS env var.
 	if envPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); envPath != "" {
-		data, err := os.ReadFile(envPath)
+		data, err := os.ReadFile(envPath) //nolint:gosec // ADC: reads the file GOOGLE_APPLICATION_CREDENTIALS points to
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("os read file: %w", err), envPath)
 		}
@@ -224,5 +225,5 @@ func (c *Client) FindDefaultCredentials(ctx context.Context, scopes []string, op
 		return token_source.NewReusable(nil, metadataTokenSource), nil
 	}
 
-	return nil, nil
+	return nil, motmedelErrors.NewWithTrace(nil_error.New("default credentials"))
 }

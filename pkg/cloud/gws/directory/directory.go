@@ -10,6 +10,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
@@ -58,7 +59,7 @@ func (c *Client) CreateUser(ctx context.Context, u *user.User, options ...fetch_
 	}
 
 	if u == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("user"))
 	}
 
 	urlObj := *c.baseUrl
@@ -69,6 +70,10 @@ func (c *Client) CreateUser(ctx context.Context, u *user.User, options ...fetch_
 	_, createdUser, err := motmedelHttpUtils.FetchJsonWithBody[*user.User](ctx, urlString, u, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if createdUser == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("createdUser"))
 	}
 
 	return createdUser, nil
@@ -94,6 +99,10 @@ func (c *Client) GetUser(ctx context.Context, userKey string, options ...fetch_c
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if u == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("u"))
+	}
+
 	return u, nil
 }
 
@@ -108,7 +117,7 @@ func (c *Client) UpdateUser(ctx context.Context, userKey string, u *user.User, o
 	}
 
 	if u == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("user"))
 	}
 
 	urlObj := *c.baseUrl
@@ -119,6 +128,10 @@ func (c *Client) UpdateUser(ctx context.Context, userKey string, u *user.User, o
 	_, updatedUser, err := motmedelHttpUtils.FetchJsonWithBody[*user.User](ctx, urlString, u, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if updatedUser == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("updatedUser"))
 	}
 
 	return updatedUser, nil
@@ -258,7 +271,7 @@ func (c *Client) CreateGroup(ctx context.Context, g *group.Group, options ...fet
 	}
 
 	if g == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("group"))
 	}
 
 	urlObj := *c.baseUrl
@@ -269,6 +282,10 @@ func (c *Client) CreateGroup(ctx context.Context, g *group.Group, options ...fet
 	_, createdGroup, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, g, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if createdGroup == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("createdGroup"))
 	}
 
 	return createdGroup, nil
@@ -294,6 +311,10 @@ func (c *Client) GetGroup(ctx context.Context, groupKey string, options ...fetch
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if g == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("g"))
+	}
+
 	return g, nil
 }
 
@@ -308,7 +329,7 @@ func (c *Client) UpdateGroup(ctx context.Context, groupKey string, g *group.Grou
 	}
 
 	if g == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("group"))
 	}
 
 	urlObj := *c.baseUrl
@@ -319,6 +340,10 @@ func (c *Client) UpdateGroup(ctx context.Context, groupKey string, g *group.Grou
 	_, updatedGroup, err := motmedelHttpUtils.FetchJsonWithBody[*group.Group](ctx, urlString, g, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if updatedGroup == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("updatedGroup"))
 	}
 
 	return updatedGroup, nil
@@ -410,7 +435,7 @@ func (c *Client) CreateMember(ctx context.Context, groupKey string, m *member.Me
 	}
 
 	if m == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("member"))
 	}
 
 	urlObj := *c.baseUrl
@@ -421,6 +446,10 @@ func (c *Client) CreateMember(ctx context.Context, groupKey string, m *member.Me
 	_, createdMember, err := motmedelHttpUtils.FetchJsonWithBody[*member.Member](ctx, urlString, m, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if createdMember == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("createdMember"))
 	}
 
 	return createdMember, nil
@@ -449,6 +478,10 @@ func (c *Client) GetMember(ctx context.Context, groupKey string, memberKey strin
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if m == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("m"))
+	}
+
 	return m, nil
 }
 
@@ -466,7 +499,7 @@ func (c *Client) UpdateMember(ctx context.Context, groupKey string, memberKey st
 	}
 
 	if m == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("member"))
 	}
 
 	urlObj := *c.baseUrl
@@ -477,6 +510,10 @@ func (c *Client) UpdateMember(ctx context.Context, groupKey string, memberKey st
 	_, updatedMember, err := motmedelHttpUtils.FetchJsonWithBody[*member.Member](ctx, urlString, m, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if updatedMember == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("updatedMember"))
 	}
 
 	return updatedMember, nil
@@ -596,7 +633,7 @@ func (c *Client) CreateOrgUnit(ctx context.Context, customer string, ou *org_uni
 	}
 
 	if ou == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("org unit"))
 	}
 
 	urlObj := *c.baseUrl
@@ -607,6 +644,10 @@ func (c *Client) CreateOrgUnit(ctx context.Context, customer string, ou *org_uni
 	_, createdOrgUnit, err := motmedelHttpUtils.FetchJsonWithBody[*org_unit.OrgUnit](ctx, urlString, ou, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if createdOrgUnit == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("createdOrgUnit"))
 	}
 
 	return createdOrgUnit, nil
@@ -636,6 +677,10 @@ func (c *Client) GetOrgUnit(ctx context.Context, customer string, orgUnitPath st
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if ou == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("ou"))
+	}
+
 	return ou, nil
 }
 
@@ -653,7 +698,7 @@ func (c *Client) UpdateOrgUnit(ctx context.Context, customer string, orgUnitPath
 	}
 
 	if ou == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("org unit"))
 	}
 
 	urlObj := *c.baseUrl
@@ -665,6 +710,10 @@ func (c *Client) UpdateOrgUnit(ctx context.Context, customer string, orgUnitPath
 	_, updatedOrgUnit, err := motmedelHttpUtils.FetchJsonWithBody[*org_unit.OrgUnit](ctx, urlString, ou, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if updatedOrgUnit == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("updatedOrgUnit"))
 	}
 
 	return updatedOrgUnit, nil
@@ -726,7 +775,7 @@ func (c *Client) ListOrgUnits(ctx context.Context, customer string, options ...f
 	}
 
 	if resp == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
 	}
 
 	return resp.OrganizationUnits, nil
@@ -795,7 +844,7 @@ func (c *Client) CreateRole(ctx context.Context, customer string, r *role.Role, 
 	}
 
 	if r == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("role"))
 	}
 
 	urlObj := *c.baseUrl
@@ -806,6 +855,10 @@ func (c *Client) CreateRole(ctx context.Context, customer string, r *role.Role, 
 	_, createdRole, err := motmedelHttpUtils.FetchJsonWithBody[*role.Role](ctx, urlString, r, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if createdRole == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("createdRole"))
 	}
 
 	return createdRole, nil
@@ -834,6 +887,10 @@ func (c *Client) GetRole(ctx context.Context, customer string, roleId string, op
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if r == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("r"))
+	}
+
 	return r, nil
 }
 
@@ -851,7 +908,7 @@ func (c *Client) UpdateRole(ctx context.Context, customer string, roleId string,
 	}
 
 	if r == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("role"))
 	}
 
 	urlObj := *c.baseUrl
@@ -862,6 +919,10 @@ func (c *Client) UpdateRole(ctx context.Context, customer string, roleId string,
 	_, updatedRole, err := motmedelHttpUtils.FetchJsonWithBody[*role.Role](ctx, urlString, r, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if updatedRole == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("updatedRole"))
 	}
 
 	return updatedRole, nil
@@ -918,7 +979,7 @@ func (c *Client) ListPrivileges(ctx context.Context, customer string, options ..
 	}
 
 	if resp == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
 	}
 
 	return resp.Items, nil
@@ -995,7 +1056,7 @@ func (c *Client) CreateRoleAssignment(ctx context.Context, customer string, ra *
 	}
 
 	if ra == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("role assignment"))
 	}
 
 	urlObj := *c.baseUrl
@@ -1006,6 +1067,10 @@ func (c *Client) CreateRoleAssignment(ctx context.Context, customer string, ra *
 	_, createdRoleAssignment, err := motmedelHttpUtils.FetchJsonWithBody[*role_assignment.RoleAssignment](ctx, urlString, ra, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
+	}
+
+	if createdRoleAssignment == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("createdRoleAssignment"))
 	}
 
 	return createdRoleAssignment, nil
@@ -1032,6 +1097,10 @@ func (c *Client) GetRoleAssignment(ctx context.Context, customer string, roleAss
 	_, ra, err := motmedelHttpUtils.FetchJson[*role_assignment.RoleAssignment](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if ra == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("ra"))
 	}
 
 	return ra, nil
@@ -1090,7 +1159,7 @@ func (c *Client) ListTokens(ctx context.Context, userKey string, options ...fetc
 	}
 
 	if resp == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
 	}
 
 	return resp.Items, nil
@@ -1117,6 +1186,10 @@ func (c *Client) GetToken(ctx context.Context, userKey string, clientId string, 
 	_, t, err := motmedelHttpUtils.FetchJson[*token.Token](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if t == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("t"))
 	}
 
 	return t, nil
@@ -1175,7 +1248,7 @@ func (c *Client) ListAsps(ctx context.Context, userKey string, options ...fetch_
 	}
 
 	if resp == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
 	}
 
 	return resp.Items, nil
@@ -1199,6 +1272,10 @@ func (c *Client) GetAsp(ctx context.Context, userKey string, codeId int, options
 	_, a, err := motmedelHttpUtils.FetchJson[*asp.Asp](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if a == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("a"))
 	}
 
 	return a, nil

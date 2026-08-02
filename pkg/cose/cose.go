@@ -85,7 +85,7 @@ func kdfContext(contentAlgorithm Algorithm, keyBits int, recipientProtected []by
 			int64(contentAlgorithm),
 			[]any{nil, nil, nil},
 			[]any{nil, nil, nil},
-			[]any{uint64(keyBits), recipientProtected},
+			[]any{uint64(keyBits), recipientProtected}, //nolint:gosec // keyBits is a positive key-size constant
 		},
 	)
 	if err != nil {

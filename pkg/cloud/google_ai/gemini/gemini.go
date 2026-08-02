@@ -8,6 +8,7 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
@@ -18,7 +19,7 @@ import (
 
 const Domain = "generativelanguage.googleapis.com"
 
-const apiKeyHeaderName = "x-goog-api-key"
+const apiKeyHeaderName = "x-goog-api-key" //nolint:gosec // G101: HTTP header name, not a credential
 
 var defaultBaseUrl = &url.URL{
 	Scheme: "https",
@@ -80,7 +81,7 @@ func (c *Client) GenerateContent(
 	}
 
 	if request == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("request"))
 	}
 
 	urlString := c.generateContentUrl(model)

@@ -76,7 +76,7 @@ func NewFromCredentialsFile(
 	}
 
 	if credentialsFile == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("credentials file"))
 	}
 
 	return &TokenSource{

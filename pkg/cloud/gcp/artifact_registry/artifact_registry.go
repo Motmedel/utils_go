@@ -10,6 +10,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/artifact_registry/types/manifest"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
@@ -65,6 +66,9 @@ func (c *Client) GetManifest(ctx context.Context, name string, reference string,
 	if err != nil {
 		return "", nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
+	if m == nil {
+		return "", nil, motmedelErrors.NewWithTrace(nil_error.New("manifest"))
+	}
 
 	var digest string
 	if response != nil {
@@ -99,6 +103,10 @@ func (c *Client) ListReferrers(ctx context.Context, name string, digest string, 
 	_, idx, err := motmedelHttpUtils.FetchJson[*index.Index](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if idx == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("idx"))
 	}
 
 	return idx, nil

@@ -21,7 +21,7 @@ type LogEntry struct {
 // Header format: TRACE_ID/SPAN_ID;o=TRACE_TRUE
 // Example: 105445aa7843bc8bf206b120001000/123;o=1
 // It returns traceID (32-char hex), spanID (16-hex-digit lowercase), and sampled flag.
-func parseXCloudTraceContext(h string) (traceID string, spanIDHex string, sampled *bool) {
+func parseXCloudTraceContext(h string) (string, string, *bool) {
 	if h == "" {
 		return "", "", nil
 	}
@@ -33,16 +33,18 @@ func parseXCloudTraceContext(h string) (traceID string, spanIDHex string, sample
 	spanID, flag, _ := strings.Cut(rest, ";")
 
 	// Convert decimal SPAN_ID to 16-hex-digit lowercase as required by Cloud Logging
+	var spanIDHex string
 	if n, err := strconv.ParseUint(spanID, 10, 64); err == nil {
 		spanIDHex = fmt.Sprintf("%016x", n)
 	}
 
+	var sampled *bool
 	if strings.HasPrefix(flag, "o=") {
 		v := flag == "o=1"
 		sampled = &v
 	}
 
-	return
+	return traceID, spanIDHex, sampled
 }
 
 func ParseHttp(request *http.Request, response *http.Response) *LogEntry {

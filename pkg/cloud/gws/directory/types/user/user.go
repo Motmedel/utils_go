@@ -3,9 +3,9 @@ package user
 import "github.com/Motmedel/utils_go/pkg/cloud/gws/directory/types/user/name"
 
 type User struct {
-	Kind     string `json:"kind,omitempty"`
-	Id       string `json:"id,omitempty"`
-	Etag     string `json:"etag,omitempty"`
+	Kind       string `json:"kind,omitempty"`
+	Id         string `json:"id,omitempty"`
+	Etag       string `json:"etag,omitempty"`
 	CustomerId string `json:"customerId,omitempty"`
 
 	PrimaryEmail string     `json:"primaryEmail,omitempty"`

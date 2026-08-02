@@ -41,16 +41,16 @@ func writeTypeAndArgument(buffer *bytes.Buffer, majorType byte, argument uint64)
 	case argument <= math.MaxUint16:
 		buffer.WriteByte(majorType<<5 | 25)
 		buffer.WriteByte(byte(argument >> 8))
-		buffer.WriteByte(byte(argument))
+		buffer.WriteByte(byte(argument & 0xff))
 	case argument <= math.MaxUint32:
 		buffer.WriteByte(majorType<<5 | 26)
 		for shift := 24; shift >= 0; shift -= 8 {
-			buffer.WriteByte(byte(argument >> shift))
+			buffer.WriteByte(byte((argument >> shift) & 0xff))
 		}
 	default:
 		buffer.WriteByte(majorType<<5 | 27)
 		for shift := 56; shift >= 0; shift -= 8 {
-			buffer.WriteByte(byte(argument >> shift))
+			buffer.WriteByte(byte((argument >> shift) & 0xff))
 		}
 	}
 }
@@ -59,7 +59,7 @@ func encodeInt64(buffer *bytes.Buffer, value int64) {
 	if value >= 0 {
 		writeTypeAndArgument(buffer, 0, uint64(value))
 	} else {
-		writeTypeAndArgument(buffer, 1, uint64(^value))
+		writeTypeAndArgument(buffer, 1, uint64(^value)) //nolint:gosec // ^value is non-negative when value < 0
 	}
 }
 
@@ -206,11 +206,11 @@ func (d *decoder) readTypeAndArgument() (byte, uint64, byte, error) {
 
 // readSlice returns the next length bytes of the input without copying.
 func (d *decoder) readSlice(length uint64) ([]byte, error) {
-	if length > uint64(len(d.data)-d.offset) {
+	if length > uint64(len(d.data)-d.offset) { //nolint:gosec // d.offset never exceeds len(d.data)
 		return nil, fmt.Errorf("%w: unexpected end of data", ErrMalformed)
 	}
 
-	end := d.offset + int(length)
+	end := d.offset + int(length) //nolint:gosec // length bounded by remaining data checked above
 	data := d.data[d.offset:end:end]
 	d.offset = end
 
@@ -268,7 +268,7 @@ func (d *decoder) decodeValue(depth int) (any, error) {
 		return string(data), nil
 	case 4:
 		// Each element occupies at least one byte.
-		if argument > uint64(len(d.data)-d.offset) {
+		if argument > uint64(len(d.data)-d.offset) { //nolint:gosec // d.offset never exceeds len(d.data)
 			return nil, fmt.Errorf("%w: array length %d exceeds remaining data", ErrMalformed, argument)
 		}
 
@@ -283,7 +283,7 @@ func (d *decoder) decodeValue(depth int) (any, error) {
 		return array, nil
 	case 5:
 		// Each entry occupies at least two bytes.
-		if argument > uint64(len(d.data)-d.offset)/2 {
+		if argument > uint64(len(d.data)-d.offset)/2 { //nolint:gosec // d.offset never exceeds len(d.data)
 			return nil, fmt.Errorf("%w: map length %d exceeds remaining data", ErrMalformed, argument)
 		}
 

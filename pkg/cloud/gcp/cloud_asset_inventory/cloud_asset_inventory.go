@@ -10,6 +10,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/cloud_asset_inventory/types/resource_search_result_list"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
@@ -62,6 +63,10 @@ func (c *Client) ListAssets(ctx context.Context, parent string, query url.Values
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
+	if list == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("list"))
+	}
+
 	return list, nil
 }
 
@@ -87,6 +92,10 @@ func (c *Client) SearchAllResources(ctx context.Context, scope string, query url
 	_, list, err := motmedelHttpUtils.FetchJson[*resource_search_result_list.ResourceSearchResultList](ctx, urlString, options...)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+	}
+
+	if list == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("list"))
 	}
 
 	return list, nil

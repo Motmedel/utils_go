@@ -5,7 +5,7 @@ import (
 )
 
 type AssetList struct {
-	ReadTime      string          `json:"readTime,omitempty"`
-	Assets        []*asset.Asset  `json:"assets,omitempty"`
-	NextPageToken string          `json:"nextPageToken,omitempty"`
+	ReadTime      string         `json:"readTime,omitempty"`
+	Assets        []*asset.Asset `json:"assets,omitempty"`
+	NextPageToken string         `json:"nextPageToken,omitempty"`
 }

@@ -3,6 +3,7 @@ package cose
 import (
 	"bytes"
 	"crypto/ecdh"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -113,7 +114,7 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	for _, algorithm := range []Algorithm{AlgorithmA128GCM, AlgorithmA192GCM, AlgorithmA256GCM} {
-		privateKey, err := ecdh.P256().GenerateKey(nil)
+		privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 		if err != nil {
 			t.Fatalf("generate key: %v", err)
 		}
@@ -156,7 +157,7 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 func TestEncryptDecryptExternalAad(t *testing.T) {
 	t.Parallel()
 
-	privateKey, err := ecdh.P256().GenerateKey(nil)
+	privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
 	}
@@ -228,12 +229,12 @@ func TestDecryptTypescriptFixture(t *testing.T) {
 func TestDecryptWrongKey(t *testing.T) {
 	t.Parallel()
 
-	privateKey, err := ecdh.P256().GenerateKey(nil)
+	privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
 	}
 
-	otherPrivateKey, err := ecdh.P256().GenerateKey(nil)
+	otherPrivateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
 	}

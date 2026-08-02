@@ -299,9 +299,9 @@ func ParseHttp(
 					flowTuple := flow_tuple.New(
 						destinationIp,
 						serverIp,
-						uint16(destinationPort),
-						uint16(sourcePort),
-						uint8(protocolNumber),
+						uint16(destinationPort), //nolint:gosec // port fits uint16
+						uint16(sourcePort),      //nolint:gosec // port fits uint16
+						uint8(protocolNumber),   //nolint:gosec // IANA protocol number fits uint8
 					)
 					if flowTuple != nil {
 						if communityId := flowTuple.Hash(); communityId != "" {
@@ -713,9 +713,9 @@ func FlowTupleFromTargets(sourceTarget, destinationTarget *schema.Target, protoc
 	return flow_tuple.New(
 		sourceTargetIp,
 		destinationTargetIp,
-		uint16(sourceTargetPort),
-		uint16(destinationTargetPort),
-		uint8(protocolNumber),
+		uint16(sourceTargetPort),      //nolint:gosec // port fits uint16
+		uint16(destinationTargetPort), //nolint:gosec // port fits uint16
+		uint8(protocolNumber),         //nolint:gosec // IANA protocol number fits uint8
 	)
 }
 

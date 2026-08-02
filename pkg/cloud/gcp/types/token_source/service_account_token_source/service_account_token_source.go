@@ -179,7 +179,7 @@ func NewFromCredentialsFileWithSubject(
 	}
 
 	if credentialsFile == nil {
-		return nil, nil
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("credentials file"))
 	}
 
 	rsaKey, err := parsePrivateKey(credentialsFile.PrivateKey)

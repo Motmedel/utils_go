@@ -524,7 +524,7 @@ func (cacheControl *CacheControl) NoTransform() bool {
 
 // Request-only directives.
 
-func (cacheControl *CacheControl) MaxStale() (value int, hasValue bool, err error) {
+func (cacheControl *CacheControl) MaxStale() (int, bool, error) {
 	directive := cacheControl.findDirective("max-stale")
 	if directive == nil {
 		return 0, false, fmt.Errorf("max-stale: %w", ErrDirectiveNotPresent)

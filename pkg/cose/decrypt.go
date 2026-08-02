@@ -228,7 +228,7 @@ func Decrypt(message []byte, privateKey *ecdh.PrivateKey, options *DecryptOption
 			continue
 		}
 
-		plaintext, err := aead.Open(nil, nonce, ciphertext, additionalData)
+		plaintext, err := aead.Open([]byte{}, nonce, ciphertext, additionalData)
 		if err != nil {
 			recipientErrors = append(recipientErrors, fmt.Errorf("aead open: %w", err))
 			continue

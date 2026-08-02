@@ -14,10 +14,10 @@ type LabelChange struct {
 }
 
 type Record struct {
-	Id              string           `json:"id,omitzero"`
+	Id              string             `json:"id,omitzero"`
 	Messages        []*message.Message `json:"messages,omitzero"`
-	MessagesAdded   []*MessageChange `json:"messagesAdded,omitzero"`
-	MessagesDeleted []*MessageChange `json:"messagesDeleted,omitzero"`
-	LabelsAdded     []*LabelChange   `json:"labelsAdded,omitzero"`
-	LabelsRemoved   []*LabelChange   `json:"labelsRemoved,omitzero"`
+	MessagesAdded   []*MessageChange   `json:"messagesAdded,omitzero"`
+	MessagesDeleted []*MessageChange   `json:"messagesDeleted,omitzero"`
+	LabelsAdded     []*LabelChange     `json:"labelsAdded,omitzero"`
+	LabelsRemoved   []*LabelChange     `json:"labelsRemoved,omitzero"`
 }

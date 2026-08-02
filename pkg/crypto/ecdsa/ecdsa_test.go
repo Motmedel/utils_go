@@ -300,6 +300,9 @@ func TestAsn1DerEncodedMethod_RoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	if base == nil {
+		t.Fatal("nil method")
+	}
 
 	m := &Asn1DerEncodedMethod{Method: *base}
 	message := []byte("hello world")
@@ -319,6 +322,9 @@ func TestAsn1DerEncodedMethod_VerifyGarbage(t *testing.T) {
 	base, err := New(priv, &priv.PublicKey)
 	if err != nil {
 		t.Fatalf("New: %v", err)
+	}
+	if base == nil {
+		t.Fatal("nil method")
 	}
 
 	m := &Asn1DerEncodedMethod{Method: *base}

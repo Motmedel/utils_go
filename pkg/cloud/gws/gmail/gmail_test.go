@@ -85,8 +85,8 @@ func TestSend_NilMessage(t *testing.T) {
 
 	client := NewClient()
 	msg, err := client.Send(context.Background(), "me", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if msg != nil {
 		t.Error("expected nil for nil message")
@@ -166,8 +166,8 @@ func TestWatch_NilRequest(t *testing.T) {
 
 	client := NewClient()
 	resp, err := client.Watch(context.Background(), "me", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if resp != nil {
 		t.Error("expected nil for nil request")
@@ -415,8 +415,8 @@ func TestCreateSendAs_NilSendAs(t *testing.T) {
 
 	client := NewClient()
 	result, err := client.CreateSendAs(context.Background(), "me", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if result != nil {
 		t.Error("expected nil for nil send-as")
@@ -540,8 +540,8 @@ func TestUpdateSendAs_NilSendAs(t *testing.T) {
 
 	client := NewClient()
 	result, err := client.UpdateSendAs(context.Background(), "me", "a@b.com", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if result != nil {
 		t.Error("expected nil for nil send-as")
@@ -967,8 +967,8 @@ func TestCreateFilter_NilFilter(t *testing.T) {
 
 	client := NewClient()
 	result, err := client.CreateFilter(context.Background(), "me", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if result != nil {
 		t.Error("expected nil for nil filter")

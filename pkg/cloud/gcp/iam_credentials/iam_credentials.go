@@ -73,6 +73,10 @@ func (c *Client) SignBlob(ctx context.Context, serviceAccountEmail string, paylo
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("sign blob response"))
 	}
 
+	if response == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
+	}
+
 	return response, nil
 }
 
@@ -108,6 +112,10 @@ func (c *Client) SignJwt(ctx context.Context, serviceAccountEmail string, payloa
 	}
 	if response == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("sign jwt response"))
+	}
+
+	if response == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
 	}
 
 	return response, nil

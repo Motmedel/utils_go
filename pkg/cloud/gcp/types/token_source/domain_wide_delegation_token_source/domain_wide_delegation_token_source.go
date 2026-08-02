@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	defaultTokenURL    = "https://oauth2.googleapis.com/token"
-	jwtBearerGrantType = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+	defaultTokenURL    = "https://oauth2.googleapis.com/token"         //nolint:gosec // G101: public OAuth token endpoint URL, not a credential
+	jwtBearerGrantType = "urn:ietf:params:oauth:grant-type:jwt-bearer" //nolint:gosec // G101: standard OAuth grant-type URN, not a credential
 )
 
 // TokenSource mints Google access tokens via Google Workspace domain-wide

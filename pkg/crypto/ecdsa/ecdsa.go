@@ -156,7 +156,7 @@ func FromPrivateKey(privateKey *ecdsa.PrivateKey) (*Method, error) {
 }
 
 // deriveAlgFromCurve picks the JOSE alg name and hash function based on the curve.
-func deriveAlgFromCurveParams(curveParams *elliptic.CurveParams) (name string, hashFunc func() hash.Hash, err error) {
+func deriveAlgFromCurveParams(curveParams *elliptic.CurveParams) (string, func() hash.Hash, error) {
 	if curveParams == nil {
 		return "", nil, nil
 	}

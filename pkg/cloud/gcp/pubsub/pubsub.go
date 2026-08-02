@@ -80,5 +80,9 @@ func (c *Client) Publish(
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("publish response"))
 	}
 
+	if response == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
+	}
+
 	return response, nil
 }

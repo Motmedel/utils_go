@@ -74,7 +74,7 @@ func (list) String() string {
 // Use cases for distinguishing ICANN domains like "foo.com" from private
 // domains like "foo.appspot.com" can be found at
 // https://wiki.mozilla.org/Public_Suffix_List/Use_Cases
-func PublicSuffix(domain string) (publicSuffix string, icann bool) {
+func PublicSuffix(domain string) (publicSuffix string, icann bool) { //nolint:nonamedreturns // ported from golang.org/x/net/publicsuffix; named results and bare returns match upstream
 	lo, hi := uint32(0), uint32(numTLD)
 	s, suffix, icannNode, wildcard := domain, len(domain), false, false
 loop:
@@ -92,7 +92,7 @@ loop:
 			break
 		}
 
-		u := uint32(nodes.get(f) >> (nodesBitsTextOffset + nodesBitsTextLength))
+		u := uint32(nodes.get(f) >> (nodesBitsTextOffset + nodesBitsTextLength)) //nolint:gosec // packed node value fits uint32 by table construction (ported from x/net)
 		icannNode = u&(1<<nodesBitsICANN-1) != 0
 		u >>= nodesBitsICANN
 		u = children.get(u & (1<<nodesBitsChildren - 1))

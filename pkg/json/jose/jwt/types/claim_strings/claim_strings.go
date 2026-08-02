@@ -12,10 +12,10 @@ import (
 
 type ClaimStrings []string
 
-func (s *ClaimStrings) UnmarshalJSON(data []byte) (err error) {
+func (s *ClaimStrings) UnmarshalJSON(data []byte) error {
 	var value any
 
-	if err = json.Unmarshal(data, &value); err != nil {
+	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
 
@@ -42,10 +42,10 @@ func (s *ClaimStrings) UnmarshalJSON(data []byte) (err error) {
 
 	*s = aud
 
-	return
+	return nil
 }
 
-func (s ClaimStrings) MarshalJSON() (b []byte, err error) {
+func (s ClaimStrings) MarshalJSON() ([]byte, error) {
 	// By default a single-element value marshals as a one-element array. Pass
 	// SingleAsString() to the marshal call to emit a single element as a bare
 	// string instead (RFC 7519 permits either form for "aud", and UnmarshalJSON

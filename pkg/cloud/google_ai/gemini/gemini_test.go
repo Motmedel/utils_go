@@ -110,8 +110,8 @@ func TestGenerateContent_NilRequest(t *testing.T) {
 
 	client := NewClient()
 	response, err := client.GenerateContent(context.Background(), "gemini-2.5-flash", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if response != nil {
 		t.Error("expected nil for nil request")

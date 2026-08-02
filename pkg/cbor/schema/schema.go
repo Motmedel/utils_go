@@ -150,6 +150,10 @@ func (s *Schema) matchesType(value any) bool {
 }
 
 func (s *Schema) validateValue(value any, path string, issues *[]*Issue) {
+	if s == nil {
+		return
+	}
+
 	addIssue := func(format string, arguments ...any) {
 		*issues = append(*issues, &Issue{Path: path, Message: fmt.Sprintf(format, arguments...)})
 	}

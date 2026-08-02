@@ -98,7 +98,10 @@ func TestParseXCloudTraceContext_NonNumericSpan(t *testing.T) {
 func TestParseHttp_RequestAndResponse(t *testing.T) {
 	t.Parallel()
 
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com/api", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://example.com/api", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
 	req.Header.Set("User-Agent", "TestAgent/1.0")
 	req.Header.Set("X-Cloud-Trace-Context", "traceid123/100;o=1")
 	req.RemoteAddr = "192.168.1.1:1234"
@@ -141,7 +144,10 @@ func TestParseHttp_RequestAndResponse(t *testing.T) {
 func TestParseHttp_RequestOnly(t *testing.T) {
 	t.Parallel()
 
-	req, _ := http.NewRequest(http.MethodPost, "http://example.com", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "http://example.com", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
 	entry := ParseHttp(req, nil)
 	if entry == nil {
 		t.Fatal("expected non-nil log entry")
@@ -182,8 +188,14 @@ func TestParseHttp_BothNil(t *testing.T) {
 func TestParseHttp_NoTraceHeader(t *testing.T) {
 	t.Parallel()
 
-	req, _ := http.NewRequest(http.MethodGet, "http://example.com", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://example.com", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
 	entry := ParseHttp(req, nil)
+	if entry == nil {
+		t.Fatal("nil log entry")
+	}
 	if entry.TraceId != "" {
 		t.Errorf("expected empty trace id, got %q", entry.TraceId)
 	}

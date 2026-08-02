@@ -100,11 +100,11 @@ func TestInsertBucket_NilConfig(t *testing.T) {
 
 	client := NewClient()
 	b, err := client.InsertBucket(context.Background(), "project", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil config")
 	}
 	if b != nil {
-		t.Error("expected nil for nil config")
+		t.Error("expected nil bucket for nil config")
 	}
 }
 
@@ -163,11 +163,11 @@ func TestPatchBucket_NilConfig(t *testing.T) {
 
 	client := NewClient()
 	b, err := client.PatchBucket(context.Background(), "bucket", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil config")
 	}
 	if b != nil {
-		t.Error("expected nil for nil config")
+		t.Error("expected nil bucket for nil config")
 	}
 }
 
@@ -458,11 +458,11 @@ func TestInsertObject_NilMetadata(t *testing.T) {
 
 	client := NewClient()
 	obj, err := client.InsertObject(context.Background(), "bucket", nil, []byte("x"), "text/plain")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil metadata")
 	}
 	if obj != nil {
-		t.Error("expected nil for nil metadata")
+		t.Error("expected nil object for nil metadata")
 	}
 }
 

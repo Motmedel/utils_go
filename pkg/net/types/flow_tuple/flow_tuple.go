@@ -2,7 +2,7 @@ package flow_tuple
 
 import (
 	"bytes"
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // Community ID v1 mandates SHA-1 (non-cryptographic flow fingerprint)
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
@@ -75,7 +75,7 @@ func (flowTuple *Tuple) Hash() string {
 	buffer = binary.BigEndian.AppendUint16(buffer, flowTuple.SourcePort)
 	buffer = binary.BigEndian.AppendUint16(buffer, flowTuple.DestinationPort)
 
-	h := sha1.New()
+	h := sha1.New() //nolint:gosec // Community ID v1 mandates SHA-1 (non-cryptographic flow fingerprint)
 	h.Write(buffer)
 
 	return fmt.Sprintf("1:%s", base64.StdEncoding.EncodeToString(h.Sum(nil)))
@@ -115,9 +115,9 @@ func New(
 
 	switch protocol {
 	case motmedelNet.ProtocolIcmp:
-		sourcePort, destinationPort, oneWay = getIcmpV4PortEquivalents(uint8(sourcePort), uint8(destinationPort))
+		sourcePort, destinationPort, oneWay = getIcmpV4PortEquivalents(uint8(sourcePort), uint8(destinationPort)) //nolint:gosec // ICMP type/code is 8-bit
 	case motmedelNet.ProtocolIcmp6:
-		sourcePort, destinationPort, oneWay = getIcmpv6PortEquivalents(uint8(sourcePort), uint8(destinationPort))
+		sourcePort, destinationPort, oneWay = getIcmpv6PortEquivalents(uint8(sourcePort), uint8(destinationPort)) //nolint:gosec // ICMP type/code is 8-bit
 	}
 
 	if !oneWay && !isOrdered(sourceIp, destinationIp, sourcePort, destinationPort) {

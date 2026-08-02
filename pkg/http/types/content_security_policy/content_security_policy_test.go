@@ -83,7 +83,7 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 		},
 		{
 			name:      "report-to with token",
-			directive: &ReportToDirective{Token: "csp-endpoint"},
+			directive: &ReportToDirective{Token: "csp-endpoint"}, //nolint:gosec // G101: report-to token label, not a credential
 			want:      "report-to csp-endpoint",
 		},
 		{

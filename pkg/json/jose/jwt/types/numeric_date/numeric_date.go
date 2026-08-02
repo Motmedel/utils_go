@@ -20,7 +20,7 @@ type Date struct {
 
 // MarshalJSON is an implementation of the json.RawMessage interface and serializes the UNIX epoch
 // represented in NumericDate to a byte array, using the precision specified in TimePrecision.
-func (date Date) MarshalJSON() (b []byte, err error) {
+func (date Date) MarshalJSON() ([]byte, error) {
 	var prec int
 	if TimePrecision < time.Second {
 		prec = int(math.Log10(float64(time.Second) / float64(TimePrecision)))
@@ -49,17 +49,14 @@ func (date Date) MarshalJSON() (b []byte, err error) {
 // deserializes a [NumericDate] from a JSON representation, i.e. a
 // [json.Number]. This number represents a UNIX epoch with either integer or
 // non-integer seconds.
-func (date *Date) UnmarshalJSON(b []byte) (err error) {
-	var (
-		number json.Number
-		f      float64
-	)
-
-	if err = json.Unmarshal(b, &number); err != nil {
+func (date *Date) UnmarshalJSON(b []byte) error {
+	var number json.Number
+	if err := json.Unmarshal(b, &number); err != nil {
 		return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal: %w", err), b)
 	}
 
-	if f, err = number.Float64(); err != nil {
+	f, err := number.Float64()
+	if err != nil {
 		return motmedelErrors.NewWithTrace(fmt.Errorf("json number float64: %w", err), number)
 	}
 

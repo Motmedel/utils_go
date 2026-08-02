@@ -289,7 +289,7 @@ func TestServiceAccountTokenSource(t *testing.T) {
 			t.Errorf("expected 3-part JWT, got %d parts", len(parts))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.sa-token",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -317,7 +317,7 @@ func TestServiceAccountTokenSource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if tok.AccessToken != "ya29.sa-token" {
+	if tok.AccessToken != "ya29.sa-token" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.sa-token', got %q", tok.AccessToken)
 	}
 }
@@ -358,7 +358,7 @@ func TestMetadataTokenSource(t *testing.T) {
 			t.Errorf("missing Metadata-Flavor header")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.metadata",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -380,7 +380,7 @@ func TestMetadataTokenSource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if tok.AccessToken != "ya29.metadata" {
+	if tok.AccessToken != "ya29.metadata" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.metadata', got %q", tok.AccessToken)
 	}
 }
@@ -413,7 +413,7 @@ func TestMetadataTokenSource_WithScopes(t *testing.T) {
 			t.Errorf("unexpected scopes: %s", scopes)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.scoped",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -435,7 +435,7 @@ func TestMetadataTokenSource_WithScopes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if tok.AccessToken != "ya29.scoped" {
+	if tok.AccessToken != "ya29.scoped" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.scoped', got %q", tok.AccessToken)
 	}
 }
@@ -445,7 +445,7 @@ func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.creds",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -460,7 +460,7 @@ func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
 		ClientSecret: "client-secret",
 		RefreshToken: "refresh-token",
 	}
-	data, _ := json.Marshal(creds)
+	data, _ := json.Marshal(creds) //nolint:gosec // test fixture
 
 	client := NewClientWithUrls(defaultMetadataBaseUrl, server.URL)
 	ts, err := client.credentialsFileTokenSource(context.Background(), data, nil)
@@ -472,7 +472,7 @@ func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token error: %v", err)
 	}
-	if tok.AccessToken != "ya29.creds" {
+	if tok.AccessToken != "ya29.creds" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.creds', got %q", tok.AccessToken)
 	}
 }
@@ -484,7 +484,7 @@ func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.sa-creds",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -500,7 +500,7 @@ func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
 		PrivateKey:   encodePKCS1PEM(key),
 		TokenURL:     server.URL,
 	}
-	data, _ := json.Marshal(creds)
+	data, _ := json.Marshal(creds) //nolint:gosec // test fixture
 
 	client := NewClientWithUrls(defaultMetadataBaseUrl, server.URL)
 	ts, err := client.credentialsFileTokenSource(context.Background(), data, []string{"scope1"})
@@ -512,7 +512,7 @@ func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token error: %v", err)
 	}
-	if tok.AccessToken != "ya29.sa-creds" {
+	if tok.AccessToken != "ya29.sa-creds" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.sa-creds', got %q", tok.AccessToken)
 	}
 }
@@ -524,7 +524,7 @@ func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.fallback",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -540,7 +540,7 @@ func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T
 		PrivateKey:   encodePKCS1PEM(key),
 		// TokenURI intentionally empty — should fall back to client's tokenUrl
 	}
-	data, _ := json.Marshal(creds)
+	data, _ := json.Marshal(creds) //nolint:gosec // test fixture
 
 	client := NewClientWithUrls(defaultMetadataBaseUrl, server.URL)
 	ts, err := client.credentialsFileTokenSource(context.Background(), data, nil)
@@ -552,7 +552,7 @@ func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T
 	if err != nil {
 		t.Fatalf("token error: %v", err)
 	}
-	if tok.AccessToken != "ya29.fallback" {
+	if tok.AccessToken != "ya29.fallback" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.fallback', got %q", tok.AccessToken)
 	}
 }
@@ -583,7 +583,7 @@ func TestFindDefaultCredentials_EnvVar(t *testing.T) {
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.env",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -599,7 +599,10 @@ func TestFindDefaultCredentials_EnvVar(t *testing.T) {
 		PrivateKey:   encodePKCS1PEM(key),
 		TokenURL:     server.URL,
 	}
-	data, _ := json.Marshal(creds)
+	data, err := json.Marshal(creds) //nolint:gosec // test fixture
+	if err != nil {
+		t.Fatalf("marshal creds: %v", err)
+	}
 
 	tmpFile := filepath.Join(t.TempDir(), "creds.json")
 	if err := os.WriteFile(tmpFile, data, 0600); err != nil {
@@ -618,7 +621,7 @@ func TestFindDefaultCredentials_EnvVar(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token error: %v", err)
 	}
-	if tok.AccessToken != "ya29.env" {
+	if tok.AccessToken != "ya29.env" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.env', got %q", tok.AccessToken)
 	}
 }
@@ -640,7 +643,7 @@ func TestFindDefaultCredentials_MetadataFallback(t *testing.T) {
 
 	_, metadataUrl := testMetadataServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.metadata-fallback",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -659,7 +662,7 @@ func TestFindDefaultCredentials_MetadataFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token error: %v", err)
 	}
-	if tok.AccessToken != "ya29.metadata-fallback" {
+	if tok.AccessToken != "ya29.metadata-fallback" { //nolint:gosec // G101: fake OAuth token in test
 		t.Errorf("expected 'ya29.metadata-fallback', got %q", tok.AccessToken)
 	}
 }
@@ -684,8 +687,8 @@ func TestFindDefaultCredentials_NoCredentials(t *testing.T) {
 	// No metadata URL — should return nil token source.
 	client := NewClientWithUrls(nil, DefaultTokenUrl)
 	ts, err := client.FindDefaultCredentials(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error when no credentials are available")
 	}
 	if ts != nil {
 		t.Fatal("expected nil token source when no credentials are available")

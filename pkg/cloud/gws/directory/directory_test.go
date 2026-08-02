@@ -54,7 +54,7 @@ func TestCreateUser(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&user.User{
+		if err := json.NewEncoder(w).Encode(&user.User{ //nolint:gosec // test fixture
 			Kind:         "admin#directory#user",
 			Id:           "123",
 			PrimaryEmail: input.PrimaryEmail,
@@ -85,8 +85,8 @@ func TestCreateUser_NilUser(t *testing.T) {
 
 	client := NewClient()
 	u, err := client.CreateUser(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if u != nil {
 		t.Error("expected nil for nil user")
@@ -116,7 +116,7 @@ func TestGetUser(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&user.User{
+		if err := json.NewEncoder(w).Encode(&user.User{ //nolint:gosec // test fixture
 			Kind:         "admin#directory#user",
 			Id:           "123",
 			PrimaryEmail: "test@example.com",
@@ -152,7 +152,7 @@ func TestUpdateUser(t *testing.T) {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&user.User{
+		if err := json.NewEncoder(w).Encode(&user.User{ //nolint:gosec // test fixture
 			Id:           "123",
 			PrimaryEmail: "test@example.com",
 			Suspended:    true,
@@ -185,8 +185,8 @@ func TestUpdateUser_NilUser(t *testing.T) {
 
 	client := NewClient()
 	u, err := client.UpdateUser(context.Background(), "key", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if u != nil {
 		t.Error("expected nil for nil user")
@@ -268,8 +268,8 @@ func TestCreateGroup_NilGroup(t *testing.T) {
 
 	client := NewClient()
 	g, err := client.CreateGroup(context.Background(), nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if g != nil {
 		t.Error("expected nil for nil group")
@@ -351,8 +351,8 @@ func TestUpdateGroup_NilGroup(t *testing.T) {
 
 	client := NewClient()
 	g, err := client.UpdateGroup(context.Background(), "key", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if g != nil {
 		t.Error("expected nil for nil group")
@@ -444,8 +444,8 @@ func TestCreateMember_NilMember(t *testing.T) {
 
 	client := NewClient()
 	m, err := client.CreateMember(context.Background(), "group@example.com", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if m != nil {
 		t.Error("expected nil for nil member")
@@ -547,8 +547,8 @@ func TestUpdateMember_NilMember(t *testing.T) {
 
 	client := NewClient()
 	m, err := client.UpdateMember(context.Background(), "group", "member", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if m != nil {
 		t.Error("expected nil for nil member")
@@ -741,8 +741,8 @@ func TestCreateOrgUnit_NilOrgUnit(t *testing.T) {
 
 	client := NewClient()
 	ou, err := client.CreateOrgUnit(context.Background(), "my_customer", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if ou != nil {
 		t.Error("expected nil for nil org unit")
@@ -847,8 +847,8 @@ func TestUpdateOrgUnit_NilOrgUnit(t *testing.T) {
 
 	client := NewClient()
 	ou, err := client.UpdateOrgUnit(context.Background(), "my_customer", "/Engineering", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if ou != nil {
 		t.Error("expected nil for nil org unit")
@@ -992,8 +992,8 @@ func TestCreateRole_NilRole(t *testing.T) {
 
 	client := NewClient()
 	r, err := client.CreateRole(context.Background(), "my_customer", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if r != nil {
 		t.Error("expected nil for nil role")
@@ -1214,8 +1214,8 @@ func TestCreateRoleAssignment_NilRoleAssignment(t *testing.T) {
 
 	client := NewClient()
 	ra, err := client.CreateRoleAssignment(context.Background(), "my_customer", nil)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected an error for nil input")
 	}
 	if ra != nil {
 		t.Error("expected nil for nil role assignment")
