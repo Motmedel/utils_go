@@ -146,7 +146,7 @@ func TestPublicKeyFromDer(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if got == nil || got.N.Cmp(key.PublicKey.N) != 0 {
+		if got == nil || got.N.Cmp(key.N) != 0 {
 			t.Fatalf("public key mismatch")
 		}
 	})
@@ -180,7 +180,7 @@ func TestPublicKeyFromDer(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if got == nil || got.X.Cmp(priv.X) != 0 || got.Y.Cmp(priv.Y) != 0 {
+		if got == nil || !got.Equal(&priv.PublicKey) {
 			t.Fatalf("public key mismatch")
 		}
 	})
@@ -217,7 +217,7 @@ func TestPublicKeyFromPem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		if got == nil || got.N.Cmp(key.PublicKey.N) != 0 {
+		if got == nil || got.N.Cmp(key.N) != 0 {
 			t.Fatalf("public key mismatch")
 		}
 	})

@@ -43,7 +43,9 @@ func TestGenerateContent(t *testing.T) {
 		}
 
 		var input generate_content_request.GenerateContentRequest
-		json.UnmarshalRead(r.Body, &input)
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
+			t.Errorf("unmarshal: %v", err)
+		}
 
 		if len(input.Contents) != 1 || len(input.Contents[0].Parts) != 1 {
 			t.Fatalf("unexpected contents shape: %+v", input.Contents)
@@ -56,7 +58,7 @@ func TestGenerateContent(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &generate_content_response.GenerateContentResponse{
+		if err := json.MarshalWrite(w, &generate_content_response.GenerateContentResponse{
 			Candidates: []*candidate.Candidate{
 				{
 					Content: &content.Content{
@@ -66,7 +68,9 @@ func TestGenerateContent(t *testing.T) {
 					FinishReason: "STOP",
 				},
 			},
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	response, err := client.GenerateContent(

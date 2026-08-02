@@ -43,7 +43,7 @@ func TestListAssets(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&asset_list.AssetList{
+		if err := json.NewEncoder(w).Encode(&asset_list.AssetList{
 			ReadTime: "2024-01-01T00:00:00Z",
 			Assets: []*asset.Asset{
 				{
@@ -57,7 +57,9 @@ func TestListAssets(t *testing.T) {
 					Ancestors: []string{"projects/my-project", "organizations/123456"},
 				},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	list, err := client.ListAssets(
@@ -100,7 +102,9 @@ func TestListAssets_NilQuery(t *testing.T) {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&asset_list.AssetList{ReadTime: "2024-01-01T00:00:00Z"})
+		if err := json.NewEncoder(w).Encode(&asset_list.AssetList{ReadTime: "2024-01-01T00:00:00Z"}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	_, err := client.ListAssets(context.Background(), "projects/my-project", nil)
@@ -136,7 +140,7 @@ func TestSearchAllResources(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&resource_search_result_list.ResourceSearchResultList{
+		if err := json.NewEncoder(w).Encode(&resource_search_result_list.ResourceSearchResultList{
 			Results: []*resource_search_result.ResourceSearchResult{
 				{
 					Name:        "//run.googleapis.com/projects/my-project/locations/us-central1/services/my-service",
@@ -147,7 +151,9 @@ func TestSearchAllResources(t *testing.T) {
 					State:       "ACTIVE",
 				},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	list, err := client.SearchAllResources(
@@ -187,7 +193,9 @@ func TestSearchAllResources_NilQuery(t *testing.T) {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&resource_search_result_list.ResourceSearchResultList{})
+		if err := json.NewEncoder(w).Encode(&resource_search_result_list.ResourceSearchResultList{}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	_, err := client.SearchAllResources(context.Background(), "projects/my-project", nil)

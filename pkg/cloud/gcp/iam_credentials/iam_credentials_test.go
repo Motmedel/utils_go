@@ -60,10 +60,12 @@ func TestSignBlob(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&sign_blob_response.Response{
+		if err := json.NewEncoder(w).Encode(&sign_blob_response.Response{
 			KeyId:      "key-1",
 			SignedBlob: base64.StdEncoding.EncodeToString(signature),
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	resp, err := client.SignBlob(context.Background(), email, payload)

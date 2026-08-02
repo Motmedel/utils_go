@@ -103,7 +103,7 @@ func TestParseHttp_RequestAndResponse(t *testing.T) {
 	req.Header.Set("X-Cloud-Trace-Context", "traceid123/100;o=1")
 	req.RemoteAddr = "192.168.1.1:1234"
 
-	resp := &http.Response{StatusCode: 200}
+	resp := &http.Response{StatusCode: http.StatusOK}
 
 	entry := ParseHttp(req, resp)
 	if entry == nil {
@@ -157,7 +157,7 @@ func TestParseHttp_RequestOnly(t *testing.T) {
 func TestParseHttp_ResponseOnly(t *testing.T) {
 	t.Parallel()
 
-	resp := &http.Response{StatusCode: 404}
+	resp := &http.Response{StatusCode: http.StatusNotFound}
 	entry := ParseHttp(nil, resp)
 	if entry == nil {
 		t.Fatal("expected non-nil log entry")

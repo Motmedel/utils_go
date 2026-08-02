@@ -49,15 +49,19 @@ func TestCreateUser(t *testing.T) {
 		}
 
 		var input user.User
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&user.User{
+		if err := json.NewEncoder(w).Encode(&user.User{
 			Kind:         "admin#directory#user",
 			Id:           "123",
 			PrimaryEmail: input.PrimaryEmail,
 			Name:         input.Name,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	u, err := client.CreateUser(context.Background(), &user.User{
@@ -112,11 +116,13 @@ func TestGetUser(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&user.User{
+		if err := json.NewEncoder(w).Encode(&user.User{
 			Kind:         "admin#directory#user",
 			Id:           "123",
 			PrimaryEmail: "test@example.com",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	u, err := client.GetUser(context.Background(), "test@example.com")
@@ -146,11 +152,13 @@ func TestUpdateUser(t *testing.T) {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&user.User{
+		if err := json.NewEncoder(w).Encode(&user.User{
 			Id:           "123",
 			PrimaryEmail: "test@example.com",
 			Suspended:    true,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	u, err := client.UpdateUser(context.Background(), "test@example.com", &user.User{Suspended: true})
@@ -228,15 +236,19 @@ func TestCreateGroup(t *testing.T) {
 		}
 
 		var input group.Group
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&group.Group{
+		if err := json.NewEncoder(w).Encode(&group.Group{
 			Kind:  "admin#directory#group",
 			Id:    "g-123",
 			Email: input.Email,
 			Name:  input.Name,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	g, err := client.CreateGroup(context.Background(), &group.Group{
@@ -272,10 +284,12 @@ func TestGetGroup(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&group.Group{
+		if err := json.NewEncoder(w).Encode(&group.Group{
 			Kind:  "admin#directory#group",
 			Email: "group@example.com",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	g, err := client.GetGroup(context.Background(), "group@example.com")
@@ -305,10 +319,12 @@ func TestUpdateGroup(t *testing.T) {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&group.Group{
+		if err := json.NewEncoder(w).Encode(&group.Group{
 			Email:       "group@example.com",
 			Description: "Updated",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	g, err := client.UpdateGroup(context.Background(), "group@example.com", &group.Group{Description: "Updated"})
@@ -383,15 +399,19 @@ func TestCreateMember(t *testing.T) {
 		}
 
 		var input member.Member
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&member.Member{
+		if err := json.NewEncoder(w).Encode(&member.Member{
 			Kind:  "admin#directory#member",
 			Id:    "m-123",
 			Email: input.Email,
 			Role:  input.Role,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	m, err := client.CreateMember(context.Background(), "group@example.com", &member.Member{
@@ -440,10 +460,12 @@ func TestGetMember(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&member.Member{
+		if err := json.NewEncoder(w).Encode(&member.Member{
 			Email: "user@example.com",
 			Role:  "OWNER",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	m, err := client.GetMember(context.Background(), "group@example.com", "user@example.com")
@@ -483,10 +505,12 @@ func TestUpdateMember(t *testing.T) {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&member.Member{
+		if err := json.NewEncoder(w).Encode(&member.Member{
 			Email: "user@example.com",
 			Role:  "MANAGER",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	m, err := client.UpdateMember(context.Background(), "group@example.com", "user@example.com", &member.Member{Role: "MANAGER"})
@@ -583,7 +607,9 @@ func TestMakeUserAdmin(t *testing.T) {
 		var input struct {
 			Status bool `json:"status"`
 		}
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 		if !input.Status {
 			t.Error("expected status true")
 		}
@@ -679,16 +705,20 @@ func TestCreateOrgUnit(t *testing.T) {
 		}
 
 		var input org_unit.OrgUnit
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&org_unit.OrgUnit{
+		if err := json.NewEncoder(w).Encode(&org_unit.OrgUnit{
 			Kind:              "admin#directory#orgUnit",
 			OrgUnitId:         "id:123",
 			Name:              input.Name,
 			OrgUnitPath:       "/" + input.Name,
 			ParentOrgUnitPath: input.ParentOrgUnitPath,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	ou, err := client.CreateOrgUnit(context.Background(), "my_customer", &org_unit.OrgUnit{
@@ -740,11 +770,13 @@ func TestGetOrgUnit(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&org_unit.OrgUnit{
+		if err := json.NewEncoder(w).Encode(&org_unit.OrgUnit{
 			Kind:        "admin#directory#orgUnit",
 			Name:        "Frontend",
 			OrgUnitPath: "/Engineering/Frontend",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	ou, err := client.GetOrgUnit(context.Background(), "my_customer", "/Engineering/Frontend")
@@ -788,10 +820,14 @@ func TestUpdateOrgUnit(t *testing.T) {
 		}
 
 		var input org_unit.OrgUnit
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&input)
+		if err := json.NewEncoder(w).Encode(&input); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	ou, err := client.UpdateOrgUnit(context.Background(), "my_customer", "/Engineering", &org_unit.OrgUnit{
@@ -849,12 +885,14 @@ func TestListOrgUnits(t *testing.T) {
 			t.Errorf("expected type 'all', got %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"organizationUnits": []*org_unit.OrgUnit{
 				{Name: "Engineering", OrgUnitPath: "/Engineering"},
 				{Name: "Frontend", OrgUnitPath: "/Engineering/Frontend"},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	orgUnits, err := client.ListOrgUnits(context.Background(), "my_customer")
@@ -879,14 +917,18 @@ func TestListRoles_Pagination(t *testing.T) {
 		requestCount++
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Query().Get("pageToken") == "" {
-			json.NewEncoder(w).Encode(map[string]any{
+			if err := json.NewEncoder(w).Encode(map[string]any{
 				"items":         []*role.Role{{RoleId: "1", RoleName: "_SEED_ADMIN_ROLE"}},
 				"nextPageToken": "next",
-			})
+			}); err != nil {
+				t.Errorf("encode: %v", err)
+			}
 		} else {
-			json.NewEncoder(w).Encode(map[string]any{
+			if err := json.NewEncoder(w).Encode(map[string]any{
 				"items": []*role.Role{{RoleId: "2", RoleName: "_GROUPS_ADMIN_ROLE"}},
-			})
+			}); err != nil {
+				t.Errorf("encode: %v", err)
+			}
 		}
 	})
 
@@ -917,14 +959,18 @@ func TestCreateRole(t *testing.T) {
 		}
 
 		var input role.Role
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 		if len(input.RolePrivileges) != 1 || input.RolePrivileges[0].PrivilegeName != "USERS_RETRIEVE" {
 			t.Errorf("unexpected role privileges: %+v", input.RolePrivileges)
 		}
 
 		input.RoleId = "123"
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&input)
+		if err := json.NewEncoder(w).Encode(&input); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	r, err := client.CreateRole(context.Background(), "my_customer", &role.Role{
@@ -965,7 +1011,9 @@ func TestGetRole(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&role.Role{RoleId: "123", RoleName: "User Reader"})
+		if err := json.NewEncoder(w).Encode(&role.Role{RoleId: "123", RoleName: "User Reader"}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	r, err := client.GetRole(context.Background(), "my_customer", "123")
@@ -999,10 +1047,14 @@ func TestUpdateRole(t *testing.T) {
 		}
 
 		var input role.Role
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&input)
+		if err := json.NewEncoder(w).Encode(&input); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	r, err := client.UpdateRole(context.Background(), "my_customer", "123", &role.Role{
@@ -1047,7 +1099,7 @@ func TestListPrivileges(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"items": []*privilege.Privilege{
 				{
 					PrivilegeName: "USERS_ALL",
@@ -1058,7 +1110,9 @@ func TestListPrivileges(t *testing.T) {
 					},
 				},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	privileges, err := client.ListPrivileges(context.Background(), "my_customer")
@@ -1089,11 +1143,13 @@ func TestListRoleAssignments(t *testing.T) {
 			t.Errorf("expected user key 'test@example.com', got %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"items": []*role_assignment.RoleAssignment{
 				{RoleAssignmentId: "1", RoleId: "123", AssignedTo: "user-id", ScopeType: "CUSTOMER"},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	roleAssignments, err := client.ListRoleAssignments(
@@ -1124,14 +1180,18 @@ func TestCreateRoleAssignment(t *testing.T) {
 		}
 
 		var input role_assignment.RoleAssignment
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 		if input.Condition == "" {
 			t.Error("expected condition to be set")
 		}
 
 		input.RoleAssignmentId = "1"
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&input)
+		if err := json.NewEncoder(w).Encode(&input); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	ra, err := client.CreateRoleAssignment(context.Background(), "my_customer", &role_assignment.RoleAssignment{
@@ -1173,12 +1233,14 @@ func TestGetRoleAssignment(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&role_assignment.RoleAssignment{
+		if err := json.NewEncoder(w).Encode(&role_assignment.RoleAssignment{
 			RoleAssignmentId: "1",
 			RoleId:           "123",
 			ScopeType:        "ORG_UNIT",
 			OrgUnitId:        "id:456",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	ra, err := client.GetRoleAssignment(context.Background(), "my_customer", "1")
@@ -1232,11 +1294,13 @@ func TestListTokens(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"items": []*token.Token{
 				{ClientId: "abc.apps.googleusercontent.com", DisplayText: "Some App", Scopes: []string{"https://mail.google.com/"}},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	tokens, err := client.ListTokens(context.Background(), "test@example.com")
@@ -1272,11 +1336,13 @@ func TestGetToken(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&token.Token{
+		if err := json.NewEncoder(w).Encode(&token.Token{
 			ClientId:    "abc.apps.googleusercontent.com",
 			DisplayText: "Some App",
 			NativeApp:   true,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	tok, err := client.GetToken(context.Background(), "test@example.com", "abc.apps.googleusercontent.com")
@@ -1330,11 +1396,13 @@ func TestListAsps(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"items": []*asp.Asp{
 				{CodeId: 1, Name: "Mail on old phone"},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	asps, err := client.ListAsps(context.Background(), "test@example.com")
@@ -1360,7 +1428,9 @@ func TestGetAsp(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&asp.Asp{CodeId: 1, Name: "Mail on old phone"})
+		if err := json.NewEncoder(w).Encode(&asp.Asp{CodeId: 1, Name: "Mail on old phone"}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	a, err := client.GetAsp(context.Background(), "test@example.com", 1)

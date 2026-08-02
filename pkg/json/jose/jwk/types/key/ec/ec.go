@@ -10,7 +10,6 @@ import (
 	"math/big"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -100,33 +99,9 @@ func New(m map[string]any) (*Key, error) {
 	return &Key{Crv: crv, X: x, Y: y}, nil
 }
 
-func padLeft(b []byte, size int) []byte {
-	if len(b) >= size {
-		return b
-	}
-	out := make([]byte, size)
-	copy(out[size-len(b):], b)
-	return out
-}
-
 func NewFromPublicKey(publicKey *ecdsa.PublicKey) (*Key, error) {
 	if publicKey == nil {
 		return nil, nil
-	}
-
-	curve := publicKey.Curve
-	if utils.IsNil(curve) {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("public key curve"))
-	}
-
-	x := publicKey.X
-	if x == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("public key x"))
-	}
-
-	y := publicKey.Y
-	if y == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("public key y"))
 	}
 
 	var crv string
@@ -145,10 +120,23 @@ func NewFromPublicKey(publicKey *ecdsa.PublicKey) (*Key, error) {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: %T", motmedelJwkErrors.ErrUnsupportedCrv, publicKey.Curve))
 	}
 
+	// Bytes returns the uncompressed SEC1 point (0x04 || X || Y), each coordinate
+	// left-padded to size bytes. This replaces reading the deprecated
+	// PublicKey.X / PublicKey.Y big.Int fields.
+	point, err := publicKey.Bytes()
+	if err != nil {
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("ecdsa public key bytes: %w", err))
+	}
+	if len(point) != 1+2*size {
+		return nil, motmedelErrors.NewWithTrace(
+			fmt.Errorf("%w: unexpected ecdsa public key point length %d", motmedelErrors.ErrUnexpectedType, len(point)),
+		)
+	}
+
 	return &Key{
 		Crv: crv,
-		X:   base64.RawURLEncoding.EncodeToString(padLeft(x.Bytes(), size)),
-		Y:   base64.RawURLEncoding.EncodeToString(padLeft(y.Bytes(), size)),
+		X:   base64.RawURLEncoding.EncodeToString(point[1 : 1+size]),
+		Y:   base64.RawURLEncoding.EncodeToString(point[1+size:]),
 	}, nil
 }
 

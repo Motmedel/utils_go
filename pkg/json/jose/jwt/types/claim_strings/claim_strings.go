@@ -73,7 +73,7 @@ func marshalSingleClaimStringAsString(encoder *jsontext.Encoder, claimStrings Cl
 	if len(claimStrings) != 1 {
 		return jsonv2.SkipFunc
 	}
-	return jsonv2.MarshalEncode(encoder, string(claimStrings[0]))
+	return jsonv2.MarshalEncode(encoder, claimStrings[0])
 }
 
 func Convert(value any) (ClaimStrings, error) {

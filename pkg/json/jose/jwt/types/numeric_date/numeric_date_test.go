@@ -47,7 +47,7 @@ func TestNewFromSeconds(t *testing.T) {
 
 			// Compare truncated times since TimePrecision is applied
 			expectedTruncated := tc.expected.Truncate(TimePrecision)
-			if !date.Time.Equal(expectedTruncated) {
+			if !date.Equal(expectedTruncated) {
 				t.Fatalf("expected %v, got %v", expectedTruncated, date.Time)
 			}
 		})
@@ -61,7 +61,7 @@ func TestNew(t *testing.T) {
 	date := New(now)
 
 	expected := now.Truncate(TimePrecision)
-	if !date.Time.Equal(expected) {
+	if !date.Equal(expected) {
 		t.Fatalf("expected %v, got %v", expected, date.Time)
 	}
 }
@@ -165,7 +165,7 @@ func TestDate_UnmarshalJSON(t *testing.T) {
 				}
 
 				expectedTruncated := tc.expected.Truncate(TimePrecision)
-				if !date.Time.Equal(expectedTruncated) {
+				if !date.Equal(expectedTruncated) {
 					t.Fatalf("expected %v, got %v", expectedTruncated, date.Time)
 				}
 			}
@@ -259,7 +259,7 @@ func TestConvert(t *testing.T) {
 					if result == nil {
 						t.Fatal("expected non-nil result, got nil")
 					}
-					if !result.Time.Equal(tc.expected.Time) {
+					if !result.Equal(tc.expected.Time) {
 						t.Fatalf("expected %v, got %v", tc.expected.Time, result.Time)
 					}
 				}
@@ -283,7 +283,7 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 		t.Fatalf("unmarshal error: %v", err)
 	}
 
-	if !original.Time.Equal(decoded.Time) {
+	if !original.Equal(decoded.Time) {
 		t.Fatalf("round trip failed: original %v, decoded %v", original.Time, decoded.Time)
 	}
 }

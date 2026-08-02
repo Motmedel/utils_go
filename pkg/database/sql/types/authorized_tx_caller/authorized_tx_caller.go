@@ -27,7 +27,7 @@ func (c *AuthorizedTxCaller[T]) Call(ctx context.Context, tx *sql.Tx) (T, error)
 	}
 
 	if !utils.IsNil(c.TxAuthorizer) {
-		authorized, err := c.TxAuthorizer.Authorized(ctx, c.Id, tx)
+		authorized, err := c.Authorized(ctx, c.Id, tx)
 		if err != nil {
 			return zero, fmt.Errorf("tx authorizer authorized: %w", err)
 		}

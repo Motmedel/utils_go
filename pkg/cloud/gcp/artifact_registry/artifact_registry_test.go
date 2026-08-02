@@ -42,7 +42,7 @@ func TestGetManifest(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
 		w.Header().Set("Docker-Content-Digest", "sha256:abc123")
-		json.NewEncoder(w).Encode(&manifest.Manifest{
+		if err := json.NewEncoder(w).Encode(&manifest.Manifest{
 			SchemaVersion: 2,
 			MediaType:     "application/vnd.oci.image.manifest.v1+json",
 			Config: &descriptor.Descriptor{
@@ -57,7 +57,9 @@ func TestGetManifest(t *testing.T) {
 					Size:      1024,
 				},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	digest, m, err := client.GetManifest(context.Background(), "my-project/my-repo/my-image", "latest")
@@ -128,7 +130,7 @@ func TestListReferrers(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/vnd.oci.image.index.v1+json")
-		json.NewEncoder(w).Encode(&index.Index{
+		if err := json.NewEncoder(w).Encode(&index.Index{
 			SchemaVersion: 2,
 			MediaType:     "application/vnd.oci.image.index.v1+json",
 			Manifests: []*descriptor.Descriptor{
@@ -139,7 +141,9 @@ func TestListReferrers(t *testing.T) {
 					ArtifactType: "application/spdx+json",
 				},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	idx, err := client.ListReferrers(context.Background(), "my-project/my-repo/my-image", "sha256:abc123", "")
@@ -166,10 +170,12 @@ func TestListReferrers_WithArtifactTypeFilter(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/vnd.oci.image.index.v1+json")
-		json.NewEncoder(w).Encode(&index.Index{
+		if err := json.NewEncoder(w).Encode(&index.Index{
 			SchemaVersion: 2,
 			MediaType:     "application/vnd.oci.image.index.v1+json",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	_, err := client.ListReferrers(context.Background(), "my-project/my-repo/my-image", "sha256:abc123", "application/spdx+json")
@@ -221,7 +227,9 @@ func TestGetBlob(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 
-		w.Write([]byte(`{"spdxVersion":"SPDX-2.3"}`))
+		if _, err := w.Write([]byte(`{"spdxVersion":"SPDX-2.3"}`)); err != nil {
+			t.Errorf("write: %v", err)
+		}
 	})
 
 	data, err := client.GetBlob(context.Background(), "my-project/my-repo/my-image", "sha256:layer123")

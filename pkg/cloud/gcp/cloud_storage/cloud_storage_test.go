@@ -58,15 +58,19 @@ func TestInsertBucket(t *testing.T) {
 		}
 
 		var input bucket.Bucket
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&bucket.Bucket{
+		if err := json.NewEncoder(w).Encode(&bucket.Bucket{
 			Kind:         "storage#bucket",
 			Name:         input.Name,
 			Location:     "US",
 			StorageClass: "STANDARD",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	b, err := client.InsertBucket(context.Background(), "my-project", &bucket.Bucket{Name: "test-bucket"})
@@ -127,10 +131,12 @@ func TestPatchBucket(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&bucket.Bucket{
+		if err := json.NewEncoder(w).Encode(&bucket.Bucket{
 			Name:         "my-bucket",
 			StorageClass: "NEARLINE",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	b, err := client.PatchBucket(context.Background(), "my-bucket", &bucket.Bucket{StorageClass: "NEARLINE"})
@@ -176,13 +182,15 @@ func TestGetObject(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&object.Object{
+		if err := json.NewEncoder(w).Encode(&object.Object{
 			Kind:         "storage#object",
 			Name:         "my-object.txt",
 			Bucket:       "my-bucket",
 			Size:         "1024",
 			StorageClass: "STANDARD",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	obj, err := client.GetObject(context.Background(), "my-bucket", "my-object.txt")
@@ -227,7 +235,9 @@ func TestDownloadObject(t *testing.T) {
 		if r.URL.Query().Get("alt") != "media" {
 			t.Errorf("expected alt=media, got %q", r.URL.Query().Get("alt"))
 		}
-		w.Write([]byte("file content here"))
+		if _, err := w.Write([]byte("file content here")); err != nil {
+			t.Errorf("write: %v", err)
+		}
 	})
 
 	data, err := client.DownloadObject(context.Background(), "my-bucket", "my-file.txt")
@@ -270,13 +280,15 @@ func TestListObjects(t *testing.T) {
 			t.Errorf("unexpected prefix: %s", r.URL.Query().Get("prefix"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&object_list.ObjectList{
+		if err := json.NewEncoder(w).Encode(&object_list.ObjectList{
 			Kind: "storage#objects",
 			Items: []*object.Object{
 				{Name: "logs/2024-01.txt"},
 				{Name: "logs/2024-02.txt"},
 			},
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	list, err := client.ListObjects(context.Background(), "my-bucket", url.Values{"prefix": {"logs/"}})
@@ -309,7 +321,9 @@ func TestListObjects_NilQuery(t *testing.T) {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&object_list.ObjectList{Kind: "storage#objects"})
+		if err := json.NewEncoder(w).Encode(&object_list.ObjectList{Kind: "storage#objects"}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	_, err := client.ListObjects(context.Background(), "bucket", nil)
@@ -394,12 +408,14 @@ func TestInsertObject(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&object.Object{
+		if err := json.NewEncoder(w).Encode(&object.Object{
 			Kind:   "storage#object",
 			Name:   "test.txt",
 			Bucket: "my-bucket",
 			Size:   "11",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	obj, err := client.InsertObject(

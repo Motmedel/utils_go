@@ -42,14 +42,18 @@ func TestSend(t *testing.T) {
 		}
 
 		var input message.Message
-		json.UnmarshalRead(r.Body, &input)
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
+			t.Errorf("unmarshal: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &message.Message{
+		if err := json.MarshalWrite(w, &message.Message{
 			Id:       "msg-123",
 			ThreadId: "thread-456",
 			LabelIds: []string{"SENT"},
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	msg, err := client.Send(context.Background(), "me", &message.Message{
@@ -113,17 +117,21 @@ func TestWatch(t *testing.T) {
 		}
 
 		var input watch_request.WatchRequest
-		json.UnmarshalRead(r.Body, &input)
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
+			t.Errorf("unmarshal: %v", err)
+		}
 
 		if input.TopicName != "projects/my-project/topics/my-topic" {
 			t.Errorf("expected topic 'projects/my-project/topics/my-topic', got %q", input.TopicName)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &watch_response.WatchResponse{
+		if err := json.MarshalWrite(w, &watch_response.WatchResponse{
 			HistoryId:  "12345",
 			Expiration: "1431990098200",
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	resp, err := client.Watch(context.Background(), "me", &watch_request.WatchRequest{
@@ -210,7 +218,7 @@ func TestListHistory(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		callCount++
 		if callCount == 1 {
-			json.MarshalWrite(w, map[string]any{
+			if err := json.MarshalWrite(w, map[string]any{
 				"history": []map[string]any{
 					{
 						"id": "12346",
@@ -221,9 +229,11 @@ func TestListHistory(t *testing.T) {
 				},
 				"nextPageToken": "token-abc",
 				"historyId":     "12350",
-			})
+			}); err != nil {
+				t.Errorf("marshal: %v", err)
+			}
 		} else {
-			json.MarshalWrite(w, map[string]any{
+			if err := json.MarshalWrite(w, map[string]any{
 				"history": []map[string]any{
 					{
 						"id": "12347",
@@ -233,7 +243,9 @@ func TestListHistory(t *testing.T) {
 					},
 				},
 				"historyId": "12350",
-			})
+			}); err != nil {
+				t.Errorf("marshal: %v", err)
+			}
 		}
 	})
 
@@ -273,10 +285,12 @@ func TestListHistory_WithHistoryTypesAndLabelId(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"history":   []map[string]any{},
 			"historyId": "12345",
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	_, err := client.ListHistory(context.Background(), "me", "12345",
@@ -356,15 +370,19 @@ func TestCreateSendAs(t *testing.T) {
 		}
 
 		var input send_as.SendAs
-		json.UnmarshalRead(r.Body, &input)
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
+			t.Errorf("unmarshal: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &send_as.SendAs{
+		if err := json.MarshalWrite(w, &send_as.SendAs{
 			SendAsEmail:        input.SendAsEmail,
 			DisplayName:        input.DisplayName,
 			TreatAsAlias:       true,
 			VerificationStatus: "accepted",
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	created, err := client.CreateSendAs(context.Background(), "me", &send_as.SendAs{
@@ -483,13 +501,17 @@ func TestUpdateSendAs(t *testing.T) {
 		}
 
 		var input send_as.SendAs
-		json.UnmarshalRead(r.Body, &input)
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
+			t.Errorf("unmarshal: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &send_as.SendAs{
+		if err := json.MarshalWrite(w, &send_as.SendAs{
 			SendAsEmail: "support@example.com",
 			DisplayName: input.DisplayName,
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	updated, err := client.UpdateSendAs(context.Background(), "me", "support@example.com", &send_as.SendAs{
@@ -583,21 +605,25 @@ func TestListMessages(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		callCount++
 		if callCount == 1 {
-			json.MarshalWrite(w, map[string]any{
+			if err := json.MarshalWrite(w, map[string]any{
 				"messages": []map[string]string{
 					{"id": "msg-1", "threadId": "thread-1"},
 					{"id": "msg-2", "threadId": "thread-2"},
 				},
 				"nextPageToken":      "token-abc",
 				"resultSizeEstimate": 3,
-			})
+			}); err != nil {
+				t.Errorf("marshal: %v", err)
+			}
 		} else {
-			json.MarshalWrite(w, map[string]any{
+			if err := json.MarshalWrite(w, map[string]any{
 				"messages": []map[string]string{
 					{"id": "msg-3", "threadId": "thread-3"},
 				},
 				"resultSizeEstimate": 3,
-			})
+			}); err != nil {
+				t.Errorf("marshal: %v", err)
+			}
 		}
 	})
 
@@ -650,11 +676,13 @@ func TestListMessages_EmptyQuery(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"messages": []map[string]string{
 				{"id": "msg-1", "threadId": "thread-1"},
 			},
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	messages, err := client.ListMessages(context.Background(), "me", "")
@@ -678,14 +706,16 @@ func TestGetMessage(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &message.Message{
+		if err := json.MarshalWrite(w, &message.Message{
 			Id:           "msg-123",
 			ThreadId:     "thread-456",
 			LabelIds:     []string{"INBOX"},
 			Snippet:      "Hello world",
 			InternalDate: "1234567890000",
 			SizeEstimate: 1024,
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	msg, err := client.GetMessage(context.Background(), "me", "msg-123")
@@ -716,9 +746,11 @@ func TestGetMessage_WithFormatAndMetadataHeaders(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &message.Message{
+		if err := json.MarshalWrite(w, &message.Message{
 			Id: "msg-123",
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	msg, err := client.GetMessage(
@@ -778,11 +810,13 @@ func TestTrash(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &message.Message{
+		if err := json.MarshalWrite(w, &message.Message{
 			Id:       "msg-123",
 			ThreadId: "thread-456",
 			LabelIds: []string{"TRASH"},
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	msg, err := client.Trash(context.Background(), "me", "msg-123")
@@ -882,7 +916,9 @@ func TestCreateFilter(t *testing.T) {
 		}
 
 		var input filter.Filter
-		json.UnmarshalRead(r.Body, &input)
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
+			t.Errorf("unmarshal: %v", err)
+		}
 
 		if input.Criteria == nil || input.Criteria.From != "boss@example.com" {
 			t.Errorf("unexpected criteria: %+v", input.Criteria)
@@ -892,11 +928,13 @@ func TestCreateFilter(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, &filter.Filter{
+		if err := json.MarshalWrite(w, &filter.Filter{
 			Id:       "filter-1",
 			Criteria: input.Criteria,
 			Action:   input.Action,
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	created, err := client.CreateFilter(context.Background(), "me", &filter.Filter{
@@ -1027,7 +1065,7 @@ func TestListFilters(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.MarshalWrite(w, map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"filter": []map[string]any{
 				{
 					"id":       "filter-1",
@@ -1040,7 +1078,9 @@ func TestListFilters(t *testing.T) {
 					"action":   map[string]any{"removeLabelIds": []string{"INBOX"}},
 				},
 			},
-		})
+		}); err != nil {
+			t.Errorf("marshal: %v", err)
+		}
 	})
 
 	filters, err := client.ListFilters(context.Background(), "me")

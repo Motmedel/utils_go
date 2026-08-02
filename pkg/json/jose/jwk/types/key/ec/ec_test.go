@@ -3,6 +3,7 @@ package ec
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"math/big"
@@ -319,5 +320,62 @@ func TestNew(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestNewFromPublicKey_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	for _, curve := range []elliptic.Curve{elliptic.P256(), elliptic.P384(), elliptic.P521()} {
+		t.Run(curve.Params().Name, func(t *testing.T) {
+			t.Parallel()
+
+			priv, err := ecdsa.GenerateKey(curve, rand.Reader)
+			if err != nil {
+				t.Fatalf("generate: %v", err)
+			}
+
+			jwk, err := NewFromPublicKey(&priv.PublicKey)
+			if err != nil {
+				t.Fatalf("NewFromPublicKey: %v", err)
+			}
+
+			// Reconstruct from the JWK and compare — verifies the X/Y encoding.
+			pub, err := jwk.PublicKey()
+			if err != nil {
+				t.Fatalf("PublicKey: %v", err)
+			}
+			got, ok := pub.(*ecdsa.PublicKey)
+			if !ok {
+				t.Fatalf("PublicKey type = %T, want *ecdsa.PublicKey", pub)
+			}
+			if !got.Equal(&priv.PublicKey) {
+				t.Fatal("round-tripped public key does not match original")
+			}
+		})
+	}
+}
+
+func TestNewFromPublicKey_Nil(t *testing.T) {
+	t.Parallel()
+
+	key, err := NewFromPublicKey(nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if key != nil {
+		t.Fatalf("got %v, want nil", key)
+	}
+}
+
+func TestNewFromPublicKey_UnsupportedCurve(t *testing.T) {
+	t.Parallel()
+
+	priv, err := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+	if err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	if _, err := NewFromPublicKey(&priv.PublicKey); !errors.Is(err, motmedelJwkErrors.ErrUnsupportedCrv) {
+		t.Fatalf("err = %v, want ErrUnsupportedCrv", err)
 	}
 }

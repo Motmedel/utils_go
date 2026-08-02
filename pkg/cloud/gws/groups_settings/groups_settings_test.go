@@ -35,12 +35,14 @@ func TestGet(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&group.Group{
+		if err := json.NewEncoder(w).Encode(&group.Group{
 			Kind:              "groupsSettings#groups",
 			Email:             "group@example.com",
 			Name:              "Test Group",
 			WhoCanPostMessage: "ALL_MEMBERS_CAN_POST",
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	g, err := client.Get(context.Background(), "group@example.com")
@@ -86,14 +88,18 @@ func TestUpdate(t *testing.T) {
 		}
 
 		var input group.Group
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&group.Group{
+		if err := json.NewEncoder(w).Encode(&group.Group{
 			Email:             "group@example.com",
 			WhoCanPostMessage: input.WhoCanPostMessage,
 			AllowWebPosting:   input.AllowWebPosting,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	g, err := client.Update(context.Background(), "group@example.com", &group.Group{
@@ -139,13 +145,17 @@ func TestPatch(t *testing.T) {
 		}
 
 		var input group.Group
-		json.NewDecoder(r.Body).Decode(&input)
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&group.Group{
+		if err := json.NewEncoder(w).Encode(&group.Group{
 			Email:                  "group@example.com",
 			MessageModerationLevel: input.MessageModerationLevel,
-		})
+		}); err != nil {
+			t.Errorf("encode: %v", err)
+		}
 	})
 
 	g, err := client.Patch(context.Background(), "group@example.com", &group.Group{

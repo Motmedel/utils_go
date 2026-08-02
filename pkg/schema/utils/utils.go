@@ -748,7 +748,7 @@ func EnrichWithTlsConnectionState(base *schema.Base, connectionState *tls.Connec
 	ecsTls.Resumed = connectionState.DidResume
 
 	switch connectionState.Version {
-	case tls.VersionSSL30:
+	case tls.VersionSSL30: //nolint:staticcheck // constant referenced only to label SSLv3, not to enable it
 		ecsTls.TlsProtocol = &schema.TlsProtocol{Name: "ssl", Version: "3"}
 	case tls.VersionTLS10:
 		ecsTls.TlsProtocol = &schema.TlsProtocol{Name: "tls", Version: "1.0"}
