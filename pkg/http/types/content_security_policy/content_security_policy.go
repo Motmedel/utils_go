@@ -197,6 +197,10 @@ func (sourceDirective *SourceDirective) GetSources() []SourceI {
 	return sourceDirective.Sources
 }
 
+func (sourceDirective *SourceDirective) SetSources(sources []SourceI) {
+	sourceDirective.Sources = sources
+}
+
 type BaseUriDirective struct {
 	SourceDirective
 }

@@ -9,6 +9,69 @@ import (
 	csp "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 )
 
+// sourceDirectivePointer is any concrete source-directive pointer (e.g. *csp.WorkerSrcDirective)
+// whose source list can be read and replaced.
+type sourceDirectivePointer[T any] interface {
+	*T
+	csp.DirectiveI
+	GetSources() []csp.SourceI
+	SetSources(sources []csp.SourceI)
+}
+
+// PatchCspSourceDirective merges sources into the source directive of type T, deduplicating by
+// serialized value. If the policy has no directive of that type one is created and appended;
+// otherwise the existing directive is extended in place. If a directive with the same name is
+// present but is not of type T (e.g. an unparsed fallback), the policy is left untouched.
+//
+// T is the concrete source-directive type; the pointer type is inferred. For example, to allow a
+// blob: Worker:
+//
+//	PatchCspSourceDirective[csp.WorkerSrcDirective](
+//		policy,
+//		&csp.KeywordSource{Keyword: "self"},
+//		&csp.SchemeSource{Scheme: "blob"},
+//	)
+func PatchCspSourceDirective[T any, PT sourceDirectivePointer[T]](
+	contentSecurityPolicy *csp.ContentSecurityPolicy,
+	sources ...csp.SourceI,
+) {
+	if contentSecurityPolicy == nil || len(sources) == 0 {
+		return
+	}
+
+	directive := PT(new(T))
+	if existingDirective, found := contentSecurityPolicy.GetDirective(directive.GetName()); found {
+		existingSourceDirective, ok := existingDirective.(PT)
+		if !ok {
+			return
+		}
+		directive = existingSourceDirective
+	} else {
+		contentSecurityPolicy.Directives = append(contentSecurityPolicy.Directives, directive)
+	}
+
+	mergedSources := directive.GetSources()
+	sourceValues := make(map[string]struct{}, len(mergedSources))
+	for _, source := range mergedSources {
+		if source != nil {
+			sourceValues[source.String()] = struct{}{}
+		}
+	}
+	for _, source := range sources {
+		if source == nil {
+			continue
+		}
+		sourceValue := source.String()
+		if _, found := sourceValues[sourceValue]; found {
+			continue
+		}
+		sourceValues[sourceValue] = struct{}{}
+		mergedSources = append(mergedSources, source)
+	}
+
+	directive.SetSources(mergedSources)
+}
+
 func buildHostSources(hostUrls ...*url.URL) []csp.SourceI {
 	var hostSources []csp.SourceI
 	for _, hostUrl := range hostUrls {

@@ -656,3 +656,96 @@ func TestMultipleDirectives_OnSamePolicy(t *testing.T) {
 		t.Fatalf("expected 4 directives, got %d", len(policy.Directives))
 	}
 }
+
+// --- PatchCspSourceDirective ---
+
+func TestPatchCspSourceDirective_NilCsp(t *testing.T) {
+	PatchCspSourceDirective[csp.WorkerSrcDirective](nil, &csp.KeywordSource{Keyword: "self"})
+	// Should not panic.
+}
+
+func TestPatchCspSourceDirective_NoSources(t *testing.T) {
+	policy := &csp.ContentSecurityPolicy{}
+	PatchCspSourceDirective[csp.WorkerSrcDirective](policy)
+	if len(policy.Directives) != 0 {
+		t.Fatalf("expected no directives, got %d", len(policy.Directives))
+	}
+}
+
+func TestPatchCspSourceDirective_AddsNewDirective(t *testing.T) {
+	policy := &csp.ContentSecurityPolicy{}
+	PatchCspSourceDirective[csp.WorkerSrcDirective](
+		policy,
+		&csp.KeywordSource{Keyword: "self"},
+		&csp.SchemeSource{Scheme: "blob"},
+	)
+
+	directive := policy.GetWorkerSrc()
+	if directive == nil {
+		t.Fatal("expected worker-src directive to be added")
+	}
+	if got := directive.String(); got != "worker-src 'self' blob:" {
+		t.Fatalf("expected \"worker-src 'self' blob:\", got %q", got)
+	}
+}
+
+func TestPatchCspSourceDirective_ExtendsExisting(t *testing.T) {
+	policy := &csp.ContentSecurityPolicy{
+		Directives: []csp.DirectiveI{
+			&csp.WorkerSrcDirective{
+				SourceDirective: csp.SourceDirective{
+					Sources: []csp.SourceI{&csp.KeywordSource{Keyword: "self"}},
+				},
+			},
+		},
+	}
+
+	PatchCspSourceDirective[csp.WorkerSrcDirective](policy, &csp.SchemeSource{Scheme: "blob"})
+
+	if len(policy.Directives) != 1 {
+		t.Fatalf("expected the existing directive to be reused, got %d directives", len(policy.Directives))
+	}
+	directive := policy.GetWorkerSrc()
+	if directive == nil {
+		t.Fatal("expected worker-src directive")
+	}
+	if got := directive.String(); got != "worker-src 'self' blob:" {
+		t.Fatalf("expected \"worker-src 'self' blob:\", got %q", got)
+	}
+}
+
+func TestPatchCspSourceDirective_DeduplicatesSources(t *testing.T) {
+	policy := &csp.ContentSecurityPolicy{}
+	PatchCspSourceDirective[csp.WorkerSrcDirective](policy, &csp.KeywordSource{Keyword: "self"})
+	PatchCspSourceDirective[csp.WorkerSrcDirective](
+		policy,
+		&csp.KeywordSource{Keyword: "self"},
+		&csp.SchemeSource{Scheme: "blob"},
+	)
+
+	directive := policy.GetWorkerSrc()
+	if directive == nil {
+		t.Fatal("expected worker-src directive")
+	}
+	sources := sourceStrings(directive.Sources)
+	if len(sources) != 2 {
+		t.Fatalf("expected 2 deduplicated sources, got %v", sources)
+	}
+}
+
+// The helper is generic over the directive type, not specific to worker-src.
+func TestPatchCspSourceDirective_OtherDirectiveType(t *testing.T) {
+	policy := &csp.ContentSecurityPolicy{}
+	PatchCspSourceDirective[csp.ConnectSrcDirective](
+		policy,
+		&csp.KeywordSource{Keyword: "self"},
+	)
+
+	directive := policy.GetConnectSrc()
+	if directive == nil {
+		t.Fatal("expected connect-src directive to be added")
+	}
+	if !slices.Contains(sourceStrings(directive.Sources), "'self'") {
+		t.Fatalf("expected 'self' in connect-src, got %v", sourceStrings(directive.Sources))
+	}
+}
