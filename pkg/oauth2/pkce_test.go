@@ -7,6 +7,8 @@ import (
 )
 
 func TestGenerateVerifier(t *testing.T) {
+	t.Parallel()
+
 	verifier := GenerateVerifier()
 
 	if len(verifier) != 43 {
@@ -21,6 +23,8 @@ func TestGenerateVerifier(t *testing.T) {
 }
 
 func TestS256ChallengeFromVerifier(t *testing.T) {
+	t.Parallel()
+
 	// Use a known verifier and expected challenge.
 	verifier := "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
 	sha := sha256.Sum256([]byte(verifier))
@@ -33,6 +37,8 @@ func TestS256ChallengeFromVerifier(t *testing.T) {
 }
 
 func TestS256ChallengeOption(t *testing.T) {
+	t.Parallel()
+
 	verifier := "test_verifier"
 	opts := S256ChallengeOption(verifier)
 
@@ -51,6 +57,8 @@ func TestS256ChallengeOption(t *testing.T) {
 }
 
 func TestVerifierOption(t *testing.T) {
+	t.Parallel()
+
 	verifier := "test_verifier"
 	opt := VerifierOption(verifier)
 

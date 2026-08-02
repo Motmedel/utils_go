@@ -69,7 +69,7 @@ func ConvertToNonZero[T comparable](value any) (T, error) {
 }
 
 func IsNil(value any) bool {
-	return value == nil || (reflect.ValueOf(value).Kind() == reflect.Ptr && reflect.ValueOf(value).IsNil())
+	return value == nil || (reflect.ValueOf(value).Kind() == reflect.Pointer && reflect.ValueOf(value).IsNil())
 }
 
 func Must(err error, label string) {

@@ -97,7 +97,7 @@ func (k *Key) NamedVerifier() (motmedelCryptoInterfaces.NamedVerifier, error) {
 		}
 		return method, nil
 	default:
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("unsupported public key type: %T", publicKey))
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: unsupported public key type: %T", motmedelErrors.ErrUnexpectedType, publicKey))
 	}
 }
 
@@ -107,12 +107,12 @@ func (k *Key) ThumbprintSHA256() (string, error) {
 		if mat, ok := k.Material.(*ecKey.Key); ok && mat != nil {
 			return mat.Thumbprint(), nil
 		}
-		return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid EC material type: %T", k.Material))
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("%w: invalid EC material type: %T", motmedelErrors.ErrUnexpectedType, k.Material))
 	case "RSA":
 		if mat, ok := k.Material.(*rsaKey.Key); ok && mat != nil {
 			return mat.Thumbprint(), nil
 		}
-		return "", motmedelErrors.NewWithTrace(fmt.Errorf("invalid RSA material type: %T", k.Material))
+		return "", motmedelErrors.NewWithTrace(fmt.Errorf("%w: invalid RSA material type: %T", motmedelErrors.ErrUnexpectedType, k.Material))
 	default:
 		return "", motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrUnsupportedKty, k.Kty)
 	}

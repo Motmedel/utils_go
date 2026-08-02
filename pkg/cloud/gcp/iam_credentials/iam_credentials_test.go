@@ -27,6 +27,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 }
 
 func TestSignBlob(t *testing.T) {
+	t.Parallel()
+
 	const email = "robot@example.iam.gserviceaccount.com"
 	payload := []byte("string-to-sign")
 	signature := []byte{0x01, 0x02, 0x03, 0x04}
@@ -81,6 +83,8 @@ func TestSignBlob(t *testing.T) {
 }
 
 func TestSignBlob_EmptyEmail(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.SignBlob(context.Background(), "", []byte("x"))
 	if err == nil {
@@ -89,6 +93,8 @@ func TestSignBlob_EmptyEmail(t *testing.T) {
 }
 
 func TestSignBlob_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

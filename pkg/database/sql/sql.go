@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -33,7 +32,7 @@ func WithTx[T any](
 	}
 
 	if utils.IsNil(txCaller) {
-		return zero, motmedelErrors.NewWithTrace(errors.New("nil tx caller"))
+		return zero, motmedelErrors.NewWithTrace(nil_error.New("tx caller"))
 	}
 
 	transaction, err := database.BeginTx(ctx, nil)

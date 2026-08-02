@@ -5,6 +5,8 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		domain string
@@ -171,6 +173,8 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := New(tt.domain)
 
 			if tt.want == nil {
@@ -198,6 +202,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewPartsStruct(t *testing.T) {
+	t.Parallel()
+
 	// Verify the struct fields and JSON tags by creating a Parts directly.
 	p := Parts{
 		RegisteredDomain: "example.com",

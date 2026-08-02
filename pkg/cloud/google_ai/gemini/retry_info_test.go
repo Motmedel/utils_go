@@ -19,6 +19,8 @@ const sample429Body = `{
 }`
 
 func TestRetryAfterFromResponse(t *testing.T) {
+	t.Parallel()
+
 	delay := RetryAfterFromResponse(nil, []byte(sample429Body))
 	if delay == nil {
 		t.Fatal("expected a retry delay")
@@ -29,6 +31,8 @@ func TestRetryAfterFromResponse(t *testing.T) {
 }
 
 func TestRetryAfterFromResponse_NoRetryInfo(t *testing.T) {
+	t.Parallel()
+
 	body := `{"error":{"code":400,"message":"bad request","details":[]}}`
 	if delay := RetryAfterFromResponse(nil, []byte(body)); delay != nil {
 		t.Errorf("expected nil for a body without RetryInfo, got %v", *delay)
@@ -36,6 +40,8 @@ func TestRetryAfterFromResponse_NoRetryInfo(t *testing.T) {
 }
 
 func TestRetryAfterFromResponse_EmptyAndInvalid(t *testing.T) {
+	t.Parallel()
+
 	if delay := RetryAfterFromResponse(nil, nil); delay != nil {
 		t.Errorf("expected nil for empty body, got %v", *delay)
 	}

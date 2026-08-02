@@ -18,7 +18,6 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/credentials_file"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_response"
-	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
@@ -29,7 +28,7 @@ import (
 func parsePrivateKey(pemData string) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode([]byte(pemData))
 	if block == nil {
-		return nil, motmedelErrors.NewWithTrace(errors.New("pem decode: no PEM block found"))
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.New("pem decode: no PEM block found"))
 	}
 
 	switch block.Type {
@@ -46,11 +45,11 @@ func parsePrivateKey(pemData string) (*rsa.PrivateKey, error) {
 		}
 		rsaKey, ok := key.(*rsa.PrivateKey)
 		if !ok {
-			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("unexpected key type: %T", key))
+			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: %T", motmedelErrors.ErrUnexpectedType, key))
 		}
 		return rsaKey, nil
 	default:
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("unsupported PEM block type: %s", block.Type))
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: unsupported PEM block type: %s", motmedelErrors.ErrUnexpectedType, block.Type))
 	}
 }
 
@@ -82,7 +81,7 @@ func (s *TokenSource) Token() (*token.Token, error) {
 		"kid": s.privateKeyID,
 	})
 	if err != nil {
-		return nil, errors.NewWithTrace(fmt.Errorf("json marshal (jwt header): %w", err))
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (jwt header): %w", err))
 	}
 
 	claims := map[string]any{
@@ -100,7 +99,7 @@ func (s *TokenSource) Token() (*token.Token, error) {
 
 	claimsJSON, err := json.Marshal(claims)
 	if err != nil {
-		return nil, errors.NewWithTrace(fmt.Errorf("json marshal (jwt claims): %w", err))
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (jwt claims): %w", err))
 	}
 
 	signingInput := base64.RawURLEncoding.EncodeToString(headerJSON) +
@@ -110,7 +109,7 @@ func (s *TokenSource) Token() (*token.Token, error) {
 	h := sha256.Sum256([]byte(signingInput))
 	signature, err := rsa.SignPKCS1v15(rand.Reader, s.privateKey, crypto.SHA256, h[:])
 	if err != nil {
-		return nil, errors.NewWithTrace(fmt.Errorf("rsa sign pkcs1v15: %w", err))
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("rsa sign pkcs1v15: %w", err))
 	}
 
 	assertion := signingInput + "." + base64.RawURLEncoding.EncodeToString(signature)
@@ -176,7 +175,7 @@ func NewFromCredentialsFileWithSubject(
 	options ...fetch_config.Option,
 ) (*TokenSource, error) {
 	if tokenUrl == "" {
-		return nil, motmedelErrors.NewWithTrace(errors.New("token url"))
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.New("token url"))
 	}
 
 	if credentialsFile == nil {

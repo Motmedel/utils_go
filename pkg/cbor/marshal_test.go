@@ -6,6 +6,8 @@ import (
 )
 
 func TestMarshalUnmarshalRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	order := testOrder{
 		testEmbedded: testEmbedded{Type: "person", ProjectId: "p-1"},
 		Name:         "Meriadoc",
@@ -34,6 +36,8 @@ func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 }
 
 func TestMarshalOmitsZeroTaggedFields(t *testing.T) {
+	t.Parallel()
+
 	value, err := MarshalValue(
 		&testOrder{testEmbedded: testEmbedded{Type: "person"}, Name: "Meriadoc"},
 	)
@@ -62,6 +66,8 @@ func TestMarshalOmitsZeroTaggedFields(t *testing.T) {
 }
 
 func TestMarshalUnsupportedType(t *testing.T) {
+	t.Parallel()
+
 	if _, err := Marshal(struct{ Value float64 }{Value: 1.5}); err == nil {
 		t.Error("expected an error for a float field")
 	}

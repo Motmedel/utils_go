@@ -182,7 +182,7 @@ func (c *Client) credentialsFileTokenSource(ctx context.Context, data []byte, sc
 		return token_source.NewReusable(nil, tokenSource), nil
 	default:
 		return nil, motmedelErrors.NewWithTrace(
-			fmt.Errorf("unsupported credential type: %s", credentialsFile.Type),
+			fmt.Errorf("%w: unsupported credential type: %s", motmedelErrors.ErrUnexpectedType, credentialsFile.Type),
 		)
 	}
 }

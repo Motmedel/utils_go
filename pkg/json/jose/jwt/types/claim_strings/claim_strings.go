@@ -2,14 +2,13 @@ package claim_strings
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"fmt"
 
-	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
-
-var MarshalSingleStringAsArray = true
 
 type ClaimStrings []string
 
@@ -31,14 +30,14 @@ func (s *ClaimStrings) UnmarshalJSON(data []byte) (err error) {
 		for _, vv := range v {
 			vs, err := utils.Convert[string](vv)
 			if err != nil {
-				return errors.NewWithTrace(fmt.Errorf("convert: %w", err), vv)
+				return motmedelErrors.NewWithTrace(fmt.Errorf("convert: %w", err), vv)
 			}
 			aud = append(aud, vs)
 		}
 	case nil:
 		return nil
 	default:
-		return errors.NewWithTrace(fmt.Errorf("%w: %T", motmedelErrors.ErrUnexpectedType, v), v)
+		return motmedelErrors.NewWithTrace(fmt.Errorf("%w: %T", motmedelErrors.ErrUnexpectedType, v), v)
 	}
 
 	*s = aud
@@ -47,14 +46,34 @@ func (s *ClaimStrings) UnmarshalJSON(data []byte) (err error) {
 }
 
 func (s ClaimStrings) MarshalJSON() (b []byte, err error) {
-	// This handles a special case in the JWT RFC. If the string array, e.g.
-	// used by the "aud" field, only contains one element, it MAY be serialized
-	// as a single string.
-	if len(s) == 1 && !MarshalSingleStringAsArray {
-		return json.Marshal(s[0])
-	}
-
+	// By default a single-element value marshals as a one-element array. Pass
+	// SingleAsString() to the marshal call to emit a single element as a bare
+	// string instead (RFC 7519 permits either form for "aud", and UnmarshalJSON
+	// accepts both).
 	return json.Marshal([]string(s))
+}
+
+// SingleAsString returns a json/v2 marshal option that serializes any
+// single-element ClaimStrings — at any nesting depth — as a bare JSON string
+// instead of a one-element array (e.g. "aud":"x" rather than "aud":["x"]).
+// Empty and multi-element values are unaffected. Pass it to a marshal call:
+//
+//	data, err := jsonv2.Marshal(claims, claim_strings.SingleAsString())
+//
+// Being a per-call option rather than a global, it is safe for concurrent use.
+func SingleAsString() jsonv2.Options {
+	return jsonv2.WithMarshalers(jsonv2.MarshalToFunc(marshalSingleClaimStringAsString))
+}
+
+// marshalSingleClaimStringAsString emits a single-element value as a bare string
+// and returns SkipFunc for every other length so the default array marshaling
+// runs. Functions supplied via WithMarshalers take precedence over the type's
+// own MarshalJSON, so this applies wherever ClaimStrings appears in the value.
+func marshalSingleClaimStringAsString(encoder *jsontext.Encoder, claimStrings ClaimStrings) error {
+	if len(claimStrings) != 1 {
+		return jsonv2.SkipFunc
+	}
+	return jsonv2.MarshalEncode(encoder, string(claimStrings[0]))
 }
 
 func Convert(value any) (ClaimStrings, error) {
@@ -71,7 +90,7 @@ func Convert(value any) (ClaimStrings, error) {
 		for _, a := range typedValue {
 			vs, err := utils.Convert[string](a)
 			if err != nil {
-				return nil, errors.NewWithTrace(fmt.Errorf("convert: %w", err), a)
+				return nil, motmedelErrors.NewWithTrace(fmt.Errorf("convert: %w", err), a)
 			}
 			claimsString = append(claimsString, vs)
 		}

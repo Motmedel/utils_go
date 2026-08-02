@@ -339,7 +339,7 @@ func rfc3986Escape(s string) string {
 
 	var b strings.Builder
 	b.Grow(len(s))
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
 		switch {
 		case (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'):
@@ -422,7 +422,7 @@ func (c *Client) SignedUrl(
 	expiresSeconds := int64(expires / time.Second)
 	if expiresSeconds <= 0 || expires > MaxSignedUrlExpires {
 		return "", motmedelErrors.NewWithTrace(
-			fmt.Errorf("expires out of range (must be > 0 and <= 7 days): %s", expires),
+			fmt.Errorf("%w: expires out of range (must be > 0 and <= 7 days): %s", motmedelErrors.ErrValidationError, expires),
 		)
 	}
 

@@ -23,7 +23,7 @@ import (
 func copyWithLeftPad(dst []byte, x *big.Int, size int) {
 	b := x.Bytes()
 	pad := size - len(b)
-	for i := 0; i < pad; i++ {
+	for i := range pad {
 		dst[i] = 0
 	}
 	copy(dst[pad:], b)
@@ -56,6 +56,10 @@ func (m *Method) hash(message []byte) ([]byte, error) {
 }
 
 func (m *Method) Sign(message []byte) ([]byte, error) {
+	if m == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.NewWithInstance("method", "signer"))
+	}
+
 	if m.PrivateKey == nil {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("secret"))
 	}
@@ -82,6 +86,10 @@ func (m *Method) Sign(message []byte) ([]byte, error) {
 }
 
 func (m *Method) Verify(message []byte, signature []byte) error {
+	if m == nil {
+		return motmedelErrors.NewWithTrace(nil_error.NewWithInstance("method", "verifier"))
+	}
+
 	pub := m.PublicKey
 	if pub == nil && m.PrivateKey != nil {
 		pub = &m.PrivateKey.PublicKey
@@ -116,11 +124,35 @@ func (m *Method) GetName() string {
 }
 
 func FromPublicKey(publicKey *ecdsa.PublicKey) (*Method, error) {
-	return New(nil, publicKey)
+	if publicKey == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("public key"))
+	}
+
+	method, err := New(nil, publicKey)
+	if err != nil {
+		return nil, err
+	}
+	if method == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("method"))
+	}
+
+	return method, nil
 }
 
 func FromPrivateKey(privateKey *ecdsa.PrivateKey) (*Method, error) {
-	return New(privateKey, nil)
+	if privateKey == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("private key"))
+	}
+
+	method, err := New(privateKey, nil)
+	if err != nil {
+		return nil, err
+	}
+	if method == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("method"))
+	}
+
+	return method, nil
 }
 
 // deriveAlgFromCurve picks the JOSE alg name and hash function based on the curve.
@@ -176,7 +208,9 @@ func New(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) (*Method, err
 		}
 	}
 
-	if utils.IsNil(curve) {
+	// The curve == nil check is redundant with utils.IsNil but lets static analysis
+	// narrow curve to non-nil for the curve.Params() call below.
+	if curve == nil || utils.IsNil(curve) {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("curve"))
 	}
 
@@ -187,12 +221,14 @@ func New(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey) (*Method, err
 		)
 	}
 
-	name, hashFunc, err := deriveAlgFromCurveParams(curve.Params())
+	curveParams := curve.Params()
+
+	name, hashFunc, err := deriveAlgFromCurveParams(curveParams)
 	if err != nil {
 		return nil, err
 	}
 
-	size := (curve.Params().BitSize + 7) / 8
+	size := (curveParams.BitSize + 7) / 8
 
 	return &Method{
 		PrivateKey: privateKey,
@@ -215,7 +251,7 @@ func (m *Asn1DerEncodedMethod) Sign(message []byte) ([]byte, error) {
 	}
 
 	if len(raw) != 2*m.size {
-		return nil, fmt.Errorf("invalid signature length: %d", len(raw))
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: invalid signature length: %d", motmedelErrors.ErrValidationError, len(raw)))
 	}
 
 	r := new(big.Int).SetBytes(raw[:m.size])

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"hash"
 
+	motmedelCrypto "github.com/Motmedel/utils_go/pkg/crypto"
 	motmedelCryptoErrors "github.com/Motmedel/utils_go/pkg/crypto/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
@@ -105,36 +106,36 @@ func New(algorithm string, privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey)
 	)
 
 	switch algorithm {
-	case "RS256":
+	case motmedelCrypto.AlgRs256:
 		hashFunc = sha256.New
 		hash = crypto.SHA256
 		pss = false
-		name = "RS256"
-	case "RS384":
+		name = motmedelCrypto.AlgRs256
+	case motmedelCrypto.AlgRs384:
 		hashFunc = sha512.New384
 		hash = crypto.SHA384
 		pss = false
-		name = "RS384"
-	case "RS512":
+		name = motmedelCrypto.AlgRs384
+	case motmedelCrypto.AlgRs512:
 		hashFunc = sha512.New
 		hash = crypto.SHA512
 		pss = false
-		name = "RS512"
-	case "PS256":
+		name = motmedelCrypto.AlgRs512
+	case motmedelCrypto.AlgPs256:
 		hashFunc = sha256.New
 		hash = crypto.SHA256
 		pss = true
-		name = "PS256"
-	case "PS384":
+		name = motmedelCrypto.AlgPs256
+	case motmedelCrypto.AlgPs384:
 		hashFunc = sha512.New384
 		hash = crypto.SHA384
 		pss = true
-		name = "PS384"
-	case "PS512":
+		name = motmedelCrypto.AlgPs384
+	case motmedelCrypto.AlgPs512:
 		hashFunc = sha512.New
 		hash = crypto.SHA512
 		pss = true
-		name = "PS512"
+		name = motmedelCrypto.AlgPs512
 	default:
 		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("%w: %q", motmedelCryptoErrors.ErrUnsupportedAlgorithm, algorithm),
@@ -170,11 +171,11 @@ func NewFromPublicKey(publicKey *rsa.PublicKey) (*Method, error) {
 	var alg string
 	switch {
 	case bits >= 4096:
-		alg = "RS512"
+		alg = motmedelCrypto.AlgRs512
 	case bits >= 3072:
-		alg = "RS384"
+		alg = motmedelCrypto.AlgRs384
 	default:
-		alg = "RS256"
+		alg = motmedelCrypto.AlgRs256
 	}
 
 	return New(alg, nil, publicKey)

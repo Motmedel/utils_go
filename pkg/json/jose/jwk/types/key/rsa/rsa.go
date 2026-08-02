@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
@@ -24,7 +23,7 @@ func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	n := k.N
 	nBytes, err := base64.RawURLEncoding.DecodeString(n)
 	if err != nil {
-		return nil, errors.NewWithTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf(
 				"base64 raw url encoding decode string (n): %w",
 				err,
@@ -36,7 +35,7 @@ func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	e := k.E
 	eBytes, err := base64.RawURLEncoding.DecodeString(e)
 	if err != nil {
-		return nil, errors.NewWithTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf(
 				"base64 raw url encoding decode string (e): %w",
 				err,
@@ -64,7 +63,7 @@ func New(m map[string]any) (*Key, error) {
 	}
 
 	if kty != "RSA" {
-		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
+		return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
 	}
 
 	n, err := utils.MapGetConvert[string](m, "n")

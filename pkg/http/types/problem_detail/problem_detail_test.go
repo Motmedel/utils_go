@@ -19,6 +19,8 @@ type testValidationError struct {
 }
 
 func TestDetail_MarshalXML(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		detail *Detail
@@ -133,6 +135,8 @@ func TestDetail_MarshalXML(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := xml.Marshal(tt.detail)
 			if err != nil {
 				t.Fatalf("xml marshal: %v", err)
@@ -146,13 +150,19 @@ func TestDetail_MarshalXML(t *testing.T) {
 }
 
 func TestDetail_MarshalXML_Errors(t *testing.T) {
+	t.Parallel()
+
 	t.Run("nil encoder", func(t *testing.T) {
+		t.Parallel()
+
 		if err := (&Detail{}).MarshalXML(nil, xml.StartElement{}); err == nil {
 			t.Error("expected an error")
 		}
 	})
 
 	t.Run("unmarshalable extension value", func(t *testing.T) {
+		t.Parallel()
+
 		detail := &Detail{Status: 500, Extension: map[string]any{"ch": make(chan int)}}
 		if _, err := xml.Marshal(detail); err == nil {
 			t.Error("expected an error")
@@ -160,6 +170,8 @@ func TestDetail_MarshalXML_Errors(t *testing.T) {
 	})
 
 	t.Run("out-of-range extension number", func(t *testing.T) {
+		t.Parallel()
+
 		detail := &Detail{Status: 500, Extension: map[string]any{"n": outOfRangeNumber{}}}
 		if _, err := xml.Marshal(detail); err == nil {
 			t.Error("expected an error")
@@ -191,7 +203,11 @@ func poisonedEncoder() *xml.Encoder {
 }
 
 func TestDetail_MarshalXML_WriteErrors(t *testing.T) {
+	t.Parallel()
+
 	t.Run("root start token", func(t *testing.T) {
+		t.Parallel()
+
 		detail := &Detail{Status: 500}
 		if err := detail.MarshalXML(poisonedEncoder(), xml.StartElement{}); err == nil {
 			t.Error("expected an error")
@@ -210,6 +226,8 @@ func TestDetail_MarshalXML_WriteErrors(t *testing.T) {
 	}
 	for name, detail := range fieldDetails {
 		t.Run(name+" element", func(t *testing.T) {
+			t.Parallel()
+
 			encoder := xml.NewEncoder(errorWriter{})
 			if err := detail.MarshalXML(encoder, xml.StartElement{}); err == nil {
 				t.Error("expected an error")
@@ -221,6 +239,8 @@ func TestDetail_MarshalXML_WriteErrors(t *testing.T) {
 	// 4096-byte buffer overflows mid-write, so sweep the content size to
 	// land the overflow on end token and closing tag writes as well.
 	t.Run("token writes via buffer overflow", func(t *testing.T) {
+		t.Parallel()
+
 		for padLength := range 7 {
 			for itemCount := 574; itemCount <= 584; itemCount++ {
 				detail := &Detail{
@@ -243,6 +263,8 @@ func TestDetail_MarshalXML_WriteErrors(t *testing.T) {
 }
 
 func TestEncodeXmlValue_WriteErrors(t *testing.T) {
+	t.Parallel()
+
 	values := map[string]any{
 		"object": map[string]any{"a": 1},
 		"array":  []any{1},
@@ -251,6 +273,8 @@ func TestEncodeXmlValue_WriteErrors(t *testing.T) {
 	}
 	for name, value := range values {
 		t.Run(name+" start token", func(t *testing.T) {
+			t.Parallel()
+
 			if err := encodeXmlValue(poisonedEncoder(), "v", value); err == nil {
 				t.Error("expected an error")
 			}
@@ -265,6 +289,8 @@ func TestEncodeXmlValue_WriteErrors(t *testing.T) {
 	}
 	for name, value := range nestedValues {
 		t.Run(name+" nested error propagation", func(t *testing.T) {
+			t.Parallel()
+
 			encoder := xml.NewEncoder(errorWriter{})
 			if err := encodeXmlValue(encoder, "v", value); err == nil {
 				t.Error("expected an error")
@@ -276,6 +302,8 @@ func TestEncodeXmlValue_WriteErrors(t *testing.T) {
 	// internal 4096-byte buffer overflows mid-write; sweep the element name
 	// length to land the overflow on both start and end child tag writes.
 	t.Run("object token writes via buffer overflow", func(t *testing.T) {
+		t.Parallel()
+
 		children := make(map[string]any, 320)
 		for i := range 320 {
 			children[fmt.Sprintf("c%03d", i)] = map[string]any{}
@@ -295,6 +323,8 @@ func TestEncodeXmlValue_WriteErrors(t *testing.T) {
 }
 
 func TestDetail_MarshalJSON(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		detail *Detail
@@ -331,6 +361,8 @@ func TestDetail_MarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := json.Marshal(tt.detail)
 			if err != nil {
 				t.Fatalf("json marshal: %v", err)
@@ -343,6 +375,8 @@ func TestDetail_MarshalJSON(t *testing.T) {
 	}
 
 	t.Run("nil receiver", func(t *testing.T) {
+		t.Parallel()
+
 		var detail *Detail
 		got, err := detail.MarshalJSON()
 		if err != nil {
@@ -355,6 +389,8 @@ func TestDetail_MarshalJSON(t *testing.T) {
 	})
 
 	t.Run("unmarshalable extension value", func(t *testing.T) {
+		t.Parallel()
+
 		detail := &Detail{Extension: map[string]any{"ch": make(chan int)}}
 		if _, err := json.Marshal(detail); err == nil {
 			t.Error("expected an error")
@@ -363,6 +399,8 @@ func TestDetail_MarshalJSON(t *testing.T) {
 }
 
 func TestDetail_UnmarshalJSON(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		data    string
@@ -450,6 +488,8 @@ func TestDetail_UnmarshalJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			detail := tt.initial
 			err := json.Unmarshal([]byte(tt.data), &detail)
 			if tt.wantErr {
@@ -469,6 +509,8 @@ func TestDetail_UnmarshalJSON(t *testing.T) {
 	}
 
 	t.Run("nil receiver", func(t *testing.T) {
+		t.Parallel()
+
 		var detail *Detail
 		if err := detail.UnmarshalJSON([]byte(`{}`)); err == nil {
 			t.Error("expected an error")
@@ -478,6 +520,8 @@ func TestDetail_UnmarshalJSON(t *testing.T) {
 	// json.Unmarshal strips surrounding whitespace before invoking
 	// UnmarshalJSON, so the nil raw map is only reachable directly.
 	t.Run("null with whitespace", func(t *testing.T) {
+		t.Parallel()
+
 		detail := Detail{Title: "old"}
 		if err := detail.UnmarshalJSON([]byte(" null ")); err != nil {
 			t.Fatalf("json unmarshal: %v", err)
@@ -490,6 +534,8 @@ func TestDetail_UnmarshalJSON(t *testing.T) {
 }
 
 func TestDetail_JSONRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := &Detail{
 		Type:      "https://example.com/probs/out-of-credit",
 		Title:     "Out of credit",
@@ -515,6 +561,8 @@ func TestDetail_JSONRoundTrip(t *testing.T) {
 }
 
 func TestDetail_String(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		detail Detail
@@ -560,6 +608,8 @@ func TestDetail_String(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := tt.detail.String()
 			if err != nil {
 				t.Fatalf("string: %v", err)
@@ -573,7 +623,11 @@ func TestDetail_String(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	t.Run("defaults", func(t *testing.T) {
+		t.Parallel()
+
 		detail := New(404)
 		if detail.Status != 404 {
 			t.Errorf("got status %d, want 404", detail.Status)
@@ -590,6 +644,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("with options", func(t *testing.T) {
+		t.Parallel()
+
 		extension := map[string]any{"foo": "bar"}
 		detail := New(
 			500,

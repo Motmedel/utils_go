@@ -26,23 +26,20 @@ func parseXCloudTraceContext(h string) (traceID string, spanIDHex string, sample
 		return "", "", nil
 	}
 
-	// Split TRACE_ID from the rest
-	parts := strings.SplitN(h, "/", 2)
-	traceID = parts[0]
+	// Split TRACE_ID from the rest (SPAN_ID;o=TRACE_TRUE).
+	traceID, rest, _ := strings.Cut(h, "/")
 
-	if len(parts) > 1 {
-		// parts[1] is like: SPAN_ID;o=1
-		sub := strings.SplitN(parts[1], ";", 2)
-		if len(sub) > 0 {
-			// Convert decimal SPAN_ID to 16-hex-digit lowercase as required by Cloud Logging
-			if n, err := strconv.ParseUint(sub[0], 10, 64); err == nil {
-				spanIDHex = fmt.Sprintf("%016x", n)
-			}
-		}
-		if len(sub) > 1 && strings.HasPrefix(sub[1], "o=") {
-			v := sub[1] == "o=1"
-			sampled = &v
-		}
+	// rest is like: SPAN_ID;o=1
+	spanID, flag, _ := strings.Cut(rest, ";")
+
+	// Convert decimal SPAN_ID to 16-hex-digit lowercase as required by Cloud Logging
+	if n, err := strconv.ParseUint(spanID, 10, 64); err == nil {
+		spanIDHex = fmt.Sprintf("%016x", n)
+	}
+
+	if strings.HasPrefix(flag, "o=") {
+		v := flag == "o=1"
+		sampled = &v
 	}
 
 	return

@@ -38,6 +38,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 // User operations
 
 func TestCreateUser(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -75,6 +77,8 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUser_NilUser(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	u, err := client.CreateUser(context.Background(), nil)
 	if err != nil {
@@ -86,6 +90,8 @@ func TestCreateUser_NilUser(t *testing.T) {
 }
 
 func TestCreateUser_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -96,6 +102,8 @@ func TestCreateUser_CancelledContext(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -121,6 +129,8 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestGetUser_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetUser(context.Background(), "")
 	if err == nil {
@@ -129,6 +139,8 @@ func TestGetUser_EmptyKey(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			t.Errorf("expected PUT, got %s", r.Method)
@@ -151,6 +163,8 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestUpdateUser_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.UpdateUser(context.Background(), "", &user.User{})
 	if err == nil {
@@ -159,6 +173,8 @@ func TestUpdateUser_EmptyKey(t *testing.T) {
 }
 
 func TestUpdateUser_NilUser(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	u, err := client.UpdateUser(context.Background(), "key", nil)
 	if err != nil {
@@ -170,6 +186,8 @@ func TestUpdateUser_NilUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -187,6 +205,8 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestDeleteUser_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteUser(context.Background(), "")
 	if err == nil {
@@ -197,6 +217,8 @@ func TestDeleteUser_EmptyKey(t *testing.T) {
 // Group operations
 
 func TestCreateGroup(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -230,6 +252,8 @@ func TestCreateGroup(t *testing.T) {
 }
 
 func TestCreateGroup_NilGroup(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	g, err := client.CreateGroup(context.Background(), nil)
 	if err != nil {
@@ -241,6 +265,8 @@ func TestCreateGroup_NilGroup(t *testing.T) {
 }
 
 func TestGetGroup(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -262,6 +288,8 @@ func TestGetGroup(t *testing.T) {
 }
 
 func TestGetGroup_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetGroup(context.Background(), "")
 	if err == nil {
@@ -270,6 +298,8 @@ func TestGetGroup_EmptyKey(t *testing.T) {
 }
 
 func TestUpdateGroup(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			t.Errorf("expected PUT, got %s", r.Method)
@@ -291,6 +321,8 @@ func TestUpdateGroup(t *testing.T) {
 }
 
 func TestUpdateGroup_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.UpdateGroup(context.Background(), "", &group.Group{})
 	if err == nil {
@@ -299,6 +331,8 @@ func TestUpdateGroup_EmptyKey(t *testing.T) {
 }
 
 func TestUpdateGroup_NilGroup(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	g, err := client.UpdateGroup(context.Background(), "key", nil)
 	if err != nil {
@@ -310,6 +344,8 @@ func TestUpdateGroup_NilGroup(t *testing.T) {
 }
 
 func TestDeleteGroup(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -324,6 +360,8 @@ func TestDeleteGroup(t *testing.T) {
 }
 
 func TestDeleteGroup_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteGroup(context.Background(), "")
 	if err == nil {
@@ -334,6 +372,8 @@ func TestDeleteGroup_EmptyKey(t *testing.T) {
 // Member operations
 
 func TestCreateMember(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -370,6 +410,8 @@ func TestCreateMember(t *testing.T) {
 }
 
 func TestCreateMember_EmptyGroupKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.CreateMember(context.Background(), "", &member.Member{})
 	if err == nil {
@@ -378,6 +420,8 @@ func TestCreateMember_EmptyGroupKey(t *testing.T) {
 }
 
 func TestCreateMember_NilMember(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	m, err := client.CreateMember(context.Background(), "group@example.com", nil)
 	if err != nil {
@@ -389,6 +433,8 @@ func TestCreateMember_NilMember(t *testing.T) {
 }
 
 func TestGetMember(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -410,6 +456,8 @@ func TestGetMember(t *testing.T) {
 }
 
 func TestGetMember_EmptyGroupKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetMember(context.Background(), "", "member")
 	if err == nil {
@@ -418,6 +466,8 @@ func TestGetMember_EmptyGroupKey(t *testing.T) {
 }
 
 func TestGetMember_EmptyMemberKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetMember(context.Background(), "group", "")
 	if err == nil {
@@ -426,6 +476,8 @@ func TestGetMember_EmptyMemberKey(t *testing.T) {
 }
 
 func TestUpdateMember(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			t.Errorf("expected PUT, got %s", r.Method)
@@ -447,6 +499,8 @@ func TestUpdateMember(t *testing.T) {
 }
 
 func TestUpdateMember_EmptyGroupKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.UpdateMember(context.Background(), "", "member", &member.Member{})
 	if err == nil {
@@ -455,6 +509,8 @@ func TestUpdateMember_EmptyGroupKey(t *testing.T) {
 }
 
 func TestUpdateMember_EmptyMemberKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.UpdateMember(context.Background(), "group", "", &member.Member{})
 	if err == nil {
@@ -463,6 +519,8 @@ func TestUpdateMember_EmptyMemberKey(t *testing.T) {
 }
 
 func TestUpdateMember_NilMember(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	m, err := client.UpdateMember(context.Background(), "group", "member", nil)
 	if err != nil {
@@ -474,6 +532,8 @@ func TestUpdateMember_NilMember(t *testing.T) {
 }
 
 func TestDeleteMember(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -488,6 +548,8 @@ func TestDeleteMember(t *testing.T) {
 }
 
 func TestDeleteMember_EmptyGroupKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteMember(context.Background(), "", "member")
 	if err == nil {
@@ -496,6 +558,8 @@ func TestDeleteMember_EmptyGroupKey(t *testing.T) {
 }
 
 func TestDeleteMember_EmptyMemberKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteMember(context.Background(), "group", "")
 	if err == nil {
@@ -506,6 +570,8 @@ func TestDeleteMember_EmptyMemberKey(t *testing.T) {
 // User security operations
 
 func TestMakeUserAdmin(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -532,6 +598,8 @@ func TestMakeUserAdmin(t *testing.T) {
 }
 
 func TestMakeUserAdmin_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.MakeUserAdmin(context.Background(), "", true)
 	if err == nil {
@@ -540,6 +608,8 @@ func TestMakeUserAdmin_EmptyKey(t *testing.T) {
 }
 
 func TestSignOutUser(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -557,6 +627,8 @@ func TestSignOutUser(t *testing.T) {
 }
 
 func TestSignOutUser_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.SignOutUser(context.Background(), "")
 	if err == nil {
@@ -565,6 +637,8 @@ func TestSignOutUser_EmptyKey(t *testing.T) {
 }
 
 func TestTurnOffUser2Sv(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -582,6 +656,8 @@ func TestTurnOffUser2Sv(t *testing.T) {
 }
 
 func TestTurnOffUser2Sv_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.TurnOffUser2Sv(context.Background(), "")
 	if err == nil {
@@ -592,6 +668,8 @@ func TestTurnOffUser2Sv_EmptyKey(t *testing.T) {
 // Org unit operations
 
 func TestCreateOrgUnit(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -629,6 +707,8 @@ func TestCreateOrgUnit(t *testing.T) {
 }
 
 func TestCreateOrgUnit_NilOrgUnit(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ou, err := client.CreateOrgUnit(context.Background(), "my_customer", nil)
 	if err != nil {
@@ -640,6 +720,8 @@ func TestCreateOrgUnit_NilOrgUnit(t *testing.T) {
 }
 
 func TestCreateOrgUnit_EmptyCustomer(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.CreateOrgUnit(context.Background(), "", &org_unit.OrgUnit{Name: "Engineering"})
 	if err == nil {
@@ -648,6 +730,8 @@ func TestCreateOrgUnit_EmptyCustomer(t *testing.T) {
 }
 
 func TestGetOrgUnit(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -673,6 +757,8 @@ func TestGetOrgUnit(t *testing.T) {
 }
 
 func TestGetOrgUnit_EmptyCustomer(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetOrgUnit(context.Background(), "", "/Engineering")
 	if err == nil {
@@ -681,6 +767,8 @@ func TestGetOrgUnit_EmptyCustomer(t *testing.T) {
 }
 
 func TestGetOrgUnit_EmptyPath(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetOrgUnit(context.Background(), "my_customer", "")
 	if err == nil {
@@ -689,6 +777,8 @@ func TestGetOrgUnit_EmptyPath(t *testing.T) {
 }
 
 func TestUpdateOrgUnit(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			t.Errorf("expected PUT, got %s", r.Method)
@@ -717,6 +807,8 @@ func TestUpdateOrgUnit(t *testing.T) {
 }
 
 func TestUpdateOrgUnit_NilOrgUnit(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ou, err := client.UpdateOrgUnit(context.Background(), "my_customer", "/Engineering", nil)
 	if err != nil {
@@ -728,6 +820,8 @@ func TestUpdateOrgUnit_NilOrgUnit(t *testing.T) {
 }
 
 func TestDeleteOrgUnit(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -745,6 +839,8 @@ func TestDeleteOrgUnit(t *testing.T) {
 }
 
 func TestListOrgUnits(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -776,6 +872,8 @@ func TestListOrgUnits(t *testing.T) {
 // Role operations
 
 func TestListRoles_Pagination(t *testing.T) {
+	t.Parallel()
+
 	requestCount := 0
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		requestCount++
@@ -808,6 +906,8 @@ func TestListRoles_Pagination(t *testing.T) {
 }
 
 func TestCreateRole(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -842,6 +942,8 @@ func TestCreateRole(t *testing.T) {
 }
 
 func TestCreateRole_NilRole(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	r, err := client.CreateRole(context.Background(), "my_customer", nil)
 	if err != nil {
@@ -853,6 +955,8 @@ func TestCreateRole_NilRole(t *testing.T) {
 }
 
 func TestGetRole(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -874,6 +978,8 @@ func TestGetRole(t *testing.T) {
 }
 
 func TestGetRole_EmptyRoleId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetRole(context.Background(), "my_customer", "")
 	if err == nil {
@@ -882,6 +988,8 @@ func TestGetRole_EmptyRoleId(t *testing.T) {
 }
 
 func TestUpdateRole(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			t.Errorf("expected PUT, got %s", r.Method)
@@ -910,6 +1018,8 @@ func TestUpdateRole(t *testing.T) {
 }
 
 func TestDeleteRole(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -927,6 +1037,8 @@ func TestDeleteRole(t *testing.T) {
 }
 
 func TestListPrivileges(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -964,6 +1076,8 @@ func TestListPrivileges(t *testing.T) {
 // Role assignment operations
 
 func TestListRoleAssignments(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -999,6 +1113,8 @@ func TestListRoleAssignments(t *testing.T) {
 }
 
 func TestCreateRoleAssignment(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -1034,6 +1150,8 @@ func TestCreateRoleAssignment(t *testing.T) {
 }
 
 func TestCreateRoleAssignment_NilRoleAssignment(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ra, err := client.CreateRoleAssignment(context.Background(), "my_customer", nil)
 	if err != nil {
@@ -1045,6 +1163,8 @@ func TestCreateRoleAssignment_NilRoleAssignment(t *testing.T) {
 }
 
 func TestGetRoleAssignment(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -1071,6 +1191,8 @@ func TestGetRoleAssignment(t *testing.T) {
 }
 
 func TestDeleteRoleAssignment(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -1088,6 +1210,8 @@ func TestDeleteRoleAssignment(t *testing.T) {
 }
 
 func TestDeleteRoleAssignment_EmptyId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteRoleAssignment(context.Background(), "my_customer", "")
 	if err == nil {
@@ -1098,6 +1222,8 @@ func TestDeleteRoleAssignment_EmptyId(t *testing.T) {
 // Token operations
 
 func TestListTokens(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -1126,6 +1252,8 @@ func TestListTokens(t *testing.T) {
 }
 
 func TestListTokens_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.ListTokens(context.Background(), "")
 	if err == nil {
@@ -1134,6 +1262,8 @@ func TestListTokens_EmptyKey(t *testing.T) {
 }
 
 func TestGetToken(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -1159,6 +1289,8 @@ func TestGetToken(t *testing.T) {
 }
 
 func TestDeleteToken(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -1176,6 +1308,8 @@ func TestDeleteToken(t *testing.T) {
 }
 
 func TestDeleteToken_EmptyClientId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteToken(context.Background(), "test@example.com", "")
 	if err == nil {
@@ -1186,6 +1320,8 @@ func TestDeleteToken_EmptyClientId(t *testing.T) {
 // Application-specific password operations
 
 func TestListAsps(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -1214,6 +1350,8 @@ func TestListAsps(t *testing.T) {
 }
 
 func TestGetAsp(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -1235,6 +1373,8 @@ func TestGetAsp(t *testing.T) {
 }
 
 func TestDeleteAsp(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -1252,6 +1392,8 @@ func TestDeleteAsp(t *testing.T) {
 }
 
 func TestDeleteAsp_EmptyKey(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteAsp(context.Background(), "", 1)
 	if err == nil {

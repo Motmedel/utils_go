@@ -20,8 +20,8 @@ import (
 
 // fakeSigner records the payload it was asked to sign and returns a fixed signature.
 type fakeSigner struct {
-	email     string
-	signature []byte
+	email      string
+	signature  []byte
 	gotPayload []byte
 }
 
@@ -44,6 +44,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 }
 
 func TestInsertBucket(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -80,6 +82,8 @@ func TestInsertBucket(t *testing.T) {
 }
 
 func TestInsertBucket_EmptyProject(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.InsertBucket(context.Background(), "", &bucket.Bucket{Name: "b"})
 	if err == nil {
@@ -88,6 +92,8 @@ func TestInsertBucket_EmptyProject(t *testing.T) {
 }
 
 func TestInsertBucket_NilConfig(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	b, err := client.InsertBucket(context.Background(), "project", nil)
 	if err != nil {
@@ -99,6 +105,8 @@ func TestInsertBucket_NilConfig(t *testing.T) {
 }
 
 func TestInsertBucket_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -109,6 +117,8 @@ func TestInsertBucket_CancelledContext(t *testing.T) {
 }
 
 func TestPatchBucket(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {
 			t.Errorf("expected PATCH, got %s", r.Method)
@@ -133,6 +143,8 @@ func TestPatchBucket(t *testing.T) {
 }
 
 func TestPatchBucket_EmptyName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.PatchBucket(context.Background(), "", &bucket.Bucket{})
 	if err == nil {
@@ -141,6 +153,8 @@ func TestPatchBucket_EmptyName(t *testing.T) {
 }
 
 func TestPatchBucket_NilConfig(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	b, err := client.PatchBucket(context.Background(), "bucket", nil)
 	if err != nil {
@@ -152,6 +166,8 @@ func TestPatchBucket_NilConfig(t *testing.T) {
 }
 
 func TestGetObject(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -182,6 +198,8 @@ func TestGetObject(t *testing.T) {
 }
 
 func TestGetObject_EmptyBucketName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetObject(context.Background(), "", "obj")
 	if err == nil {
@@ -190,6 +208,8 @@ func TestGetObject_EmptyBucketName(t *testing.T) {
 }
 
 func TestGetObject_EmptyObjectName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetObject(context.Background(), "bucket", "")
 	if err == nil {
@@ -198,6 +218,8 @@ func TestGetObject_EmptyObjectName(t *testing.T) {
 }
 
 func TestDownloadObject(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -218,6 +240,8 @@ func TestDownloadObject(t *testing.T) {
 }
 
 func TestDownloadObject_EmptyBucketName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.DownloadObject(context.Background(), "", "obj")
 	if err == nil {
@@ -226,6 +250,8 @@ func TestDownloadObject_EmptyBucketName(t *testing.T) {
 }
 
 func TestDownloadObject_EmptyObjectName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.DownloadObject(context.Background(), "bucket", "")
 	if err == nil {
@@ -234,6 +260,8 @@ func TestDownloadObject_EmptyObjectName(t *testing.T) {
 }
 
 func TestListObjects(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -264,6 +292,8 @@ func TestListObjects(t *testing.T) {
 }
 
 func TestListObjects_EmptyBucketName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.ListObjects(context.Background(), "", nil)
 	if err == nil {
@@ -272,6 +302,8 @@ func TestListObjects_EmptyBucketName(t *testing.T) {
 }
 
 func TestListObjects_NilQuery(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.RawQuery != "" {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
@@ -287,6 +319,8 @@ func TestListObjects_NilQuery(t *testing.T) {
 }
 
 func TestDeleteObject(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -304,6 +338,8 @@ func TestDeleteObject(t *testing.T) {
 }
 
 func TestDeleteObject_EmptyBucketName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteObject(context.Background(), "", "obj")
 	if err == nil {
@@ -312,6 +348,8 @@ func TestDeleteObject_EmptyBucketName(t *testing.T) {
 }
 
 func TestDeleteObject_EmptyObjectName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteObject(context.Background(), "bucket", "")
 	if err == nil {
@@ -320,6 +358,8 @@ func TestDeleteObject_EmptyObjectName(t *testing.T) {
 }
 
 func TestDeleteObject_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -330,6 +370,8 @@ func TestDeleteObject_CancelledContext(t *testing.T) {
 }
 
 func TestInsertObject(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -376,6 +418,8 @@ func TestInsertObject(t *testing.T) {
 }
 
 func TestInsertObject_EmptyBucketName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.InsertObject(context.Background(), "", &object.Object{Name: "o"}, []byte("x"), "text/plain")
 	if err == nil {
@@ -384,6 +428,8 @@ func TestInsertObject_EmptyBucketName(t *testing.T) {
 }
 
 func TestInsertObject_EmptyContentType(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.InsertObject(context.Background(), "bucket", &object.Object{Name: "o"}, []byte("x"), "")
 	if err == nil {
@@ -392,6 +438,8 @@ func TestInsertObject_EmptyContentType(t *testing.T) {
 }
 
 func TestInsertObject_NilMetadata(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	obj, err := client.InsertObject(context.Background(), "bucket", nil, []byte("x"), "text/plain")
 	if err != nil {
@@ -403,6 +451,8 @@ func TestInsertObject_NilMetadata(t *testing.T) {
 }
 
 func TestInsertObject_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -412,8 +462,9 @@ func TestInsertObject_CancelledContext(t *testing.T) {
 	}
 }
 
-
 func TestSignedUrl(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 
 	signer := &fakeSigner{
@@ -481,6 +532,8 @@ func TestSignedUrl(t *testing.T) {
 }
 
 func TestSignedUrl_NilSigner(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.SignedUrl(context.Background(), nil, http.MethodGet, "b", "o", time.Hour)
 	if err == nil {
@@ -489,6 +542,8 @@ func TestSignedUrl_NilSigner(t *testing.T) {
 }
 
 func TestSignedUrl_EmptyBucket(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
 	_, err := client.SignedUrl(context.Background(), signer, http.MethodGet, "", "o", time.Hour)
@@ -498,6 +553,8 @@ func TestSignedUrl_EmptyBucket(t *testing.T) {
 }
 
 func TestSignedUrl_EmptyObject(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
 	_, err := client.SignedUrl(context.Background(), signer, http.MethodGet, "b", "", time.Hour)
@@ -507,6 +564,8 @@ func TestSignedUrl_EmptyObject(t *testing.T) {
 }
 
 func TestSignedUrl_ExpiresOutOfRange(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
 
@@ -519,6 +578,8 @@ func TestSignedUrl_ExpiresOutOfRange(t *testing.T) {
 }
 
 func TestSignedUrl_DefaultMethod(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	signer := &fakeSigner{email: "x@y.iam.gserviceaccount.com", signature: []byte{1}}
 	if _, err := client.SignedUrl(context.Background(), signer, "", "b", "o", time.Hour); err != nil {

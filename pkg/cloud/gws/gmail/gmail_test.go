@@ -31,6 +31,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 }
 
 func TestSend(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -65,6 +67,8 @@ func TestSend(t *testing.T) {
 }
 
 func TestSend_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.Send(context.Background(), "", &message.Message{Raw: "dGVzdA=="})
 	if err == nil {
@@ -73,6 +77,8 @@ func TestSend_EmptyUserId(t *testing.T) {
 }
 
 func TestSend_NilMessage(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	msg, err := client.Send(context.Background(), "me", nil)
 	if err != nil {
@@ -84,6 +90,8 @@ func TestSend_NilMessage(t *testing.T) {
 }
 
 func TestSend_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -94,6 +102,8 @@ func TestSend_CancelledContext(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -132,6 +142,8 @@ func TestWatch(t *testing.T) {
 }
 
 func TestWatch_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.Watch(context.Background(), "", &watch_request.WatchRequest{
 		TopicName: "projects/my-project/topics/my-topic",
@@ -142,6 +154,8 @@ func TestWatch_EmptyUserId(t *testing.T) {
 }
 
 func TestWatch_NilRequest(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	resp, err := client.Watch(context.Background(), "me", nil)
 	if err != nil {
@@ -153,6 +167,8 @@ func TestWatch_NilRequest(t *testing.T) {
 }
 
 func TestWatch_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -165,6 +181,8 @@ func TestWatch_CancelledContext(t *testing.T) {
 }
 
 func TestWatchUrl(t *testing.T) {
+	t.Parallel()
+
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(gmail_config.WithBaseUrl(u))
 	got := client.watchUrl("user@example.com")
@@ -175,6 +193,8 @@ func TestWatchUrl(t *testing.T) {
 }
 
 func TestListHistory(t *testing.T) {
+	t.Parallel()
+
 	callCount := 0
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -241,6 +261,8 @@ func TestListHistory(t *testing.T) {
 }
 
 func TestListHistory_WithHistoryTypesAndLabelId(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		historyTypes := r.URL.Query()["historyTypes"]
 		if len(historyTypes) != 2 || historyTypes[0] != "messageAdded" || historyTypes[1] != "labelAdded" {
@@ -267,6 +289,8 @@ func TestListHistory_WithHistoryTypesAndLabelId(t *testing.T) {
 }
 
 func TestListHistory_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.ListHistory(context.Background(), "", "12345")
 	if err == nil {
@@ -275,6 +299,8 @@ func TestListHistory_EmptyUserId(t *testing.T) {
 }
 
 func TestListHistory_EmptyStartHistoryId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.ListHistory(context.Background(), "me", "")
 	if err == nil {
@@ -283,6 +309,8 @@ func TestListHistory_EmptyStartHistoryId(t *testing.T) {
 }
 
 func TestListHistory_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -293,6 +321,8 @@ func TestListHistory_CancelledContext(t *testing.T) {
 }
 
 func TestHistoryUrl(t *testing.T) {
+	t.Parallel()
+
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(gmail_config.WithBaseUrl(u))
 	got := client.historyUrl("user@example.com")
@@ -303,6 +333,8 @@ func TestHistoryUrl(t *testing.T) {
 }
 
 func TestSendUrl(t *testing.T) {
+	t.Parallel()
+
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(gmail_config.WithBaseUrl(u))
 	got := client.sendUrl("user@example.com")
@@ -313,6 +345,8 @@ func TestSendUrl(t *testing.T) {
 }
 
 func TestCreateSendAs(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -349,6 +383,8 @@ func TestCreateSendAs(t *testing.T) {
 }
 
 func TestCreateSendAs_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.CreateSendAs(context.Background(), "", &send_as.SendAs{SendAsEmail: "a@b.com"})
 	if err == nil {
@@ -357,6 +393,8 @@ func TestCreateSendAs_EmptyUserId(t *testing.T) {
 }
 
 func TestCreateSendAs_NilSendAs(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	result, err := client.CreateSendAs(context.Background(), "me", nil)
 	if err != nil {
@@ -368,6 +406,8 @@ func TestCreateSendAs_NilSendAs(t *testing.T) {
 }
 
 func TestCreateSendAs_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -378,6 +418,8 @@ func TestCreateSendAs_CancelledContext(t *testing.T) {
 }
 
 func TestGetSendAs(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -410,6 +452,8 @@ func TestGetSendAs(t *testing.T) {
 }
 
 func TestGetSendAs_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetSendAs(context.Background(), "", "a@b.com")
 	if err == nil {
@@ -418,6 +462,8 @@ func TestGetSendAs_EmptyUserId(t *testing.T) {
 }
 
 func TestGetSendAs_EmptySendAsEmail(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetSendAs(context.Background(), "me", "")
 	if err == nil {
@@ -426,6 +472,8 @@ func TestGetSendAs_EmptySendAsEmail(t *testing.T) {
 }
 
 func TestUpdateSendAs(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			t.Errorf("expected PUT, got %s", r.Method)
@@ -456,6 +504,8 @@ func TestUpdateSendAs(t *testing.T) {
 }
 
 func TestUpdateSendAs_EmptySendAsEmail(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.UpdateSendAs(context.Background(), "me", "", &send_as.SendAs{})
 	if err == nil {
@@ -464,6 +514,8 @@ func TestUpdateSendAs_EmptySendAsEmail(t *testing.T) {
 }
 
 func TestUpdateSendAs_NilSendAs(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	result, err := client.UpdateSendAs(context.Background(), "me", "a@b.com", nil)
 	if err != nil {
@@ -475,6 +527,8 @@ func TestUpdateSendAs_NilSendAs(t *testing.T) {
 }
 
 func TestDeleteSendAs(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -492,6 +546,8 @@ func TestDeleteSendAs(t *testing.T) {
 }
 
 func TestDeleteSendAs_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteSendAs(context.Background(), "", "a@b.com")
 	if err == nil {
@@ -500,6 +556,8 @@ func TestDeleteSendAs_EmptyUserId(t *testing.T) {
 }
 
 func TestDeleteSendAs_EmptySendAsEmail(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteSendAs(context.Background(), "me", "")
 	if err == nil {
@@ -508,6 +566,8 @@ func TestDeleteSendAs_EmptySendAsEmail(t *testing.T) {
 }
 
 func TestListMessages(t *testing.T) {
+	t.Parallel()
+
 	callCount := 0
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -560,6 +620,8 @@ func TestListMessages(t *testing.T) {
 }
 
 func TestListMessages_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.ListMessages(context.Background(), "", "in:inbox")
 	if err == nil {
@@ -568,6 +630,8 @@ func TestListMessages_EmptyUserId(t *testing.T) {
 }
 
 func TestListMessages_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -578,6 +642,8 @@ func TestListMessages_CancelledContext(t *testing.T) {
 }
 
 func TestListMessages_EmptyQuery(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("q") != "" {
 			t.Errorf("expected no q parameter, got %q", r.URL.Query().Get("q"))
@@ -601,6 +667,8 @@ func TestListMessages_EmptyQuery(t *testing.T) {
 }
 
 func TestGetMessage(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -636,6 +704,8 @@ func TestGetMessage(t *testing.T) {
 }
 
 func TestGetMessage_WithFormatAndMetadataHeaders(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("format") != "metadata" {
 			t.Errorf("expected format=metadata, got %q", r.URL.Query().Get("format"))
@@ -665,6 +735,8 @@ func TestGetMessage_WithFormatAndMetadataHeaders(t *testing.T) {
 }
 
 func TestGetMessage_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetMessage(context.Background(), "", "msg-123")
 	if err == nil {
@@ -673,6 +745,8 @@ func TestGetMessage_EmptyUserId(t *testing.T) {
 }
 
 func TestGetMessage_EmptyMessageId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetMessage(context.Background(), "me", "")
 	if err == nil {
@@ -681,6 +755,8 @@ func TestGetMessage_EmptyMessageId(t *testing.T) {
 }
 
 func TestGetMessage_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -691,6 +767,8 @@ func TestGetMessage_CancelledContext(t *testing.T) {
 }
 
 func TestTrash(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -723,6 +801,8 @@ func TestTrash(t *testing.T) {
 }
 
 func TestTrash_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.Trash(context.Background(), "", "msg-123")
 	if err == nil {
@@ -731,6 +811,8 @@ func TestTrash_EmptyUserId(t *testing.T) {
 }
 
 func TestTrash_EmptyMessageId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.Trash(context.Background(), "me", "")
 	if err == nil {
@@ -739,6 +821,8 @@ func TestTrash_EmptyMessageId(t *testing.T) {
 }
 
 func TestTrash_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -749,6 +833,8 @@ func TestTrash_CancelledContext(t *testing.T) {
 }
 
 func TestMessagesUrl(t *testing.T) {
+	t.Parallel()
+
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(gmail_config.WithBaseUrl(u))
 
@@ -766,6 +852,8 @@ func TestMessagesUrl(t *testing.T) {
 }
 
 func TestSendAsUrl(t *testing.T) {
+	t.Parallel()
+
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(gmail_config.WithBaseUrl(u))
 
@@ -783,6 +871,8 @@ func TestSendAsUrl(t *testing.T) {
 }
 
 func TestCreateFilter(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -825,6 +915,8 @@ func TestCreateFilter(t *testing.T) {
 }
 
 func TestCreateFilter_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.CreateFilter(context.Background(), "", &filter.Filter{})
 	if err == nil {
@@ -833,6 +925,8 @@ func TestCreateFilter_EmptyUserId(t *testing.T) {
 }
 
 func TestCreateFilter_NilFilter(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	result, err := client.CreateFilter(context.Background(), "me", nil)
 	if err != nil {
@@ -844,6 +938,8 @@ func TestCreateFilter_NilFilter(t *testing.T) {
 }
 
 func TestCreateFilter_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -854,6 +950,8 @@ func TestCreateFilter_CancelledContext(t *testing.T) {
 }
 
 func TestGetFilter(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -886,6 +984,8 @@ func TestGetFilter(t *testing.T) {
 }
 
 func TestGetFilter_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetFilter(context.Background(), "", "filter-1")
 	if err == nil {
@@ -894,6 +994,8 @@ func TestGetFilter_EmptyUserId(t *testing.T) {
 }
 
 func TestGetFilter_EmptyFilterId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetFilter(context.Background(), "me", "")
 	if err == nil {
@@ -902,6 +1004,8 @@ func TestGetFilter_EmptyFilterId(t *testing.T) {
 }
 
 func TestGetFilter_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -912,6 +1016,8 @@ func TestGetFilter_CancelledContext(t *testing.T) {
 }
 
 func TestListFilters(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -953,6 +1059,8 @@ func TestListFilters(t *testing.T) {
 }
 
 func TestListFilters_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.ListFilters(context.Background(), "")
 	if err == nil {
@@ -961,6 +1069,8 @@ func TestListFilters_EmptyUserId(t *testing.T) {
 }
 
 func TestListFilters_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -971,6 +1081,8 @@ func TestListFilters_CancelledContext(t *testing.T) {
 }
 
 func TestDeleteFilter(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Errorf("expected DELETE, got %s", r.Method)
@@ -988,6 +1100,8 @@ func TestDeleteFilter(t *testing.T) {
 }
 
 func TestDeleteFilter_EmptyUserId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteFilter(context.Background(), "", "filter-1")
 	if err == nil {
@@ -996,6 +1110,8 @@ func TestDeleteFilter_EmptyUserId(t *testing.T) {
 }
 
 func TestDeleteFilter_EmptyFilterId(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	err := client.DeleteFilter(context.Background(), "me", "")
 	if err == nil {
@@ -1004,6 +1120,8 @@ func TestDeleteFilter_EmptyFilterId(t *testing.T) {
 }
 
 func TestFiltersUrl(t *testing.T) {
+	t.Parallel()
+
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(gmail_config.WithBaseUrl(u))
 

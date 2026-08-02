@@ -27,6 +27,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 }
 
 func TestGetManifest(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -83,6 +85,8 @@ func TestGetManifest(t *testing.T) {
 }
 
 func TestGetManifest_EmptyName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	_, _, err := client.GetManifest(context.Background(), "", "latest")
 	if err == nil {
@@ -91,6 +95,8 @@ func TestGetManifest_EmptyName(t *testing.T) {
 }
 
 func TestGetManifest_EmptyReference(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	_, _, err := client.GetManifest(context.Background(), "project/repo/image", "")
 	if err == nil {
@@ -99,6 +105,8 @@ func TestGetManifest_EmptyReference(t *testing.T) {
 }
 
 func TestGetManifest_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -109,6 +117,8 @@ func TestGetManifest_CancelledContext(t *testing.T) {
 }
 
 func TestListReferrers(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -148,6 +158,8 @@ func TestListReferrers(t *testing.T) {
 }
 
 func TestListReferrers_WithArtifactTypeFilter(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("artifactType") != "application/spdx+json" {
 			t.Errorf("expected artifactType filter, got %q", r.URL.Query().Get("artifactType"))
@@ -167,6 +179,8 @@ func TestListReferrers_WithArtifactTypeFilter(t *testing.T) {
 }
 
 func TestListReferrers_EmptyName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	_, err := client.ListReferrers(context.Background(), "", "sha256:abc", "")
 	if err == nil {
@@ -175,6 +189,8 @@ func TestListReferrers_EmptyName(t *testing.T) {
 }
 
 func TestListReferrers_EmptyDigest(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	_, err := client.ListReferrers(context.Background(), "project/repo/image", "", "")
 	if err == nil {
@@ -183,6 +199,8 @@ func TestListReferrers_EmptyDigest(t *testing.T) {
 }
 
 func TestListReferrers_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -193,6 +211,8 @@ func TestListReferrers_CancelledContext(t *testing.T) {
 }
 
 func TestGetBlob(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -214,6 +234,8 @@ func TestGetBlob(t *testing.T) {
 }
 
 func TestGetBlob_EmptyName(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	_, err := client.GetBlob(context.Background(), "", "sha256:abc")
 	if err == nil {
@@ -222,6 +244,8 @@ func TestGetBlob_EmptyName(t *testing.T) {
 }
 
 func TestGetBlob_EmptyDigest(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	_, err := client.GetBlob(context.Background(), "project/repo/image", "")
 	if err == nil {
@@ -230,6 +254,8 @@ func TestGetBlob_EmptyDigest(t *testing.T) {
 }
 
 func TestGetBlob_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -240,6 +266,8 @@ func TestGetBlob_CancelledContext(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient("us")
 	if client.baseUrl.Host != "us-docker.pkg.dev" {
 		t.Errorf("expected host 'us-docker.pkg.dev', got %q", client.baseUrl.Host)

@@ -6,6 +6,8 @@ import (
 )
 
 func TestContentSecurityPolicy_String_Directives(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		directive DirectiveI
@@ -147,6 +149,8 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			csp := &ContentSecurityPolicy{Directives: []DirectiveI{tt.directive}}
 			if got := csp.String(); got != tt.want {
 				t.Errorf("String() got = %q, want %q", got, tt.want)
@@ -156,6 +160,8 @@ func TestContentSecurityPolicy_String_Directives(t *testing.T) {
 }
 
 func TestContentSecurityPolicy_GetDirective(t *testing.T) {
+	t.Parallel()
+
 	type fields struct {
 		Directives            []DirectiveI
 		OtherDirectives       []DirectiveI
@@ -204,6 +210,8 @@ func TestContentSecurityPolicy_GetDirective(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			csp := &ContentSecurityPolicy{
 				Directives:            tt.fields.Directives,
 				OtherDirectives:       tt.fields.OtherDirectives,
@@ -222,6 +230,8 @@ func TestContentSecurityPolicy_GetDirective(t *testing.T) {
 }
 
 func TestContentSecurityPolicy_String_SpecificPolicy(t *testing.T) {
+	t.Parallel()
+
 	expected := "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'; trusted-types lit-html"
 
 	csp := &ContentSecurityPolicy{

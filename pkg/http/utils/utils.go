@@ -237,7 +237,7 @@ func fetchWithRetryConfig(
 
 	// TODO: Do something with http context and extra? (Or remove `extra`?)
 
-	for i := 0; i < (1 + retryConfig.Count); i++ {
+	for i := range 1 + retryConfig.Count {
 		if i != 0 {
 			// Wait before the next attempt, based on the previous response.
 			waitDuration, giveUp := retryWaitDuration(retryConfig, response, responseBody, i)

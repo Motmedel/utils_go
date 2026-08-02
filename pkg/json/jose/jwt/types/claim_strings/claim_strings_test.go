@@ -2,6 +2,7 @@ package claim_strings
 
 import (
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -92,45 +93,31 @@ func TestClaimStrings_UnmarshalJSON(t *testing.T) {
 func TestClaimStrings_MarshalJSON(t *testing.T) {
 	t.Parallel()
 
-	// Save and restore the global setting
-	originalSetting := MarshalSingleStringAsArray
-
 	testCases := []struct {
-		name                      string
-		input                     ClaimStrings
-		marshalSingleStringAsArr  bool
-		expected                  string
+		name     string
+		input    ClaimStrings
+		expected string
 	}{
 		{
-			name:                     "single string as array",
-			input:                    ClaimStrings{"audience1"},
-			marshalSingleStringAsArr: true,
-			expected:                 `["audience1"]`,
+			name:     "single element as one-element array",
+			input:    ClaimStrings{"audience1"},
+			expected: `["audience1"]`,
 		},
 		{
-			name:                     "single string as string",
-			input:                    ClaimStrings{"audience1"},
-			marshalSingleStringAsArr: false,
-			expected:                 `"audience1"`,
+			name:     "multiple elements as array",
+			input:    ClaimStrings{"audience1", "audience2"},
+			expected: `["audience1","audience2"]`,
 		},
 		{
-			name:                     "multiple strings always as array",
-			input:                    ClaimStrings{"audience1", "audience2"},
-			marshalSingleStringAsArr: false,
-			expected:                 `["audience1","audience2"]`,
-		},
-		{
-			name:                     "empty array",
-			input:                    ClaimStrings{},
-			marshalSingleStringAsArr: true,
-			expected:                 `[]`,
+			name:     "empty as array",
+			input:    ClaimStrings{},
+			expected: `[]`,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Note: Not using t.Parallel() here because we modify global state
-			MarshalSingleStringAsArray = tc.marshalSingleStringAsArr
+			t.Parallel()
 
 			b, err := json.Marshal(tc.input)
 			if err != nil {
@@ -142,9 +129,61 @@ func TestClaimStrings_MarshalJSON(t *testing.T) {
 			}
 		})
 	}
+}
 
-	// Restore original setting
-	MarshalSingleStringAsArray = originalSetting
+func TestSingleAsString(t *testing.T) {
+	t.Parallel()
+
+	// Exercised on a nested "aud" field: the option reaches it because the
+	// WithMarshalers dispatch runs at every node of the value tree.
+	type claims struct {
+		Audience ClaimStrings `json:"aud"`
+		Issuer   string       `json:"iss"`
+	}
+
+	single := claims{Audience: ClaimStrings{"aud1"}, Issuer: "iss1"}
+	multiple := claims{Audience: ClaimStrings{"aud1", "aud2"}, Issuer: "iss1"}
+
+	testCases := []struct {
+		name     string
+		marshal  func(any) ([]byte, error)
+		input    claims
+		expected string
+	}{
+		{
+			name:     "default marshals single audience as array",
+			marshal:  func(v any) ([]byte, error) { return json.Marshal(v) },
+			input:    single,
+			expected: `{"aud":["aud1"],"iss":"iss1"}`,
+		},
+		{
+			name:     "option marshals single audience as string",
+			marshal:  func(v any) ([]byte, error) { return jsonv2.Marshal(v, SingleAsString()) },
+			input:    single,
+			expected: `{"aud":"aud1","iss":"iss1"}`,
+		},
+		{
+			name:     "option keeps multiple audiences as array",
+			marshal:  func(v any) ([]byte, error) { return jsonv2.Marshal(v, SingleAsString()) },
+			input:    multiple,
+			expected: `{"aud":["aud1","aud2"],"iss":"iss1"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			b, err := tc.marshal(tc.input)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if string(b) != tc.expected {
+				t.Fatalf("expected %s, got %s", tc.expected, string(b))
+			}
+		})
+	}
 }
 
 func TestConvert(t *testing.T) {

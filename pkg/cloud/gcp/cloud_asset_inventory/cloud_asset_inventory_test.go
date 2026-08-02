@@ -29,6 +29,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 }
 
 func TestListAssets(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -48,8 +50,8 @@ func TestListAssets(t *testing.T) {
 					Name:      "//cloudresourcemanager.googleapis.com/projects/my-project",
 					AssetType: "cloudresourcemanager.googleapis.com/Project",
 					Resource: &resource.Resource{
-						Version:      "v3",
-						ResourceUrl:  "//cloudresourcemanager.googleapis.com/projects/my-project",
+						Version:       "v3",
+						ResourceUrl:   "//cloudresourcemanager.googleapis.com/projects/my-project",
 						DiscoveryName: "Project",
 					},
 					Ancestors: []string{"projects/my-project", "organizations/123456"},
@@ -81,6 +83,8 @@ func TestListAssets(t *testing.T) {
 }
 
 func TestListAssets_EmptyParent(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.ListAssets(context.Background(), "", nil)
 	if err == nil {
@@ -89,6 +93,8 @@ func TestListAssets_EmptyParent(t *testing.T) {
 }
 
 func TestListAssets_NilQuery(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.RawQuery != "" {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
@@ -104,6 +110,8 @@ func TestListAssets_NilQuery(t *testing.T) {
 }
 
 func TestListAssets_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -114,6 +122,8 @@ func TestListAssets_CancelledContext(t *testing.T) {
 }
 
 func TestSearchAllResources(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -160,6 +170,8 @@ func TestSearchAllResources(t *testing.T) {
 }
 
 func TestSearchAllResources_EmptyScope(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.SearchAllResources(context.Background(), "", nil)
 	if err == nil {
@@ -168,6 +180,8 @@ func TestSearchAllResources_EmptyScope(t *testing.T) {
 }
 
 func TestSearchAllResources_NilQuery(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.RawQuery != "" {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
@@ -183,6 +197,8 @@ func TestSearchAllResources_NilQuery(t *testing.T) {
 }
 
 func TestSearchAllResources_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

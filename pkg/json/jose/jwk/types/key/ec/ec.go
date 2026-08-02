@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Motmedel/utils_go/pkg/errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelJwkErrors "github.com/Motmedel/utils_go/pkg/json/jose/jwk/errors"
@@ -39,7 +38,7 @@ func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	x := k.X
 	xBytes, err := base64.RawURLEncoding.DecodeString(x)
 	if err != nil {
-		return nil, errors.NewWithTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf(
 				"base64 raw url encoding decode string (x): %w",
 				err,
@@ -51,7 +50,7 @@ func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	y := k.Y
 	yBytes, err := base64.RawURLEncoding.DecodeString(y)
 	if err != nil {
-		return nil, errors.NewWithTrace(
+		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf(
 				"base64 raw url encoding decode string (y): %w",
 				err,
@@ -63,7 +62,7 @@ func (k *Key) PublicKey() (crypto.PublicKey, error) {
 	crv := k.Crv
 	curve := curveFromCrv(crv)
 	if utils.IsNil(curve) {
-		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrUnsupportedCrv, crv)
+		return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrUnsupportedCrv, crv)
 	}
 
 	return &ecdsa.PublicKey{Curve: curve, X: new(big.Int).SetBytes(xBytes), Y: new(big.Int).SetBytes(yBytes)}, nil
@@ -80,7 +79,7 @@ func New(m map[string]any) (*Key, error) {
 	}
 
 	if kty != "EC" {
-		return nil, errors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
+		return nil, motmedelErrors.NewWithTrace(motmedelJwkErrors.ErrKtyMismatch)
 	}
 
 	crv, err := utils.MapGetConvert[string](m, "crv")
@@ -143,7 +142,7 @@ func NewFromPublicKey(publicKey *ecdsa.PublicKey) (*Key, error) {
 		crv = "P-521"
 		size = 66
 	default:
-		return nil, fmt.Errorf("unsupported curve: %T", publicKey.Curve)
+		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: %T", motmedelJwkErrors.ErrUnsupportedCrv, publicKey.Curve))
 	}
 
 	return &Key{

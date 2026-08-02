@@ -10,6 +10,8 @@ import (
 // Test vectors from the official Community ID spec:
 // https://github.com/corelight/community-id-spec/blob/master/baseline/baseline_deflt.json
 func TestHash(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		sourceIp    string
@@ -173,6 +175,8 @@ func TestHash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tuple := New(
 				net.ParseIP(tt.sourceIp),
 				net.ParseIP(tt.destIp),
@@ -190,6 +194,8 @@ func TestHash(t *testing.T) {
 }
 
 func TestHashDirectionIndependence(t *testing.T) {
+	t.Parallel()
+
 	forward := New(
 		net.ParseIP("10.0.0.1"),
 		net.ParseIP("10.0.0.2"),
@@ -211,6 +217,8 @@ func TestHashDirectionIndependence(t *testing.T) {
 }
 
 func TestNewAlwaysOrdered(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		sourceIp       string
@@ -306,6 +314,8 @@ func TestNewAlwaysOrdered(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			tuple := New(
 				net.ParseIP(tt.sourceIp),
 				net.ParseIP(tt.destIp),

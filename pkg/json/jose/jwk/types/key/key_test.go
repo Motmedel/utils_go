@@ -9,6 +9,8 @@ import (
 )
 
 func TestKey_MarshalJSON_EC(t *testing.T) {
+	t.Parallel()
+
 	k := &Key{
 		Alg: "ES256",
 		Kty: "EC",
@@ -52,6 +54,8 @@ func TestKey_MarshalJSON_EC(t *testing.T) {
 }
 
 func TestKey_MarshalJSON_RSA(t *testing.T) {
+	t.Parallel()
+
 	k := &Key{
 		Alg: "RS256",
 		Kty: "RSA",

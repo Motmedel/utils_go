@@ -1,9 +1,11 @@
 package image_reference
 
 import (
-	"fmt"
 	"strings"
 
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+	"github.com/Motmedel/utils_go/pkg/errors/types/missing_error"
 	"github.com/Motmedel/utils_go/pkg/schema"
 )
 
@@ -15,7 +17,6 @@ type Reference struct {
 }
 
 func (r *Reference) ContainerImage() *schema.ContainerImage {
-
 	var name string
 	if r.Registry != "" && r.Repository != "" {
 		name = r.Registry + "/" + r.Repository
@@ -49,13 +50,13 @@ func Parse(data string) (*Reference, error) {
 
 	slashIdx := strings.Index(data, "/")
 	if slashIdx == -1 {
-		return nil, fmt.Errorf("invalid image reference: missing registry")
+		return nil, motmedelErrors.NewWithTrace(missing_error.New("registry"))
 	}
 	reference.Registry = data[:slashIdx]
 	reference.Repository = data[slashIdx+1:]
 
 	if reference.Repository == "" {
-		return nil, fmt.Errorf("invalid image reference: empty repository")
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("repository"))
 	}
 
 	return reference, nil

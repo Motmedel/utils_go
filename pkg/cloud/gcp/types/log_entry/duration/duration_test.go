@@ -6,6 +6,8 @@ import (
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	d := 2*time.Second + 500*time.Millisecond
 	result := New(&d)
 	if result.Seconds != 2 {
@@ -17,6 +19,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_Zero(t *testing.T) {
+	t.Parallel()
+
 	d := time.Duration(0)
 	result := New(&d)
 	if result.Seconds != 0 {
@@ -28,6 +32,8 @@ func TestNew_Zero(t *testing.T) {
 }
 
 func TestNew_SubSecond(t *testing.T) {
+	t.Parallel()
+
 	d := 250 * time.Millisecond
 	result := New(&d)
 	if result.Seconds != 0 {
@@ -39,6 +45,8 @@ func TestNew_SubSecond(t *testing.T) {
 }
 
 func TestNew_ExactSeconds(t *testing.T) {
+	t.Parallel()
+
 	d := 5 * time.Second
 	result := New(&d)
 	if result.Seconds != 5 {

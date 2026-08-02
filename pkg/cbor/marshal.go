@@ -26,7 +26,7 @@ func structFieldOmitted(structField *reflect.StructField) bool {
 func valueFromStruct(structValue reflect.Value, entries map[any]any) error {
 	structType := structValue.Type()
 
-	for i := 0; i < structType.NumField(); i++ {
+	for i := range structType.NumField() {
 		structField := structType.Field(i)
 		fieldValue := structValue.Field(i)
 
@@ -97,7 +97,7 @@ func valueFromGo(value reflect.Value) (any, error) {
 		}
 
 		array := make([]any, value.Len())
-		for i := 0; i < value.Len(); i++ {
+		for i := range value.Len() {
 			item, err := valueFromGo(value.Index(i))
 			if err != nil {
 				return nil, fmt.Errorf("index %d: %w", i, err)

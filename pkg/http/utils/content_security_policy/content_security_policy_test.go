@@ -27,6 +27,8 @@ func mustParseURL(rawURL string) *url.URL {
 // --- buildHostSources ---
 
 func TestBuildHostSources_NilUrls(t *testing.T) {
+	t.Parallel()
+
 	result := buildHostSources(nil, nil)
 	if len(result) != 0 {
 		t.Fatalf("expected empty result, got %d sources", len(result))
@@ -34,6 +36,8 @@ func TestBuildHostSources_NilUrls(t *testing.T) {
 }
 
 func TestBuildHostSources_ValidUrls(t *testing.T) {
+	t.Parallel()
+
 	u := mustParseURL("https://example.com")
 	result := buildHostSources(u)
 	if len(result) != 1 {
@@ -45,6 +49,8 @@ func TestBuildHostSources_ValidUrls(t *testing.T) {
 }
 
 func TestBuildHostSources_MixedNilAndValid(t *testing.T) {
+	t.Parallel()
+
 	u := mustParseURL("https://cdn.example.com")
 	result := buildHostSources(nil, u, nil)
 	if len(result) != 1 {
@@ -53,6 +59,8 @@ func TestBuildHostSources_MixedNilAndValid(t *testing.T) {
 }
 
 func TestBuildHostSources_NoArgs(t *testing.T) {
+	t.Parallel()
+
 	result := buildHostSources()
 	if len(result) != 0 {
 		t.Fatalf("expected empty result, got %d sources", len(result))
@@ -62,11 +70,15 @@ func TestBuildHostSources_NoArgs(t *testing.T) {
 // --- PatchCspConnectSrcWithHostSrc ---
 
 func TestPatchCspConnectSrcWithHostSrc_NilCsp(t *testing.T) {
+	t.Parallel()
+
 	PatchCspConnectSrcWithHostSrc(nil, mustParseURL("https://example.com"))
 	// Should not panic.
 }
 
 func TestPatchCspConnectSrcWithHostSrc_NoUrls(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspConnectSrcWithHostSrc(policy)
 	if len(policy.Directives) != 0 {
@@ -75,6 +87,8 @@ func TestPatchCspConnectSrcWithHostSrc_NoUrls(t *testing.T) {
 }
 
 func TestPatchCspConnectSrcWithHostSrc_AllNilUrls(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspConnectSrcWithHostSrc(policy, nil, nil)
 	if len(policy.Directives) != 0 {
@@ -83,6 +97,8 @@ func TestPatchCspConnectSrcWithHostSrc_AllNilUrls(t *testing.T) {
 }
 
 func TestPatchCspConnectSrcWithHostSrc_AddsNewDirective(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspConnectSrcWithHostSrc(policy, mustParseURL("https://api.example.com"))
 
@@ -101,6 +117,8 @@ func TestPatchCspConnectSrcWithHostSrc_AddsNewDirective(t *testing.T) {
 }
 
 func TestPatchCspConnectSrcWithHostSrc_AppendsToExisting(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.ConnectSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -126,6 +144,8 @@ func TestPatchCspConnectSrcWithHostSrc_AppendsToExisting(t *testing.T) {
 }
 
 func TestPatchCspConnectSrcWithHostSrc_NoDuplicates(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.ConnectSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -147,6 +167,8 @@ func TestPatchCspConnectSrcWithHostSrc_NoDuplicates(t *testing.T) {
 }
 
 func TestPatchCspConnectSrcWithHostSrc_MultipleUrls(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspConnectSrcWithHostSrc(policy,
 		mustParseURL("https://api1.example.com"),
@@ -166,10 +188,14 @@ func TestPatchCspConnectSrcWithHostSrc_MultipleUrls(t *testing.T) {
 // --- PatchCspFrameSrcWithHostSrc ---
 
 func TestPatchCspFrameSrcWithHostSrc_NilCsp(t *testing.T) {
+	t.Parallel()
+
 	PatchCspFrameSrcWithHostSrc(nil, mustParseURL("https://example.com"))
 }
 
 func TestPatchCspFrameSrcWithHostSrc_NoUrls(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspFrameSrcWithHostSrc(policy)
 	if len(policy.Directives) != 0 {
@@ -178,6 +204,8 @@ func TestPatchCspFrameSrcWithHostSrc_NoUrls(t *testing.T) {
 }
 
 func TestPatchCspFrameSrcWithHostSrc_AddsNewDirective(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspFrameSrcWithHostSrc(policy, mustParseURL("https://frame.example.com"))
 
@@ -196,6 +224,8 @@ func TestPatchCspFrameSrcWithHostSrc_AddsNewDirective(t *testing.T) {
 }
 
 func TestPatchCspFrameSrcWithHostSrc_AppendsToExisting(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.FrameSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -217,6 +247,8 @@ func TestPatchCspFrameSrcWithHostSrc_AppendsToExisting(t *testing.T) {
 }
 
 func TestPatchCspFrameSrcWithHostSrc_NoDuplicates(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.FrameSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -239,10 +271,14 @@ func TestPatchCspFrameSrcWithHostSrc_NoDuplicates(t *testing.T) {
 // --- PatchCspImageSrc ---
 
 func TestPatchCspImageSrc_NilCsp(t *testing.T) {
+	t.Parallel()
+
 	PatchCspImageSrc(nil, mustParseURL("https://example.com"))
 }
 
 func TestPatchCspImageSrc_NoUrls(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspImageSrc(policy)
 	if len(policy.Directives) != 0 {
@@ -251,6 +287,8 @@ func TestPatchCspImageSrc_NoUrls(t *testing.T) {
 }
 
 func TestPatchCspImageSrc_AllNilUrls(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspImageSrc(policy, nil, nil)
 	if len(policy.Directives) != 0 {
@@ -259,6 +297,8 @@ func TestPatchCspImageSrc_AllNilUrls(t *testing.T) {
 }
 
 func TestPatchCspImageSrc_HostUrl(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspImageSrc(policy, mustParseURL("https://images.example.com"))
 
@@ -277,6 +317,8 @@ func TestPatchCspImageSrc_HostUrl(t *testing.T) {
 }
 
 func TestPatchCspImageSrc_DataUrl(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	dataUrl := &url.URL{Scheme: "data"}
 	PatchCspImageSrc(policy, dataUrl)
@@ -296,6 +338,8 @@ func TestPatchCspImageSrc_DataUrl(t *testing.T) {
 }
 
 func TestPatchCspImageSrc_MixedDataAndHost(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	dataUrl := &url.URL{Scheme: "data"}
 	hostUrl := mustParseURL("https://cdn.example.com")
@@ -319,6 +363,8 @@ func TestPatchCspImageSrc_MixedDataAndHost(t *testing.T) {
 }
 
 func TestPatchCspImageSrc_AppendsToExisting(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.ImgSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -340,6 +386,8 @@ func TestPatchCspImageSrc_AppendsToExisting(t *testing.T) {
 }
 
 func TestPatchCspImageSrc_NoDuplicates(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.ImgSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -362,6 +410,8 @@ func TestPatchCspImageSrc_NoDuplicates(t *testing.T) {
 }
 
 func TestPatchCspImageSrc_AppendsDataToExistingHost(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.ImgSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -390,10 +440,14 @@ func TestPatchCspImageSrc_AppendsDataToExistingHost(t *testing.T) {
 // --- PatchCspStyleSrcWithNonce ---
 
 func TestPatchCspStyleSrcWithNonce_NilCsp(t *testing.T) {
+	t.Parallel()
+
 	PatchCspStyleSrcWithNonce(nil, "abc123")
 }
 
 func TestPatchCspStyleSrcWithNonce_NoNonces(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspStyleSrcWithNonce(policy)
 	if len(policy.Directives) != 0 {
@@ -402,6 +456,8 @@ func TestPatchCspStyleSrcWithNonce_NoNonces(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithNonce_EmptyNonces(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspStyleSrcWithNonce(policy, "", "")
 	if len(policy.Directives) != 0 {
@@ -410,6 +466,8 @@ func TestPatchCspStyleSrcWithNonce_EmptyNonces(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithNonce_AddsNewDirective(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspStyleSrcWithNonce(policy, "abc123")
 
@@ -425,6 +483,8 @@ func TestPatchCspStyleSrcWithNonce_AddsNewDirective(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithNonce_MultipleNonces(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspStyleSrcWithNonce(policy, "nonce1", "nonce2")
 
@@ -440,6 +500,8 @@ func TestPatchCspStyleSrcWithNonce_MultipleNonces(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithNonce_AppendsToExisting(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.StyleSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -464,6 +526,8 @@ func TestPatchCspStyleSrcWithNonce_AppendsToExisting(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithNonce_NoDuplicates(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.StyleSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -486,6 +550,8 @@ func TestPatchCspStyleSrcWithNonce_NoDuplicates(t *testing.T) {
 // --- PatchCspStyleSrcWithHash ---
 
 func TestPatchCspStyleSrcWithHash_NilCsp(t *testing.T) {
+	t.Parallel()
+
 	err := PatchCspStyleSrcWithHash(nil, "sha256-abc123")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -493,6 +559,8 @@ func TestPatchCspStyleSrcWithHash_NilCsp(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithHash_NoValues(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	err := PatchCspStyleSrcWithHash(policy)
 	if err != nil {
@@ -504,6 +572,8 @@ func TestPatchCspStyleSrcWithHash_NoValues(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithHash_EmptyValues(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	err := PatchCspStyleSrcWithHash(policy, "", "")
 	if err != nil {
@@ -515,6 +585,8 @@ func TestPatchCspStyleSrcWithHash_EmptyValues(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithHash_AddsNewDirective(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	err := PatchCspStyleSrcWithHash(policy, "sha256-abc123")
 	if err != nil {
@@ -533,6 +605,8 @@ func TestPatchCspStyleSrcWithHash_AddsNewDirective(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithHash_MultipleHashes(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	err := PatchCspStyleSrcWithHash(policy, "sha256-abc", "sha384-def")
 	if err != nil {
@@ -547,6 +621,8 @@ func TestPatchCspStyleSrcWithHash_MultipleHashes(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithHash_InvalidFormat(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	err := PatchCspStyleSrcWithHash(policy, "nohyphen")
 	if err == nil {
@@ -555,6 +631,8 @@ func TestPatchCspStyleSrcWithHash_InvalidFormat(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithHash_AppendsToExisting(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.StyleSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -582,6 +660,8 @@ func TestPatchCspStyleSrcWithHash_AppendsToExisting(t *testing.T) {
 }
 
 func TestPatchCspStyleSrcWithHash_NoDuplicates(t *testing.T) {
+	t.Parallel()
+
 	existingDirective := &csp.StyleSrcDirective{
 		SourceDirective: csp.SourceDirective{
 			Sources: []csp.SourceI{
@@ -607,6 +687,8 @@ func TestPatchCspStyleSrcWithHash_NoDuplicates(t *testing.T) {
 // --- PatchCspStyleSrcWithNonce and PatchCspStyleSrcWithHash interaction ---
 
 func TestPatchCspStyleSrc_NonceAndHash_SharedDirective(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 
 	PatchCspStyleSrcWithNonce(policy, "nonce1")
@@ -632,6 +714,8 @@ func TestPatchCspStyleSrc_NonceAndHash_SharedDirective(t *testing.T) {
 // --- Multiple directive types on same policy ---
 
 func TestMultipleDirectives_OnSamePolicy(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 
 	PatchCspConnectSrcWithHostSrc(policy, mustParseURL("https://api.example.com"))
@@ -660,11 +744,15 @@ func TestMultipleDirectives_OnSamePolicy(t *testing.T) {
 // --- PatchCspSourceDirective ---
 
 func TestPatchCspSourceDirective_NilCsp(t *testing.T) {
+	t.Parallel()
+
 	PatchCspSourceDirective[csp.WorkerSrcDirective](nil, &csp.KeywordSource{Keyword: "self"})
 	// Should not panic.
 }
 
 func TestPatchCspSourceDirective_NoSources(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspSourceDirective[csp.WorkerSrcDirective](policy)
 	if len(policy.Directives) != 0 {
@@ -673,6 +761,8 @@ func TestPatchCspSourceDirective_NoSources(t *testing.T) {
 }
 
 func TestPatchCspSourceDirective_AddsNewDirective(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspSourceDirective[csp.WorkerSrcDirective](
 		policy,
@@ -690,6 +780,8 @@ func TestPatchCspSourceDirective_AddsNewDirective(t *testing.T) {
 }
 
 func TestPatchCspSourceDirective_ExtendsExisting(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{
 		Directives: []csp.DirectiveI{
 			&csp.WorkerSrcDirective{
@@ -715,6 +807,8 @@ func TestPatchCspSourceDirective_ExtendsExisting(t *testing.T) {
 }
 
 func TestPatchCspSourceDirective_DeduplicatesSources(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspSourceDirective[csp.WorkerSrcDirective](policy, &csp.KeywordSource{Keyword: "self"})
 	PatchCspSourceDirective[csp.WorkerSrcDirective](
@@ -735,6 +829,8 @@ func TestPatchCspSourceDirective_DeduplicatesSources(t *testing.T) {
 
 // The helper is generic over the directive type, not specific to worker-src.
 func TestPatchCspSourceDirective_OtherDirectiveType(t *testing.T) {
+	t.Parallel()
+
 	policy := &csp.ContentSecurityPolicy{}
 	PatchCspSourceDirective[csp.ConnectSrcDirective](
 		policy,

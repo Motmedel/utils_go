@@ -273,7 +273,7 @@ func (d *decoder) decodeValue(depth int) (any, error) {
 		}
 
 		array := make([]any, 0, argument)
-		for i := uint64(0); i < argument; i++ {
+		for range argument {
 			item, err := d.decodeValue(depth + 1)
 			if err != nil {
 				return nil, err
@@ -288,7 +288,7 @@ func (d *decoder) decodeValue(depth int) (any, error) {
 		}
 
 		entries := make(map[any]any, argument)
-		for i := uint64(0); i < argument; i++ {
+		for range argument {
 			key, err := d.decodeValue(depth + 1)
 			if err != nil {
 				return nil, err

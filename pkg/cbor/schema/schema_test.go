@@ -76,12 +76,16 @@ func hasIssue(issues []*Issue, path string, messagePart string) bool {
 }
 
 func TestValidateValid(t *testing.T) {
+	t.Parallel()
+
 	if err := orderSchema(t).Validate(validOrderValue()); err != nil {
 		t.Errorf("validate: %v", err)
 	}
 }
 
 func TestValidateBytes(t *testing.T) {
+	t.Parallel()
+
 	data, err := cbor.Encode(validOrderValue())
 	if err != nil {
 		t.Fatalf("cbor encode: %v", err)
@@ -107,6 +111,8 @@ func TestValidateBytes(t *testing.T) {
 }
 
 func TestValidateThroughCodec(t *testing.T) {
+	t.Parallel()
+
 	data, err := cbor.Encode(validOrderValue())
 	if err != nil {
 		t.Fatalf("cbor encode: %v", err)
@@ -123,6 +129,8 @@ func TestValidateThroughCodec(t *testing.T) {
 }
 
 func TestValidateViolations(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name        string
 		mutate      func(value map[any]any)
@@ -191,6 +199,8 @@ func TestValidateViolations(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			value := validOrderValue()
 			testCase.mutate(value)
 
@@ -208,6 +218,8 @@ func TestValidateViolations(t *testing.T) {
 }
 
 func TestValidateNullForNullableElement(t *testing.T) {
+	t.Parallel()
+
 	value := validOrderValue()
 	value["documents"] = []any{nil}
 
@@ -217,6 +229,8 @@ func TestValidateNullForNullableElement(t *testing.T) {
 }
 
 func TestValidateCollectsMultipleIssues(t *testing.T) {
+	t.Parallel()
+
 	value := validOrderValue()
 	delete(value, "name")
 	value["email_address"] = "not-an-email"
@@ -228,6 +242,8 @@ func TestValidateCollectsMultipleIssues(t *testing.T) {
 }
 
 func TestValidateOptionalOmitted(t *testing.T) {
+	t.Parallel()
+
 	value := validOrderValue()
 	delete(value, "documents")
 	delete(value, "priority")
@@ -238,6 +254,8 @@ func TestValidateOptionalOmitted(t *testing.T) {
 }
 
 func TestValidateNilSchema(t *testing.T) {
+	t.Parallel()
+
 	var nilSchema *Schema
 	if err := nilSchema.Validate(nil); !errors.Is(err, ErrNilSchema) {
 		t.Errorf("expected a nil schema error, got %v", err)
@@ -248,6 +266,8 @@ func TestValidateNilSchema(t *testing.T) {
 }
 
 func TestTypedValidateHelpers(t *testing.T) {
+	t.Parallel()
+
 	minLength := 1
 
 	if err := (&Schema{Type: TypeText}).ValidateText("text"); err != nil {
@@ -294,6 +314,8 @@ func TestTypedValidateHelpers(t *testing.T) {
 }
 
 func TestNewFromTypeUnsupported(t *testing.T) {
+	t.Parallel()
+
 	if _, err := NewFromType[struct {
 		Value float64 `json:"value"`
 	}](); !errors.Is(err, ErrUnsupportedType) {
@@ -302,6 +324,8 @@ func TestNewFromTypeUnsupported(t *testing.T) {
 }
 
 func TestNewFromTypeRejectsMalformedTag(t *testing.T) {
+	t.Parallel()
+
 	if _, err := NewFromType[struct {
 		Value string `cborschema:"value,unknown"`
 	}](); !errors.Is(err, ErrMalformedTag) {
@@ -316,6 +340,8 @@ func TestNewFromTypeRejectsMalformedTag(t *testing.T) {
 }
 
 func TestNewFromTypeMapValues(t *testing.T) {
+	t.Parallel()
+
 	derivedSchema, err := NewFromType[map[string]int]()
 	if err != nil {
 		t.Fatalf("new from type: %v", err)
@@ -331,6 +357,8 @@ func TestNewFromTypeMapValues(t *testing.T) {
 }
 
 func TestArrayElementFormat(t *testing.T) {
+	t.Parallel()
+
 	derivedSchema, err := NewFromType[struct {
 		Members []string `jsonschema:"members,format:email"`
 	}]()

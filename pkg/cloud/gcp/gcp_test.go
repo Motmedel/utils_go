@@ -58,6 +58,8 @@ func encodePKCS1PEM(key *rsa.PrivateKey) string {
 }
 
 func TestGetIdToken(t *testing.T) {
+	t.Parallel()
+
 	_, metadataUrl := testMetadataServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/instance/service-accounts/default/identity") {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -83,6 +85,8 @@ func TestGetIdToken(t *testing.T) {
 }
 
 func TestGetIdToken_EmptyAudience(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GetIdToken(context.Background(), "")
 	if err == nil {
@@ -91,6 +95,8 @@ func TestGetIdToken_EmptyAudience(t *testing.T) {
 }
 
 func TestGetIdToken_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -101,6 +107,8 @@ func TestGetIdToken_CancelledContext(t *testing.T) {
 }
 
 func TestGetProjectId(t *testing.T) {
+	t.Parallel()
+
 	_, metadataUrl := testMetadataServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/project/project-id") {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -122,6 +130,8 @@ func TestGetProjectId(t *testing.T) {
 }
 
 func TestGetProjectId_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -132,6 +142,8 @@ func TestGetProjectId_CancelledContext(t *testing.T) {
 }
 
 func TestParseTokenResponse(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"access_token":"ya29.abc","expires_in":3600,"token_type":"Bearer"}`)
 	resp, err := token_response.Parse(data)
 	if err != nil {
@@ -149,6 +161,8 @@ func TestParseTokenResponse(t *testing.T) {
 }
 
 func TestParseTokenResponse_NoExpiry(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"access_token":"ya29.abc","token_type":"Bearer"}`)
 	resp, err := token_response.Parse(data)
 	if err != nil {
@@ -160,6 +174,8 @@ func TestParseTokenResponse_NoExpiry(t *testing.T) {
 }
 
 func TestParseTokenResponse_EmptyAccessToken(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"access_token":"","expires_in":3600}`)
 	_, err := token_response.Parse(data)
 	if err == nil {
@@ -168,6 +184,8 @@ func TestParseTokenResponse_EmptyAccessToken(t *testing.T) {
 }
 
 func TestParseTokenResponse_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	_, err := token_response.Parse([]byte(`not json`))
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
@@ -175,6 +193,8 @@ func TestParseTokenResponse_InvalidJSON(t *testing.T) {
 }
 
 func TestAuthorizedUserTokenSource(t *testing.T) {
+	t.Parallel()
+
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -220,6 +240,8 @@ func TestAuthorizedUserTokenSource(t *testing.T) {
 }
 
 func TestAuthorizedUserTokenSource_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	creds := &credentials_file.File{
@@ -242,6 +264,8 @@ func TestAuthorizedUserTokenSource_CancelledContext(t *testing.T) {
 }
 
 func TestServiceAccountTokenSource(t *testing.T) {
+	t.Parallel()
+
 	key := generateTestRSAKey(t)
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -295,6 +319,8 @@ func TestServiceAccountTokenSource(t *testing.T) {
 }
 
 func TestServiceAccountTokenSource_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	key := generateTestRSAKey(t)
@@ -318,6 +344,8 @@ func TestServiceAccountTokenSource_CancelledContext(t *testing.T) {
 }
 
 func TestMetadataTokenSource(t *testing.T) {
+	t.Parallel()
+
 	_, metadataUrl := testMetadataServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/instance/service-accounts/default/token") {
 			t.Errorf("unexpected path: %s", r.URL.Path)
@@ -352,6 +380,8 @@ func TestMetadataTokenSource(t *testing.T) {
 }
 
 func TestMetadataTokenSource_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	ts, err := metadata_token_source.New(
@@ -369,6 +399,8 @@ func TestMetadataTokenSource_CancelledContext(t *testing.T) {
 }
 
 func TestMetadataTokenSource_WithScopes(t *testing.T) {
+	t.Parallel()
+
 	_, metadataUrl := testMetadataServer(t, func(w http.ResponseWriter, r *http.Request) {
 		scopes := r.URL.Query().Get("scopes")
 		if scopes != "scope1,scope2" {
@@ -401,6 +433,8 @@ func TestMetadataTokenSource_WithScopes(t *testing.T) {
 }
 
 func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
+	t.Parallel()
+
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
@@ -434,6 +468,8 @@ func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
 }
 
 func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
+	t.Parallel()
+
 	key := generateTestRSAKey(t)
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -470,6 +506,8 @@ func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
 }
 
 func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T) {
+	t.Parallel()
+
 	key := generateTestRSAKey(t)
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -506,6 +544,8 @@ func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T
 }
 
 func TestCredentialsFileTokenSource_UnsupportedType(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"type":"external_account"}`)
 	client := NewClient()
 	_, err := client.credentialsFileTokenSource(context.Background(), data, nil)
@@ -515,6 +555,8 @@ func TestCredentialsFileTokenSource_UnsupportedType(t *testing.T) {
 }
 
 func TestCredentialsFileTokenSource_InvalidJSON(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.credentialsFileTokenSource(context.Background(), []byte(`not json`), nil)
 	if err == nil {
@@ -605,6 +647,8 @@ func TestFindDefaultCredentials_MetadataFallback(t *testing.T) {
 }
 
 func TestFindDefaultCredentials_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	client := NewClient()

@@ -19,6 +19,8 @@ func (e uncomparableError) Unwrap() error {
 }
 
 func TestCollectWrappedErrors_UncomparableType(t *testing.T) {
+	t.Parallel()
+
 	err := uncomparableError{Details: []string{"a", "b"}}
 
 	// This must not panic.
@@ -33,6 +35,8 @@ func TestCollectWrappedErrors_UncomparableType(t *testing.T) {
 }
 
 func TestCollectWrappedErrors_ComparableType(t *testing.T) {
+	t.Parallel()
+
 	inner := fmt.Errorf("inner")
 	err := fmt.Errorf("outer: %w", inner)
 
@@ -47,6 +51,8 @@ func TestCollectWrappedErrors_ComparableType(t *testing.T) {
 }
 
 func TestCollectWrappedErrors_NilError(t *testing.T) {
+	t.Parallel()
+
 	results := CollectWrappedErrors(nil)
 
 	if len(results) != 0 {
@@ -56,6 +62,8 @@ func TestCollectWrappedErrors_NilError(t *testing.T) {
 
 // Ensure structurally identical wrapped errors are NOT skipped.
 func TestCollectWrappedErrors_StructurallyIdenticalChild(t *testing.T) {
+	t.Parallel()
+
 	// Use an uncomparable error without Unwrap as the child.
 	child := uncomparableLeafError{Details: []string{"a", "b"}}
 	parent := wrappingError{msg: "parent", wrapped: child}
@@ -71,6 +79,8 @@ func TestCollectWrappedErrors_StructurallyIdenticalChild(t *testing.T) {
 
 // Verify that reflect.DeepEqual would incorrectly skip this case.
 func TestCollectWrappedErrors_DeepEqualWouldSkip(t *testing.T) {
+	t.Parallel()
+
 	// Parent and child are structurally identical uncomparable errors.
 	child := uncomparableLeafError{Details: []string{"x"}}
 	parent := uncomparableLeafError{Details: []string{"x"}}

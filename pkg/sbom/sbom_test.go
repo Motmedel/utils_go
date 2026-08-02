@@ -9,6 +9,8 @@ import (
 )
 
 func TestGoModulePurl(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		path     string
@@ -37,6 +39,8 @@ func TestGoModulePurl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := goModulePurl(tt.path, tt.version)
 			if result != tt.expected {
 				t.Errorf("expected %q, got %q", tt.expected, result)
@@ -46,6 +50,8 @@ func TestGoModulePurl(t *testing.T) {
 }
 
 func TestNpmPurl(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		pkg      string
@@ -80,6 +86,8 @@ func TestNpmPurl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := npmPurl(tt.pkg, tt.version)
 			if result != tt.expected {
 				t.Errorf("expected %q, got %q", tt.expected, result)
@@ -89,6 +97,8 @@ func TestNpmPurl(t *testing.T) {
 }
 
 func TestDockerPurl(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		image    string
@@ -117,6 +127,8 @@ func TestDockerPurl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := dockerPurl(tt.image, tt.version)
 			if result != tt.expected {
 				t.Errorf("expected %q, got %q", tt.expected, result)
@@ -126,6 +138,8 @@ func TestDockerPurl(t *testing.T) {
 }
 
 func TestParseGoModules(t *testing.T) {
+	t.Parallel()
+
 	goListOutput := []byte(`{"Path":"github.com/Motmedel/utils_go","Main":true,"Dir":"/home/user/project","GoMod":"/home/user/project/go.mod"}
 {"Path":"github.com/foo/bar","Version":"v1.0.0","Dir":"/home/user/go/pkg/mod/github.com/foo/bar@v1.0.0"}
 {"Path":"github.com/baz/qux","Version":"v2.3.4","Dir":"/home/user/go/pkg/mod/github.com/baz/qux@v2.3.4"}
@@ -162,6 +176,8 @@ func TestParseGoModules(t *testing.T) {
 }
 
 func TestParseGoModulesEmpty(t *testing.T) {
+	t.Parallel()
+
 	components, err := ParseGoModules(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -173,6 +189,8 @@ func TestParseGoModulesEmpty(t *testing.T) {
 }
 
 func TestParseGoModulesInvalidJson(t *testing.T) {
+	t.Parallel()
+
 	_, err := ParseGoModules([]byte(`{invalid json`))
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
@@ -180,6 +198,8 @@ func TestParseGoModulesInvalidJson(t *testing.T) {
 }
 
 func TestParseGoModulesSkipsMainModule(t *testing.T) {
+	t.Parallel()
+
 	goListOutput := []byte(`{"Path":"myproject","Main":true}
 `)
 
@@ -194,6 +214,8 @@ func TestParseGoModulesSkipsMainModule(t *testing.T) {
 }
 
 func TestParseNodePackageLock(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{
   "name": "my-app",
   "version": "1.0.0",
@@ -251,6 +273,8 @@ func TestParseNodePackageLock(t *testing.T) {
 }
 
 func TestParseNodePackageLockWithScopedPackages(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{
   "name": "my-app",
   "version": "1.0.0",
@@ -285,6 +309,8 @@ func TestParseNodePackageLockWithScopedPackages(t *testing.T) {
 }
 
 func TestParseNodePackageLockEmpty(t *testing.T) {
+	t.Parallel()
+
 	components, err := ParseNodePackageLock(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -296,6 +322,8 @@ func TestParseNodePackageLockEmpty(t *testing.T) {
 }
 
 func TestParseNodePackageLockInvalidJson(t *testing.T) {
+	t.Parallel()
+
 	_, err := ParseNodePackageLock([]byte(`{invalid`))
 	if err == nil {
 		t.Fatal("expected error for invalid JSON")
@@ -303,6 +331,8 @@ func TestParseNodePackageLockInvalidJson(t *testing.T) {
 }
 
 func TestParseNodePackageLockFallbackToDependencies(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{
   "name": "my-app",
   "version": "1.0.0",
@@ -333,6 +363,8 @@ func TestParseNodePackageLockFallbackToDependencies(t *testing.T) {
 }
 
 func TestParseNodePackageLockNestedDependencies(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{
   "name": "my-app",
   "version": "1.0.0",
@@ -372,6 +404,8 @@ func TestParseNodePackageLockNestedDependencies(t *testing.T) {
 }
 
 func TestExtractNodeModuleName(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		path     string
@@ -401,6 +435,8 @@ func TestExtractNodeModuleName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := extractNodeModuleName(tt.path)
 			if result != tt.expected {
 				t.Errorf("expected %q, got %q", tt.expected, result)
@@ -410,6 +446,8 @@ func TestExtractNodeModuleName(t *testing.T) {
 }
 
 func TestParseGoSum(t *testing.T) {
+	t.Parallel()
+
 	goSumContent := []byte(`github.com/foo/bar v1.0.0 h1:abc123=
 github.com/foo/bar v1.0.0/go.mod h1:def456=
 github.com/baz/qux v2.3.4 h1:ghi789=
@@ -455,6 +493,8 @@ github.com/transitive/dep v0.5.0/go.mod h1:pqr678=
 }
 
 func TestParseGoSumEmpty(t *testing.T) {
+	t.Parallel()
+
 	components, err := ParseGoSum(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -466,6 +506,8 @@ func TestParseGoSumEmpty(t *testing.T) {
 }
 
 func TestParseGoSumSkipsGoModEntries(t *testing.T) {
+	t.Parallel()
+
 	// Only go.mod entries — should produce no components.
 	goSumContent := []byte(`github.com/foo/bar v1.0.0/go.mod h1:abc123=
 github.com/baz/qux v2.3.4/go.mod h1:def456=
@@ -482,6 +524,8 @@ github.com/baz/qux v2.3.4/go.mod h1:def456=
 }
 
 func TestParseGoSumDeduplicates(t *testing.T) {
+	t.Parallel()
+
 	goSumContent := []byte(`github.com/foo/bar v1.0.0 h1:abc123=
 github.com/foo/bar v1.0.0 h1:abc123=
 github.com/foo/bar v1.0.0/go.mod h1:def456=
@@ -502,6 +546,8 @@ github.com/foo/bar v1.0.0/go.mod h1:def456=
 }
 
 func TestParseDockerfile(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`FROM golang:1.21 AS builder
 RUN go build -o /app .
 
@@ -553,6 +599,8 @@ CMD ["/app"]
 }
 
 func TestParseDockerfileEmpty(t *testing.T) {
+	t.Parallel()
+
 	components, err := ParseDockerfile(nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -564,6 +612,8 @@ func TestParseDockerfileEmpty(t *testing.T) {
 }
 
 func TestParseDockerfileSkipsScratch(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`FROM scratch
 COPY /app /app
 `)
@@ -579,6 +629,8 @@ COPY /app /app
 }
 
 func TestParseDockerfileWithPlatform(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`FROM --platform=linux/amd64 nginx:1.25
 `)
 
@@ -601,6 +653,8 @@ func TestParseDockerfileWithPlatform(t *testing.T) {
 }
 
 func TestParseDockerfileWithDigest(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`FROM nginx@sha256:abc123
 `)
 
@@ -623,6 +677,8 @@ func TestParseDockerfileWithDigest(t *testing.T) {
 }
 
 func TestParseDockerfileDeduplicates(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`FROM golang:1.21 AS builder
 FROM golang:1.21 AS tester
 FROM alpine:3.18
@@ -639,6 +695,8 @@ FROM alpine:3.18
 }
 
 func TestParseDockerfileNamespaced(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`FROM docker.io/library/nginx:latest
 `)
 
@@ -661,6 +719,8 @@ func TestParseDockerfileNamespaced(t *testing.T) {
 }
 
 func TestDeduplicateComponents(t *testing.T) {
+	t.Parallel()
+
 	components := []motmedelSbomTypes.Component{
 		{Type: motmedelSbomTypes.ComponentTypeLibrary, Name: "foo", Version: "1.0"},
 		{Type: motmedelSbomTypes.ComponentTypeLibrary, Name: "foo", Version: "1.0"},
@@ -675,6 +735,8 @@ func TestDeduplicateComponents(t *testing.T) {
 }
 
 func TestDeduplicateComponentsEmpty(t *testing.T) {
+	t.Parallel()
+
 	result := deduplicateComponents(nil)
 	if result != nil {
 		t.Errorf("expected nil, got %v", result)
@@ -682,6 +744,8 @@ func TestDeduplicateComponentsEmpty(t *testing.T) {
 }
 
 func TestGenerateBom(t *testing.T) {
+	t.Parallel()
+
 	components := []motmedelSbomTypes.Component{
 		{
 			Type:    motmedelSbomTypes.ComponentTypeLibrary,
@@ -720,6 +784,8 @@ func TestGenerateBom(t *testing.T) {
 }
 
 func TestGenerateBomDeduplicates(t *testing.T) {
+	t.Parallel()
+
 	components := []motmedelSbomTypes.Component{
 		{Type: motmedelSbomTypes.ComponentTypeLibrary, Name: "foo", Version: "1.0"},
 		{Type: motmedelSbomTypes.ComponentTypeLibrary, Name: "foo", Version: "1.0"},
@@ -733,6 +799,8 @@ func TestGenerateBomDeduplicates(t *testing.T) {
 }
 
 func TestGenerateBomJson(t *testing.T) {
+	t.Parallel()
+
 	components := []motmedelSbomTypes.Component{
 		{
 			Type:    motmedelSbomTypes.ComponentTypeLibrary,
@@ -767,6 +835,8 @@ func TestGenerateBomJson(t *testing.T) {
 }
 
 func TestCycloneDxJsonStructure(t *testing.T) {
+	t.Parallel()
+
 	components := []motmedelSbomTypes.Component{
 		{
 			Type:    motmedelSbomTypes.ComponentTypeLibrary,

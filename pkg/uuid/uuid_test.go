@@ -9,6 +9,8 @@ import (
 var uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	uuid := New()
 	s := uuid.String()
 
@@ -26,6 +28,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewRandom(t *testing.T) {
+	t.Parallel()
+
 	uuid, err := NewRandom()
 	if err != nil {
 		t.Fatalf("NewRandom() returned error: %v", err)
@@ -42,6 +46,8 @@ func TestNewRandom(t *testing.T) {
 }
 
 func TestNewV7(t *testing.T) {
+	t.Parallel()
+
 	before := time.Now()
 	uuid, err := NewV7()
 	after := time.Now()
@@ -71,6 +77,8 @@ func TestNewV7(t *testing.T) {
 }
 
 func TestNewV7FromTime(t *testing.T) {
+	t.Parallel()
+
 	testTime := time.Date(2024, 6, 15, 12, 30, 45, 0, time.UTC)
 	uuid, err := NewV7FromTime(testTime)
 	if err != nil {
@@ -88,6 +96,8 @@ func TestNewV7FromTime(t *testing.T) {
 }
 
 func TestNewString(t *testing.T) {
+	t.Parallel()
+
 	s := NewString()
 	if !uuidRegex.MatchString(s) {
 		t.Errorf("NewString() produced invalid UUID format: %s", s)
@@ -95,6 +105,8 @@ func TestNewString(t *testing.T) {
 }
 
 func TestParse(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		input   string
@@ -110,6 +122,8 @@ func TestParse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := Parse(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parse(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
@@ -119,6 +133,8 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	original := New()
 	s := original.String()
 
@@ -133,6 +149,8 @@ func TestParseRoundTrip(t *testing.T) {
 }
 
 func TestMustParse(t *testing.T) {
+	t.Parallel()
+
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf("MustParse() did not panic on invalid input")
@@ -143,6 +161,8 @@ func TestMustParse(t *testing.T) {
 }
 
 func TestFromBytes(t *testing.T) {
+	t.Parallel()
+
 	original := New()
 	bytes := original.Bytes()
 
@@ -157,6 +177,8 @@ func TestFromBytes(t *testing.T) {
 }
 
 func TestFromBytesInvalidLength(t *testing.T) {
+	t.Parallel()
+
 	_, err := FromBytes([]byte{1, 2, 3})
 	if err != ErrInvalidUUIDLength {
 		t.Errorf("FromBytes() with invalid length should return ErrInvalidUUIDLength, got %v", err)
@@ -164,6 +186,8 @@ func TestFromBytesInvalidLength(t *testing.T) {
 }
 
 func TestURN(t *testing.T) {
+	t.Parallel()
+
 	uuid := MustParse("550e8400-e29b-41d4-a716-446655440000")
 	urn := uuid.URN()
 	expected := "urn:uuid:550e8400-e29b-41d4-a716-446655440000"
@@ -174,6 +198,8 @@ func TestURN(t *testing.T) {
 }
 
 func TestIsNil(t *testing.T) {
+	t.Parallel()
+
 	var nilUUID UUID
 	if !nilUUID.IsNil() {
 		t.Error("Zero UUID should be nil")
@@ -186,6 +212,8 @@ func TestIsNil(t *testing.T) {
 }
 
 func TestMarshalText(t *testing.T) {
+	t.Parallel()
+
 	uuid := MustParse("550e8400-e29b-41d4-a716-446655440000")
 	text, err := uuid.MarshalText()
 	if err != nil {
@@ -198,6 +226,8 @@ func TestMarshalText(t *testing.T) {
 }
 
 func TestUnmarshalText(t *testing.T) {
+	t.Parallel()
+
 	var uuid UUID
 	err := uuid.UnmarshalText([]byte("550e8400-e29b-41d4-a716-446655440000"))
 	if err != nil {
@@ -211,6 +241,8 @@ func TestUnmarshalText(t *testing.T) {
 }
 
 func TestMarshalBinary(t *testing.T) {
+	t.Parallel()
+
 	uuid := New()
 	data, err := uuid.MarshalBinary()
 	if err != nil {
@@ -223,6 +255,8 @@ func TestMarshalBinary(t *testing.T) {
 }
 
 func TestUnmarshalBinary(t *testing.T) {
+	t.Parallel()
+
 	original := New()
 	data, _ := original.MarshalBinary()
 
@@ -238,6 +272,8 @@ func TestUnmarshalBinary(t *testing.T) {
 }
 
 func TestUnmarshalBinaryInvalidLength(t *testing.T) {
+	t.Parallel()
+
 	var uuid UUID
 	err := uuid.UnmarshalBinary([]byte{1, 2, 3})
 	if err != ErrInvalidUUIDLength {
@@ -246,6 +282,8 @@ func TestUnmarshalBinaryInvalidLength(t *testing.T) {
 }
 
 func TestUint64Pair(t *testing.T) {
+	t.Parallel()
+
 	uuid := New()
 	high, low := uuid.ToUint64Pair()
 
@@ -256,10 +294,12 @@ func TestUint64Pair(t *testing.T) {
 }
 
 func TestUniqueness(t *testing.T) {
+	t.Parallel()
+
 	seen := make(map[UUID]bool)
 	const count = 1000
 
-	for i := 0; i < count; i++ {
+	for range count {
 		uuid := New()
 		if seen[uuid] {
 			t.Fatalf("Duplicate UUID generated: %v", uuid)
@@ -269,9 +309,11 @@ func TestUniqueness(t *testing.T) {
 }
 
 func TestV7Ordering(t *testing.T) {
+	t.Parallel()
+
 	// Generate multiple v7 UUIDs and verify they are in order.
 	var uuids []UUID
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		uuid, err := NewV7()
 		if err != nil {
 			t.Fatalf("NewV7() returned error: %v", err)
@@ -291,26 +333,26 @@ func TestV7Ordering(t *testing.T) {
 }
 
 func BenchmarkNew(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = New()
 	}
 }
 
 func BenchmarkNewV7(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = NewV7()
 	}
 }
 
 func BenchmarkNewString(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = NewString()
 	}
 }
 
 func BenchmarkParse(b *testing.B) {
 	s := "550e8400-e29b-41d4-a716-446655440000"
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = Parse(s)
 	}
 }

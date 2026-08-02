@@ -7,6 +7,8 @@ import (
 )
 
 func TestMakeHttpMessage_NilBase(t *testing.T) {
+	t.Parallel()
+
 	result := MakeHttpMessage(nil)
 	if result != "" {
 		t.Errorf("expected empty string, got %q", result)
@@ -14,6 +16,8 @@ func TestMakeHttpMessage_NilBase(t *testing.T) {
 }
 
 func TestMakeHttpMessage_FullBase(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Source: &schema.Target{Ip: "127.0.0.1"},
 		User:   &schema.User{Name: "frank"},
@@ -40,6 +44,8 @@ func TestMakeHttpMessage_FullBase(t *testing.T) {
 }
 
 func TestMakeHttpMessage_NoUser(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Source: &schema.Target{Ip: "192.168.1.1"},
 		Http: &schema.Http{
@@ -62,6 +68,8 @@ func TestMakeHttpMessage_NoUser(t *testing.T) {
 }
 
 func TestMakeHttpMessage_NoRequest(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Http: &schema.Http{
 			Response: &schema.HttpResponse{
@@ -79,6 +87,8 @@ func TestMakeHttpMessage_NoRequest(t *testing.T) {
 }
 
 func TestMakeHttpMessage_NoResponse(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Source: &schema.Target{Ip: "10.0.0.1"},
 		Http: &schema.Http{
@@ -99,6 +109,8 @@ func TestMakeHttpMessage_NoResponse(t *testing.T) {
 }
 
 func TestMakeHttpMessage_BodyBytesFromResponseBody(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Source: &schema.Target{Ip: "127.0.0.1"},
 		Http: &schema.Http{
@@ -122,6 +134,8 @@ func TestMakeHttpMessage_BodyBytesFromResponseBody(t *testing.T) {
 }
 
 func TestMakeHttpMessage_PathAndQuery(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Source: &schema.Target{Ip: "10.0.0.1"},
 		Http: &schema.Http{
@@ -145,6 +159,8 @@ func TestMakeHttpMessage_PathAndQuery(t *testing.T) {
 }
 
 func TestMakeHttpMessage_UserEmailFallback(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Source: &schema.Target{Ip: "127.0.0.1"},
 		User:   &schema.User{Email: "frank@example.com"},
@@ -168,6 +184,8 @@ func TestMakeHttpMessage_UserEmailFallback(t *testing.T) {
 }
 
 func TestMakeHttpMessage_UserNameOverEmail(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{
 		Source: &schema.Target{Ip: "127.0.0.1"},
 		User:   &schema.User{Name: "frank", Email: "frank@example.com"},
@@ -191,6 +209,8 @@ func TestMakeHttpMessage_UserNameOverEmail(t *testing.T) {
 }
 
 func TestMakeHttpMessage_EmptyBase(t *testing.T) {
+	t.Parallel()
+
 	base := &schema.Base{}
 
 	expected := `- - - "-" - - "-" "-"`

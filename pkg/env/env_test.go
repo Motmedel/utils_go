@@ -18,6 +18,8 @@ func TestGetEnvWithDefault_Set(t *testing.T) {
 }
 
 func TestGetEnvWithDefault_Unset(t *testing.T) {
+	t.Parallel()
+
 	os.Unsetenv("TEST_VAR_UNSET")
 	if got := GetEnvWithDefault("TEST_VAR_UNSET", "default"); got != "default" {
 		t.Fatalf("expected %q, got %q", "default", got)
@@ -43,6 +45,8 @@ func TestReadEnv_Set(t *testing.T) {
 }
 
 func TestReadEnv_NotPresent(t *testing.T) {
+	t.Parallel()
+
 	os.Unsetenv("TEST_READ_NOT_PRESENT")
 	_, err := ReadEnv("TEST_READ_NOT_PRESENT")
 	if err == nil {
@@ -79,6 +83,8 @@ func TestPopEnv_Set(t *testing.T) {
 }
 
 func TestPopEnv_NotPresent(t *testing.T) {
+	t.Parallel()
+
 	os.Unsetenv("TEST_POP_NOT_PRESENT")
 	_, err := PopEnv("TEST_POP_NOT_PRESENT")
 	if err == nil {

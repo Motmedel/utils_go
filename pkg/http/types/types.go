@@ -159,7 +159,7 @@ func isHttpToken(s string) bool {
 	if len(s) == 0 {
 		return false
 	}
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if !isHttpTokenRune(s[i]) {
 			return false
 		}
@@ -171,7 +171,7 @@ func quoteHttpString(s string) string {
 	var b strings.Builder
 	b.Grow(len(s) + 2)
 	b.WriteByte('"')
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
 		if c == '"' || c == '\\' {
 			b.WriteByte('\\')

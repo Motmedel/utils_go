@@ -17,6 +17,8 @@ import (
 )
 
 func TestPublish(t *testing.T) {
+	t.Parallel()
+
 	const (
 		project = "test-proj"
 		topic   = "test-topic"

@@ -12,6 +12,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/iam_credentials"
 	"github.com/Motmedel/utils_go/pkg/cloud/gcp/types/token_response"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
@@ -115,13 +116,13 @@ func New(
 	tokenURL string,
 ) (token_source.TokenSource, error) {
 	if signerSource == nil {
-		return nil, fmt.Errorf("signer source is nil")
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("signer source"))
 	}
 	if saEmail == "" {
-		return nil, fmt.Errorf("service account email is empty")
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("service account email"))
 	}
 	if subject == "" {
-		return nil, fmt.Errorf("subject is empty")
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("subject"))
 	}
 	if tokenURL == "" {
 		tokenURL = defaultTokenURL

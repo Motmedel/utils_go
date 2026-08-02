@@ -44,6 +44,8 @@ func testOrderValue() map[any]any {
 }
 
 func TestUnmarshalValueStruct(t *testing.T) {
+	t.Parallel()
+
 	var order testOrder
 	if err := UnmarshalValue(testOrderValue(), &order); err != nil {
 		t.Fatalf("unmarshal value: %v", err)
@@ -68,6 +70,8 @@ func TestUnmarshalValueStruct(t *testing.T) {
 }
 
 func TestUnmarshalRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	data, err := Encode(testOrderValue())
 	if err != nil {
 		t.Fatalf("encode: %v", err)
@@ -84,6 +88,8 @@ func TestUnmarshalRoundTrip(t *testing.T) {
 }
 
 func TestUnmarshalValuePointerTarget(t *testing.T) {
+	t.Parallel()
+
 	var order *testOrder
 	if err := UnmarshalValue(testOrderValue(), &order); err != nil {
 		t.Fatalf("unmarshal value: %v", err)
@@ -94,6 +100,8 @@ func TestUnmarshalValuePointerTarget(t *testing.T) {
 }
 
 func TestUnmarshalValueUnknownKeysIgnored(t *testing.T) {
+	t.Parallel()
+
 	value := testOrderValue()
 	value["unknown"] = "value"
 
@@ -104,6 +112,8 @@ func TestUnmarshalValueUnknownKeysIgnored(t *testing.T) {
 }
 
 func TestUnmarshalValueSkippedField(t *testing.T) {
+	t.Parallel()
+
 	value := testOrderValue()
 	value["-"] = "value"
 	value["Ignored"] = "value"
@@ -118,6 +128,8 @@ func TestUnmarshalValueSkippedField(t *testing.T) {
 }
 
 func TestUnmarshalValueErrors(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		value         any
@@ -136,6 +148,8 @@ func TestUnmarshalValueErrors(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			if err := UnmarshalValue(testCase.value, testCase.target); !errors.Is(err, testCase.expectedError) {
 				t.Errorf("expected %v, got %v", testCase.expectedError, err)
 			}
@@ -144,6 +158,8 @@ func TestUnmarshalValueErrors(t *testing.T) {
 }
 
 func TestUnmarshalValueNullValues(t *testing.T) {
+	t.Parallel()
+
 	order := testOrder{
 		Documents: []*testDocument{{FileName: "a.pdf"}},
 		Labels:    map[string]int{"x": 1},

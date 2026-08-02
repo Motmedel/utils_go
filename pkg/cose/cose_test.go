@@ -77,8 +77,12 @@ func vectorPrivateKey(t *testing.T, key *vectorKey) *ecdh.PrivateKey {
 }
 
 func TestDecryptVectors(t *testing.T) {
+	t.Parallel()
+
 	for _, vectorName := range []string{"p256-hkdf-256-01.json", "p256-hkdf-256-02.json"} {
 		t.Run(vectorName, func(t *testing.T) {
+			t.Parallel()
+
 			parsedVector := readVector(t, vectorName)
 
 			message, err := hex.DecodeString(parsedVector.Output.Cbor)
@@ -106,6 +110,8 @@ func TestDecryptVectors(t *testing.T) {
 }
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	for _, algorithm := range []Algorithm{AlgorithmA128GCM, AlgorithmA192GCM, AlgorithmA256GCM} {
 		privateKey, err := ecdh.P256().GenerateKey(nil)
 		if err != nil {
@@ -148,6 +154,8 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 }
 
 func TestEncryptDecryptExternalAad(t *testing.T) {
+	t.Parallel()
+
 	privateKey, err := ecdh.P256().GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
@@ -177,6 +185,8 @@ func TestEncryptDecryptExternalAad(t *testing.T) {
 // TestDecryptTypescriptFixture decrypts a message produced by the @altshiftab/utils/cose
 // TypeScript implementation, using the recipient key from vector p256-hkdf-256-01.
 func TestDecryptTypescriptFixture(t *testing.T) {
+	t.Parallel()
+
 	hexData, err := os.ReadFile(filepath.Join("testdata", "typescript_encrypted.hex"))
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -216,6 +226,8 @@ func TestDecryptTypescriptFixture(t *testing.T) {
 }
 
 func TestDecryptWrongKey(t *testing.T) {
+	t.Parallel()
+
 	privateKey, err := ecdh.P256().GenerateKey(nil)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)

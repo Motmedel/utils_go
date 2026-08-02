@@ -61,7 +61,7 @@ func isFlattenedEmbed(structField *reflect.StructField) (reflect.Type, bool) {
 func assignStructFields(entries map[any]any, target reflect.Value) error {
 	structType := target.Type()
 
-	for i := 0; i < structType.NumField(); i++ {
+	for i := range structType.NumField() {
 		structField := structType.Field(i)
 		fieldValue := target.Field(i)
 

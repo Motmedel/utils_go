@@ -188,7 +188,7 @@ func applyFieldTag(fieldSchema *Schema, tag *fieldTag) error {
 }
 
 func addStructFields(structType reflect.Type, mapSchema *Schema, visiting map[reflect.Type]bool) error {
-	for i := 0; i < structType.NumField(); i++ {
+	for i := range structType.NumField() {
 		structField := structType.Field(i)
 
 		// Flatten embedded structs without an explicit name tag, mirroring encoding/json (which

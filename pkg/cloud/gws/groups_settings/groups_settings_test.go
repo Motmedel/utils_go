@@ -25,6 +25,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 }
 
 func TestGet(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Errorf("expected GET, got %s", r.Method)
@@ -34,9 +36,9 @@ func TestGet(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&group.Group{
-			Kind:             "groupsSettings#groups",
-			Email:            "group@example.com",
-			Name:             "Test Group",
+			Kind:              "groupsSettings#groups",
+			Email:             "group@example.com",
+			Name:              "Test Group",
 			WhoCanPostMessage: "ALL_MEMBERS_CAN_POST",
 		})
 	})
@@ -54,6 +56,8 @@ func TestGet(t *testing.T) {
 }
 
 func TestGet_EmptyEmail(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.Get(context.Background(), "")
 	if err == nil {
@@ -62,6 +66,8 @@ func TestGet_EmptyEmail(t *testing.T) {
 }
 
 func TestGet_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -72,6 +78,8 @@ func TestGet_CancelledContext(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			t.Errorf("expected PUT, got %s", r.Method)
@@ -82,9 +90,9 @@ func TestUpdate(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(&group.Group{
-			Email:              "group@example.com",
-			WhoCanPostMessage:  input.WhoCanPostMessage,
-			AllowWebPosting:    input.AllowWebPosting,
+			Email:             "group@example.com",
+			WhoCanPostMessage: input.WhoCanPostMessage,
+			AllowWebPosting:   input.AllowWebPosting,
 		})
 	})
 
@@ -101,6 +109,8 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdate_EmptyEmail(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.Update(context.Background(), "", &group.Group{})
 	if err == nil {
@@ -109,6 +119,8 @@ func TestUpdate_EmptyEmail(t *testing.T) {
 }
 
 func TestUpdate_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -119,6 +131,8 @@ func TestUpdate_CancelledContext(t *testing.T) {
 }
 
 func TestPatch(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {
 			t.Errorf("expected PATCH, got %s", r.Method)
@@ -146,6 +160,8 @@ func TestPatch(t *testing.T) {
 }
 
 func TestPatch_EmptyEmail(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.Patch(context.Background(), "", &group.Group{})
 	if err == nil {
@@ -154,6 +170,8 @@ func TestPatch_EmptyEmail(t *testing.T) {
 }
 
 func TestPatch_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -164,6 +182,8 @@ func TestPatch_CancelledContext(t *testing.T) {
 }
 
 func TestGroupUrl(t *testing.T) {
+	t.Parallel()
+
 	u, _ := url.Parse("http://localhost:8080")
 	client := NewClient(groups_settings_config.WithBaseUrl(u))
 	got := client.groupUrl("group@example.com")

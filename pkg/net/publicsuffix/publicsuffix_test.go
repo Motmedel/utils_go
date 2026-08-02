@@ -6,6 +6,8 @@ import (
 )
 
 func TestPublicSuffix(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		domain     string
 		wantSuffix string
@@ -50,6 +52,8 @@ func TestPublicSuffix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.domain, func(t *testing.T) {
+			t.Parallel()
+
 			gotSuffix, gotICANN := PublicSuffix(tt.domain)
 			if gotSuffix != tt.wantSuffix {
 				t.Errorf("PublicSuffix(%q) suffix = %q, want %q", tt.domain, gotSuffix, tt.wantSuffix)
@@ -62,6 +66,8 @@ func TestPublicSuffix(t *testing.T) {
 }
 
 func TestEffectiveTLDPlusOne(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		domain string
 		want   string
@@ -93,6 +99,8 @@ func TestEffectiveTLDPlusOne(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.domain, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := EffectiveTLDPlusOne(tt.domain)
 			if tt.err {
 				if err == nil {
@@ -111,6 +119,8 @@ func TestEffectiveTLDPlusOne(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
+	t.Parallel()
+
 	// List should implement cookiejar.PublicSuffixList.
 	ps := List.PublicSuffix("foo.co.uk")
 	if ps != "co.uk" {
@@ -124,6 +134,8 @@ func TestList(t *testing.T) {
 }
 
 func TestNodeLabel(t *testing.T) {
+	t.Parallel()
+
 	// Verify that the first few TLD labels can be read correctly from the data.
 	for i := range uint32(numTLD) {
 		label := nodeLabel(i)
@@ -134,6 +146,8 @@ func TestNodeLabel(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
+	t.Parallel()
+
 	// Verify that well-known TLDs can be found.
 	for _, tld := range []string{"com", "org", "net", "uk", "de", "jp", "au"} {
 		f := find(tld, 0, numTLD)
@@ -150,6 +164,8 @@ func TestFind(t *testing.T) {
 }
 
 func TestICANN(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		domain    string
 		wantICANN bool
@@ -163,6 +179,8 @@ func TestICANN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.domain, func(t *testing.T) {
+			t.Parallel()
+
 			_, gotICANN := PublicSuffix(tt.domain)
 			if gotICANN != tt.wantICANN {
 				t.Errorf("PublicSuffix(%q) icann = %v, want %v", tt.domain, gotICANN, tt.wantICANN)

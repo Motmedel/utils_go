@@ -29,6 +29,8 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 }
 
 func TestGenerateContent(t *testing.T) {
+	t.Parallel()
+
 	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
@@ -86,6 +88,8 @@ func TestGenerateContent(t *testing.T) {
 }
 
 func TestGenerateContent_EmptyModel(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	_, err := client.GenerateContent(
 		context.Background(),
@@ -98,6 +102,8 @@ func TestGenerateContent_EmptyModel(t *testing.T) {
 }
 
 func TestGenerateContent_NilRequest(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	response, err := client.GenerateContent(context.Background(), "gemini-2.5-flash", nil)
 	if err != nil {
@@ -109,6 +115,8 @@ func TestGenerateContent_NilRequest(t *testing.T) {
 }
 
 func TestGenerateContent_CancelledContext(t *testing.T) {
+	t.Parallel()
+
 	client := NewClient()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -122,6 +130,8 @@ func TestGenerateContent_CancelledContext(t *testing.T) {
 // longer omits zero numbers; unset numeric fields must not reach the API, which
 // rejects zero values (e.g. candidateCount must be in [1, 8]).
 func TestGenerationConfig_MarshalOmitsZeroFields(t *testing.T) {
+	t.Parallel()
+
 	data, err := json.Marshal(&generation_config.GenerationConfig{ResponseMimeType: "application/json"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -132,6 +142,8 @@ func TestGenerationConfig_MarshalOmitsZeroFields(t *testing.T) {
 }
 
 func TestText_SkipsThoughtParts(t *testing.T) {
+	t.Parallel()
+
 	response := &generate_content_response.GenerateContentResponse{
 		Candidates: []*candidate.Candidate{
 			{

@@ -17,7 +17,6 @@ func Min(times ...*time.Time) *time.Time {
 		if minTime == nil || t.Before(*minTime) {
 			minTime = t
 		}
-
 	}
 
 	return minTime

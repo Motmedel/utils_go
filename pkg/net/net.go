@@ -54,11 +54,13 @@ func GetIpVersion(ip *net.IP) int {
 
 // Calculate the last address in the network
 func lastAddress(network net.IPNet) net.IP {
-	var last net.IP
 	ip := network.IP.To16()
-	mask := network.Mask
+	if ip == nil {
+		return nil
+	}
 
-	last = make(net.IP, len(ip))
+	mask := network.Mask
+	last := make(net.IP, len(ip))
 	for i := range last {
 		last[i] = ip[i] | ^mask[i]
 	}
@@ -111,6 +113,9 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 
 	startBytes := startIpAddress.To16()
 	endBytes := endIpAddress.To16()
+	if startBytes == nil || endBytes == nil {
+		return "", motmedelErrors.NewWithTrace(nil_error.New("ip 16-byte representation"))
+	}
 
 	byteComparison := bytes.Compare(startBytes, endBytes)
 
@@ -121,7 +126,7 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 	// Find the first byte where the two IP addresses differ
 	maskLength := 0
 	found := false
-	for i := 0; i < len(startBytes); i++ {
+	for i := range startBytes {
 		if startBytes[i] != endBytes[i] {
 			// Calculate the mask length up to this point
 			maskLength = i * 8

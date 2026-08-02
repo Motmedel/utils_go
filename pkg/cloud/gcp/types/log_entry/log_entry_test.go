@@ -6,6 +6,8 @@ import (
 )
 
 func TestParseXCloudTraceContext_Full(t *testing.T) {
+	t.Parallel()
+
 	traceID, spanID, sampled := parseXCloudTraceContext("105445aa7843bc8bf206b120001000/123;o=1")
 	if traceID != "105445aa7843bc8bf206b120001000" {
 		t.Errorf("expected trace id '105445aa7843bc8bf206b120001000', got %q", traceID)
@@ -19,6 +21,8 @@ func TestParseXCloudTraceContext_Full(t *testing.T) {
 }
 
 func TestParseXCloudTraceContext_NotSampled(t *testing.T) {
+	t.Parallel()
+
 	traceID, spanID, sampled := parseXCloudTraceContext("abcdef/456;o=0")
 	if traceID != "abcdef" {
 		t.Errorf("expected trace id 'abcdef', got %q", traceID)
@@ -32,6 +36,8 @@ func TestParseXCloudTraceContext_NotSampled(t *testing.T) {
 }
 
 func TestParseXCloudTraceContext_TraceOnly(t *testing.T) {
+	t.Parallel()
+
 	traceID, spanID, sampled := parseXCloudTraceContext("abc123")
 	if traceID != "abc123" {
 		t.Errorf("expected trace id 'abc123', got %q", traceID)
@@ -45,6 +51,8 @@ func TestParseXCloudTraceContext_TraceOnly(t *testing.T) {
 }
 
 func TestParseXCloudTraceContext_TraceAndSpan(t *testing.T) {
+	t.Parallel()
+
 	traceID, spanID, sampled := parseXCloudTraceContext("trace123/789")
 	if traceID != "trace123" {
 		t.Errorf("expected trace id 'trace123', got %q", traceID)
@@ -58,6 +66,8 @@ func TestParseXCloudTraceContext_TraceAndSpan(t *testing.T) {
 }
 
 func TestParseXCloudTraceContext_Empty(t *testing.T) {
+	t.Parallel()
+
 	traceID, spanID, sampled := parseXCloudTraceContext("")
 	if traceID != "" {
 		t.Errorf("expected empty trace id, got %q", traceID)
@@ -71,6 +81,8 @@ func TestParseXCloudTraceContext_Empty(t *testing.T) {
 }
 
 func TestParseXCloudTraceContext_NonNumericSpan(t *testing.T) {
+	t.Parallel()
+
 	traceID, spanID, sampled := parseXCloudTraceContext("trace/notanumber;o=1")
 	if traceID != "trace" {
 		t.Errorf("expected trace id 'trace', got %q", traceID)
@@ -84,6 +96,8 @@ func TestParseXCloudTraceContext_NonNumericSpan(t *testing.T) {
 }
 
 func TestParseHttp_RequestAndResponse(t *testing.T) {
+	t.Parallel()
+
 	req, _ := http.NewRequest(http.MethodGet, "http://example.com/api", nil)
 	req.Header.Set("User-Agent", "TestAgent/1.0")
 	req.Header.Set("X-Cloud-Trace-Context", "traceid123/100;o=1")
@@ -125,6 +139,8 @@ func TestParseHttp_RequestAndResponse(t *testing.T) {
 }
 
 func TestParseHttp_RequestOnly(t *testing.T) {
+	t.Parallel()
+
 	req, _ := http.NewRequest(http.MethodPost, "http://example.com", nil)
 	entry := ParseHttp(req, nil)
 	if entry == nil {
@@ -139,6 +155,8 @@ func TestParseHttp_RequestOnly(t *testing.T) {
 }
 
 func TestParseHttp_ResponseOnly(t *testing.T) {
+	t.Parallel()
+
 	resp := &http.Response{StatusCode: 404}
 	entry := ParseHttp(nil, resp)
 	if entry == nil {
@@ -153,6 +171,8 @@ func TestParseHttp_ResponseOnly(t *testing.T) {
 }
 
 func TestParseHttp_BothNil(t *testing.T) {
+	t.Parallel()
+
 	entry := ParseHttp(nil, nil)
 	if entry != nil {
 		t.Error("expected nil for both nil request and response")
@@ -160,6 +180,8 @@ func TestParseHttp_BothNil(t *testing.T) {
 }
 
 func TestParseHttp_NoTraceHeader(t *testing.T) {
+	t.Parallel()
+
 	req, _ := http.NewRequest(http.MethodGet, "http://example.com", nil)
 	entry := ParseHttp(req, nil)
 	if entry.TraceId != "" {

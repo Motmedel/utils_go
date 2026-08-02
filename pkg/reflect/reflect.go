@@ -11,7 +11,7 @@ func TypeOf[T any]() reflect.Type {
 
 func RemoveIndirection(reflectType reflect.Type) reflect.Type {
 	kind := reflectType.Kind()
-	for kind == reflect.Ptr {
+	for kind == reflect.Pointer {
 		reflectType = reflectType.Elem()
 		kind = reflectType.Kind()
 	}

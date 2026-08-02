@@ -119,6 +119,8 @@ func TestValidate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("both checks pass", func(t *testing.T) {
+		t.Parallel()
+
 		v := &Validator{
 			ExpectedContentType:   "text/plain; charset=utf-8",
 			ExpectedFileExtension: ".txt",
@@ -129,6 +131,8 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("content type fails", func(t *testing.T) {
+		t.Parallel()
+
 		v := &Validator{
 			ExpectedContentType:   "application/pdf",
 			ExpectedFileExtension: ".txt",
@@ -139,6 +143,8 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("file extension fails", func(t *testing.T) {
+		t.Parallel()
+
 		v := &Validator{
 			ExpectedContentType:   "text/plain; charset=utf-8",
 			ExpectedFileExtension: ".pdf",
@@ -149,6 +155,8 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("empty content type skips content check", func(t *testing.T) {
+		t.Parallel()
+
 		v := &Validator{
 			ExpectedFileExtension: ".txt",
 		}
@@ -158,6 +166,8 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("empty extension skips extension check", func(t *testing.T) {
+		t.Parallel()
+
 		v := &Validator{
 			ExpectedContentType: "text/plain; charset=utf-8",
 		}
@@ -167,6 +177,8 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("both empty skips all checks", func(t *testing.T) {
+		t.Parallel()
+
 		v := &Validator{}
 		if err := v.Validate(nil, ""); err != nil {
 			t.Fatalf("unexpected error: %v", err)

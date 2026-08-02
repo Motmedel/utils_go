@@ -9,6 +9,8 @@ import (
 )
 
 func TestEncodeKnownAnswers(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name     string
 		value    any
@@ -41,6 +43,8 @@ func TestEncodeKnownAnswers(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			data, err := Encode(testCase.value)
 			if err != nil {
 				t.Fatalf("encode: %v", err)
@@ -54,6 +58,8 @@ func TestEncodeKnownAnswers(t *testing.T) {
 }
 
 func TestRoundTrip(t *testing.T) {
+	t.Parallel()
+
 	value := Tag{
 		Number: 96,
 		Content: []any{
@@ -84,6 +90,8 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func TestDecodeRejects(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		data string
@@ -110,6 +118,8 @@ func TestDecodeRejects(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			data, err := hex.DecodeString(testCase.data)
 			if err != nil {
 				t.Fatalf("decode hex: %v", err)
@@ -123,6 +133,8 @@ func TestDecodeRejects(t *testing.T) {
 }
 
 func TestDecodeRejectsExcessiveNesting(t *testing.T) {
+	t.Parallel()
+
 	data := append(bytes.Repeat([]byte{0x81}, 40), 0x01)
 	if _, err := Decode(data); !errors.Is(err, ErrMalformed) {
 		t.Errorf("expected malformed error, got %v", err)
@@ -146,6 +158,8 @@ func decodedByteString(t *testing.T, value any) []byte {
 }
 
 func TestDecodeCopies(t *testing.T) {
+	t.Parallel()
+
 	// ["abc" as bstr, "xy"]: 82, 43 616263, 62 7879
 	data, err := hex.DecodeString("8243616263627879")
 	if err != nil {
@@ -165,6 +179,8 @@ func TestDecodeCopies(t *testing.T) {
 }
 
 func TestDecodeNoCopyAliases(t *testing.T) {
+	t.Parallel()
+
 	data, err := hex.DecodeString("8243616263627879")
 	if err != nil {
 		t.Fatalf("decode hex: %v", err)
@@ -189,6 +205,8 @@ func TestDecodeNoCopyAliases(t *testing.T) {
 }
 
 func TestDecodeNoCopyMatchesDecode(t *testing.T) {
+	t.Parallel()
+
 	data, err := Encode(
 		map[int64]any{
 			1: []byte{1, 2, 3},
@@ -216,6 +234,8 @@ func TestDecodeNoCopyMatchesDecode(t *testing.T) {
 }
 
 func TestEncodeRejectsUnsupportedType(t *testing.T) {
+	t.Parallel()
+
 	if _, err := Encode(1.5); !errors.Is(err, ErrUnsupportedValue) {
 		t.Errorf("expected unsupported value error, got %v", err)
 	}
