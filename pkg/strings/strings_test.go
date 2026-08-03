@@ -147,3 +147,30 @@ func TestHasAnyPrefix(t *testing.T) {
 		t.Fatal("expected false with no prefixes")
 	}
 }
+
+func TestHexEscapeNonASCII(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "empty", input: "", expected: ""},
+		{name: "ascii unchanged", input: "/login?next=/a", expected: "/login?next=/a"},
+		{name: "utf8 accented", input: "café", expected: "caf%c3%a9"},
+		{name: "leading non-ascii bytes", input: "\xc3\xa9x", expected: "%c3%a9x"},
+		{name: "single high byte", input: "\x80", expected: "%80"},
+		{name: "emoji", input: "😀", expected: "%f0%9f%98%80"},
+		{name: "ascii control bytes preserved", input: "a\r\nb", expected: "a\r\nb"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := HexEscapeNonASCII(testCase.input); got != testCase.expected {
+				t.Fatalf("HexEscapeNonASCII(%q) = %q, want %q", testCase.input, got, testCase.expected)
+			}
+		})
+	}
+}

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 // NOTE: Copied from Go source code: log/slog/text_handler.go: byteSlice
@@ -91,4 +93,40 @@ func HasAnyPrefix(s string, prefixes ...string) bool {
 		}
 	}
 	return false
+}
+
+// NOTE: Adapted from Go source code: net/http/http.go: hexEscapeNonASCII
+
+// HexEscapeNonASCII percent-encodes every non-ASCII byte (>= utf8.RuneSelf) in s and
+// leaves ASCII bytes untouched. It mirrors the unexported net/http helper used to keep
+// header values such as Location valid ASCII. Note that ASCII control bytes, including
+// CR and LF, are not escaped.
+func HexEscapeNonASCII(s string) string {
+	newLen := 0
+	for i := range len(s) {
+		if s[i] >= utf8.RuneSelf {
+			newLen += 3
+		} else {
+			newLen++
+		}
+	}
+	if newLen == len(s) {
+		return s
+	}
+	b := make([]byte, 0, newLen)
+	var pos int
+	for i := range len(s) {
+		if s[i] >= utf8.RuneSelf {
+			if pos < i {
+				b = append(b, s[pos:i]...)
+			}
+			b = append(b, '%')
+			b = strconv.AppendInt(b, int64(s[i]), 16)
+			pos = i + 1
+		}
+	}
+	if pos < len(s) {
+		b = append(b, s[pos:]...)
+	}
+	return string(b)
 }
