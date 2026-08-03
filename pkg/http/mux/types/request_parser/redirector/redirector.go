@@ -9,13 +9,15 @@ import (
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	muxInternalVhostMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/vhost_mux"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/redirector/redirector_config"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
+	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
+
+var errMissingXForwardedProto = errors.New("missing X-Forwarded-Proto header")
 
 type Parser[T request_parser.RequestParser[S], S any] struct {
 	RequestParser     T
@@ -66,7 +68,7 @@ func (parser *Parser[T, S]) Parse(request *http.Request) (S, *response_error.Res
 	if scheme == "" {
 		if parser.RequireProto {
 			return zero, &response_error.ResponseError{
-				ServerError: motmedelErrors.NewWithTrace(errors.New("missing X-Forwarded-Proto header")),
+				ServerError: motmedelErrors.NewWithTrace(errMissingXForwardedProto),
 			}
 		}
 
@@ -113,7 +115,7 @@ func (parser *Parser[T, S]) Parse(request *http.Request) (S, *response_error.Res
 		responseError.Headers,
 		&response.HeaderEntry{
 			Name:  "Location",
-			Value: muxInternalVhostMux.HexEscapeNonASCII(redirectUrl.String()),
+			Value: motmedelStrings.HexEscapeNonASCII(redirectUrl.String()),
 		},
 	)
 

@@ -50,6 +50,8 @@ func newParser(t *testing.T, privateKey *ecdh.PrivateKey, options ...Option) *Pa
 }
 
 func TestParseValid(t *testing.T) {
+	t.Parallel()
+
 	privateKey := testKey(t)
 	plaintext := []byte("plaintext")
 
@@ -71,6 +73,8 @@ func TestParseValid(t *testing.T) {
 }
 
 func TestParseMalformedMessage(t *testing.T) {
+	t.Parallel()
+
 	_, responseError := newParser(t, testKey(t)).Parse(nil, []byte{0x9f})
 	if responseError == nil {
 		t.Fatal("expected a response error")
@@ -82,6 +86,8 @@ func TestParseMalformedMessage(t *testing.T) {
 }
 
 func TestParseWrongKey(t *testing.T) {
+	t.Parallel()
+
 	privateKey := testKey(t)
 	otherKey := testKey(t)
 
@@ -96,6 +102,8 @@ func TestParseWrongKey(t *testing.T) {
 }
 
 func TestParseKeyIdentifierMismatch(t *testing.T) {
+	t.Parallel()
+
 	privateKey := testKey(t)
 
 	parser := newParser(t, privateKey, WithKeyIdentifier([]byte("other-kid")))
@@ -111,6 +119,8 @@ func TestParseKeyIdentifierMismatch(t *testing.T) {
 }
 
 func TestParsePlaintextContentTypeMismatch(t *testing.T) {
+	t.Parallel()
+
 	privateKey := testKey(t)
 
 	parser := newParser(t, privateKey, WithPlaintextContentType("application/json"))
@@ -126,6 +136,8 @@ func TestParsePlaintextContentTypeMismatch(t *testing.T) {
 }
 
 func TestNewNilKey(t *testing.T) {
+	t.Parallel()
+
 	if _, err := New(nil); err == nil {
 		t.Error("expected an error for a nil private key")
 	}

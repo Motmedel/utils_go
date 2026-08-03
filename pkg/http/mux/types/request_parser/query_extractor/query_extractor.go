@@ -1,6 +1,7 @@
 package query_extractor
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"net/http"
@@ -26,27 +27,36 @@ import (
 var uuidRegexp = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 var urlSchemeRegexp = regexp.MustCompile(`^https?://`)
 
+// Static errors for unsupported struct definitions/field types. These represent
+// programming errors (not client input), so they are kept distinct from
+// motmedelErrors.ErrValidationError.
+var (
+	errUnsupportedFormat        = errors.New("unsupported format")
+	errUnsupportedScalarKind    = errors.New("unsupported scalar kind")
+	errPointerFieldNotSupported = errors.New("pointer field not supported")
+)
+
 func validateFormat(value string, format string) error {
 	switch format {
 	case "email":
 		_, err := mail.ParseAddress(value)
 		if err != nil {
-			return fmt.Errorf("invalid email format: %q", value)
+			return fmt.Errorf("%w: invalid email format: %q", motmedelErrors.ErrValidationError, value)
 		}
 		return nil
 	case "uuid":
 		if !uuidRegexp.MatchString(value) {
-			return fmt.Errorf("invalid uuid format: %q", value)
+			return fmt.Errorf("%w: invalid uuid format: %q", motmedelErrors.ErrValidationError, value)
 		}
 		return nil
 	case "url":
 		_, err := url.ParseRequestURI(value)
 		if err != nil || !urlSchemeRegexp.MatchString(value) {
-			return fmt.Errorf("invalid url format: %q", value)
+			return fmt.Errorf("%w: invalid url format: %q", motmedelErrors.ErrValidationError, value)
 		}
 		return nil
 	default:
-		return fmt.Errorf("unsupported format: %q", format)
+		return fmt.Errorf("%w: %q", errUnsupportedFormat, format)
 	}
 }
 
@@ -90,14 +100,14 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 
 	// Allocate a new value of type T (supports struct and *struct)
 	var result reflect.Value
-	if tType.Kind() == reflect.Ptr {
+	if tType.Kind() == reflect.Pointer {
 		result = reflect.New(targetType) // *struct
 	} else {
 		result = reflect.New(targetType).Elem() // struct
 	}
 	// structVal refers to the underlying struct to populate
 	var structVal reflect.Value
-	if result.Kind() == reflect.Ptr {
+	if result.Kind() == reflect.Pointer {
 		structVal = result.Elem()
 	} else {
 		structVal = result
@@ -120,7 +130,7 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			} else {
 				b, err := strconv.ParseBool(s)
 				if err != nil {
-					return fmt.Errorf("invalid bool value: %q", s)
+					return fmt.Errorf("%w: invalid bool value: %q", motmedelErrors.ErrValidationError, s)
 				}
 				v.SetBool(b)
 			}
@@ -141,7 +151,7 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			}
 			n, err := strconv.ParseInt(s, 10, bitSize)
 			if err != nil {
-				return fmt.Errorf("invalid integer value: %q", s)
+				return fmt.Errorf("%w: invalid integer value: %q", motmedelErrors.ErrValidationError, s)
 			}
 			v.SetInt(n)
 			return nil
@@ -161,7 +171,7 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			}
 			n, err := strconv.ParseUint(s, 10, bitSize)
 			if err != nil {
-				return fmt.Errorf("invalid unsigned integer value: %q", s)
+				return fmt.Errorf("%w: invalid unsigned integer value: %q", motmedelErrors.ErrValidationError, s)
 			}
 			v.SetUint(n)
 			return nil
@@ -172,19 +182,19 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			}
 			f, err := strconv.ParseFloat(s, bitSize)
 			if err != nil {
-				return fmt.Errorf("invalid float value: %q", s)
+				return fmt.Errorf("%w: invalid float value: %q", motmedelErrors.ErrValidationError, s)
 			}
 			v.SetFloat(f)
 			return nil
 		default:
-			return fmt.Errorf("unsupported scalar kind: %s", v.Kind())
+			return fmt.Errorf("%w: %s", errUnsupportedScalarKind, v.Kind())
 		}
 	}
 
 	setFromValues := func(fieldVal reflect.Value, fieldType reflect.Type, identifier string, values []string) error {
 		// Pointers are not supported for fields
-		if fieldType.Kind() == reflect.Ptr {
-			return fmt.Errorf("pointer fields are not supported for parameter %s", identifier)
+		if fieldType.Kind() == reflect.Pointer {
+			return fmt.Errorf("%w: parameter %s", errPointerFieldNotSupported, identifier)
 		}
 
 		switch fieldType.Kind() {
@@ -192,7 +202,7 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			// Special case: []byte from a single string
 			if fieldType.Elem().Kind() == reflect.Uint8 {
 				if len(values) != 1 {
-					return fmt.Errorf("parameter %s expects a single value", identifier)
+					return fmt.Errorf("%w: parameter %s expects a single value", motmedelErrors.ErrValidationError, identifier)
 				}
 				fieldVal.SetBytes([]byte(values[0]))
 				return nil
@@ -209,9 +219,9 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			return nil
 		case reflect.Array:
 			if len(values) != fieldType.Len() {
-				return fmt.Errorf("parameter %s expects %d values", identifier, fieldType.Len())
+				return fmt.Errorf("%w: parameter %s expects %d values", motmedelErrors.ErrValidationError, identifier, fieldType.Len())
 			}
-			for i := 0; i < fieldType.Len(); i++ {
+			for i := range fieldType.Len() {
 				elem := fieldVal.Index(i)
 				if err := setScalar(elem, values[i]); err != nil {
 					return fmt.Errorf("parameter %s: %w", identifier, err)
@@ -221,7 +231,7 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 		default:
 			// Scalar
 			if len(values) != 1 {
-				return fmt.Errorf("parameter %s expects a single value", identifier)
+				return fmt.Errorf("%w: parameter %s expects a single value", motmedelErrors.ErrValidationError, identifier)
 			}
 			if err := setScalar(fieldVal, values[0]); err != nil {
 				return fmt.Errorf("parameter %s: %w", identifier, err)
@@ -242,9 +252,9 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 		fieldType := field.Type
 		fieldTypeKind := fieldType.Kind()
 
-		if fieldTypeKind == reflect.Ptr {
+		if fieldTypeKind == reflect.Pointer {
 			return zero, &response_error.ResponseError{
-				ServerError: motmedelErrors.NewWithTrace(fmt.Errorf("pointer field not supported: %s", identifier)),
+				ServerError: motmedelErrors.NewWithTrace(fmt.Errorf("%w: %s", errPointerFieldNotSupported, identifier)),
 			}
 		}
 
@@ -281,12 +291,12 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 			if optional {
 				continue
 			}
-			parseErrs = append(parseErrs, fmt.Errorf("missing parameter: %s", identifier))
+			parseErrs = append(parseErrs, fmt.Errorf("%w: missing parameter: %s", motmedelErrors.ErrValidationError, identifier))
 			continue
 		}
 
-		if len(values) > 1 && !(fieldTypeKind == reflect.Slice || fieldTypeKind == reflect.Array) {
-			parseErrs = append(parseErrs, fmt.Errorf("multiple values for parameter: %s", identifier))
+		if len(values) > 1 && fieldTypeKind != reflect.Slice && fieldTypeKind != reflect.Array {
+			parseErrs = append(parseErrs, fmt.Errorf("%w: multiple values for parameter: %s", motmedelErrors.ErrValidationError, identifier))
 			continue
 		}
 
@@ -308,7 +318,7 @@ func (p *Parser[T]) Parse(request *http.Request) (T, *response_error.ResponseErr
 	if !p.config.AllowAdditionalParameters {
 		for key := range query {
 			if _, ok := known[key]; !ok {
-				parseErrs = append(parseErrs, fmt.Errorf("unknown parameter: %s", key))
+				parseErrs = append(parseErrs, fmt.Errorf("%w: unknown parameter: %s", motmedelErrors.ErrValidationError, key))
 			}
 		}
 	}

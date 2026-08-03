@@ -118,7 +118,6 @@ func MakeStaticContentHeaders(contentType, cacheControl, etag, lastModified stri
 
 	if contentType != "" {
 		entries = append(entries, &response.HeaderEntry{Name: "Content-Type", Value: contentType})
-
 	}
 	if etag != "" {
 		entries = append(entries, &response.HeaderEntry{Name: "ETag", Value: etag})

@@ -7,7 +7,6 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	processorPkg "github.com/Motmedel/utils_go/pkg/http/mux/types/processor"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -31,17 +30,17 @@ type RequestParserWithProcessor[T any, U any] struct {
 	Processor     processorPkg.Processor[U, T]
 }
 
-func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *response_error.ResponseError) {
+func (p *RequestParserWithProcessor[T, U]) Parse(request *http.Request) (U, *muxTypesResponseError.ResponseError) {
 	var zero U
 
 	requestParser := p.RequestParser
 	if utils.IsNil(requestParser) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("request parser"))}
+		return zero, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("request parser"))}
 	}
 
 	processor := p.Processor
 	if utils.IsNil(processor) {
-		return zero, &response_error.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("processor"))}
+		return zero, &muxTypesResponseError.ResponseError{ServerError: motmedelErrors.NewWithTrace(nil_error.New("processor"))}
 	}
 
 	result, responseError := requestParser.Parse(request)

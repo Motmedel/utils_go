@@ -261,8 +261,12 @@ func NewFromDataPath(
 		visibility = "public"
 	}
 
-	if parameter.CacheControl == "" {
-		parameter.CacheControl = strings.Join(
+	// NOTE: parameter is a shared entry in extensionToParameter, so the effective Cache-Control
+	// is derived locally rather than mutated in place (which would race across concurrent calls
+	// and leak visibility between calls).
+	cacheControl := parameter.CacheControl
+	if cacheControl == "" {
+		cacheControl = strings.Join(
 			[]string{visibility, "max-age=31356000", "immutable"},
 			", ",
 		)
@@ -273,7 +277,7 @@ func NewFromDataPath(
 			Data:         data,
 			Etag:         etag,
 			LastModified: lastModified,
-			Headers:      parameter.HeaderEntries(etag, lastModified),
+			Headers:      utils.MakeStaticContentHeaders(parameter.ContentType, cacheControl, etag, lastModified),
 		},
 	}
 

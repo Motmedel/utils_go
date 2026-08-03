@@ -50,6 +50,8 @@ func newParser(t *testing.T) *Parser[*testOrder] {
 }
 
 func TestParseValid(t *testing.T) {
+	t.Parallel()
+
 	order, responseError := newParser(t).Parse(nil, validOrderData(t))
 	if responseError != nil {
 		t.Fatalf("parse: %v", responseError)
@@ -64,6 +66,8 @@ func TestParseValid(t *testing.T) {
 }
 
 func TestParseMalformedBody(t *testing.T) {
+	t.Parallel()
+
 	_, responseError := newParser(t).Parse(nil, []byte{0x9f})
 	if responseError == nil {
 		t.Fatal("expected a response error")
@@ -79,6 +83,8 @@ func TestParseMalformedBody(t *testing.T) {
 }
 
 func TestParseInvalidBody(t *testing.T) {
+	t.Parallel()
+
 	data, err := cbor.Encode(
 		map[any]any{
 			"name":          "Meriadoc",

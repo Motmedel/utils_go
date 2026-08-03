@@ -71,7 +71,6 @@ func (p *Parser[T]) Parse(request *http.Request) (*authenticated_token.Token, *m
 				}
 
 				authenticatedToken = token
-				return
 			},
 		)
 	}

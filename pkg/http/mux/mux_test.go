@@ -8,6 +8,7 @@ import (
 	"os"
 	"slices"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
@@ -267,6 +268,8 @@ func TestMain(m *testing.M) {
 // TODO: Test adding and deleting from a mux.
 
 func TestMux(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name string
 		args *muxTesting.Args
@@ -619,52 +622,67 @@ func TestMux(t *testing.T) {
 }
 
 func TestRateLimiting(t *testing.T) {
-	path := "/rate-limiting"
+	t.Parallel()
 
-	for i := 0; i < 3; i++ {
-		response, err := http.Get(httpServer.URL + path)
-		if err != nil {
-			t.Fatalf("http get: %v", err)
+	// The rate limiter is driven by wall-clock timers (time.Now/time.AfterFunc). Run
+	// the test inside a synctest bubble with a fake clock and drive the mux in-process
+	// (synctest cannot virtualize a real server's socket I/O). time.Sleep then advances
+	// the fake clock instantly rather than waiting for the real rate-limit window.
+	synctest.Test(t, func(t *testing.T) {
+		mux := &Mux{}
+		mux.Add(
+			&endpoint.Endpoint{
+				Path:   "/rate-limiting",
+				Method: http.MethodGet,
+				RateLimitingConfiguration: &rate_limiting.RateLimitingConfiguration{
+					NumRequests:          3,
+					NumSecondsExpiration: 5,
+				},
+			},
+		)
+
+		get := func() *httptest.ResponseRecorder {
+			recorder := httptest.NewRecorder()
+			mux.ServeHTTP(recorder, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/rate-limiting", nil))
+			return recorder
 		}
 
-		if response.StatusCode != http.StatusNoContent {
-			t.Errorf("got status code %d, expected %d", response.StatusCode, http.StatusNoContent)
+		// The first NumRequests requests are allowed.
+		for range 3 {
+			if recorder := get(); recorder.Code != http.StatusNoContent {
+				t.Errorf("got status code %d, expected %d", recorder.Code, http.StatusNoContent)
+			}
 		}
-	}
 
-	response, err := http.Get(httpServer.URL + path)
-	if err != nil {
-		t.Fatalf("http get: %v", err)
-	}
+		// The next request exceeds the limit.
+		recorder := get()
+		if recorder.Code != http.StatusTooManyRequests {
+			t.Errorf("got status code %d, expected %d", recorder.Code, http.StatusTooManyRequests)
+		}
 
-	expectedStatusCode := http.StatusTooManyRequests
-	if response.StatusCode != expectedStatusCode {
-		t.Errorf("got status code %d, expected %d", response.StatusCode, expectedStatusCode)
-	}
+		retryAfterValue := recorder.Header().Get("Retry-After")
+		if retryAfterValue == "" {
+			t.Fatal("no Retry-After header")
+		}
 
-	retryAfterValue := response.Header.Get("Retry-After")
-	if retryAfterValue == "" {
-		t.Error("no Retry-After header")
-	} else {
 		retryAfter, err := retry_after.Parse([]byte(retryAfterValue))
 		if err != nil {
-			t.Errorf("invalid Retry-After: %v", err)
-		} else {
-			waitTime, ok := retryAfter.WaitTime.(time.Time)
-			if !ok {
-				t.Error("invalid Retry-After wait time")
-			}
-
-			time.Sleep(time.Until(waitTime))
-
-			response, err = http.Get(httpServer.URL + path)
-			if err != nil {
-				t.Fatalf("http get: %v", err)
-			}
-
-			if response.StatusCode != http.StatusNoContent {
-				t.Errorf("got status code %d, expected %d", response.StatusCode, http.StatusNoContent)
-			}
+			t.Fatalf("invalid Retry-After: %v", err)
 		}
-	}
+
+		waitTime, ok := retryAfter.WaitTime.(time.Time)
+		if !ok {
+			t.Fatal("invalid Retry-After wait time")
+		}
+
+		// Advance the fake clock past the rate-limit window; the bucket-freeing timers
+		// fire during this sleep. synctest.Wait then ensures those timer goroutines have
+		// completed before the next request is issued.
+		time.Sleep(time.Until(waitTime))
+		synctest.Wait()
+
+		if recorder := get(); recorder.Code != http.StatusNoContent {
+			t.Errorf("got status code %d, expected %d", recorder.Code, http.StatusNoContent)
+		}
+	})
 }

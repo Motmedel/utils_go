@@ -19,10 +19,15 @@ import (
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
 
+const (
+	cacheControlHeaderName = "Cache-Control"
+	sameOrigin             = "same-origin"
+)
+
 var DefaultHeaders = map[string]string{
-	"Cache-Control":                "no-store",
+	cacheControlHeaderName:         "no-store",
 	"X-Content-Type-Options":       "nosniff",
-	"Cross-Origin-Resource-Policy": "same-origin",
+	"Cross-Origin-Resource-Policy": sameOrigin,
 }
 
 const (
@@ -37,11 +42,11 @@ const (
 )
 
 var DefaultDocumentHeaders = map[string]string{
-	"Cross-Origin-Opener-Policy":   "same-origin",
+	"Cross-Origin-Opener-Policy":   sameOrigin,
 	"Cross-Origin-Embedder-Policy": "require-corp",
 	"Content-Security-Policy":      DefaultContentSecurityPolicyString,
 	"Permissions-Policy":           "geolocation=(), microphone=(), camera=(), payment=(), usb=(), display-capture=()",
-	"Referrer-Policy":              "same-origin",
+	"Referrer-Policy":              sameOrigin,
 }
 
 type ResponseWriter struct {
@@ -148,7 +153,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			}
 		}
 
-		if canonicalHeaderName == "Cache-Control" {
+		if canonicalHeaderName == cacheControlHeaderName {
 			for _, cacheControlValue := range strings.Split(headerValue, ",") {
 				cacheControlSet[strings.ToLower(strings.TrimSpace(cacheControlValue))] = struct{}{}
 			}
@@ -187,7 +192,7 @@ func (responseWriter *ResponseWriter) WriteResponse(
 			continue
 		}
 
-		if canonicalHeaderName == "Cache-Control" {
+		if canonicalHeaderName == cacheControlHeaderName {
 			for _, cacheControlValue := range strings.Split(headerValue, ",") {
 				cacheControlSet[strings.ToLower(strings.TrimSpace(cacheControlValue))] = struct{}{}
 			}

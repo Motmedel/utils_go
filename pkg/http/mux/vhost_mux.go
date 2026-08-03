@@ -9,11 +9,11 @@ import (
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
-	muxInternalVhostMux "github.com/Motmedel/utils_go/pkg/http/mux/internal/vhost_mux"
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxTypesResponseWriter "github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
+	motmedelStrings "github.com/Motmedel/utils_go/pkg/strings"
 )
 
 type VhostMuxSpecification struct {
@@ -104,7 +104,7 @@ func vhostMuxHandleRequest(
 		return &muxTypesResponse.Response{
 			StatusCode: http.StatusMovedPermanently,
 			Headers: []*muxTypesResponse.HeaderEntry{
-				{Name: "Location", Value: muxInternalVhostMux.HexEscapeNonASCII(redirectTo + request.RequestURI)},
+				{Name: "Location", Value: motmedelStrings.HexEscapeNonASCII(redirectTo + request.RequestURI)},
 			},
 		}, nil
 	} else if muxSpecificationMux := muxSpecification.Mux; muxSpecificationMux != nil {
@@ -121,7 +121,7 @@ func vhostMuxHandleRequest(
 }
 
 func (vhostMux *VhostMux) ServeHTTP(responseWriter http.ResponseWriter, request *http.Request) {
-	vhostMux.baseMux.ServeHttpWithCallback(
+	vhostMux.ServeHttpWithCallback(
 		responseWriter,
 		request,
 		func(request *http.Request, responseWriter *muxTypesResponseWriter.ResponseWriter) (*muxTypesResponse.Response, *muxTypesResponseError.ResponseError) {

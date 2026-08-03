@@ -38,11 +38,13 @@ func (f ProblemDetailConverterFunction) Convert(
 	return f(problemDetail, contentNegotiation)
 }
 
+const applicationType = "application"
+
 var DefaultProblemDetailMediaRanges = []*motmedelHttpTypes.ServerMediaRange{
-	{Type: "application", Subtype: "problem+json"},
-	{Type: "application", Subtype: "json"},
-	{Type: "application", Subtype: "problem+xml"},
-	{Type: "application", Subtype: "xml"},
+	{Type: applicationType, Subtype: "problem+json"},
+	{Type: applicationType, Subtype: "json"},
+	{Type: applicationType, Subtype: "problem+xml"},
+	{Type: applicationType, Subtype: "xml"},
 	{Type: "text", Subtype: "plain"},
 }
 

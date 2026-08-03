@@ -5,12 +5,16 @@ import (
 )
 
 func TestNew_EmptyString(t *testing.T) {
+	t.Parallel()
+
 	if New("") != nil {
 		t.Fatal("expected nil for empty string")
 	}
 }
 
 func TestNew_Skip(t *testing.T) {
+	t.Parallel()
+
 	tag := New("-")
 	if tag == nil {
 		t.Fatal("expected non-nil tag")
@@ -21,6 +25,8 @@ func TestNew_Skip(t *testing.T) {
 }
 
 func TestNew_NameOnly(t *testing.T) {
+	t.Parallel()
+
 	tag := New("my_param")
 	if tag == nil {
 		t.Fatal("expected non-nil tag")
@@ -37,6 +43,8 @@ func TestNew_NameOnly(t *testing.T) {
 }
 
 func TestNew_OmitEmpty(t *testing.T) {
+	t.Parallel()
+
 	tag := New("name,omitempty")
 	if tag == nil {
 		t.Fatal("expected non-nil tag")
@@ -50,6 +58,8 @@ func TestNew_OmitEmpty(t *testing.T) {
 }
 
 func TestNew_OmitZero(t *testing.T) {
+	t.Parallel()
+
 	tag := New("name,omitzero")
 	if tag == nil {
 		t.Fatal("expected non-nil tag")
@@ -60,6 +70,8 @@ func TestNew_OmitZero(t *testing.T) {
 }
 
 func TestNew_FormatEmail(t *testing.T) {
+	t.Parallel()
+
 	tag := New("email_field,format=email")
 	if tag == nil {
 		t.Fatal("expected non-nil tag")
@@ -73,6 +85,8 @@ func TestNew_FormatEmail(t *testing.T) {
 }
 
 func TestNew_FormatUuid(t *testing.T) {
+	t.Parallel()
+
 	tag := New("id,format=uuid")
 	if tag == nil {
 		t.Fatal("expected non-nil tag")
@@ -83,6 +97,8 @@ func TestNew_FormatUuid(t *testing.T) {
 }
 
 func TestNew_AllOptions(t *testing.T) {
+	t.Parallel()
+
 	tag := New("field,omitempty,omitzero,format=email")
 	if tag == nil {
 		t.Fatal("expected non-nil tag")

@@ -11,7 +11,6 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/request_parser/header_extractor/header_extractor_config"
-	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
@@ -23,7 +22,7 @@ type Parser struct {
 	config *header_extractor_config.Config
 }
 
-func (p *Parser) Parse(request *http.Request) (string, *response_error.ResponseError) {
+func (p *Parser) Parse(request *http.Request) (string, *muxResponseError.ResponseError) {
 	if request == nil {
 		return "", &muxResponseError.ResponseError{
 			ServerError: motmedelErrors.NewWithTrace(nil_error.New("request")),

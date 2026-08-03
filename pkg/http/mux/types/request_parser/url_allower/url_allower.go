@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 
@@ -60,8 +61,15 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 		}
 	}
 
-	parsedUrlHostname := parsedUrl.Hostname()
-	if !(config.AllowLocalhost && parsedUrlHostname == "localhost") {
+	// Hostnames are case-insensitive; normalize before any comparison.
+	parsedUrlHostname := strings.ToLower(parsedUrl.Hostname())
+
+	// localhost and any *.localhost subdomain (RFC 6761) resolve to loopback; when
+	// configured to allow localhost, let them through without domain validation.
+	isAllowedLocalhost := config.AllowLocalhost &&
+		(parsedUrlHostname == "localhost" || strings.HasSuffix(parsedUrlHostname, ".localhost"))
+
+	if !isAllowedLocalhost {
 		domainParts := domain_parts.New(parsedUrlHostname)
 		if domainParts == nil {
 			return nil, &response_error.ResponseError{
