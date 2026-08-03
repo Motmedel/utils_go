@@ -69,14 +69,10 @@ func (validator *Validator) Validate(parsedClaims map[string]any) error {
 			}
 
 			if err := jwt.ValidateExpiresAt(expiresAt.Time, time.Now()); err != nil {
-				wrappedErr := motmedelErrors.New(
-					fmt.Errorf("validate expires at: %w", err),
-					expiresAt.Time,
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("validate expires at: %w", err), expiresAt.Time),
 				)
-				if !errors.Is(err, motmedelErrors.ErrValidationError) {
-					return wrappedErr
-				}
-				errs = append(errs, wrappedErr)
 			}
 		case "nbf":
 			notBefore, err := utils.Convert[numeric_date.Date](value)
@@ -90,14 +86,10 @@ func (validator *Validator) Validate(parsedClaims map[string]any) error {
 			}
 
 			if err := jwt.ValidateNotBefore(notBefore.Time, time.Now()); err != nil {
-				wrappedErr := motmedelErrors.New(
-					fmt.Errorf("validate not before: %w", err),
-					notBefore.Time,
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("validate not before: %w", err), notBefore.Time),
 				)
-				if !errors.Is(err, motmedelErrors.ErrValidationError) {
-					return wrappedErr
-				}
-				errs = append(errs, wrappedErr)
 			}
 		case "iat":
 			issuedAt, err := utils.Convert[numeric_date.Date](value)
@@ -111,14 +103,10 @@ func (validator *Validator) Validate(parsedClaims map[string]any) error {
 			}
 
 			if err := jwt.ValidateIssuedAt(issuedAt.Time, time.Now()); err != nil {
-				wrappedErr := motmedelErrors.New(
-					fmt.Errorf("validate issued at: %w", err),
-					issuedAt.Time,
+				errs = append(
+					errs,
+					motmedelErrors.New(fmt.Errorf("validate issued at: %w", err), issuedAt.Time),
 				)
-				if !errors.Is(err, motmedelErrors.ErrValidationError) {
-					return wrappedErr
-				}
-				errs = append(errs, wrappedErr)
 			}
 		case "aud":
 			audiences, err := utils.Convert[claim_strings.ClaimStrings](value)

@@ -37,11 +37,35 @@ func TestParse(t *testing.T) {
 		}
 	})
 
-	t.Run("malformed body is a server error", func(t *testing.T) {
+	t.Run("malformed body is a 400 client error", func(t *testing.T) {
 		t.Parallel()
-		_, responseError := parser.Parse(nil, []byte(`{malformed`))
-		if responseError == nil || responseError.ServerError == nil {
-			t.Fatalf("expected a server error, got %#v", responseError)
+
+		testCases := []struct {
+			name string
+			body []byte
+		}{
+			{name: "garbage", body: []byte(`{malformed`)},
+			{name: "truncated", body: []byte(`{"name":"alice"`)},
+			{name: "empty", body: []byte(``)},
+		}
+
+		for _, testCase := range testCases {
+			t.Run(testCase.name, func(t *testing.T) {
+				t.Parallel()
+				_, responseError := parser.Parse(nil, testCase.body)
+				if responseError == nil || responseError.ProblemDetail == nil {
+					t.Fatalf("expected a problem detail, got %#v", responseError)
+				}
+				if responseError.ClientError == nil {
+					t.Fatalf("expected a client error, got %#v", responseError)
+				}
+				if responseError.ServerError != nil {
+					t.Fatalf("expected no server error, got %#v", responseError.ServerError)
+				}
+				if responseError.ProblemDetail.Status != http.StatusBadRequest {
+					t.Fatalf("expected 400, got %d", responseError.ProblemDetail.Status)
+				}
+			})
 		}
 	})
 }

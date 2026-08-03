@@ -20,13 +20,22 @@ func (p *Parser[T]) Parse(_ *http.Request, body []byte) (T, *response_error.Resp
 	if err := json.Unmarshal(body, &target); err != nil {
 		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal: %w", err), body)
 
-		var unmarshalTypeError *json.UnmarshalTypeError
-		if errors.As(err, &unmarshalTypeError) {
+		if _, ok := errors.AsType[*json.UnmarshalTypeError](err); ok {
 			return target, &response_error.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.New(
 					http.StatusUnprocessableEntity,
 					problem_detail_config.WithDetail("Invalid body. The value is not appropriate for the JSON type."),
+				),
+			}
+		}
+
+		if _, ok := errors.AsType[*json.SyntaxError](err); ok {
+			return target, &response_error.ResponseError{
+				ClientError: wrappedErr,
+				ProblemDetail: problem_detail.New(
+					http.StatusBadRequest,
+					problem_detail_config.WithDetail("Invalid body. The body is not valid JSON."),
 				),
 			}
 		}

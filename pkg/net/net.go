@@ -146,11 +146,10 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 	}
 
 	if !found {
-		if startIpAddress.To4() != nil {
-			maskLength = 32
-		} else {
-			maskLength = 128
-		}
+		// start and end are equal: emit a host route. The mask is built over the
+		// 16-byte representation, so this is /128 here; IPNet.String renders an
+		// IPv4 host route as /32.
+		maskLength = len(startBytes) * 8
 	}
 
 	mask := net.CIDRMask(maskLength, len(startBytes)*8)

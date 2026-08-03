@@ -26,7 +26,7 @@ func (logger *Logger) ErrorWithSkippingMessage(message string, err error, input 
 }
 
 func (logger *Logger) Warning(message string, err error, input ...any) {
-	motmedelLogError.LogError(message, motmedelErrors.New(err, input...), logger.Logger)
+	motmedelLogError.LogWarning(message, motmedelErrors.New(err, input...), logger.Logger)
 }
 
 func (logger *Logger) Fatal(message string, err error, input ...any) {

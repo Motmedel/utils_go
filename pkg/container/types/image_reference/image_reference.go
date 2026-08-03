@@ -37,10 +37,12 @@ func (r *Reference) ContainerImage() *schema.ContainerImage {
 func Parse(data string) (*Reference, error) {
 	reference := &Reference{}
 
-	if atIdx := strings.Index(data, "@"); atIdx != -1 {
-		reference.Digest = data[atIdx+1:]
-		data = data[:atIdx]
-	} else if colonIdx := strings.LastIndex(data, ":"); colonIdx != -1 {
+	if before, digest, found := strings.Cut(data, "@"); found {
+		reference.Digest = digest
+		data = before
+	}
+
+	if colonIdx := strings.LastIndex(data, ":"); colonIdx != -1 {
 		afterColon := data[colonIdx+1:]
 		if !strings.Contains(afterColon, "/") {
 			reference.Tag = afterColon
@@ -48,12 +50,12 @@ func Parse(data string) (*Reference, error) {
 		}
 	}
 
-	slashIdx := strings.Index(data, "/")
-	if slashIdx == -1 {
+	registry, repository, found := strings.Cut(data, "/")
+	if !found {
 		return nil, motmedelErrors.NewWithTrace(missing_error.New("registry"))
 	}
-	reference.Registry = data[:slashIdx]
-	reference.Repository = data[slashIdx+1:]
+	reference.Registry = registry
+	reference.Repository = repository
 
 	if reference.Repository == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("repository"))
