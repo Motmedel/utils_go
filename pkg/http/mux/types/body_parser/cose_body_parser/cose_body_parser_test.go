@@ -3,6 +3,7 @@ package cose_body_parser
 import (
 	"bytes"
 	"crypto/ecdh"
+	"crypto/rand"
 	"net/http"
 	"testing"
 
@@ -12,7 +13,7 @@ import (
 func testKey(t *testing.T) *ecdh.PrivateKey {
 	t.Helper()
 
-	privateKey, err := ecdh.P256().GenerateKey(nil)
+	privateKey, err := ecdh.P256().GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatalf("generate key: %v", err)
 	}

@@ -295,7 +295,7 @@ func muxHandleRequest(
 		}
 	}
 
-	// Locate the endpoint specification.
+	// Locate the endpoint.
 
 	endpoint, methodToEndpoint, responseError := muxInternalMux.GetEndpoint(
 		mux.EndpointMap,
@@ -665,8 +665,9 @@ func handleRequestBody(
 		}
 	}
 
-	// Parse the body.
-	if !utils.IsNil(bodyParser) {
+	// Parse the body. The explicit nil check lets the static analyzer prove non-nilness;
+	// utils.IsNil additionally rejects a typed-nil parser.
+	if bodyParser != nil && !utils.IsNil(bodyParser) {
 		parsedBody, responseError := bodyParser.Parse(request, requestBody)
 		if responseError != nil {
 			return request, nil, responseError
