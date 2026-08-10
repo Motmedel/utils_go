@@ -133,6 +133,10 @@ func validatePublicKeyCredential[T authenticatorResponseTypes](
 // ValidateAttestationPublicKeyCredential validates a registration ceremony's credential. The
 // allowed algorithms are checked against the alg parameter of the COSE credential public key in
 // the attestation object's authenticator data.
+//
+// TODO: Verify attestation statements (packed, tpm, android-key, apple, …) against their
+//  formats' verification procedures instead of accepting any statement unverified; until then,
+//  only relying parties requesting attestation "none" are properly supported.
 func ValidateAttestationPublicKeyCredential(
 	credential *AttestationPublicKeyCredential,
 	expectedCollectedClientDataChallenge []byte,
