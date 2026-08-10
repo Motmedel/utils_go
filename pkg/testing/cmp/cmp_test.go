@@ -208,18 +208,6 @@ func TestEquateComparable(t *testing.T) {
 	}
 }
 
-func TestEquateComparableRejectsUncomparable(t *testing.T) {
-	t.Parallel()
-
-	defer func() {
-		if recover() == nil {
-			t.Errorf("expected panic")
-		}
-	}()
-
-	EquateComparable([]int{})
-}
-
 func TestDiffPanicsOnUnexportedWithoutOption(t *testing.T) {
 	t.Parallel()
 

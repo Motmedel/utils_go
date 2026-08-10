@@ -99,35 +99,12 @@ func IgnoreFields(structValue any, fieldNames ...string) Option {
 	})
 }
 
-// EquateComparable returns an Option that compares values of the given
-// values' types with the == operator. Used for comparable types whose
-// unexported fields would otherwise make the comparison panic. It panics if a
-// value's type is not comparable.
-func EquateComparable(values ...any) Option {
-	var comparers []reflect.Value
-
-	for _, value := range values {
-		reflectType := reflect.TypeOf(value)
-		if reflectType == nil || !reflectType.Comparable() {
-			panic(fmt.Sprintf("cmp: EquateComparable: not a comparable type: %T", value))
-		}
-
-		functionType := reflect.FuncOf(
-			[]reflect.Type{reflectType, reflectType},
-			[]reflect.Type{reflect.TypeOf(false)},
-			false,
-		)
-		comparers = append(
-			comparers,
-			reflect.MakeFunc(functionType, func(arguments []reflect.Value) []reflect.Value {
-				return []reflect.Value{reflect.ValueOf(arguments[0].Equal(arguments[1]))}
-			}),
-		)
-	}
-
-	return optionFunc(func(settings *settings) {
-		settings.comparers = append(settings.comparers, comparers...)
-	})
+// EquateComparable returns an Option that compares values of type T with the
+// == operator. Used for comparable types whose unexported fields would
+// otherwise make the comparison panic. The argument only serves type
+// inference.
+func EquateComparable[T comparable](_ T) Option {
+	return Comparer(func(expected T, got T) bool { return expected == got })
 }
 
 // Comparer returns an Option that compares values with function, which must
