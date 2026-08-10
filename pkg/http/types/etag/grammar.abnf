@@ -1,4 +1,3 @@
-root=ETag
 ETag=entity-tag
 entity-tag=[weak] opaque-tag
 weak=%x57.2F

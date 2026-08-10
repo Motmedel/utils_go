@@ -1,4 +1,4 @@
-package types
+package dkim
 
 import (
 	"bytes"
@@ -6,29 +6,26 @@ import (
 	"crypto/rsa"
 	"encoding/asn1"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
-	"reflect"
 	"testing"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 )
 
-func TestDkimRecord_GetVersion(t *testing.T) {
+func TestRecord_GetVersion(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name     string
-		record   *DkimRecord
+		record   *Record
 		expected int
 	}{
-		{name: "default", record: &DkimRecord{}, expected: 1},
-		{name: "explicit", record: &DkimRecord{Version: 2}, expected: 2},
+		{name: "default", record: &Record{}, expected: 1},
+		{name: "explicit", record: &Record{Version: 2}, expected: 2},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if got := tc.record.GetVersion(); got != tc.expected {
@@ -38,20 +35,19 @@ func TestDkimRecord_GetVersion(t *testing.T) {
 	}
 }
 
-func TestDkimRecord_GetKeyType(t *testing.T) {
+func TestRecord_GetKeyType(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name     string
-		record   *DkimRecord
+		record   *Record
 		expected string
 	}{
-		{name: "default", record: &DkimRecord{}, expected: "rsa"},
-		{name: "explicit", record: &DkimRecord{KeyType: "ed25519"}, expected: "ed25519"},
+		{name: "default", record: &Record{}, expected: "rsa"},
+		{name: "explicit", record: &Record{KeyType: "ed25519"}, expected: "ed25519"},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if got := tc.record.GetKeyType(); got != tc.expected {
@@ -61,20 +57,19 @@ func TestDkimRecord_GetKeyType(t *testing.T) {
 	}
 }
 
-func TestDkimRecord_GetServiceType(t *testing.T) {
+func TestRecord_GetServiceType(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name     string
-		record   *DkimRecord
+		record   *Record
 		expected string
 	}{
-		{name: "default", record: &DkimRecord{}, expected: "*"},
-		{name: "explicit", record: &DkimRecord{ServiceType: "email"}, expected: "email"},
+		{name: "default", record: &Record{}, expected: "*"},
+		{name: "explicit", record: &Record{ServiceType: "email"}, expected: "email"},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if got := tc.record.GetServiceType(); got != tc.expected {
@@ -84,7 +79,7 @@ func TestDkimRecord_GetServiceType(t *testing.T) {
 	}
 }
 
-func TestDkimRecord_GetPublicKey(t *testing.T) {
+func TestRecord_GetPublicKey(t *testing.T) {
 	t.Parallel()
 
 	const rsaKey = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDmzRmJRQxLEuyYiyMg4suA2SyMwR5MGHpP9diNT1hRiwUd/mZp1ro7kIDTKS8ttkI6z6eTRW9e9dDOxzSxNuXmume60Cjbu08gOyhPG3GfWdg7QkdN6kR4V75MFlw624VY35DaXBvnlTJTgRg/EW72O1DiYVThkyCgpSYS8nmEQIDAQAB"
@@ -92,7 +87,7 @@ func TestDkimRecord_GetPublicKey(t *testing.T) {
 
 	t.Run("empty key", func(t *testing.T) {
 		t.Parallel()
-		r := &DkimRecord{}
+		r := &Record{}
 		key, err := r.GetPublicKey()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -104,7 +99,7 @@ func TestDkimRecord_GetPublicKey(t *testing.T) {
 
 	t.Run("rsa default key type", func(t *testing.T) {
 		t.Parallel()
-		r := &DkimRecord{PublicKeyData: rsaKey}
+		r := &Record{PublicKeyData: rsaKey}
 		key, err := r.GetPublicKey()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -116,7 +111,7 @@ func TestDkimRecord_GetPublicKey(t *testing.T) {
 
 	t.Run("explicit ed25519", func(t *testing.T) {
 		t.Parallel()
-		r := &DkimRecord{KeyType: "ed25519", PublicKeyData: ed25519Key}
+		r := &Record{KeyType: "ed25519", PublicKeyData: ed25519Key}
 		key, err := r.GetPublicKey()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -128,7 +123,7 @@ func TestDkimRecord_GetPublicKey(t *testing.T) {
 
 	t.Run("malformed data", func(t *testing.T) {
 		t.Parallel()
-		r := &DkimRecord{PublicKeyData: "not-valid-base64!!"}
+		r := &Record{PublicKeyData: "not-valid-base64!!"}
 		_, err := r.GetPublicKey()
 		if err == nil {
 			t.Fatal("expected error, got nil")
@@ -139,7 +134,7 @@ func TestDkimRecord_GetPublicKey(t *testing.T) {
 	})
 }
 
-func TestParseDkimKey(t *testing.T) {
+func TestParseKey(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -204,7 +199,7 @@ func TestParseDkimKey(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := ParseDkimKey(testCase.inputData, testCase.inputKeyType)
+			_, err := ParseKey(testCase.inputData, testCase.inputKeyType)
 			expectedErrors := testCase.expectedErrors
 
 			if len(expectedErrors) == 0 && testCase.checkErr == nil && err != nil {
@@ -222,7 +217,7 @@ func TestParseDkimKey(t *testing.T) {
 	}
 }
 
-func TestGetDkimKeyData(t *testing.T) {
+func TestGetKeyData(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -240,7 +235,7 @@ func TestGetDkimKeyData(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			keyData, err := GetDkimKeyData(testCase.input)
+			keyData, err := GetKeyData(testCase.input)
 			expectedErrors := testCase.expectedErrors
 
 			if len(expectedErrors) == 0 && err != nil {
@@ -256,60 +251,5 @@ func TestGetDkimKeyData(t *testing.T) {
 				t.Fatalf("mismatch, expected: %v, got: %v", expected, keyData)
 			}
 		})
-	}
-}
-
-func TestSpfRecord_OmitsTermsInJson(t *testing.T) {
-	t.Parallel()
-
-	record := &SpfRecord{
-		Domain: "example.com",
-		Raw:    "v=spf1 -all",
-		Terms: []any{
-			&SpfDirective{
-				Index:     0,
-				Qualifier: "-",
-				Mechanism: &SpfMechanism{Label: "all"},
-			},
-		},
-	}
-
-	data, err := json.Marshal(record)
-	if err != nil {
-		t.Fatalf("json marshal: %v", err)
-	}
-
-	var payload map[string]any
-	if err := json.Unmarshal(data, &payload); err != nil {
-		t.Fatalf("json unmarshal: %v", err)
-	}
-
-	if _, ok := payload["terms"]; ok {
-		t.Fatalf("terms should not be serialized: %s", string(data))
-	}
-	if got := payload["domain"]; got != "example.com" {
-		t.Fatalf("domain: got %v want example.com", got)
-	}
-	if got := payload["raw"]; got != "v=spf1 -all" {
-		t.Fatalf("raw: got %v want v=spf1 -all", got)
-	}
-}
-
-func TestSpfRecord_ModifiersAndDirectives(t *testing.T) {
-	t.Parallel()
-
-	directive0 := &SpfDirective{Index: 0, Qualifier: "+", Mechanism: &SpfMechanism{Label: "mx"}}
-	directive1 := &SpfDirective{Index: 2, Qualifier: "-", Mechanism: &SpfMechanism{Label: "all"}}
-	modifier := &SpfModifier{Index: 1, Label: "redirect", Value: "_spf.example.com"}
-
-	record := &SpfRecord{
-		Terms: []any{directive0, modifier, directive1},
-	}
-
-	if got := record.Directives(); !reflect.DeepEqual(got, []*SpfDirective{directive0, directive1}) {
-		t.Fatalf("directives mismatch: got %v", got)
-	}
-	if got := record.Modifiers(); !reflect.DeepEqual(got, []*SpfModifier{modifier}) {
-		t.Fatalf("modifiers mismatch: got %v", got)
 	}
 }

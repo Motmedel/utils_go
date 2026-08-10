@@ -1,4 +1,3 @@
-root=Authorization
 Authorization=credentials
 credentials=auth-scheme [1*SP (token68/[auth-param *(OWS "," OWS auth-param)])]
 auth-scheme=token

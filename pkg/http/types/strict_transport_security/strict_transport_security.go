@@ -27,7 +27,7 @@ var digitRegexp = regexp.MustCompile(`^\d+$`)
 // TODO: Update to use proper errors
 
 func Parse(data []byte) (*motmedelHttpTypes.StrictTransportSecurityPolicy, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(StrictTransportSecurityGrammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(StrictTransportSecurityGrammar, data, "Strict-Transport-Security")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

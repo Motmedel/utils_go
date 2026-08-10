@@ -1,4 +1,3 @@
-root=content-disposition
 content-disposition=disposition-type *(OWS ";" OWS disposition-parm)
 disposition-type="inline"/"attachment"/disp-ext-type
 disp-ext-type=token

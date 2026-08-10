@@ -23,7 +23,7 @@ var (
 )
 
 func Parse(data []byte) (*motmedelHttpTypes.ContentType, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(ContentTypeGrammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(ContentTypeGrammar, data, "Content-Type")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

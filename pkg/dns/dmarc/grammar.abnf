@@ -26,7 +26,6 @@ scheme=ALPHA *(ALPHA/DIGIT/"+" /"-" /".")
 hier-part="//" authority path-abempty/path-absolute/path-rootless/path-empty
 URI=scheme ":" hier-part [ "?" query ] [ "#" fragment ]
 dmarc-uri=URI [ "!" 1*DIGIT ["k"/"m"/"g"/"t"] ]
-root=dmarc-record
 dmarc-record=dmarc-version dmarc-sep [dmarc-request/dmarc-srequest/dmarc-auri/dmarc-furi/dmarc-adkim/dmarc-aspf/dmarc-ainterval/dmarc-fo/dmarc-rfmt/dmarc-percent] *(dmarc-sep (dmarc-request/dmarc-srequest/dmarc-auri/dmarc-furi/dmarc-adkim/dmarc-aspf/dmarc-ainterval/dmarc-fo/dmarc-rfmt/dmarc-percent)) [dmarc-sep]
 dmarc-version="v" *WSP "=" *WSP %x44 %x4d %x41 %x52 %x43 %x31
 dmarc-sep=*WSP %x3b *WSP

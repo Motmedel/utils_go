@@ -66,7 +66,7 @@ func SearchPathSingleName(path *abnf.Path, name string, maxDepth int, searchMatc
 	return SearchPathSingle(path, []string{name}, maxDepth, searchMatch)
 }
 
-func GetParsedDataPaths(grammar *abnf.Grammar, data []byte) ([]*abnf.Path, error) {
+func GetParsedDataPaths(grammar *abnf.Grammar, data []byte, rootRulename string) ([]*abnf.Path, error) {
 	if grammar == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("grammar"))
 	}
@@ -77,7 +77,11 @@ func GetParsedDataPaths(grammar *abnf.Grammar, data []byte) ([]*abnf.Path, error
 		)
 	}
 
-	paths, err := abnf.Parse(data, grammar, "root")
+	if rootRulename == "" {
+		return nil, motmedelErrors.NewWithTrace(empty_error.New("root rulename"))
+	}
+
+	paths, err := abnf.Parse(data, grammar, rootRulename)
 	if err != nil {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("abnf parse: %w", err))
 	}

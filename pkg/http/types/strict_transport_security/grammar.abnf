@@ -1,4 +1,3 @@
-root=Strict-Transport-Security
 Strict-Transport-Security = [ directive ] *( *LWS ";" *LWS [ directive ] )
 directive = directive-name *LWS [ "=" *LWS directive-value *LWS ]
 LWS = [CRLF] 1*(SP/HTAB)

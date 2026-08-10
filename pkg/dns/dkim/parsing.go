@@ -11,7 +11,6 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/abnf"
 	abnfUtils "github.com/Motmedel/utils_go/pkg/abnf/utils"
-	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
@@ -159,8 +158,8 @@ func getTagSpecItems(path *abnf.Path, tagMap map[string]struct{}, data []byte) i
 	}
 }
 
-func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(DkimGrammar, data)
+func ParseRecord(data []byte) (*Record, error) {
+	paths, err := abnfUtils.GetParsedDataPaths(DkimGrammar, data, "tag-list")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
@@ -168,7 +167,7 @@ func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
 		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
 	}
 
-	var record dnsTypes.DkimRecord
+	var record Record
 	record.Raw = string(data)
 
 	tagMap := make(map[string]struct{})
@@ -264,9 +263,9 @@ func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
 	return &record, nil
 }
 
-func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
+func ParseHeader(data []byte) (*Header, error) {
 	normalizedData := normalizeEmailHeader(data)
-	paths, err := abnfUtils.GetParsedDataPaths(DkimGrammar, normalizedData)
+	paths, err := abnfUtils.GetParsedDataPaths(DkimGrammar, normalizedData, "tag-list")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), normalizedData)
 	}
@@ -274,7 +273,7 @@ func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
 		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, normalizedData)
 	}
 
-	var header dnsTypes.DkimHeader
+	var header Header
 	header.Raw = string(data)
 
 	tagMap := make(map[string]struct{})

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/abnf"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 )
 
@@ -20,7 +21,7 @@ func makeTestPath(t *testing.T, data []byte) *abnf.Path {
 		t.Fatalf("parse abnf: %v", err)
 	}
 
-	paths, err := GetParsedDataPaths(grammar, data)
+	paths, err := GetParsedDataPaths(grammar, data, "root")
 	if err != nil {
 		t.Fatalf("get parsed data paths: %v", err)
 	}
@@ -40,30 +41,54 @@ func TestGetParsedDataPaths(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name           string
-		grammar        *abnf.Grammar
-		data           []byte
-		numPaths       int
-		expectNilError bool
-		expectedError  error
+		name             string
+		grammar          *abnf.Grammar
+		data             []byte
+		rootRulename     string
+		numPaths         int
+		expectNilError   bool
+		expectEmptyError bool
+		expectedError    error
 	}{
-		{name: "valid data", grammar: grammar, data: []byte("a=1"), numPaths: 1},
-		{name: "non-matching data", grammar: grammar, data: []byte("=1"), numPaths: 0},
-		{name: "nil grammar", data: []byte("a=1"), expectNilError: true},
-		{name: "empty data", grammar: grammar, data: nil, expectedError: motmedelErrors.ErrSyntaxError},
+		{name: "valid data", grammar: grammar, data: []byte("a=1"), rootRulename: "root", numPaths: 1},
+		{name: "non-root rulename", grammar: grammar, data: []byte("abc"), rootRulename: "key", numPaths: 1},
+		{name: "non-matching data", grammar: grammar, data: []byte("=1"), rootRulename: "root", numPaths: 0},
+		{name: "nil grammar", data: []byte("a=1"), rootRulename: "root", expectNilError: true},
+		{
+			name:          "empty data",
+			grammar:       grammar,
+			data:          nil,
+			rootRulename:  "root",
+			expectedError: motmedelErrors.ErrSyntaxError,
+		},
+		{
+			name:             "empty root rulename",
+			grammar:          grammar,
+			data:             []byte("a=1"),
+			expectEmptyError: true,
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			paths, err := GetParsedDataPaths(testCase.grammar, testCase.data)
+			paths, err := GetParsedDataPaths(testCase.grammar, testCase.data, testCase.rootRulename)
 			if testCase.expectNilError {
 				if err == nil {
 					t.Fatal("expected an error")
 				}
 				if _, ok := errors.AsType[*nil_error.Error](err); !ok {
 					t.Fatalf("expected a nil error, got: %v", err)
+				}
+				return
+			}
+			if testCase.expectEmptyError {
+				if err == nil {
+					t.Fatal("expected an error")
+				}
+				if _, ok := errors.AsType[*empty_error.Error](err); !ok {
+					t.Fatalf("expected an empty error, got: %v", err)
 				}
 				return
 			}

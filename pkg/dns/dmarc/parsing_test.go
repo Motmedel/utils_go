@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
@@ -18,14 +17,14 @@ func TestParseDmarcRecord(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *dnsTypes.DmarcRecord
+		want    *Record
 		wantErr bool
 		wantIs  error // expected root error via errors.Is
 	}{
 		{
 			name: "minimal valid record",
 			args: args{data: []byte("v=DMARC1; p=none")},
-			want: &dnsTypes.DmarcRecord{
+			want: &Record{
 				Raw: "v=DMARC1; p=none",
 				P:   "none",
 			},
@@ -35,7 +34,7 @@ func TestParseDmarcRecord(t *testing.T) {
 		{
 			name: "full valid record with spaces and trailing semicolon",
 			args: args{data: []byte("v=DMARC1 ; p = reject ; sp=quarantine; rua=mailto:a@example.com, mailto:b@example.com ; ruf = mailto:c@example.com!10m ; adkim = s ; aspf = r ; ri= 3600 ; fo=1:d:s:0 ; rf=afrf:iodef ; pct= 75 ;")},
-			want: &dnsTypes.DmarcRecord{
+			want: &Record{
 				Raw:   "v=DMARC1 ; p = reject ; sp=quarantine; rua=mailto:a@example.com, mailto:b@example.com ; ruf = mailto:c@example.com!10m ; adkim = s ; aspf = r ; ri= 3600 ; fo=1:d:s:0 ; rf=afrf:iodef ; pct= 75 ;",
 				P:     "reject",
 				Sp:    "quarantine",
@@ -75,7 +74,7 @@ func TestParseDmarcRecord(t *testing.T) {
 		{
 			name: "quarantine with multiple rua/ruf, ri 86400, fo=0, rf=afrf, pct=0",
 			args: args{data: []byte("v=DMARC1; p=quarantine; sp=none; rua=mailto:agg@example.com!100k, mailto:ops@example.org; ruf=mailto:forensic@example.com!1m,mailto:sec@example.net; ri=86400; fo=0; rf=afrf; pct=0")},
-			want: &dnsTypes.DmarcRecord{
+			want: &Record{
 				Raw: "v=DMARC1; p=quarantine; sp=none; rua=mailto:agg@example.com!100k, mailto:ops@example.org; ruf=mailto:forensic@example.com!1m,mailto:sec@example.net; ri=86400; fo=0; rf=afrf; pct=0",
 				P:   "quarantine",
 				Sp:  "none",
@@ -92,7 +91,7 @@ func TestParseDmarcRecord(t *testing.T) {
 		{
 			name: "reject minimal with adkim=r aspf=s pct=100",
 			args: args{data: []byte("v=DMARC1;p=reject;adkim=r;aspf=s;pct=100")},
-			want: &dnsTypes.DmarcRecord{
+			want: &Record{
 				Raw:   "v=DMARC1;p=reject;adkim=r;aspf=s;pct=100",
 				P:     "reject",
 				Adkim: "r",
@@ -105,7 +104,7 @@ func TestParseDmarcRecord(t *testing.T) {
 		{
 			name: "none with rf multi keywords, fo mix, and spaced rua list",
 			args: args{data: []byte("v=DMARC1;rf=afrf:iodef:custom;fo=1:s;p=none;rua=mailto:a@ex.com ,mailto:b@ex.com")},
-			want: &dnsTypes.DmarcRecord{
+			want: &Record{
 				Raw: "v=DMARC1;rf=afrf:iodef:custom;fo=1:s;p=none;rua=mailto:a@ex.com ,mailto:b@ex.com",
 				P:   "none",
 				Rua: "mailto:a@ex.com ,mailto:b@ex.com",
@@ -139,7 +138,7 @@ func TestParseDmarcRecord(t *testing.T) {
 		{
 			name: "pct 0 is valid",
 			args: args{data: []byte("v=DMARC1; p=none; pct=0")},
-			want: &dnsTypes.DmarcRecord{
+			want: &Record{
 				Raw: "v=DMARC1; p=none; pct=0",
 				P:   "none",
 				Pct: "0",
@@ -197,7 +196,7 @@ func TestParseDmarcRecord_CanonicalizesCaseInsensitiveTags(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	want := &dnsTypes.DmarcRecord{
+	want := &Record{
 		Raw:   "v=DMARC1; P=REJECT; SP=Quarantine; ADKIM=S; ASPF=R; FO=D:S; RF=AFRF:IODEF",
 		P:     "reject",
 		Sp:    "quarantine",

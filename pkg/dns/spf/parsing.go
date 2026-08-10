@@ -7,20 +7,19 @@ import (
 	"strings"
 
 	abnfUtils "github.com/Motmedel/utils_go/pkg/abnf/utils"
-	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
 )
 
 var ErrUnexpectedMatchRule = errors.New("unexpected matching rule")
 
-func extractLabelValues[T dnsTypes.SpfTermPtr](record *dnsTypes.SpfRecord, passOnly bool, labels ...string) []string {
+func extractLabelValues[T TermPtr](record *Record, passOnly bool, labels ...string) []string {
 	var values []string
 
 	for _, term := range record.Terms {
 		if _, ok := term.(T); ok {
 			switch typedTerm := term.(type) {
-			case *dnsTypes.SpfDirective:
+			case *Directive:
 				for _, label := range labels {
 					if passOnly && (typedTerm.Qualifier != "" && typedTerm.Qualifier != "+") {
 						continue
@@ -30,7 +29,7 @@ func extractLabelValues[T dnsTypes.SpfTermPtr](record *dnsTypes.SpfRecord, passO
 						values = append(values, typedTerm.Mechanism.Value)
 					}
 				}
-			case *dnsTypes.SpfModifier:
+			case *Modifier:
 				for _, label := range labels {
 					if strings.ToLower(typedTerm.Label) == label {
 						values = append(values, typedTerm.Value)
@@ -43,30 +42,30 @@ func extractLabelValues[T dnsTypes.SpfTermPtr](record *dnsTypes.SpfRecord, passO
 	return values
 }
 
-func ExtractIncludeValues(record *dnsTypes.SpfRecord) []string {
+func ExtractIncludeValues(record *Record) []string {
 	if record == nil {
 		return nil
 	}
 
-	return extractLabelValues[*dnsTypes.SpfDirective](record, false, "include")
+	return extractLabelValues[*Directive](record, false, "include")
 }
 
-func ExtractRedirectValues(record *dnsTypes.SpfRecord) []string {
+func ExtractRedirectValues(record *Record) []string {
 	if record == nil {
 		return nil
 	}
 
-	return extractLabelValues[*dnsTypes.SpfModifier](record, false, "redirect")
+	return extractLabelValues[*Modifier](record, false, "redirect")
 }
 
-func ExtractNetworks(record *dnsTypes.SpfRecord, passOnly bool) []*net.IPNet {
+func ExtractNetworks(record *Record, passOnly bool) []*net.IPNet {
 	if record == nil {
 		return nil
 	}
 
 	var networks []*net.IPNet
 
-	for _, networkString := range extractLabelValues[*dnsTypes.SpfDirective](record, passOnly, "ip4", "ip6") {
+	for _, networkString := range extractLabelValues[*Directive](record, passOnly, "ip4", "ip6") {
 		if network, _ := motmedelNet.ParseAddressNet(networkString); network != nil {
 			networks = append(networks, network)
 		}
@@ -75,8 +74,8 @@ func ExtractNetworks(record *dnsTypes.SpfRecord, passOnly bool) []*net.IPNet {
 	return networks
 }
 
-func ParseSpfRecord(data []byte) (*dnsTypes.SpfRecord, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(SpfGrammar, data)
+func ParseSpfRecord(data []byte) (*Record, error) {
+	paths, err := abnfUtils.GetParsedDataPaths(SpfGrammar, data, "record")
 	if err != nil {
 		return nil, fmt.Errorf("get parsed data paths: %w", err)
 	}
@@ -84,14 +83,14 @@ func ParseSpfRecord(data []byte) (*dnsTypes.SpfRecord, error) {
 		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError)
 	}
 
-	var record dnsTypes.SpfRecord
+	var record Record
 	record.Raw = string(data)
 
 	var terms []any
 	for i, termPath := range abnfUtils.SearchPath(paths[0], []string{"directive", "modifier"}, 2, false) {
 		switch matchRule := termPath.MatchRule; matchRule {
 		case "directive":
-			directive := dnsTypes.SpfDirective{Index: i}
+			directive := Directive{Index: i}
 
 			qualifierPath := abnfUtils.SearchPathSingleName(termPath, "qualifier", 1, false)
 			if qualifierPath != nil {
@@ -100,7 +99,7 @@ func ParseSpfRecord(data []byte) (*dnsTypes.SpfRecord, error) {
 			mechanismPath := abnfUtils.SearchPathSingleName(termPath, "mechanism", 1, false)
 			if mechanismPath != nil {
 				mechanismPair := strings.SplitN(string(abnfUtils.ExtractPathValue(data, mechanismPath)), ":", 2)
-				directive.Mechanism = &dnsTypes.SpfMechanism{Label: mechanismPair[0]}
+				directive.Mechanism = &Mechanism{Label: mechanismPair[0]}
 				if len(mechanismPair) == 2 {
 					directive.Mechanism.Value = mechanismPair[1]
 				}
@@ -110,7 +109,7 @@ func ParseSpfRecord(data []byte) (*dnsTypes.SpfRecord, error) {
 		case "modifier":
 			modifierPair := strings.SplitN(string(abnfUtils.ExtractPathValue(data, termPath)), "=", 2)
 			// NOTE: According to the grammar there should always be two elements.
-			terms = append(terms, &dnsTypes.SpfModifier{Index: i, Label: modifierPair[0], Value: modifierPair[1]})
+			terms = append(terms, &Modifier{Index: i, Label: modifierPair[0], Value: modifierPair[1]})
 		default:
 			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf("%w: %w: %s", motmedelErrors.ErrSemanticError, ErrUnexpectedMatchRule, matchRule),

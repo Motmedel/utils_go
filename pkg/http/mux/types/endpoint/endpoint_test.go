@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -257,12 +258,14 @@ func TestNewFromDirectory(t *testing.T) {
 			t.Fatalf("expected 2 endpoints, got %d", len(endpoints))
 		}
 
-		paths := map[string]bool{}
+		// The endpoints are loaded concurrently but returned sorted by path.
+		var paths []string
 		for _, endpoint := range endpoints {
-			paths[endpoint.Path] = true
+			paths = append(paths, endpoint.Path)
 		}
-		if !paths["/a.css"] || !paths["/b.css"] {
-			t.Fatalf("unexpected paths: %#v", paths)
+		expectedPaths := []string{"/a.css", "/b.css"}
+		if !slices.Equal(paths, expectedPaths) {
+			t.Fatalf("expected paths %v, got %v", expectedPaths, paths)
 		}
 	})
 }
@@ -312,12 +315,50 @@ func TestNewFromZip(t *testing.T) {
 			t.Fatalf("expected 2 endpoints, got %d", len(endpoints))
 		}
 
-		paths := map[string]bool{}
+		// The endpoints are loaded concurrently but returned sorted by path.
+		var paths []string
 		for _, endpoint := range endpoints {
-			paths[endpoint.Path] = true
+			paths = append(paths, endpoint.Path)
 		}
-		if !paths["/a.css"] || !paths["/b.css"] {
-			t.Fatalf("unexpected paths: %#v", paths)
+		expectedPaths := []string{"/a.css", "/b.css"}
+		if !slices.Equal(paths, expectedPaths) {
+			t.Fatalf("expected paths %v, got %v", expectedPaths, paths)
 		}
 	})
+}
+
+func TestCompareEndpoints(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		a        *Endpoint
+		b        *Endpoint
+		expected int
+	}{
+		{name: "both nil", a: nil, b: nil, expected: 0},
+		{name: "nil sorts first", a: nil, b: &Endpoint{Path: "/a"}, expected: -1},
+		{name: "nil sorts first (reversed)", a: &Endpoint{Path: "/a"}, b: nil, expected: 1},
+		{name: "ordered by path", a: &Endpoint{Path: "/a"}, b: &Endpoint{Path: "/b"}, expected: -1},
+		{
+			name:     "equal paths ordered by method",
+			a:        &Endpoint{Path: "/a", Method: http.MethodGet},
+			b:        &Endpoint{Path: "/a", Method: http.MethodPost},
+			expected: -1,
+		},
+		{
+			name:     "equal",
+			a:        &Endpoint{Path: "/a", Method: http.MethodGet},
+			b:        &Endpoint{Path: "/a", Method: http.MethodGet},
+			expected: 0,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if result := compareEndpoints(testCase.a, testCase.b); result != testCase.expected {
+				t.Errorf("compareEndpoints() = %d, expected %d", result, testCase.expected)
+			}
+		})
+	}
 }

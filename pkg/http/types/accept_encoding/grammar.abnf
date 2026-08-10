@@ -1,4 +1,3 @@
-root=Accept-Encoding
 Accept-Encoding=[element] *(OWS "," OWS [element])
 element=codings [weight]
 codings=content-coding/"identity"/"*"

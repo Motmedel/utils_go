@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -28,7 +29,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
-	"golang.org/x/sync/errgroup"
+	"github.com/Motmedel/utils_go/pkg/sync/errgroup"
 )
 
 type Hint struct {
@@ -375,6 +376,8 @@ func NewFromDirectory(rootPath string, addContentEncodingData bool, private bool
 		return nil, fmt.Errorf("errgroup wait: %w", err)
 	}
 
+	slices.SortFunc(specifications, compareEndpoints)
+
 	return specifications, nil
 }
 
@@ -447,5 +450,25 @@ fileLoop:
 		return nil, fmt.Errorf("errgroup wait: %w", err)
 	}
 
+	slices.SortFunc(specifications, compareEndpoints)
+
 	return specifications, nil
+}
+
+func compareEndpoints(a *Endpoint, b *Endpoint) int {
+	if a == nil {
+		if b == nil {
+			return 0
+		}
+		return -1
+	}
+	if b == nil {
+		return 1
+	}
+
+	if pathComparison := strings.Compare(a.Path, b.Path); pathComparison != 0 {
+		return pathComparison
+	}
+
+	return strings.Compare(a.Method, b.Method)
 }

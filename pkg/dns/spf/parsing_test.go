@@ -4,7 +4,6 @@ import (
 	"net"
 	"testing"
 
-	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/testing/cmp"
 )
@@ -15,7 +14,7 @@ func TestParseSpfRecord(t *testing.T) {
 	testCases := []struct {
 		name           string
 		input          []byte
-		expected       *dnsTypes.SpfRecord
+		expected       *Record
 		expectedErrors []error
 	}{
 		{
@@ -33,26 +32,26 @@ func TestParseSpfRecord(t *testing.T) {
 		{
 			name:  "rfc example #1",
 			input: []byte("v=spf1 +mx a:colo.example.com/28 -all"),
-			expected: &dnsTypes.SpfRecord{
+			expected: &Record{
 				Terms: []any{
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index:     0,
 						Qualifier: "+",
-						Mechanism: &dnsTypes.SpfMechanism{
+						Mechanism: &Mechanism{
 							Label: "mx",
 						},
 					},
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index: 1,
-						Mechanism: &dnsTypes.SpfMechanism{
+						Mechanism: &Mechanism{
 							Label: "a",
 							Value: "colo.example.com/28",
 						},
 					},
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index:     2,
 						Qualifier: "-",
-						Mechanism: &dnsTypes.SpfMechanism{
+						Mechanism: &Mechanism{
 							Label: "all",
 						},
 					},
@@ -62,14 +61,14 @@ func TestParseSpfRecord(t *testing.T) {
 		{
 			name:  "rfc example #2",
 			input: []byte("v=spf1 +mx redirect=_spf.example.com"),
-			expected: &dnsTypes.SpfRecord{
+			expected: &Record{
 				Terms: []any{
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index:     0,
 						Qualifier: "+",
-						Mechanism: &dnsTypes.SpfMechanism{Label: "mx"},
+						Mechanism: &Mechanism{Label: "mx"},
 					},
-					&dnsTypes.SpfModifier{
+					&Modifier{
 						Index: 1,
 						Label: "redirect",
 						Value: "_spf.example.com",
@@ -80,20 +79,20 @@ func TestParseSpfRecord(t *testing.T) {
 		{
 			name:  "rfc example #3",
 			input: []byte("v=spf1 ?exists:_h.%{h}._l.%{l}._o.%{o}._i.%{i}._spf.%{d} ?all"),
-			expected: &dnsTypes.SpfRecord{
+			expected: &Record{
 				Terms: []any{
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index:     0,
 						Qualifier: "?",
-						Mechanism: &dnsTypes.SpfMechanism{
+						Mechanism: &Mechanism{
 							Label: "exists",
 							Value: `_h.%{h}._l.%{l}._o.%{o}._i.%{i}._spf.%{d}`,
 						},
 					},
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index:     1,
 						Qualifier: "?",
-						Mechanism: &dnsTypes.SpfMechanism{
+						Mechanism: &Mechanism{
 							Label: "all",
 						},
 					},
@@ -103,18 +102,18 @@ func TestParseSpfRecord(t *testing.T) {
 		{
 			name:  "rfc example #4",
 			input: []byte("v=spf1 mx -all exp=explain._spf.%{d}"),
-			expected: &dnsTypes.SpfRecord{
+			expected: &Record{
 				Terms: []any{
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index:     0,
-						Mechanism: &dnsTypes.SpfMechanism{Label: "mx"},
+						Mechanism: &Mechanism{Label: "mx"},
 					},
-					&dnsTypes.SpfDirective{
+					&Directive{
 						Index:     1,
 						Qualifier: "-",
-						Mechanism: &dnsTypes.SpfMechanism{Label: "all"},
+						Mechanism: &Mechanism{Label: "all"},
 					},
-					&dnsTypes.SpfModifier{
+					&Modifier{
 						Index: 2,
 						Label: "exp",
 						Value: `explain._spf.%{d}`,
@@ -146,8 +145,8 @@ func TestParseSpfRecord(t *testing.T) {
 	}
 }
 
-func makeRecord(terms ...any) *dnsTypes.SpfRecord {
-	return &dnsTypes.SpfRecord{Terms: terms}
+func makeRecord(terms ...any) *Record {
+	return &Record{Terms: terms}
 }
 
 func TestExtractIncludeValues(t *testing.T) {
@@ -164,11 +163,11 @@ func TestExtractIncludeValues(t *testing.T) {
 		t.Parallel()
 
 		record := makeRecord(
-			&dnsTypes.SpfDirective{Index: 0, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "include", Value: "a.example"}},
-			&dnsTypes.SpfDirective{Index: 1, Qualifier: "-", Mechanism: &dnsTypes.SpfMechanism{Label: "include", Value: "b.example"}},
-			&dnsTypes.SpfDirective{Index: 2, Qualifier: "?", Mechanism: &dnsTypes.SpfMechanism{Label: "INCLUDE", Value: "c.example"}},
-			&dnsTypes.SpfDirective{Index: 3, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "mx"}},
-			&dnsTypes.SpfModifier{Index: 4, Label: "include", Value: "ignored.example"},
+			&Directive{Index: 0, Qualifier: "+", Mechanism: &Mechanism{Label: "include", Value: "a.example"}},
+			&Directive{Index: 1, Qualifier: "-", Mechanism: &Mechanism{Label: "include", Value: "b.example"}},
+			&Directive{Index: 2, Qualifier: "?", Mechanism: &Mechanism{Label: "INCLUDE", Value: "c.example"}},
+			&Directive{Index: 3, Qualifier: "+", Mechanism: &Mechanism{Label: "mx"}},
+			&Modifier{Index: 4, Label: "include", Value: "ignored.example"},
 		)
 
 		got := ExtractIncludeValues(record)
@@ -193,10 +192,10 @@ func TestExtractRedirectValues(t *testing.T) {
 		t.Parallel()
 
 		record := makeRecord(
-			&dnsTypes.SpfModifier{Index: 0, Label: "redirect", Value: "_spf1.example"},
-			&dnsTypes.SpfModifier{Index: 1, Label: "REDIRECT", Value: "_spf2.example"},
-			&dnsTypes.SpfModifier{Index: 2, Label: "exp", Value: "explain"},
-			&dnsTypes.SpfDirective{Index: 3, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "redirect", Value: "ignored"}},
+			&Modifier{Index: 0, Label: "redirect", Value: "_spf1.example"},
+			&Modifier{Index: 1, Label: "REDIRECT", Value: "_spf2.example"},
+			&Modifier{Index: 2, Label: "exp", Value: "explain"},
+			&Directive{Index: 3, Qualifier: "+", Mechanism: &Mechanism{Label: "redirect", Value: "ignored"}},
 		)
 
 		got := ExtractRedirectValues(record)
@@ -221,10 +220,10 @@ func TestExtractNetworks(t *testing.T) {
 		t.Parallel()
 
 		record := makeRecord(
-			&dnsTypes.SpfDirective{Index: 0, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "ip4", Value: "192.0.2.0/24"}},
-			&dnsTypes.SpfDirective{Index: 1, Qualifier: "-", Mechanism: &dnsTypes.SpfMechanism{Label: "ip4", Value: "198.51.100.5"}},
-			&dnsTypes.SpfDirective{Index: 2, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "IP6", Value: "2001:db8::/32"}},
-			&dnsTypes.SpfDirective{Index: 3, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "mx"}},
+			&Directive{Index: 0, Qualifier: "+", Mechanism: &Mechanism{Label: "ip4", Value: "192.0.2.0/24"}},
+			&Directive{Index: 1, Qualifier: "-", Mechanism: &Mechanism{Label: "ip4", Value: "198.51.100.5"}},
+			&Directive{Index: 2, Qualifier: "+", Mechanism: &Mechanism{Label: "IP6", Value: "2001:db8::/32"}},
+			&Directive{Index: 3, Qualifier: "+", Mechanism: &Mechanism{Label: "mx"}},
 		)
 
 		got := ExtractNetworks(record, false)
@@ -242,9 +241,9 @@ func TestExtractNetworks(t *testing.T) {
 		t.Parallel()
 
 		record := makeRecord(
-			&dnsTypes.SpfDirective{Index: 0, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "ip4", Value: "192.0.2.0/24"}},
-			&dnsTypes.SpfDirective{Index: 1, Qualifier: "-", Mechanism: &dnsTypes.SpfMechanism{Label: "ip4", Value: "198.51.100.0/24"}},
-			&dnsTypes.SpfDirective{Index: 2, Qualifier: "", Mechanism: &dnsTypes.SpfMechanism{Label: "ip4", Value: "203.0.113.0/24"}},
+			&Directive{Index: 0, Qualifier: "+", Mechanism: &Mechanism{Label: "ip4", Value: "192.0.2.0/24"}},
+			&Directive{Index: 1, Qualifier: "-", Mechanism: &Mechanism{Label: "ip4", Value: "198.51.100.0/24"}},
+			&Directive{Index: 2, Qualifier: "", Mechanism: &Mechanism{Label: "ip4", Value: "203.0.113.0/24"}},
 		)
 
 		got := ExtractNetworks(record, true)
@@ -262,8 +261,8 @@ func TestExtractNetworks(t *testing.T) {
 		t.Parallel()
 
 		record := makeRecord(
-			&dnsTypes.SpfDirective{Index: 0, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "ip4", Value: "garbage"}},
-			&dnsTypes.SpfDirective{Index: 1, Qualifier: "+", Mechanism: &dnsTypes.SpfMechanism{Label: "ip4", Value: "192.0.2.0/24"}},
+			&Directive{Index: 0, Qualifier: "+", Mechanism: &Mechanism{Label: "ip4", Value: "garbage"}},
+			&Directive{Index: 1, Qualifier: "+", Mechanism: &Mechanism{Label: "ip4", Value: "192.0.2.0/24"}},
 		)
 
 		got := ExtractNetworks(record, false)

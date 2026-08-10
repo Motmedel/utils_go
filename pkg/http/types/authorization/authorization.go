@@ -22,7 +22,7 @@ var (
 var Grammar *abnf.Grammar
 
 func Parse(data []byte) (*motmedelHttpTypes.Authorization, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "Authorization")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

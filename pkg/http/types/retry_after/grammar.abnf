@@ -1,4 +1,3 @@
-root=Retry-After
 Retry-After = HTTP-date / delay-seconds
 delay-seconds  = 1*DIGIT
 HTTP-date = IMF-fixdate

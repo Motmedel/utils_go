@@ -161,7 +161,7 @@ func makeSourcesFromPaths(
 }
 
 func Parse(data []byte) (*ContentSecurityPolicy, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "serialized-policy")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

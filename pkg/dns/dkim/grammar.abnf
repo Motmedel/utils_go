@@ -1,4 +1,3 @@
-root=tag-list
 tag-list=tag-spec *(";" tag-spec) [";"]
 tag-spec=[FWS] tag-name [FWS] "=" tag-value
 tag-name=ALPHA *ALNUMPUNC

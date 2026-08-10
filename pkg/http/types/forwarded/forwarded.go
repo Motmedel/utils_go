@@ -23,7 +23,7 @@ var (
 )
 
 func Parse(data []byte) (*types.Forwarded, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "Forwarded")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

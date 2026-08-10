@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Motmedel/utils_go/pkg/abnf"
-	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
@@ -18,7 +17,7 @@ func TestParseRecord(t *testing.T) {
 	testCases := []struct {
 		name           string
 		input          []byte
-		expected       *dnsTypes.DkimRecord
+		expected       *Record
 		expectedErrors []error
 	}{
 		{
@@ -36,7 +35,7 @@ func TestParseRecord(t *testing.T) {
 		{
 			name:  "basic record",
 			input: []byte("v=DKIM1; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDmzRmJRQxLEuyYiyMg4suA2SyMwR5MGHpP9diNT1hRiwUd/mZp1ro7kIDTKS8ttkI6z6eTRW9e9dDOxzSxNuXmume60Cjbu08gOyhPG3GfWdg7QkdN6kR4V75MFlw624VY35DaXBvnlTJTgRg/EW72O1DiYVThkyCgpSYS8nmEQIDAQAB"),
-			expected: &dnsTypes.DkimRecord{
+			expected: &Record{
 				Version:       1,
 				PublicKeyData: "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDmzRmJRQxLEuyYiyMg4suA2SyMwR5MGHpP9diNT1hRiwUd/mZp1ro7kIDTKS8ttkI6z6eTRW9e9dDOxzSxNuXmume60Cjbu08gOyhPG3GfWdg7QkdN6kR4V75MFlw624VY35DaXBvnlTJTgRg/EW72O1DiYVThkyCgpSYS8nmEQIDAQAB",
 			},
@@ -44,7 +43,7 @@ func TestParseRecord(t *testing.T) {
 		{
 			name:  "advanced record",
 			input: []byte("k=rsa; t=s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDmzRmJRQxLEuyYiyMg4suA2SyMwR5MGHpP9diNT1hRiwUd/mZp1ro7kIDTKS8ttkI6z6eTRW9e9dDOxzSxNuXmume60Cjbu08gOyhPG3GfWdg7QkdN6kR4V75MFlw624VY35DaXBvnlTJTgRg/EW72O1DiYVThkyCgpSYS8nmEQIDAQAB"),
-			expected: &dnsTypes.DkimRecord{
+			expected: &Record{
 				KeyType:       "rsa",
 				Flags:         []string{"s"},
 				PublicKeyData: "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDmzRmJRQxLEuyYiyMg4suA2SyMwR5MGHpP9diNT1hRiwUd/mZp1ro7kIDTKS8ttkI6z6eTRW9e9dDOxzSxNuXmume60Cjbu08gOyhPG3GfWdg7QkdN6kR4V75MFlw624VY35DaXBvnlTJTgRg/EW72O1DiYVThkyCgpSYS8nmEQIDAQAB",
@@ -53,7 +52,7 @@ func TestParseRecord(t *testing.T) {
 		{
 			name:  "advanced record #2",
 			input: []byte("v=DKIM1; k=other-value; h=a:b:c; s=*; t=d:e:f; n=hello; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDKNbD2WnGf/DPSHXhpc4LnZ9s6P8xWoc0PDQUOdNPy78RR1W8DNS4v7xwP8e0BySw0WUafDrOUmUiCePAh23c1ApfzzDTO8bBwc9Jlb0HYmEOQ3JgHeQx4zGNdE8VzzV8ArXTbc6k/2oaVrVvu9xNSU9bU3ZAMFwav1n9Gmua4cwIDAQAB"),
-			expected: &dnsTypes.DkimRecord{
+			expected: &Record{
 				Version:                  1,
 				AcceptableHashAlgorithms: []string{"a", "b", "c"},
 				KeyType:                  "other-value",
@@ -66,7 +65,7 @@ func TestParseRecord(t *testing.T) {
 		{
 			name:  "extensions",
 			input: []byte("p= ; extra=123; super=456"),
-			expected: &dnsTypes.DkimRecord{
+			expected: &Record{
 				Extensions: [][2]string{
 					{"extra", "123"},
 					{"super", "456"},
@@ -76,7 +75,7 @@ func TestParseRecord(t *testing.T) {
 		{
 			name:     "empty p",
 			input:    []byte("p="),
-			expected: &dnsTypes.DkimRecord{},
+			expected: &Record{},
 		},
 		{
 			name:           "misplaced v",
@@ -138,7 +137,7 @@ func TestParseHeader(t *testing.T) {
 	testCases := []struct {
 		name           string
 		input          []byte
-		expected       *dnsTypes.DkimHeader
+		expected       *Header
 		expectedErrors []error
 	}{
 		{
@@ -156,7 +155,7 @@ func TestParseHeader(t *testing.T) {
 		{
 			name:  "extensions and empty tags",
 			input: []byte("v=1; a=rsa-sha256; b=AAAA; bh=AAAA; d=example.net; h=from; s=brisbane; l=42; t=1; x=2; q=dns/txt; i=@example.net; c=relaxed/simple; extra=foo; empty="),
-			expected: &dnsTypes.DkimHeader{
+			expected: &Header{
 				Version:                 1,
 				Algorithm:               "rsa-sha256",
 				Signature:               "AAAA",
@@ -199,7 +198,7 @@ func TestParseHeader(t *testing.T) {
 		{
 			name:  "rfc example",
 			input: []byte("v=1; a=rsa-sha256; d=example.net; s=brisbane;\n      c=simple; q=dns/txt; i=@eng.example.net;\n      t=1117574938; x=1118006938;\n      h=from:to:subject:date;\n      z=From:foo@eng.example.net|To:joe@example.com|\n       Subject:demo=20run|Date:July=205,=202005=203:44:08=20PM=20-0700;\n      bh=MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=;\n      b=dzdVyOfAKCdLXdJOc9G2q8LoXSlEniSbav+yuU4zGeeruD00lszZVoG4ZHRNiYzR"),
-			expected: &dnsTypes.DkimHeader{
+			expected: &Header{
 				Version:                 1,
 				Algorithm:               "rsa-sha256",
 				SigningDomainIdentifier: "example.net",

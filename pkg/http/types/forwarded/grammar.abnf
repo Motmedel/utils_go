@@ -1,4 +1,3 @@
-root=Forwarded
 Forwarded=forwarded-element *(OWS "," OWS forwarded-element)
 forwarded-element=[forwarded-pair] *(";" [forwarded-pair])
 forwarded-pair=token "=" value

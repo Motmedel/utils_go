@@ -1,4 +1,4 @@
-package types
+package dkim
 
 import (
 	"crypto"
@@ -13,23 +13,11 @@ import (
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 )
 
-const (
-	DkimPrefix  = "v=DKIM1"
-	DmarcPrefix = "v=DMARC1"
-	SpfPrefix   = "v=spf1 "
-)
-
-const SpfMaximumLookupLimit = 10
-
-const (
-	SpfNeutralQualifier  = "?"
-	SpfSoftfailQualifier = "~"
-	SpfFailQualifier     = "-"
-)
+const Prefix = "v=DKIM1"
 
 var ErrBadEd25519Length = errors.New("bad ed25519 length")
 
-type DkimRecord struct {
+type Record struct {
 	Version                  int      `json:"version,omitzero"`
 	AcceptableHashAlgorithms []string `json:"acceptable_hash_algorithms,omitzero"`
 	KeyType                  string   `json:"key_type,omitzero"`
@@ -44,7 +32,7 @@ type DkimRecord struct {
 	Extensions [][2]string `json:"extensions,omitzero"`
 }
 
-func (r *DkimRecord) GetVersion() int {
+func (r *Record) GetVersion() int {
 	if r.Version == 0 {
 		return 1
 	}
@@ -52,7 +40,7 @@ func (r *DkimRecord) GetVersion() int {
 	return r.Version
 }
 
-func (r *DkimRecord) GetKeyType() string {
+func (r *Record) GetKeyType() string {
 	if r.KeyType == "" {
 		return "rsa"
 	}
@@ -60,7 +48,7 @@ func (r *DkimRecord) GetKeyType() string {
 	return r.KeyType
 }
 
-func (r *DkimRecord) GetServiceType() string {
+func (r *Record) GetServiceType() string {
 	if r.ServiceType == "" {
 		return "*"
 	}
@@ -68,14 +56,14 @@ func (r *DkimRecord) GetServiceType() string {
 	return r.ServiceType
 }
 
-func (r *DkimRecord) GetPublicKey() (crypto.PublicKey, error) {
+func (r *Record) GetPublicKey() (crypto.PublicKey, error) {
 	publicKeyData := r.PublicKeyData
 	if len(publicKeyData) == 0 {
 		return nil, nil
 	}
 
 	keyType := r.GetKeyType()
-	key, err := ParseDkimKey(publicKeyData, keyType)
+	key, err := ParseKey(publicKeyData, keyType)
 	if err != nil {
 		return nil, motmedelErrors.New(
 			fmt.Errorf("parse key: %w", err),
@@ -86,7 +74,7 @@ func (r *DkimRecord) GetPublicKey() (crypto.PublicKey, error) {
 	return key, nil
 }
 
-type DkimHeader struct {
+type Header struct {
 	Version                 int         `json:"version,omitzero"`
 	Algorithm               string      `json:"algorithm,omitzero"`
 	Signature               string      `json:"signature,omitzero"`
@@ -107,7 +95,7 @@ type DkimHeader struct {
 	Extensions [][2]string `json:"extensions,omitzero"`
 }
 
-func GetDkimKeyData(data string) ([]byte, error) {
+func GetKeyData(data string) ([]byte, error) {
 	if data == "" {
 		return nil, nil
 	}
@@ -123,7 +111,7 @@ func GetDkimKeyData(data string) ([]byte, error) {
 	return keyData, nil
 }
 
-func ParseDkimKey(data string, keyType string) (crypto.PublicKey, error) {
+func ParseKey(data string, keyType string) (crypto.PublicKey, error) {
 	if data == "" {
 		return nil, nil
 	}
@@ -132,7 +120,7 @@ func ParseDkimKey(data string, keyType string) (crypto.PublicKey, error) {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("key type"))
 	}
 
-	keyData, err := GetDkimKeyData(data)
+	keyData, err := GetKeyData(data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get key data: %w", err), data)
 	}
@@ -154,67 +142,4 @@ func ParseDkimKey(data string, keyType string) (crypto.PublicKey, error) {
 	default:
 		return keyData, nil
 	}
-}
-
-type DmarcRecord struct {
-	Domain string `json:"domain,omitzero"`
-	Raw    string `json:"raw,omitzero"`
-	P      string `json:"p,omitzero"`
-	Sp     string `json:"sp,omitzero"`
-	Rua    string `json:"rua,omitzero"`
-	Ruf    string `json:"ruf,omitzero"`
-	Adkim  string `json:"adkim,omitzero"`
-	Aspf   string `json:"aspf,omitzero"`
-	Ri     string `json:"ri,omitzero"`
-	Fo     string `json:"fo,omitzero"`
-	Rf     string `json:"rf,omitzero"`
-	Pct    string `json:"pct,omitzero"`
-}
-
-type SpfMechanism struct {
-	Label string `json:"label,omitzero"`
-	Value string `json:"value,omitzero"`
-}
-
-type SpfDirective struct {
-	Index     int           `json:"index"`
-	Qualifier string        `json:"qualifier,omitzero"`
-	Mechanism *SpfMechanism `json:"mechanism,omitzero"`
-}
-
-type SpfModifier struct {
-	Index int    `json:"index"`
-	Label string `json:"label,omitzero"`
-	Value string `json:"value,omitzero"`
-}
-
-type SpfTermPtr interface {
-	*SpfModifier | *SpfDirective
-}
-
-func getTypedSpfTerms[T SpfTermPtr](record *SpfRecord) []T {
-	var typedTerms []T
-
-	for _, term := range record.Terms {
-		switch typedTerm := term.(type) {
-		case T:
-			typedTerms = append(typedTerms, typedTerm)
-		}
-	}
-
-	return typedTerms
-}
-
-type SpfRecord struct {
-	Domain string `json:"domain,omitzero"`
-	Raw    string `json:"raw,omitzero"`
-	Terms  []any  `json:"-" jsonschema:"-"`
-}
-
-func (r *SpfRecord) Modifiers() []*SpfModifier {
-	return getTypedSpfTerms[*SpfModifier](r)
-}
-
-func (r *SpfRecord) Directives() []*SpfDirective {
-	return getTypedSpfTerms[*SpfDirective](r)
 }

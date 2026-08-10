@@ -27,7 +27,7 @@ var (
 )
 
 func Parse(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(RetryAfterGrammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(RetryAfterGrammar, data, "Retry-After")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

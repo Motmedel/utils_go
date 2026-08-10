@@ -1,4 +1,3 @@
-root=Accept-Language
 Accept-Language=[element] *(OWS "," OWS [element])
 element=language-range [weight]
 language-range=Language-Tag

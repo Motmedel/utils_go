@@ -1,4 +1,3 @@
-root=Content-Type
 Content-Type=media-type
 media-type=type "/" subtype *(OWS ";" OWS parameter)
 OWS=*(SP/HTAB)

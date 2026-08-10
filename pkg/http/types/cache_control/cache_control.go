@@ -32,7 +32,7 @@ var (
 )
 
 func Parse(data []byte) (*motmedelHttpTypes.CacheControl, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "Cache-Control")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

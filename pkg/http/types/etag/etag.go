@@ -18,7 +18,7 @@ var grammar []byte
 var Grammar *abnf.Grammar
 
 func Parse(data []byte) (*motmedelHttpTypes.ETag, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "ETag")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

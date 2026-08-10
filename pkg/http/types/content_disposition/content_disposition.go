@@ -64,7 +64,7 @@ func getValue(data []byte, path *abnf.Path) (string, error) {
 // TODO: Handle all errors properly.
 
 func Parse(data []byte) (*motmedelHttpTypes.ContentDisposition, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "content-disposition")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	abnfUtils "github.com/Motmedel/utils_go/pkg/abnf/utils"
-	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
 
@@ -40,8 +39,8 @@ var caseInsensitiveTags = map[string]bool{
 	"rf":    true,
 }
 
-func ParseDmarcRecord(data []byte) (*dnsTypes.DmarcRecord, error) {
-	paths, err := abnfUtils.GetParsedDataPaths(DmarcGrammar, data)
+func ParseDmarcRecord(data []byte) (*Record, error) {
+	paths, err := abnfUtils.GetParsedDataPaths(DmarcGrammar, data, "dmarc-record")
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err))
 	}
@@ -49,7 +48,7 @@ func ParseDmarcRecord(data []byte) (*dnsTypes.DmarcRecord, error) {
 		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError)
 	}
 
-	record := &dnsTypes.DmarcRecord{Raw: string(data)}
+	record := &Record{Raw: string(data)}
 	fields := map[string]*string{
 		"p":     &record.P,
 		"sp":    &record.Sp,
