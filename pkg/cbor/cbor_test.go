@@ -290,3 +290,81 @@ func FuzzDecode(f *testing.F) {
 		}
 	})
 }
+
+func TestDecodeFirst(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		data          string
+		expectedValue any
+		expectedRest  string
+	}{
+		{name: "integer without rest", data: "01", expectedValue: int64(1), expectedRest: ""},
+		{name: "integer with rest", data: "01ffee", expectedValue: int64(1), expectedRest: "ffee"},
+		{
+			name:          "map with rest",
+			data:          "a1010243aabbcc",
+			expectedValue: map[any]any{int64(1): int64(2)},
+			expectedRest:  "43aabbcc",
+		},
+		{
+			name:          "byte string with rest",
+			data:          "43010203ff",
+			expectedValue: []byte{1, 2, 3},
+			expectedRest:  "ff",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			data, err := hex.DecodeString(testCase.data)
+			if err != nil {
+				t.Fatalf("decode hex: %v", err)
+			}
+
+			value, rest, err := DecodeFirst(data)
+			if err != nil {
+				t.Fatalf("decode first: %v", err)
+			}
+
+			if !reflect.DeepEqual(value, testCase.expectedValue) {
+				t.Errorf("value mismatch: %#v != %#v", value, testCase.expectedValue)
+			}
+
+			if hex.EncodeToString(rest) != testCase.expectedRest {
+				t.Errorf("rest mismatch: %x != %s", rest, testCase.expectedRest)
+			}
+		})
+	}
+}
+
+func TestDecodeFirstRejectsMalformed(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		data string
+	}{
+		{name: "empty", data: ""},
+		{name: "truncated byte string", data: "58ff00"},
+		{name: "indefinite array", data: "9f01ff"},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			data, err := hex.DecodeString(testCase.data)
+			if err != nil {
+				t.Fatalf("decode hex: %v", err)
+			}
+
+			if _, _, err := DecodeFirst(data); !errors.Is(err, ErrMalformed) {
+				t.Errorf("expected malformed error, got %v", err)
+			}
+		})
+	}
+}

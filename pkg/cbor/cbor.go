@@ -363,3 +363,18 @@ func Decode(data []byte) (any, error) {
 func DecodeNoCopy(data []byte) (any, error) {
 	return decode(&decoder{data: data, noCopy: true})
 }
+
+// DecodeFirst is Decode, except trailing data is returned rather than rejected: it deserializes
+// the first value in data and additionally returns the bytes that follow it. Used for formats
+// that embed a CBOR item followed by other data whose start is not known in advance, such as the
+// credential public key within WebAuthn authenticator data.
+func DecodeFirst(data []byte) (any, []byte, error) {
+	parser := &decoder{data: data}
+
+	value, err := parser.decodeValue(0)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return value, data[parser.offset:], nil
+}

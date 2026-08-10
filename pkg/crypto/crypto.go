@@ -17,6 +17,8 @@ const (
 	CoseAlgEs384 = -35
 	CoseAlgEs512 = -36
 
+	CoseAlgEdDsa = -8
+
 	CoseAlgRs256 = -257
 	CoseAlgRs384 = -258
 	CoseAlgRs512 = -259
@@ -28,6 +30,8 @@ const (
 	AlgEs256 = "ES256"
 	AlgEs384 = "ES384"
 	AlgEs512 = "ES512"
+
+	AlgEdDsa = "EdDSA"
 
 	AlgRs256 = "RS256"
 	AlgRs384 = "RS384"
@@ -42,6 +46,8 @@ var CoseAlgNames = map[int]string{
 	CoseAlgEs256: AlgEs256,
 	CoseAlgEs384: AlgEs384,
 	CoseAlgEs512: AlgEs512,
+
+	CoseAlgEdDsa: AlgEdDsa,
 
 	CoseAlgRs256: AlgRs256,
 	CoseAlgRs384: AlgRs384,
