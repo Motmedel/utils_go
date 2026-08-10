@@ -3,8 +3,9 @@
 // parsing (see the transport subpackage), CBOR attestation-object and authenticator-data
 // parsing with COSE credential-key extraction, and ceremony validation.
 //
-// Attestation statements are not verified; the package is intended for relying parties that
-// request attestation "none".
+// Attestation statements are verified on demand via VerifyAttestationStatement ("none",
+// "packed", "apple", and "fido-u2f" formats); the validation functions themselves do not
+// evaluate attestation, matching relying parties that request attestation "none".
 package webauthn
 
 import (

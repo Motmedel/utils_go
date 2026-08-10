@@ -15,4 +15,5 @@ var (
 	ErrPublicKeyMismatch               = errors.New("public key mismatch")
 	ErrAuthenticatorDataMismatch       = errors.New("authenticator data mismatch")
 	ErrSignatureVerifyFailure          = errors.New("signature verify failure")
+	ErrUnsupportedAttestationFormat    = errors.New("unsupported attestation format")
 )
