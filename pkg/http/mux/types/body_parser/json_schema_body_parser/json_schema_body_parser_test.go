@@ -188,6 +188,81 @@ func TestParserParse(t *testing.T) {
 	}
 }
 
+func TestParserParseAdditionalProperties(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name                string
+		schemaData          string
+		body                string
+		expectResponseError bool
+		expectStatus        int
+	}{
+		{
+			name: "schema permitting additional properties accepts unknown members",
+			schemaData: `{
+				"type": "object",
+				"properties": {"name": {"type": "string"}},
+				"required": ["name"],
+				"additionalProperties": true
+			}`,
+			body: `{"name":"hello","extra":1}`,
+		},
+		{
+			name: "schema forbidding additional properties rejects unknown members",
+			schemaData: `{
+				"type": "object",
+				"properties": {"name": {"type": "string"}},
+				"required": ["name"],
+				"additionalProperties": false
+			}`,
+			body:                `{"name":"hello","extra":1}`,
+			expectResponseError: true,
+			expectStatus:        http.StatusUnprocessableEntity,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			schema, err := motmedelJsonSchema.New([]byte(testCase.schemaData))
+			if err != nil {
+				t.Fatalf("schema new: %v", err)
+			}
+
+			parser, err := NewWithSchema[payload](schema)
+			if err != nil {
+				t.Fatalf("new with schema: %v", err)
+			}
+
+			result, responseError := parser.Parse(newRequest(t), []byte(testCase.body))
+
+			if !testCase.expectResponseError {
+				if responseError != nil {
+					t.Fatalf("unexpected response error: %+v", responseError)
+				}
+				if result.Name != "hello" {
+					t.Errorf("result name = %q, want %q", result.Name, "hello")
+				}
+				return
+			}
+
+			if responseError == nil {
+				t.Fatal("expected a response error")
+			}
+			if responseError.ClientError == nil {
+				t.Error("expected a client error")
+			}
+			if problemDetail := responseError.ProblemDetail; problemDetail == nil {
+				t.Fatal("expected a problem detail")
+			} else if problemDetail.Status != testCase.expectStatus {
+				t.Errorf("status = %d, want %d", problemDetail.Status, testCase.expectStatus)
+			}
+		})
+	}
+}
+
 func TestParserParseSlice(t *testing.T) {
 	t.Parallel()
 

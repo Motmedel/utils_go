@@ -1,6 +1,7 @@
 package json_schema_body_parser
 
 import (
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"fmt"
 	"net/http"
@@ -82,7 +83,9 @@ func NewWithSchema[T any](schema *motmedelJsonSchema.Schema) (*Parser[T], error)
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("schema"))
 	}
 
-	return &Parser[T]{schema: schema, bodyParser: json_body_parser.New[T]()}, nil
+	// The schema owns the unknown-member policy (additionalProperties), and validation runs before
+	// unmarshaling; rejecting unknown members here would contradict schemas that permit them.
+	return &Parser[T]{schema: schema, bodyParser: json_body_parser.New[T](jsonv2.RejectUnknownMembers(false))}, nil
 }
 
 func New[T any]() (*Parser[T], error) {
