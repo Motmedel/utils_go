@@ -135,8 +135,8 @@ func validatePublicKeyCredential[T authenticatorResponseTypes](
 // the attestation object's authenticator data.
 //
 // TODO: Verify attestation statements (packed, tpm, android-key, apple, …) against their
-//  formats' verification procedures instead of accepting any statement unverified; until then,
-//  only relying parties requesting attestation "none" are properly supported.
+// formats' verification procedures instead of accepting any statement unverified; until then,
+// only relying parties requesting attestation "none" are properly supported.
 func ValidateAttestationPublicKeyCredential(
 	credential *AttestationPublicKeyCredential,
 	expectedCollectedClientDataChallenge []byte,
