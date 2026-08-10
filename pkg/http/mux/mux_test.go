@@ -26,10 +26,10 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/response_writer"
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils"
-	"github.com/Motmedel/utils_go/pkg/http/parsing/headers/retry_after"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
+	"github.com/Motmedel/utils_go/pkg/http/types/retry_after"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
 

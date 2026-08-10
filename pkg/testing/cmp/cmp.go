@@ -4,11 +4,9 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
-func CompareErr(t *testing.T, got error, want error, opts ...cmp.Option) {
+func CompareErr(t *testing.T, got error, want error, opts ...Option) {
 	t.Helper()
 
 	if want == nil {
@@ -29,7 +27,7 @@ func CompareErr(t *testing.T, got error, want error, opts ...cmp.Option) {
 	}
 
 	typedGot := target.Elem().Interface().(error)
-	if diff := cmp.Diff(want, typedGot, opts...); diff != "" {
+	if diff := Diff(want, typedGot, opts...); diff != "" {
 		t.Errorf("error mismatch (-expected +got):\n%s", diff)
 	}
 }

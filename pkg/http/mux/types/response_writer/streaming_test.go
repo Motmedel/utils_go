@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	muxTypesResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
-	acceptEncodingParsing "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
+	acceptEncodingParsing "github.com/Motmedel/utils_go/pkg/http/types/accept_encoding"
 )
 
 // headerOnlyWriter implements http.ResponseWriter but not http.Flusher.

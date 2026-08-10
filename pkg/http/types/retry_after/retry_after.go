@@ -1,0 +1,105 @@
+package retry_after
+
+import (
+	_ "embed"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
+
+	"github.com/Motmedel/utils_go/pkg/abnf"
+	abnfUtils "github.com/Motmedel/utils_go/pkg/abnf/utils"
+	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
+	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+)
+
+//go:embed grammar.abnf
+var grammar []byte
+
+var RetryAfterGrammar *abnf.Grammar
+
+var (
+	ErrInvalidHttpDate     = errors.New("invalid http date")
+	ErrInvalidDelaySeconds = errors.New("invalid delay seconds")
+	ErrNoPathMatch         = errors.New("neither HTTP-date or delay-seconds matched")
+)
+
+func Parse(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
+	paths, err := abnfUtils.GetParsedDataPaths(RetryAfterGrammar, data)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
+	}
+	if len(paths) == 0 {
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
+	}
+
+	retryAfter := &motmedelHttpTypes.RetryAfter{Raw: string(data)}
+
+	path := paths[0]
+
+	httpDatePath := abnfUtils.SearchPathSingleName(path, "HTTP-date", 2, false)
+	if httpDatePath != nil {
+		httpDateString := string(abnfUtils.ExtractPathValue(data, httpDatePath))
+		if httpDateString == "" {
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, empty_error.New("http date")),
+			)
+		}
+
+		httpDate, err := time.Parse(time.RFC1123, httpDateString)
+		if err != nil {
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf(
+					"%w: %w: time parse rfc1123: %w",
+					motmedelErrors.ErrSemanticError,
+					ErrInvalidHttpDate,
+					err,
+				),
+				httpDateString,
+			)
+		}
+
+		retryAfter.WaitTime = httpDate
+
+		return retryAfter, nil
+	}
+
+	delaySecondsPath := abnfUtils.SearchPathSingleName(path, "delay-seconds", 2, false)
+	if delaySecondsPath != nil {
+		delaySecondsString := string(abnfUtils.ExtractPathValue(data, delaySecondsPath))
+		if delaySecondsString == "" {
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, empty_error.New("delay seconds")),
+			)
+		}
+
+		delaySeconds, err := strconv.Atoi(delaySecondsString)
+		if err != nil {
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf(
+					"%w: %w: strconv atoi: %w",
+					motmedelErrors.ErrSemanticError,
+					ErrInvalidDelaySeconds,
+					err,
+				),
+				delaySecondsString,
+			)
+		}
+
+		retryAfter.WaitTime = time.Duration(delaySeconds) * time.Second
+
+		return retryAfter, nil
+	}
+
+	return nil, motmedelErrors.NewWithTrace(ErrNoPathMatch)
+}
+
+func init() {
+	var err error
+	RetryAfterGrammar, err = abnf.ParseABNF(grammar)
+	if err != nil {
+		panic(fmt.Sprintf("goabnf parse abnf (retry after grammar): %v", err))
+	}
+}

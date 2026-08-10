@@ -9,12 +9,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
+	"github.com/Motmedel/utils_go/pkg/abnf"
+	abnfUtils "github.com/Motmedel/utils_go/pkg/abnf/utils"
 	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
-	goabnf "github.com/pandatix/go-abnf"
 )
 
 var (
@@ -36,7 +36,7 @@ var (
 	reSpaces = regexp.MustCompile(` +`)
 )
 
-func extractTagPath(tagName string, tagValue []byte, tagType string) (*goabnf.Path, error) {
+func extractTagPath(tagName string, tagValue []byte, tagType string) (*abnf.Path, error) {
 	if tagName == "" {
 		return nil, nil
 	}
@@ -65,7 +65,7 @@ func extractTagPath(tagName string, tagValue []byte, tagType string) (*goabnf.Pa
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: %s", ErrUnexpectedTagType, tagType), tagType)
 	}
 
-	tagPaths, err := goabnf.Parse(tagValue, DkimGrammar, ruleName)
+	tagPaths, err := abnf.Parse(tagValue, DkimGrammar, ruleName)
 	if err != nil {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("go abnf parse: %w", err), tagValue, DkimGrammar)
 	}
@@ -82,7 +82,7 @@ func extractTagPath(tagName string, tagValue []byte, tagType string) (*goabnf.Pa
 	return tagPaths[0], nil
 }
 
-func extractBase64String(path *goabnf.Path, value []byte) (string, error) {
+func extractBase64String(path *abnf.Path, value []byte) (string, error) {
 	if path == nil {
 		return "", nil
 	}
@@ -92,8 +92,8 @@ func extractBase64String(path *goabnf.Path, value []byte) (string, error) {
 	}
 
 	var segments []string
-	for _, p := range parsing_utils.SearchPath(path, []string{"ALPHADIGITPS"}, 2, false) {
-		segments = append(segments, string(parsing_utils.ExtractPathValue(value, p)))
+	for _, p := range abnfUtils.SearchPath(path, []string{"ALPHADIGITPS"}, 2, false) {
+		segments = append(segments, string(abnfUtils.ExtractPathValue(value, p)))
 	}
 
 	return strings.Join(segments, ""), nil
@@ -116,7 +116,7 @@ type tagSpecItem struct {
 	Value []byte
 }
 
-func getTagSpecItems(path *goabnf.Path, tagMap map[string]struct{}, data []byte) iter.Seq2[*tagSpecItem, error] {
+func getTagSpecItems(path *abnf.Path, tagMap map[string]struct{}, data []byte) iter.Seq2[*tagSpecItem, error] {
 	return func(yield func(*tagSpecItem, error) bool) {
 		if tagMap == nil {
 			yield(nil, motmedelErrors.NewWithTrace(nil_error.New("tag map")))
@@ -128,13 +128,13 @@ func getTagSpecItems(path *goabnf.Path, tagMap map[string]struct{}, data []byte)
 			return
 		}
 
-		for _, tagSpecPath := range parsing_utils.SearchPath(path, []string{"tag-spec"}, 2, false) {
-			tagNamePath := parsing_utils.SearchPathSingleName(tagSpecPath, "tag-name", 1, false)
+		for _, tagSpecPath := range abnfUtils.SearchPath(path, []string{"tag-spec"}, 2, false) {
+			tagNamePath := abnfUtils.SearchPathSingleName(tagSpecPath, "tag-name", 1, false)
 			if tagNamePath == nil {
 				yield(nil, motmedelErrors.NewWithTrace(nil_error.New("tag name path")))
 				return
 			}
-			tagName := string(parsing_utils.ExtractPathValue(data, tagNamePath))
+			tagName := string(abnfUtils.ExtractPathValue(data, tagNamePath))
 			if _, ok := tagMap[tagName]; ok {
 				yield(
 					nil,
@@ -147,9 +147,9 @@ func getTagSpecItems(path *goabnf.Path, tagMap map[string]struct{}, data []byte)
 			tagMap[tagName] = struct{}{}
 
 			var tagValue []byte
-			tagValuePath := parsing_utils.SearchPathSingleName(tagSpecPath, "tag-value", 1, false)
+			tagValuePath := abnfUtils.SearchPathSingleName(tagSpecPath, "tag-value", 1, false)
 			if tagValuePath != nil {
-				tagValue = bytes.TrimSpace(parsing_utils.ExtractPathValue(data, tagValuePath))
+				tagValue = bytes.TrimSpace(abnfUtils.ExtractPathValue(data, tagValuePath))
 			}
 
 			if !yield(&tagSpecItem{Name: tagName, Value: tagValue}, nil) {
@@ -160,7 +160,7 @@ func getTagSpecItems(path *goabnf.Path, tagMap map[string]struct{}, data []byte)
 }
 
 func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
-	paths, err := parsing_utils.GetParsedDataPaths(DkimGrammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(DkimGrammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
 	}
@@ -208,22 +208,22 @@ func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
 			record.Version = 1
 		case "h":
 			var algorithms []string
-			for _, path := range parsing_utils.SearchPath(tagPath, []string{"key-h-tag-alg"}, 1, false) {
-				algorithms = append(algorithms, string(parsing_utils.ExtractPathValue(tagValue, path)))
+			for _, path := range abnfUtils.SearchPath(tagPath, []string{"key-h-tag-alg"}, 1, false) {
+				algorithms = append(algorithms, string(abnfUtils.ExtractPathValue(tagValue, path)))
 			}
 			record.AcceptableHashAlgorithms = algorithms
 		case "k":
 			record.KeyType = string(
-				parsing_utils.ExtractPathValue(
+				abnfUtils.ExtractPathValue(
 					tagValue,
-					parsing_utils.SearchPathSingleName(tagPath, "key-k-tag-type", 1, false),
+					abnfUtils.SearchPathSingleName(tagPath, "key-k-tag-type", 1, false),
 				),
 			)
 		case "n":
 			record.Notes = string(
-				parsing_utils.ExtractPathValue(
+				abnfUtils.ExtractPathValue(
 					tagValue,
-					parsing_utils.SearchPathSingleName(tagPath, "qp-section", 1, false),
+					abnfUtils.SearchPathSingleName(tagPath, "qp-section", 1, false),
 				),
 			)
 		case "p":
@@ -234,15 +234,15 @@ func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
 			record.PublicKeyData = base64String
 		case "s":
 			record.ServiceType = string(
-				parsing_utils.ExtractPathValue(
+				abnfUtils.ExtractPathValue(
 					tagValue,
-					parsing_utils.SearchPathSingleName(tagPath, "key-s-tag-type", 1, false),
+					abnfUtils.SearchPathSingleName(tagPath, "key-s-tag-type", 1, false),
 				),
 			)
 		case "t":
 			var flags []string
-			for _, path := range parsing_utils.SearchPath(tagPath, []string{"key-t-tag-flag"}, 1, false) {
-				flags = append(flags, string(parsing_utils.ExtractPathValue(tagValue, path)))
+			for _, path := range abnfUtils.SearchPath(tagPath, []string{"key-t-tag-flag"}, 1, false) {
+				flags = append(flags, string(abnfUtils.ExtractPathValue(tagValue, path)))
 			}
 			record.Flags = flags
 		}
@@ -266,7 +266,7 @@ func ParseRecord(data []byte) (*dnsTypes.DkimRecord, error) {
 
 func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
 	normalizedData := normalizeEmailHeader(data)
-	paths, err := parsing_utils.GetParsedDataPaths(DkimGrammar, normalizedData)
+	paths, err := abnfUtils.GetParsedDataPaths(DkimGrammar, normalizedData)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), normalizedData)
 	}
@@ -325,8 +325,8 @@ func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
 			header.SigningDomainIdentifier = string(tagValue)
 		case "h":
 			var fields []string
-			for _, path := range parsing_utils.SearchPath(tagPath, []string{"hdr-name"}, 1, false) {
-				fields = append(fields, string(parsing_utils.ExtractPathValue(tagValue, path)))
+			for _, path := range abnfUtils.SearchPath(tagPath, []string{"hdr-name"}, 1, false) {
+				fields = append(fields, string(abnfUtils.ExtractPathValue(tagValue, path)))
 			}
 			header.SignedHeaderFields = fields
 		case "i":
@@ -335,8 +335,8 @@ func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
 			header.BodyLengthCount = string(tagValue)
 		case "q":
 			var methods []string
-			for _, path := range parsing_utils.SearchPath(tagPath, []string{"sig-q-tag-method"}, 1, false) {
-				methods = append(methods, string(parsing_utils.ExtractPathValue(tagValue, path)))
+			for _, path := range abnfUtils.SearchPath(tagPath, []string{"sig-q-tag-method"}, 1, false) {
+				methods = append(methods, string(abnfUtils.ExtractPathValue(tagValue, path)))
 			}
 			header.QueryMethods = methods
 		case "s":
@@ -347,19 +347,19 @@ func ParseHeader(data []byte) (*dnsTypes.DkimHeader, error) {
 			header.SignatureExpiration = string(tagValue)
 		case "z":
 			var fields [][2]string
-			for _, path := range parsing_utils.SearchPath(tagPath, []string{"sig-z-tag-copy"}, 2, false) {
-				namePath := parsing_utils.SearchPathSingleName(path, "hdr-name", 1, false)
+			for _, path := range abnfUtils.SearchPath(tagPath, []string{"sig-z-tag-copy"}, 2, false) {
+				namePath := abnfUtils.SearchPathSingleName(path, "hdr-name", 1, false)
 				if namePath == nil {
 					return nil, motmedelErrors.NewWithTrace(nil_error.New("header name"))
 				}
 
-				valuePath := parsing_utils.SearchPathSingleName(path, "qp-hdr-value", 1, false)
+				valuePath := abnfUtils.SearchPathSingleName(path, "qp-hdr-value", 1, false)
 				if valuePath == nil {
 					return nil, motmedelErrors.NewWithTrace(nil_error.New("header value"))
 				}
 
-				name := string(parsing_utils.ExtractPathValue(tagValue, namePath))
-				value := string(parsing_utils.ExtractPathValue(tagValue, valuePath))
+				name := string(abnfUtils.ExtractPathValue(tagValue, namePath))
+				value := string(abnfUtils.ExtractPathValue(tagValue, valuePath))
 
 				fields = append(fields, [2]string{name, value})
 			}

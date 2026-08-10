@@ -889,8 +889,9 @@ type Keyword struct {
 }
 
 // Equal reports whether two keywords are equal.
-// This is for the benefit of the github.com/google/go-cmp package,
-// which won't compare the Validate function values.
+// This is for the benefit of comparison packages such as
+// github.com/Motmedel/utils_go/pkg/testing/cmp, which use it instead of
+// comparing the Validate function values.
 func (k1 Keyword) Equal(k2 Keyword) bool {
 	return k1.Name == k2.Name && k1.ArgType == k2.ArgType && k1.Generated == k2.Generated
 }

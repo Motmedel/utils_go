@@ -4,13 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	parsingUtilsErrors "github.com/Motmedel/parsing_utils/pkg/errors"
+	"github.com/Motmedel/utils_go/pkg/abnf"
 	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
-	"github.com/google/go-cmp/cmp"
-	goabnf "github.com/pandatix/go-abnf"
+	"github.com/Motmedel/utils_go/pkg/testing/cmp"
 )
 
 func TestParseRecord(t *testing.T) {
@@ -26,7 +25,7 @@ func TestParseRecord(t *testing.T) {
 			name:           "empty data",
 			input:          nil,
 			expected:       nil,
-			expectedErrors: []error{motmedelErrors.ErrSyntaxError, parsingUtilsErrors.ErrEmptyData},
+			expectedErrors: []error{motmedelErrors.ErrSyntaxError},
 		},
 		{
 			name:           "syntax error",
@@ -146,7 +145,7 @@ func TestParseHeader(t *testing.T) {
 			name:           "empty data",
 			input:          nil,
 			expected:       nil,
-			expectedErrors: []error{motmedelErrors.ErrSyntaxError, parsingUtilsErrors.ErrEmptyData},
+			expectedErrors: []error{motmedelErrors.ErrSyntaxError},
 		},
 		{
 			name:           "syntax error",
@@ -259,7 +258,7 @@ func TestExtractTagPath(t *testing.T) {
 		tagNameInput   string
 		tagValueInput  []byte
 		tagTypeInput   string
-		expected       *goabnf.Path
+		expected       *abnf.Path
 		expectedErrors []error
 		checkErr       func(*testing.T, error)
 	}{
@@ -382,7 +381,7 @@ func TestExtractBase64String(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		pathInput      *goabnf.Path
+		pathInput      *abnf.Path
 		valueInput     []byte
 		expected       string
 		expectedErrors []error
@@ -393,7 +392,7 @@ func TestExtractBase64String(t *testing.T) {
 		},
 		{
 			name:      "empty value",
-			pathInput: &goabnf.Path{},
+			pathInput: &abnf.Path{},
 			checkErr: func(t *testing.T, err error) {
 				ee, ok := errors.AsType[*empty_error.Error](err)
 				if !ok {

@@ -1,16 +1,16 @@
 package body_parser_config
 
-import "github.com/go-jose/go-jose/v4"
+import "github.com/Motmedel/utils_go/pkg/json/jose/jwe"
 
 const (
-	DefaultKeyAlgorithm      = "ECDH-ES"
-	DefaultContentEncryption = "A256GCM"
+	DefaultKeyAlgorithm      = jwe.KeyAlgorithmEcdhEs
+	DefaultContentEncryption = jwe.ContentEncryptionA256Gcm
 )
 
 type Config struct {
 	KeyIdentifier     string
-	KeyAlgorithm      jose.KeyAlgorithm
-	ContentEncryption jose.ContentEncryption
+	KeyAlgorithm      jwe.KeyAlgorithm
+	ContentEncryption jwe.ContentEncryption
 }
 
 type Option func(*Config)
@@ -33,13 +33,13 @@ func WithKeyIdentifier(keyIdentifier string) Option {
 	}
 }
 
-func WithKeyAlgorithm(keyAlgorithm jose.KeyAlgorithm) Option {
+func WithKeyAlgorithm(keyAlgorithm jwe.KeyAlgorithm) Option {
 	return func(config *Config) {
 		config.KeyAlgorithm = keyAlgorithm
 	}
 }
 
-func WithContentEncryption(contentEncryption jose.ContentEncryption) Option {
+func WithContentEncryption(contentEncryption jwe.ContentEncryption) Option {
 	return func(config *Config) {
 		config.ContentEncryption = contentEncryption
 	}

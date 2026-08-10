@@ -4,11 +4,9 @@ import (
 	"net"
 	"testing"
 
-	parsingUtilsErrors "github.com/Motmedel/parsing_utils/pkg/errors"
 	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/Motmedel/utils_go/pkg/testing/cmp"
 )
 
 func TestParseSpfRecord(t *testing.T) {
@@ -24,7 +22,7 @@ func TestParseSpfRecord(t *testing.T) {
 			name:           "empty data",
 			input:          nil,
 			expected:       nil,
-			expectedErrors: []error{motmedelErrors.ErrSyntaxError, parsingUtilsErrors.ErrEmptyData},
+			expectedErrors: []error{motmedelErrors.ErrSyntaxError},
 		},
 		{
 			name:           "syntax error",
@@ -235,7 +233,7 @@ func TestExtractNetworks(t *testing.T) {
 			gotStrings = append(gotStrings, n.String())
 		}
 		want := []string{"192.0.2.0/24", "198.51.100.5/32", "2001:db8::/32"}
-		if diff := cmp.Diff(want, gotStrings, cmpopts.EquateEmpty()); diff != "" {
+		if diff := cmp.Diff(want, gotStrings, cmp.EquateEmpty()); diff != "" {
 			t.Fatalf("network strings mismatch (-want +got):\n%s", diff)
 		}
 	})

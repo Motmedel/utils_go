@@ -8,8 +8,7 @@ import (
 	"testing"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
-	jsonschemaErrors "github.com/altshiftab/jsonschema/pkg/errors"
-	"github.com/altshiftab/jsonschema/pkg/jsonschema"
+	motmedelJsonSchema "github.com/Motmedel/utils_go/pkg/json/schema"
 )
 
 type payload struct {
@@ -39,14 +38,14 @@ func TestNew(t *testing.T) {
 func TestNewWithSchema(t *testing.T) {
 	t.Parallel()
 
-	schema, err := jsonschema.NewFromType[payload]()
+	schema, err := motmedelJsonSchema.NewFromType[payload]()
 	if err != nil {
 		t.Fatalf("new from type: %v", err)
 	}
 
 	testCases := []struct {
 		name        string
-		schema      *jsonschema.Schema
+		schema      *motmedelJsonSchema.Schema
 		expectError bool
 	}{
 		{name: "nil schema", schema: nil, expectError: true},
@@ -62,8 +61,8 @@ func TestNewWithSchema(t *testing.T) {
 				if err == nil {
 					t.Fatal("expected an error")
 				}
-				if !errors.Is(err, jsonschemaErrors.ErrNilSchema) {
-					t.Errorf("error = %v, want ErrNilSchema", err)
+				if nilError, ok := errors.AsType[*nil_error.Error](err); !ok || nilError.Field != "schema" {
+					t.Errorf("error = %v, want a nil error for %q", err, "schema")
 				}
 				if parser != nil {
 					t.Error("expected a nil parser")
@@ -127,7 +126,8 @@ func TestParserParse(t *testing.T) {
 			name:                "malformed json",
 			body:                `{`,
 			expectResponseError: true,
-			expectServerError:   true,
+			expectClientError:   true,
+			expectStatus:        http.StatusBadRequest,
 		},
 	}
 
@@ -170,7 +170,7 @@ func TestParserParse(t *testing.T) {
 			}
 
 			if testCase.expectValidateError {
-				if _, ok := errors.AsType[*jsonschemaErrors.ValidateError](responseError.ClientError); !ok {
+				if _, ok := errors.AsType[*motmedelJsonSchema.ValidateError](responseError.ClientError); !ok {
 					t.Errorf("client error is not a *ValidateError: %v", responseError.ClientError)
 				}
 			}
@@ -211,7 +211,7 @@ func TestParserParseSlice(t *testing.T) {
 	if responseError == nil {
 		t.Fatal("expected a response error for a schema violation")
 	}
-	if _, ok := errors.AsType[*jsonschemaErrors.ValidateError](responseError.ClientError); !ok {
+	if _, ok := errors.AsType[*motmedelJsonSchema.ValidateError](responseError.ClientError); !ok {
 		t.Errorf("client error is not a *ValidateError: %v", responseError.ClientError)
 	}
 	if problemDetail := responseError.ProblemDetail; problemDetail == nil {
@@ -233,15 +233,15 @@ func TestParserParseNilSchema(t *testing.T) {
 	if responseError.ServerError == nil {
 		t.Fatal("expected a server error")
 	}
-	if !errors.Is(responseError.ServerError, jsonschemaErrors.ErrNilSchema) {
-		t.Errorf("server error = %v, want ErrNilSchema", responseError.ServerError)
+	if nilError, ok := errors.AsType[*nil_error.Error](responseError.ServerError); !ok || nilError.Field != "schema" {
+		t.Errorf("server error = %v, want a nil error for %q", responseError.ServerError, "schema")
 	}
 }
 
 func TestParserParseNilBodyParser(t *testing.T) {
 	t.Parallel()
 
-	schema, err := jsonschema.NewFromType[payload]()
+	schema, err := motmedelJsonSchema.NewFromType[payload]()
 	if err != nil {
 		t.Fatalf("new from type: %v", err)
 	}

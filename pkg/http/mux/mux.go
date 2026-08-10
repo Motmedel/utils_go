@@ -30,7 +30,6 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/userer"
 	utils2 "github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	muxUtilsContentNegotiation "github.com/Motmedel/utils_go/pkg/http/mux/utils/content_negotiation"
-	contentSecurityPolicyParsing "github.com/Motmedel/utils_go/pkg/http/parsing/headers/content_security_policy"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	"github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
@@ -911,7 +910,7 @@ func (mux *Mux) GetContentSecurityPolicy() (*content_security_policy.ContentSecu
 		return nil, nil
 	}
 
-	csp, err := contentSecurityPolicyParsing.Parse([]byte(contentSecurityPolicyString))
+	csp, err := content_security_policy.Parse([]byte(contentSecurityPolicyString))
 	if err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}

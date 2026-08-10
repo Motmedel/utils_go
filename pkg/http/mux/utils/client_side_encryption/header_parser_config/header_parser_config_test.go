@@ -3,7 +3,7 @@ package header_parser_config
 import (
 	"testing"
 
-	"github.com/go-jose/go-jose/v4"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwe"
 )
 
 func TestNew(t *testing.T) {
@@ -19,27 +19,26 @@ func TestNew(t *testing.T) {
 	if defaults.ContentEncryption != DefaultContentEncryption {
 		t.Errorf("default content encryption = %q, want %q", defaults.ContentEncryption, DefaultContentEncryption)
 	}
-	if defaults.EncrypterOptions != DefaultEncrypterOptions {
-		t.Errorf("default encrypter options = %p, want %p", defaults.EncrypterOptions, DefaultEncrypterOptions)
+	if defaults.ContentType != DefaultContentType {
+		t.Errorf("default content type = %q, want %q", defaults.ContentType, DefaultContentType)
 	}
 
-	encrypterOptions := (&jose.EncrypterOptions{}).WithContentType("application/octet-stream")
 	config := New(
 		WithHeaderName("X-Custom-Jwk"),
-		WithKeyAlgorithm(jose.ECDH_ES_A256KW),
-		WithContentEncryption(jose.A128GCM),
-		WithEncrypterOptions(encrypterOptions),
+		WithKeyAlgorithm(jwe.KeyAlgorithm("ECDH-ES+A256KW")),
+		WithContentEncryption(jwe.ContentEncryption("A128GCM")),
+		WithContentType("application/octet-stream"),
 	)
 	if config.HeaderName != "X-Custom-Jwk" {
 		t.Errorf("header name = %q, want %q", config.HeaderName, "X-Custom-Jwk")
 	}
-	if config.KeyAlgorithm != jose.ECDH_ES_A256KW {
-		t.Errorf("key algorithm = %q, want %q", config.KeyAlgorithm, jose.ECDH_ES_A256KW)
+	if config.KeyAlgorithm != "ECDH-ES+A256KW" {
+		t.Errorf("key algorithm = %q, want %q", config.KeyAlgorithm, "ECDH-ES+A256KW")
 	}
-	if config.ContentEncryption != jose.A128GCM {
-		t.Errorf("content encryption = %q, want %q", config.ContentEncryption, jose.A128GCM)
+	if config.ContentEncryption != "A128GCM" {
+		t.Errorf("content encryption = %q, want %q", config.ContentEncryption, "A128GCM")
 	}
-	if config.EncrypterOptions != encrypterOptions {
-		t.Errorf("encrypter options = %p, want %p", config.EncrypterOptions, encrypterOptions)
+	if config.ContentType != "application/octet-stream" {
+		t.Errorf("content type = %q, want %q", config.ContentType, "application/octet-stream")
 	}
 }

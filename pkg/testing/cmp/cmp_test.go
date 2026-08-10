@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 type simpleError struct {
@@ -48,7 +46,7 @@ func TestCompareErrMatching(t *testing.T) {
 		name string
 		got  error
 		want error
-		opts []cmp.Option
+		opts []Option
 	}{
 		{
 			name: "both nil",
@@ -69,8 +67,8 @@ func TestCompareErrMatching(t *testing.T) {
 			name: "comparer option ignores differing field",
 			got:  &detailError{Msg: "same", Detail: "actual"},
 			want: &detailError{Msg: "same", Detail: "expected"},
-			opts: []cmp.Option{
-				cmp.Comparer(func(x, y *detailError) bool {
+			opts: []Option{
+				Comparer(func(x, y *detailError) bool {
 					return x.Msg == y.Msg
 				}),
 			},

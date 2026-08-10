@@ -15,8 +15,7 @@ import (
 	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/utils"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/Motmedel/utils_go/pkg/testing/cmp"
 )
 
 const ExpectedBodyNonEmpty = "*non-empty-body"
@@ -154,9 +153,9 @@ func TestArgs(t *testing.T, args *Args, serverUrl string) {
 		}
 
 		opts := []cmp.Option{
-			cmpopts.IgnoreFields(problem_detail.Detail{}, "Type"),
-			cmpopts.IgnoreFields(problem_detail.Detail{}, "Instance"),
-			cmpopts.EquateEmpty(),
+			cmp.IgnoreFields(problem_detail.Detail{}, "Type"),
+			cmp.IgnoreFields(problem_detail.Detail{}, "Instance"),
+			cmp.EquateEmpty(),
 		}
 
 		expectedStatusCode := args.ExpectedStatusCode

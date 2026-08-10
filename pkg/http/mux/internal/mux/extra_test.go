@@ -10,7 +10,7 @@ import (
 
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint/static_content"
 	muxTypesRateLimiting "github.com/Motmedel/utils_go/pkg/http/mux/types/rate_limiting"
-	acceptEncodingParsing "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
+	acceptEncodingParsing "github.com/Motmedel/utils_go/pkg/http/types/accept_encoding"
 )
 
 var errKey = errors.New("key failure")

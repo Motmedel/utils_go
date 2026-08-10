@@ -5,10 +5,10 @@ import (
 	"net/http"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
-	motmedelHttpHeadersParsingAccept "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept"
-	motmedelHttpHeadersParsingAcceptEncoding "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_encoding"
-	motmedelHttpHeadersParsingAcceptLanguage "github.com/Motmedel/utils_go/pkg/http/parsing/headers/accept_language"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	motmedelHttpHeadersParsingAccept "github.com/Motmedel/utils_go/pkg/http/types/accept"
+	motmedelHttpHeadersParsingAcceptEncoding "github.com/Motmedel/utils_go/pkg/http/types/accept_encoding"
+	motmedelHttpHeadersParsingAcceptLanguage "github.com/Motmedel/utils_go/pkg/http/types/accept_language"
 )
 
 // TODO: Log warnings in non-strict cases?

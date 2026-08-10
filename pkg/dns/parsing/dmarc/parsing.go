@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Motmedel/parsing_utils/pkg/parsing_utils"
+	abnfUtils "github.com/Motmedel/utils_go/pkg/abnf/utils"
 	dnsTypes "github.com/Motmedel/utils_go/pkg/dns/types"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
@@ -41,7 +41,7 @@ var caseInsensitiveTags = map[string]bool{
 }
 
 func ParseDmarcRecord(data []byte) (*dnsTypes.DmarcRecord, error) {
-	paths, err := parsing_utils.GetParsedDataPaths(DmarcGrammar, data)
+	paths, err := abnfUtils.GetParsedDataPaths(DmarcGrammar, data)
 	if err != nil {
 		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err))
 	}
@@ -63,8 +63,8 @@ func ParseDmarcRecord(data []byte) (*dnsTypes.DmarcRecord, error) {
 		"pct":   &record.Pct,
 	}
 
-	for _, termPath := range parsing_utils.SearchPath(paths[0], keyValueNames, 1, false) {
-		keyValuePair := strings.SplitN(string(parsing_utils.ExtractPathValue(data, termPath)), "=", 2)
+	for _, termPath := range abnfUtils.SearchPath(paths[0], keyValueNames, 1, false) {
+		keyValuePair := strings.SplitN(string(abnfUtils.ExtractPathValue(data, termPath)), "=", 2)
 		key := strings.ToLower(strings.TrimSpace(keyValuePair[0]))
 		value := strings.TrimSpace(keyValuePair[1])
 

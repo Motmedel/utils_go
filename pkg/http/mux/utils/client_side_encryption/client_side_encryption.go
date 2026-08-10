@@ -1,6 +1,8 @@
 package client_side_encryption
 
 import (
+	"crypto/ecdsa"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,39 +15,49 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/mux/utils/client_side_encryption/header_parser_config"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwe"
+	"github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key"
 	"github.com/Motmedel/utils_go/pkg/utils"
-	"github.com/go-jose/go-jose/v4"
 )
 
 type HeaderParser struct {
 	headerExtractor   *header_extractor.Parser
-	KeyAlgorithm      jose.KeyAlgorithm
-	ContentEncryption jose.ContentEncryption
-	EncrypterOptions  *jose.EncrypterOptions
+	KeyAlgorithm      jwe.KeyAlgorithm
+	ContentEncryption jwe.ContentEncryption
+	ContentType       string
 }
 
-func (p *HeaderParser) Parse(request *http.Request) (jose.Encrypter, *response_error.ResponseError) {
+func (p *HeaderParser) Parse(request *http.Request) (*jwe.Encrypter, *response_error.ResponseError) {
 	clientJwkRaw, responseError := p.headerExtractor.Parse(request)
 	if responseError != nil {
 		return nil, responseError
 	}
 
-	var clientJwk jose.JSONWebKey
-	if err := clientJwk.UnmarshalJSON([]byte(clientJwkRaw)); err != nil {
+	var clientJwkMap map[string]any
+	if err := json.Unmarshal([]byte(clientJwkRaw), &clientJwkMap); err != nil {
 		return nil, &response_error.ResponseError{
 			ClientError: motmedelErrors.NewWithTrace(
-				fmt.Errorf("json web key unmarshal json: %w", err),
+				fmt.Errorf("json unmarshal (client jwk): %w", err),
 				clientJwkRaw,
 			),
 			ProblemDetail: problem_detail.New(
 				http.StatusBadRequest,
-				problem_detail_config.WithDetail(fmt.Sprintf("Invalid JWK header")),
+				problem_detail_config.WithDetail("Invalid JWK header."),
 			),
 		}
 	}
 
-	clientJwkKey := clientJwk.Key
-	if clientJwkKey == nil {
+	clientJwk, err := key.New(clientJwkMap)
+	if err != nil {
+		return nil, &response_error.ResponseError{
+			ClientError: motmedelErrors.New(fmt.Errorf("key new (client jwk): %w", err), clientJwkMap),
+			ProblemDetail: problem_detail.New(
+				http.StatusBadRequest,
+				problem_detail_config.WithDetail("Invalid JWK header."),
+			),
+		}
+	}
+	if clientJwk == nil || utils.IsNil(clientJwk.Material) {
 		return nil, &response_error.ResponseError{
 			ProblemDetail: problem_detail.New(
 				http.StatusBadRequest,
@@ -54,21 +66,22 @@ func (p *HeaderParser) Parse(request *http.Request) (jose.Encrypter, *response_e
 		}
 	}
 
-	clientJwkKeyId := clientJwk.KeyID
-	responseEncrypter, err := jose.NewEncrypter(
-		p.ContentEncryption,
-		jose.Recipient{
-			Algorithm: p.KeyAlgorithm,
-			Key:       clientJwkKey,
-			KeyID:     clientJwkKeyId,
-		},
-		p.EncrypterOptions,
-	)
+	clientPublicKey, err := clientJwk.Material.PublicKey()
 	if err != nil {
 		return nil, &response_error.ResponseError{
+			ClientError: motmedelErrors.New(fmt.Errorf("public key (client jwk): %w", err), clientJwk),
+			ProblemDetail: problem_detail.New(
+				http.StatusBadRequest,
+				problem_detail_config.WithDetail("Malformed JWK key."),
+			),
+		}
+	}
+
+	clientEcdsaPublicKey, ok := clientPublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, &response_error.ResponseError{
 			ClientError: motmedelErrors.NewWithTrace(
-				fmt.Errorf("jose new encrypter: %w", err),
-				clientJwkKey, clientJwkKeyId,
+				fmt.Errorf("%w (client jwk): %T", jwe.ErrUnsupportedKeyType, clientPublicKey),
 			),
 			ProblemDetail: problem_detail.New(
 				http.StatusBadRequest,
@@ -76,6 +89,23 @@ func (p *HeaderParser) Parse(request *http.Request) (jose.Encrypter, *response_e
 			),
 		}
 	}
+
+	responseEncrypter, err := jwe.NewEncrypter(p.KeyAlgorithm, p.ContentEncryption, clientEcdsaPublicKey)
+	if err != nil {
+		return nil, &response_error.ResponseError{
+			ClientError: motmedelErrors.New(
+				fmt.Errorf("jwe new encrypter: %w", err),
+				clientEcdsaPublicKey,
+			),
+			ProblemDetail: problem_detail.New(
+				http.StatusBadRequest,
+				problem_detail_config.WithDetail("Malformed JWK key."),
+			),
+		}
+	}
+
+	responseEncrypter.KeyId = clientJwk.Kid
+	responseEncrypter.ContentType = p.ContentType
 
 	return responseEncrypter, nil
 }
@@ -92,34 +122,34 @@ func NewHeaderParser(options ...header_parser_config.Option) (*HeaderParser, err
 		headerExtractor:   headerExtractor,
 		KeyAlgorithm:      config.KeyAlgorithm,
 		ContentEncryption: config.ContentEncryption,
-		EncrypterOptions:  config.EncrypterOptions,
+		ContentType:       config.ContentType,
 	}, nil
 }
 
 type BodyParser struct {
 	PrivateKey        any
 	KeyIdentifier     string
-	KeyAlgorithm      jose.KeyAlgorithm
-	ContentEncryption jose.ContentEncryption
+	KeyAlgorithm      jwe.KeyAlgorithm
+	ContentEncryption jwe.ContentEncryption
 }
 
 func (p *BodyParser) Parse(_ *http.Request, body []byte) ([]byte, *response_error.ResponseError) {
-	jwe, err := jose.ParseEncrypted(
+	encryption, err := jwe.ParseCompact(
 		string(body),
-		[]jose.KeyAlgorithm{p.KeyAlgorithm},
-		[]jose.ContentEncryption{p.ContentEncryption},
+		[]jwe.KeyAlgorithm{p.KeyAlgorithm},
+		[]jwe.ContentEncryption{p.ContentEncryption},
 	)
 	if err != nil {
 		return nil, &response_error.ResponseError{
-			ClientError: motmedelErrors.NewWithTrace(
-				fmt.Errorf("jose parse encrypted: %w", err),
+			ClientError: motmedelErrors.New(
+				fmt.Errorf("jwe parse compact: %w", err),
 				body, p.KeyAlgorithm, p.ContentEncryption,
 			),
 		}
 	}
 
 	if keyIdentifier := p.KeyIdentifier; keyIdentifier != "" {
-		jweKeyIdentifier := jwe.Header.KeyID
+		jweKeyIdentifier := encryption.Header.KeyId
 		if jweKeyIdentifier != keyIdentifier {
 			return nil, &response_error.ResponseError{
 				ProblemDetail: problem_detail.New(
@@ -131,11 +161,11 @@ func (p *BodyParser) Parse(_ *http.Request, body []byte) ([]byte, *response_erro
 		}
 	}
 
-	plaintext, err := jwe.Decrypt(p.PrivateKey)
+	plaintext, err := encryption.Decrypt(p.PrivateKey)
 	if err != nil {
-		wrappedErr := motmedelErrors.NewWithTrace(fmt.Errorf("jose web encryption decrypt: %w", err))
+		wrappedErr := motmedelErrors.New(fmt.Errorf("jwe decrypt: %w", err))
 
-		if errors.Is(err, jose.ErrCryptoFailure) {
+		if errors.Is(err, motmedelErrors.ErrVerificationError) || errors.Is(err, motmedelErrors.ErrValidationError) {
 			return nil, &response_error.ResponseError{
 				ClientError: wrappedErr,
 				ProblemDetail: problem_detail.New(

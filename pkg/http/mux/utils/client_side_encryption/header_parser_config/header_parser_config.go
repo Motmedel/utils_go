@@ -1,20 +1,19 @@
 package header_parser_config
 
-import "github.com/go-jose/go-jose/v4"
+import "github.com/Motmedel/utils_go/pkg/json/jose/jwe"
 
 const (
 	DefaultHeaderName        = "X-Client-Public-Jwk"
-	DefaultKeyAlgorithm      = "ECDH-ES"
-	DefaultContentEncryption = "A256GCM"
+	DefaultKeyAlgorithm      = jwe.KeyAlgorithmEcdhEs
+	DefaultContentEncryption = jwe.ContentEncryptionA256Gcm
+	DefaultContentType       = "application/json"
 )
-
-var DefaultEncrypterOptions = (&jose.EncrypterOptions{}).WithContentType("application/json")
 
 type Config struct {
 	HeaderName        string
-	KeyAlgorithm      jose.KeyAlgorithm
-	ContentEncryption jose.ContentEncryption
-	EncrypterOptions  *jose.EncrypterOptions
+	KeyAlgorithm      jwe.KeyAlgorithm
+	ContentEncryption jwe.ContentEncryption
+	ContentType       string
 }
 
 type Option func(*Config)
@@ -24,7 +23,7 @@ func New(options ...Option) *Config {
 		HeaderName:        DefaultHeaderName,
 		KeyAlgorithm:      DefaultKeyAlgorithm,
 		ContentEncryption: DefaultContentEncryption,
-		EncrypterOptions:  DefaultEncrypterOptions,
+		ContentType:       DefaultContentType,
 	}
 	for _, option := range options {
 		option(config)
@@ -39,20 +38,20 @@ func WithHeaderName(headerName string) Option {
 	}
 }
 
-func WithKeyAlgorithm(keyAlgorithm jose.KeyAlgorithm) Option {
+func WithKeyAlgorithm(keyAlgorithm jwe.KeyAlgorithm) Option {
 	return func(config *Config) {
 		config.KeyAlgorithm = keyAlgorithm
 	}
 }
 
-func WithContentEncryption(contentEncryption jose.ContentEncryption) Option {
+func WithContentEncryption(contentEncryption jwe.ContentEncryption) Option {
 	return func(config *Config) {
 		config.ContentEncryption = contentEncryption
 	}
 }
 
-func WithEncrypterOptions(encrypterOptions *jose.EncrypterOptions) Option {
+func WithContentType(contentType string) Option {
 	return func(config *Config) {
-		config.EncrypterOptions = encrypterOptions
+		config.ContentType = contentType
 	}
 }
