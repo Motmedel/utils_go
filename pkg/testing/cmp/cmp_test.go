@@ -183,3 +183,54 @@ func TestCompareErrFailing(t *testing.T) {
 		})
 	}
 }
+
+type comparableUnexported struct {
+	value int
+}
+
+type equateComparableHolder struct {
+	Inner comparableUnexported
+}
+
+func TestEquateComparable(t *testing.T) {
+	t.Parallel()
+
+	equal := equateComparableHolder{Inner: comparableUnexported{value: 1}}
+	alsoEqual := equateComparableHolder{Inner: comparableUnexported{value: 1}}
+	different := equateComparableHolder{Inner: comparableUnexported{value: 2}}
+
+	if diff := Diff(equal, alsoEqual, EquateComparable(comparableUnexported{})); diff != "" {
+		t.Errorf("expected no diff, got:\n%s", diff)
+	}
+
+	if diff := Diff(equal, different, EquateComparable(comparableUnexported{})); diff == "" {
+		t.Errorf("expected a diff")
+	}
+}
+
+func TestEquateComparableRejectsUncomparable(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if recover() == nil {
+			t.Errorf("expected panic")
+		}
+	}()
+
+	EquateComparable([]int{})
+}
+
+func TestDiffPanicsOnUnexportedWithoutOption(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if recover() == nil {
+			t.Errorf("expected panic")
+		}
+	}()
+
+	_ = Diff(
+		equateComparableHolder{Inner: comparableUnexported{value: 1}},
+		equateComparableHolder{Inner: comparableUnexported{value: 2}},
+	)
+}
