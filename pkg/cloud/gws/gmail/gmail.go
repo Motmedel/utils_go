@@ -2,15 +2,14 @@ package gmail
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
+	"github.com/Motmedel/utils_go/pkg/cloud/internal/rest"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
-	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/get_message_config"
 	"github.com/Motmedel/utils_go/pkg/cloud/gws/gmail/gmail_config"
@@ -91,33 +90,28 @@ func (c *Client) filtersUrl(userId string, filterId string) string {
 	return u.String()
 }
 
+func (c *Client) fetchOptions(options []fetch_config.Option) []fetch_config.Option {
+	return append(c.config.FetchOptions, options...)
+}
+
+func withQuery(urlString string, query url.Values) string {
+	if encoded := query.Encode(); encoded != "" {
+		return urlString + "?" + encoded
+	}
+	return urlString
+}
+
 // Send sends the specified message to the recipients in the To, Cc, and Bcc headers.
 // The message should have its Raw field set to a base64url-encoded RFC 2822 email.
 func (c *Client) Send(ctx context.Context, userId string, msg *message.Message, options ...fetch_config.Option) (*message.Message, error) {
 	if userId == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
-
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
 	if msg == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("message"))
 	}
 
-	urlString := c.sendUrl(userId)
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
-	_, sentMessage, err := motmedelHttpUtils.FetchJsonWithBody[*message.Message](ctx, urlString, msg, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
-	}
-
-	if sentMessage == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("sentMessage"))
-	}
-
-	return sentMessage, nil
+	return rest.SendJson[message.Message](ctx, http.MethodPost, c.sendUrl(userId), msg, c.fetchOptions(options))
 }
 
 // Watch sets up or renews a push notification watch on the given user's mailbox.
@@ -126,27 +120,17 @@ func (c *Client) Watch(ctx context.Context, userId string, request *watch_reques
 	if userId == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
-
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
 	if request == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("request"))
 	}
 
-	urlString := c.watchUrl(userId)
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
-	_, response, err := motmedelHttpUtils.FetchJsonWithBody[*watch_response.WatchResponse](ctx, urlString, request, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
-	}
-
-	if response == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
-	}
-
-	return response, nil
+	return rest.SendJson[watch_response.WatchResponse](
+		ctx,
+		http.MethodPost,
+		c.watchUrl(userId),
+		request,
+		c.fetchOptions(options),
+	)
 }
 
 type listHistoryResponse struct {
@@ -164,54 +148,29 @@ func (c *Client) ListHistory(ctx context.Context, userId string, startHistoryId 
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("start history id"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
 	listHistoryConfig := list_history_config.New(options...)
 
-	var allRecords []*history.Record
-	pageToken := ""
-
-	for {
-		urlObj, err := url.Parse(c.historyUrl(userId))
-		if err != nil {
-			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err))
-		}
-
-		query := url.Values{}
-		query.Set("startHistoryId", startHistoryId)
-		for _, historyType := range listHistoryConfig.HistoryTypes {
-			query.Add("historyTypes", string(historyType))
-		}
-		if listHistoryConfig.LabelId != "" {
-			query.Set("labelId", listHistoryConfig.LabelId)
-		}
-		if pageToken != "" {
-			query.Set("pageToken", pageToken)
-		}
-		urlObj.RawQuery = query.Encode()
-		urlString := urlObj.String()
-
-		fetchOptions := append(c.config.FetchOptions, listHistoryConfig.FetchOptions...)
-		_, resp, err := motmedelHttpUtils.FetchJson[*listHistoryResponse](ctx, urlString, fetchOptions...)
-		if err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
-		}
-
-		if resp != nil {
-			allRecords = append(allRecords, resp.History...)
-
-			if resp.NextPageToken == "" {
-				break
+	return rest.ListPaginated(
+		ctx,
+		func(pageToken string) string {
+			query := url.Values{}
+			query.Set("startHistoryId", startHistoryId)
+			for _, historyType := range listHistoryConfig.HistoryTypes {
+				query.Add("historyTypes", string(historyType))
 			}
-			pageToken = resp.NextPageToken
-		} else {
-			break
-		}
-	}
-
-	return allRecords, nil
+			if listHistoryConfig.LabelId != "" {
+				query.Set("labelId", listHistoryConfig.LabelId)
+			}
+			if pageToken != "" {
+				query.Set("pageToken", pageToken)
+			}
+			return withQuery(c.historyUrl(userId), query)
+		},
+		func(response *listHistoryResponse) ([]*history.Record, string) {
+			return response.History, response.NextPageToken
+		},
+		c.fetchOptions(listHistoryConfig.FetchOptions),
+	)
 }
 
 type listMessagesResponse struct {
@@ -228,48 +187,23 @@ func (c *Client) ListMessages(ctx context.Context, userId string, q string, opti
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
-	var allMessages []*message.Message
-	pageToken := ""
-
-	for {
-		urlObj, err := url.Parse(c.messagesUrl(userId, ""))
-		if err != nil {
-			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err))
-		}
-
-		query := url.Values{}
-		if q != "" {
-			query.Set("q", q)
-		}
-		if pageToken != "" {
-			query.Set("pageToken", pageToken)
-		}
-		urlObj.RawQuery = query.Encode()
-		urlString := urlObj.String()
-
-		paginatedOptions := append(c.config.FetchOptions, options...)
-		_, resp, err := motmedelHttpUtils.FetchJson[*listMessagesResponse](ctx, urlString, paginatedOptions...)
-		if err != nil {
-			return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
-		}
-
-		if resp != nil {
-			allMessages = append(allMessages, resp.Messages...)
-
-			if resp.NextPageToken == "" {
-				break
+	return rest.ListPaginated(
+		ctx,
+		func(pageToken string) string {
+			query := url.Values{}
+			if q != "" {
+				query.Set("q", q)
 			}
-			pageToken = resp.NextPageToken
-		} else {
-			break
-		}
-	}
-
-	return allMessages, nil
+			if pageToken != "" {
+				query.Set("pageToken", pageToken)
+			}
+			return withQuery(c.messagesUrl(userId, ""), query)
+		},
+		func(response *listMessagesResponse) ([]*message.Message, string) {
+			return response.Messages, response.NextPageToken
+		},
+		c.fetchOptions(options),
+	)
 }
 
 // GetMessage retrieves a message identified by messageId for the given user.
@@ -281,38 +215,21 @@ func (c *Client) GetMessage(ctx context.Context, userId string, messageId string
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("message id"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
 	getMessageConfig := get_message_config.New(options...)
 
-	urlObj, err := url.Parse(c.messagesUrl(userId, messageId))
-	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("url parse: %w", err))
-	}
-
-	query := urlObj.Query()
+	query := url.Values{}
 	if getMessageConfig.Format != "" {
 		query.Set("format", string(getMessageConfig.Format))
 	}
 	for _, header := range getMessageConfig.MetadataHeaders {
 		query.Add("metadataHeaders", header)
 	}
-	urlObj.RawQuery = query.Encode()
-	urlString := urlObj.String()
 
-	fetchOptions := append(c.config.FetchOptions, getMessageConfig.FetchOptions...)
-	_, msg, err := motmedelHttpUtils.FetchJson[*message.Message](ctx, urlString, fetchOptions...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
-	}
-
-	if msg == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("msg"))
-	}
-
-	return msg, nil
+	return rest.GetJson[message.Message](
+		ctx,
+		withQuery(c.messagesUrl(userId, messageId), query),
+		c.fetchOptions(getMessageConfig.FetchOptions),
+	)
 }
 
 // Trash moves the given message to the user's trash. Requires the gmail.modify scope (or wider).
@@ -324,22 +241,13 @@ func (c *Client) Trash(ctx context.Context, userId string, messageId string, opt
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("message id"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
-	urlString := c.messagesUrl(userId, messageId) + "/trash"
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
-	_, trashedMessage, err := motmedelHttpUtils.FetchJsonWithBody[*message.Message, any](ctx, urlString, nil, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
-	}
-
-	if trashedMessage == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("trashedMessage"))
-	}
-
-	return trashedMessage, nil
+	return rest.SendJson[message.Message, any](
+		ctx,
+		http.MethodPost,
+		c.messagesUrl(userId, messageId)+"/trash",
+		nil,
+		c.fetchOptions(options),
+	)
 }
 
 // CreateSendAs creates a custom "from" send-as alias for the given user.
@@ -347,27 +255,11 @@ func (c *Client) CreateSendAs(ctx context.Context, userId string, s *send_as.Sen
 	if userId == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
-
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
 	if s == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("send as"))
 	}
 
-	urlString := c.sendAsUrl(userId, "")
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
-	_, created, err := motmedelHttpUtils.FetchJsonWithBody[*send_as.SendAs](ctx, urlString, s, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
-	}
-
-	if created == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("created"))
-	}
-
-	return created, nil
+	return rest.SendJson[send_as.SendAs](ctx, http.MethodPost, c.sendAsUrl(userId, ""), s, c.fetchOptions(options))
 }
 
 // GetSendAs retrieves a send-as alias identified by sendAsEmail for the given user.
@@ -379,22 +271,7 @@ func (c *Client) GetSendAs(ctx context.Context, userId string, sendAsEmail strin
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("send-as email"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
-	urlString := c.sendAsUrl(userId, sendAsEmail)
-	options = append(c.config.FetchOptions, options...)
-	_, s, err := motmedelHttpUtils.FetchJson[*send_as.SendAs](ctx, urlString, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
-	}
-
-	if s == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("s"))
-	}
-
-	return s, nil
+	return rest.GetJson[send_as.SendAs](ctx, c.sendAsUrl(userId, sendAsEmail), c.fetchOptions(options))
 }
 
 // UpdateSendAs updates a send-as alias identified by sendAsEmail for the given user.
@@ -405,27 +282,17 @@ func (c *Client) UpdateSendAs(ctx context.Context, userId string, sendAsEmail st
 	if sendAsEmail == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("send-as email"))
 	}
-
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
 	if s == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("send as"))
 	}
 
-	urlString := c.sendAsUrl(userId, sendAsEmail)
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPut))
-	_, updated, err := motmedelHttpUtils.FetchJsonWithBody[*send_as.SendAs](ctx, urlString, s, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
-	}
-
-	if updated == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("updated"))
-	}
-
-	return updated, nil
+	return rest.SendJson[send_as.SendAs](
+		ctx,
+		http.MethodPut,
+		c.sendAsUrl(userId, sendAsEmail),
+		s,
+		c.fetchOptions(options),
+	)
 }
 
 // DeleteSendAs deletes a send-as alias identified by sendAsEmail for the given user.
@@ -437,18 +304,7 @@ func (c *Client) DeleteSendAs(ctx context.Context, userId string, sendAsEmail st
 		return motmedelErrors.NewWithTrace(empty_error.New("send-as email"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("context err: %w", err)
-	}
-
-	urlString := c.sendAsUrl(userId, sendAsEmail)
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
-	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
-	if err != nil {
-		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
-	}
-
-	return nil
+	return rest.Do(ctx, http.MethodDelete, c.sendAsUrl(userId, sendAsEmail), c.fetchOptions(options))
 }
 
 type listFiltersResponse struct {
@@ -460,27 +316,11 @@ func (c *Client) CreateFilter(ctx context.Context, userId string, f *filter.Filt
 	if userId == "" {
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
-
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
 	if f == nil {
 		return nil, motmedelErrors.NewWithTrace(nil_error.New("filter"))
 	}
 
-	urlString := c.filtersUrl(userId, "")
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodPost))
-	_, created, err := motmedelHttpUtils.FetchJsonWithBody[*filter.Filter](ctx, urlString, f, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json with body: %w", err), urlString)
-	}
-
-	if created == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("created"))
-	}
-
-	return created, nil
+	return rest.SendJson[filter.Filter](ctx, http.MethodPost, c.filtersUrl(userId, ""), f, c.fetchOptions(options))
 }
 
 // GetFilter retrieves a filter identified by filterId for the given user.
@@ -492,22 +332,7 @@ func (c *Client) GetFilter(ctx context.Context, userId string, filterId string, 
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("filter id"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
-	urlString := c.filtersUrl(userId, filterId)
-	options = append(c.config.FetchOptions, options...)
-	_, f, err := motmedelHttpUtils.FetchJson[*filter.Filter](ctx, urlString, options...)
-	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
-	}
-
-	if f == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("f"))
-	}
-
-	return f, nil
+	return rest.GetJson[filter.Filter](ctx, c.filtersUrl(userId, filterId), c.fetchOptions(options))
 }
 
 // ListFilters retrieves all filters for the given user.
@@ -516,22 +341,12 @@ func (c *Client) ListFilters(ctx context.Context, userId string, options ...fetc
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("user id"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
-	}
-
-	urlString := c.filtersUrl(userId, "")
-	options = append(c.config.FetchOptions, options...)
-	_, resp, err := motmedelHttpUtils.FetchJson[*listFiltersResponse](ctx, urlString, options...)
+	response, err := rest.GetJson[listFiltersResponse](ctx, c.filtersUrl(userId, ""), c.fetchOptions(options))
 	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+		return nil, err
 	}
 
-	if resp == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("response"))
-	}
-
-	return resp.Filter, nil
+	return response.Filter, nil
 }
 
 // DeleteFilter deletes a filter identified by filterId for the given user.
@@ -543,16 +358,5 @@ func (c *Client) DeleteFilter(ctx context.Context, userId string, filterId strin
 		return motmedelErrors.NewWithTrace(empty_error.New("filter id"))
 	}
 
-	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("context err: %w", err)
-	}
-
-	urlString := c.filtersUrl(userId, filterId)
-	options = append(append(c.config.FetchOptions, options...), fetch_config.WithMethod(http.MethodDelete))
-	_, _, err := motmedelHttpUtils.Fetch(ctx, urlString, options...)
-	if err != nil {
-		return motmedelErrors.New(fmt.Errorf("fetch: %w", err), urlString)
-	}
-
-	return nil
+	return rest.Do(ctx, http.MethodDelete, c.filtersUrl(userId, filterId), c.fetchOptions(options))
 }

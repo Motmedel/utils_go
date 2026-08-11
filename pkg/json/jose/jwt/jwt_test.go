@@ -64,40 +64,42 @@ func TestValidateExpiresAt(t *testing.T) {
 	}
 }
 
-func TestValidateNotBefore(t *testing.T) {
-	t.Parallel()
+// runNotBeforeStyleTest exercises a validator that rejects claim times lying
+// after the comparison time, as ValidateNotBefore and ValidateIssuedAt both do.
+func runNotBeforeStyleTest(t *testing.T, validate func(claimTime time.Time, cmp time.Time) error, rejectionError error) {
+	t.Helper()
 
 	now := time.Now()
 
 	testCases := []struct {
 		name        string
-		notBefore   time.Time
+		claimTime   time.Time
 		cmp         time.Time
 		expectError error
 	}{
 		{
-			name:        "after not before",
-			notBefore:   now.Add(-time.Hour),
+			name:        "after claim time",
+			claimTime:   now.Add(-time.Hour),
 			cmp:         now,
 			expectError: nil,
 		},
 		{
-			name:        "before not before",
-			notBefore:   now.Add(time.Hour),
+			name:        "before claim time",
+			claimTime:   now.Add(time.Hour),
 			cmp:         now,
-			expectError: jwtErrors.ErrNbfBefore,
+			expectError: rejectionError,
 		},
 		{
-			name:        "exactly at not before",
-			notBefore:   now,
+			name:        "exactly at claim time",
+			claimTime:   now,
 			cmp:         now,
 			expectError: nil,
 		},
 		{
-			name:        "one nanosecond before not before",
-			notBefore:   now,
+			name:        "one nanosecond before claim time",
+			claimTime:   now,
 			cmp:         now.Add(-time.Nanosecond),
-			expectError: jwtErrors.ErrNbfBefore,
+			expectError: rejectionError,
 		},
 	}
 
@@ -105,7 +107,7 @@ func TestValidateNotBefore(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ValidateNotBefore(tc.notBefore, tc.cmp)
+			err := validate(tc.claimTime, tc.cmp)
 
 			if tc.expectError == nil {
 				if err != nil {
@@ -120,58 +122,14 @@ func TestValidateNotBefore(t *testing.T) {
 	}
 }
 
+func TestValidateNotBefore(t *testing.T) {
+	t.Parallel()
+
+	runNotBeforeStyleTest(t, ValidateNotBefore, jwtErrors.ErrNbfBefore)
+}
+
 func TestValidateIssuedAt(t *testing.T) {
 	t.Parallel()
 
-	now := time.Now()
-
-	testCases := []struct {
-		name        string
-		issuedAt    time.Time
-		cmp         time.Time
-		expectError error
-	}{
-		{
-			name:        "after issued at",
-			issuedAt:    now.Add(-time.Hour),
-			cmp:         now,
-			expectError: nil,
-		},
-		{
-			name:        "before issued at",
-			issuedAt:    now.Add(time.Hour),
-			cmp:         now,
-			expectError: jwtErrors.ErrIatBefore,
-		},
-		{
-			name:        "exactly at issued at",
-			issuedAt:    now,
-			cmp:         now,
-			expectError: nil,
-		},
-		{
-			name:        "one nanosecond before issued at",
-			issuedAt:    now,
-			cmp:         now.Add(-time.Nanosecond),
-			expectError: jwtErrors.ErrIatBefore,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			err := ValidateIssuedAt(tc.issuedAt, tc.cmp)
-
-			if tc.expectError == nil {
-				if err != nil {
-					t.Fatalf("expected no error but got: %v", err)
-				}
-			} else {
-				if !errors.Is(err, tc.expectError) {
-					t.Fatalf("expected error %v, got: %v", tc.expectError, err)
-				}
-			}
-		})
-	}
+	runNotBeforeStyleTest(t, ValidateIssuedAt, jwtErrors.ErrIatBefore)
 }

@@ -35,6 +35,48 @@ func testServer(t *testing.T, handler http.HandlerFunc) *Client {
 	return NewClient(directory_config.WithBaseUrl(u))
 }
 
+// jsonServer returns a client whose server verifies the method and path suffix
+// and responds with the given value encoded as JSON.
+func jsonServer(t *testing.T, method string, pathSuffix string, value any) *Client {
+	t.Helper()
+	return testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != method {
+			t.Errorf("expected %s, got %s", method, r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, pathSuffix) {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(value); err != nil {
+			t.Errorf("encode: %v", err)
+		}
+	})
+}
+
+// echoServer returns a client whose server verifies the method and path suffix
+// and echoes the decoded request body back as the response.
+func echoServer[T any](t *testing.T, method string, pathSuffix string) *Client {
+	t.Helper()
+	return testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != method {
+			t.Errorf("expected %s, got %s", method, r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, pathSuffix) {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+
+		var input T
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			t.Errorf("decode: %v", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(&input); err != nil {
+			t.Errorf("encode: %v", err)
+		}
+	})
+}
+
 // User operations
 
 func TestCreateUser(t *testing.T) {
@@ -811,24 +853,7 @@ func TestGetOrgUnit_EmptyPath(t *testing.T) {
 func TestUpdateOrgUnit(t *testing.T) {
 	t.Parallel()
 
-	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			t.Errorf("expected PUT, got %s", r.Method)
-		}
-		if !strings.HasSuffix(r.URL.Path, "/customer/my_customer/orgunits/Engineering") {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-
-		var input org_unit.OrgUnit
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			t.Errorf("decode: %v", err)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&input); err != nil {
-			t.Errorf("encode: %v", err)
-		}
-	})
+	client := echoServer[org_unit.OrgUnit](t, http.MethodPut, "/customer/my_customer/orgunits/Engineering")
 
 	ou, err := client.UpdateOrgUnit(context.Background(), "my_customer", "/Engineering", &org_unit.OrgUnit{
 		Name:        "Engineering",
@@ -1003,18 +1028,12 @@ func TestCreateRole_NilRole(t *testing.T) {
 func TestGetRole(t *testing.T) {
 	t.Parallel()
 
-	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Errorf("expected GET, got %s", r.Method)
-		}
-		if !strings.HasSuffix(r.URL.Path, "/customer/my_customer/roles/123") {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&role.Role{RoleId: "123", RoleName: "User Reader"}); err != nil {
-			t.Errorf("encode: %v", err)
-		}
-	})
+	client := jsonServer(
+		t,
+		http.MethodGet,
+		"/customer/my_customer/roles/123",
+		&role.Role{RoleId: "123", RoleName: "User Reader"},
+	)
 
 	r, err := client.GetRole(context.Background(), "my_customer", "123")
 	if err != nil {
@@ -1038,24 +1057,7 @@ func TestGetRole_EmptyRoleId(t *testing.T) {
 func TestUpdateRole(t *testing.T) {
 	t.Parallel()
 
-	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			t.Errorf("expected PUT, got %s", r.Method)
-		}
-		if !strings.HasSuffix(r.URL.Path, "/customer/my_customer/roles/123") {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-
-		var input role.Role
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-			t.Errorf("decode: %v", err)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&input); err != nil {
-			t.Errorf("encode: %v", err)
-		}
-	})
+	client := echoServer[role.Role](t, http.MethodPut, "/customer/my_customer/roles/123")
 
 	r, err := client.UpdateRole(context.Background(), "my_customer", "123", &role.Role{
 		RoleId:   "123",
@@ -1420,18 +1422,12 @@ func TestListAsps(t *testing.T) {
 func TestGetAsp(t *testing.T) {
 	t.Parallel()
 
-	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Errorf("expected GET, got %s", r.Method)
-		}
-		if !strings.HasSuffix(r.URL.Path, "/users/test@example.com/asps/1") {
-			t.Errorf("unexpected path: %s", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&asp.Asp{CodeId: 1, Name: "Mail on old phone"}); err != nil {
-			t.Errorf("encode: %v", err)
-		}
-	})
+	client := jsonServer(
+		t,
+		http.MethodGet,
+		"/users/test@example.com/asps/1",
+		&asp.Asp{CodeId: 1, Name: "Mail on old phone"},
+	)
 
 	a, err := client.GetAsp(context.Background(), "test@example.com", 1)
 	if err != nil {
