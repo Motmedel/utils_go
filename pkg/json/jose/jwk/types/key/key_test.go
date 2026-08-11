@@ -1,7 +1,7 @@
 package key
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"testing"
 
 	ecKey "github.com/Motmedel/utils_go/pkg/json/jose/jwk/types/key/ec"

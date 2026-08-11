@@ -1,7 +1,7 @@
 package response_error
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"encoding/xml"
 	"fmt"
 	"net/http"

@@ -1,7 +1,7 @@
 package numeric_date
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"math"
 	"strconv"
@@ -46,18 +46,13 @@ func (date Date) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON is an implementation of the json.RawMessage interface and
-// deserializes a [NumericDate] from a JSON representation, i.e. a
-// [json.Number]. This number represents a UNIX epoch with either integer or
+// deserializes a [NumericDate] from a JSON representation, i.e. a JSON
+// number. This number represents a UNIX epoch with either integer or
 // non-integer seconds.
 func (date *Date) UnmarshalJSON(b []byte) error {
-	var number json.Number
-	if err := json.Unmarshal(b, &number); err != nil {
+	var f float64
+	if err := json.Unmarshal(b, &f); err != nil {
 		return motmedelErrors.NewWithTrace(fmt.Errorf("json unmarshal: %w", err), b)
-	}
-
-	f, err := number.Float64()
-	if err != nil {
-		return motmedelErrors.NewWithTrace(fmt.Errorf("json number float64: %w", err), number)
 	}
 
 	n := NewFromSeconds(f)
@@ -87,13 +82,6 @@ func Convert(value any) (*Date, error) {
 		}
 
 		return NewFromSeconds(typedValue), nil
-	case json.Number:
-		typedFloatValue, err := typedValue.Float64()
-		if err != nil {
-			return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json number float64: %w", err), typedValue)
-		}
-
-		return NewFromSeconds(typedFloatValue), nil
 	default:
 		return nil, motmedelErrors.NewWithTrace(
 			fmt.Errorf("%w: %T", motmedelErrors.ErrUnexpectedType, typedValue),

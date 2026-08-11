@@ -10,7 +10,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/v2"
 	"encoding/pem"
 	"errors"
 	"net/http"
@@ -335,7 +335,7 @@ func TestToken(t *testing.T) {
 				}
 
 				w.Header().Set("Content-Type", "application/json")
-				if err := json.NewEncoder(w).Encode(&token_response.Response{ //nolint:gosec // G117: fake OAuth token in test fixture
+				if err := json.MarshalWrite(w, &token_response.Response{ //nolint:gosec // G117: fake OAuth token in test fixture
 					AccessToken: "access-token",
 					TokenType:   "Bearer",
 					ExpiresIn:   3600,

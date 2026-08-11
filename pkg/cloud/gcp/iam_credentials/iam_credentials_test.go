@@ -3,7 +3,7 @@ package iam_credentials
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -48,7 +48,7 @@ func TestSignBlob(t *testing.T) {
 		}
 
 		var body sign_blob_request.Request
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		if err := json.UnmarshalRead(r.Body, &body); err != nil {
 			t.Fatalf("decode request body: %v", err)
 		}
 		decoded, err := base64.StdEncoding.DecodeString(body.Payload)
@@ -60,7 +60,7 @@ func TestSignBlob(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&sign_blob_response.Response{
+		if err := json.MarshalWrite(w, &sign_blob_response.Response{
 			KeyId:      "key-1",
 			SignedBlob: base64.StdEncoding.EncodeToString(signature),
 		}); err != nil {

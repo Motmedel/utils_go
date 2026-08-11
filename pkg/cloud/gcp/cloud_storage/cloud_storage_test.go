@@ -3,7 +3,7 @@ package cloud_storage
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
+	"encoding/json/v2"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -58,12 +58,12 @@ func TestInsertBucket(t *testing.T) {
 		}
 
 		var input bucket.Bucket
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&bucket.Bucket{
+		if err := json.MarshalWrite(w, &bucket.Bucket{
 			Kind:         "storage#bucket",
 			Name:         input.Name,
 			Location:     "US",
@@ -131,7 +131,7 @@ func TestPatchBucket(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&bucket.Bucket{
+		if err := json.MarshalWrite(w, &bucket.Bucket{
 			Name:         "my-bucket",
 			StorageClass: "NEARLINE",
 		}); err != nil {
@@ -182,7 +182,7 @@ func TestGetObject(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&object.Object{
+		if err := json.MarshalWrite(w, &object.Object{
 			Kind:         "storage#object",
 			Name:         "my-object.txt",
 			Bucket:       "my-bucket",
@@ -280,7 +280,7 @@ func TestListObjects(t *testing.T) {
 			t.Errorf("unexpected prefix: %s", r.URL.Query().Get("prefix"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&object_list.ObjectList{
+		if err := json.MarshalWrite(w, &object_list.ObjectList{
 			Kind: "storage#objects",
 			Items: []*object.Object{
 				{Name: "logs/2024-01.txt"},
@@ -321,7 +321,7 @@ func TestListObjects_NilQuery(t *testing.T) {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&object_list.ObjectList{Kind: "storage#objects"}); err != nil {
+		if err := json.MarshalWrite(w, &object_list.ObjectList{Kind: "storage#objects"}); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -408,7 +408,7 @@ func TestInsertObject(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&object.Object{
+		if err := json.MarshalWrite(w, &object.Object{
 			Kind:   "storage#object",
 			Name:   "test.txt",
 			Bucket: "my-bucket",

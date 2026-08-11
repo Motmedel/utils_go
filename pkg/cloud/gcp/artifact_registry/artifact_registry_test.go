@@ -2,7 +2,7 @@ package artifact_registry
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -42,7 +42,7 @@ func TestGetManifest(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/vnd.oci.image.manifest.v1+json")
 		w.Header().Set("Docker-Content-Digest", "sha256:abc123")
-		if err := json.NewEncoder(w).Encode(&manifest.Manifest{
+		if err := json.MarshalWrite(w, &manifest.Manifest{
 			SchemaVersion: 2,
 			MediaType:     "application/vnd.oci.image.manifest.v1+json",
 			Config: &descriptor.Descriptor{
@@ -130,7 +130,7 @@ func TestListReferrers(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/vnd.oci.image.index.v1+json")
-		if err := json.NewEncoder(w).Encode(&index.Index{
+		if err := json.MarshalWrite(w, &index.Index{
 			SchemaVersion: 2,
 			MediaType:     "application/vnd.oci.image.index.v1+json",
 			Manifests: []*descriptor.Descriptor{
@@ -170,7 +170,7 @@ func TestListReferrers_WithArtifactTypeFilter(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/vnd.oci.image.index.v1+json")
-		if err := json.NewEncoder(w).Encode(&index.Index{
+		if err := json.MarshalWrite(w, &index.Index{
 			SchemaVersion: 2,
 			MediaType:     "application/vnd.oci.image.index.v1+json",
 		}); err != nil {

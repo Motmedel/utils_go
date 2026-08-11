@@ -3,7 +3,7 @@ package iam_credentials_signer
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -128,7 +128,7 @@ func TestSign(t *testing.T) {
 			t.Errorf("method = %s, want POST", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&sign_blob_response.Response{
+		if err := json.MarshalWrite(w, &sign_blob_response.Response{
 			KeyId:      "key-1",
 			SignedBlob: base64.StdEncoding.EncodeToString(wantSignature),
 		}); err != nil {
@@ -172,7 +172,7 @@ func TestSign_InvalidBase64(t *testing.T) {
 
 	client := testClient(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&sign_blob_response.Response{
+		if err := json.MarshalWrite(w, &sign_blob_response.Response{
 			KeyId:      "key-1",
 			SignedBlob: "!!!not-valid-base64!!!",
 		}); err != nil {

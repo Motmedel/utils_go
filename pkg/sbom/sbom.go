@@ -1,8 +1,12 @@
 package sbom
 
 import (
-	"encoding/json"
+	"bytes"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"regexp"
 	"strings"
@@ -114,12 +118,16 @@ func ParseGoModules(goListOutput []byte) ([]motmedelSbomTypes.Component, error) 
 
 	var components []motmedelSbomTypes.Component
 
-	decoder := json.NewDecoder(strings.NewReader(string(goListOutput)))
-	for decoder.More() {
+	decoder := jsontext.NewDecoder(bytes.NewReader(goListOutput))
+	for {
 		var module goModuleInfo
-		if err := decoder.Decode(&module); err != nil {
+		if err := json.UnmarshalDecode(decoder, &module); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
 			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("json decoder decode: %w", err),
+				fmt.Errorf("json unmarshal decode: %w", err),
 				decoder, module,
 			)
 		}
@@ -393,7 +401,7 @@ func GenerateBom(components []motmedelSbomTypes.Component) *motmedelSbomTypes.Bo
 func GenerateBomJson(components []motmedelSbomTypes.Component) ([]byte, error) {
 	bom := GenerateBom(components)
 
-	data, err := json.MarshalIndent(bom, "", "  ")
+	data, err := json.Marshal(bom, jsontext.WithIndent("  "))
 	if err != nil {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal indent: %w", err), bom)
 	}

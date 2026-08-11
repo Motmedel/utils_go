@@ -1,8 +1,7 @@
 package claim_strings
 
 import (
-	"encoding/json"
-	jsonv2 "encoding/json/v2"
+	"encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -158,13 +157,13 @@ func TestSingleAsString(t *testing.T) {
 		},
 		{
 			name:     "option marshals single audience as string",
-			marshal:  func(v any) ([]byte, error) { return jsonv2.Marshal(v, SingleAsString()) },
+			marshal:  func(v any) ([]byte, error) { return json.Marshal(v, SingleAsString()) },
 			input:    single,
 			expected: `{"aud":"aud1","iss":"iss1"}`,
 		},
 		{
 			name:     "option keeps multiple audiences as array",
-			marshal:  func(v any) ([]byte, error) { return jsonv2.Marshal(v, SingleAsString()) },
+			marshal:  func(v any) ([]byte, error) { return json.Marshal(v, SingleAsString()) },
 			input:    multiple,
 			expected: `{"aud":["aud1","aud2"],"iss":"iss1"}`,
 		},

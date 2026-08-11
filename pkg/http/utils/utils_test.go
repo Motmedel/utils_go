@@ -2,7 +2,7 @@ package utils
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"io"
 	"net/http"
@@ -29,7 +29,7 @@ func serve(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 // so it reports failures with t.Errorf (t.Fatal is unsafe off the test goroutine).
 func writeJSON(t *testing.T, w http.ResponseWriter, v any) {
 	t.Helper()
-	if err := json.NewEncoder(w).Encode(v); err != nil {
+	if err := json.MarshalWrite(w, v); err != nil {
 		t.Errorf("encode response: %v", err)
 	}
 }
@@ -302,7 +302,7 @@ func TestFetchJsonWithBody_MarshalsBodyAndSetsContentType(t *testing.T) {
 			t.Errorf("Content-Type = %q, want application/json", got)
 		}
 		var got request
-		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+		if err := json.UnmarshalRead(r.Body, &got); err != nil {
 			t.Errorf("decode request: %v", err)
 		}
 		if got.Query != "hello" {

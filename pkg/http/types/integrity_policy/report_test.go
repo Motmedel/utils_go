@@ -1,7 +1,7 @@
 package integrity_policy
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"testing"
 )
 

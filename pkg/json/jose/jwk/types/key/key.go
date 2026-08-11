@@ -4,7 +4,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"

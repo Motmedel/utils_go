@@ -2,7 +2,7 @@ package directory
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -47,7 +47,7 @@ func jsonServer(t *testing.T, method string, pathSuffix string, value any) *Clie
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(value); err != nil {
+		if err := json.MarshalWrite(w, value); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -66,12 +66,12 @@ func echoServer[T any](t *testing.T, method string, pathSuffix string) *Client {
 		}
 
 		var input T
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&input); err != nil {
+		if err := json.MarshalWrite(w, &input); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -91,12 +91,12 @@ func TestCreateUser(t *testing.T) {
 		}
 
 		var input user.User
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&user.User{ //nolint:gosec // test fixture
+		if err := json.MarshalWrite(w, &user.User{ //nolint:gosec // test fixture
 			Kind:         "admin#directory#user",
 			Id:           "123",
 			PrimaryEmail: input.PrimaryEmail,
@@ -158,7 +158,7 @@ func TestGetUser(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&user.User{ //nolint:gosec // test fixture
+		if err := json.MarshalWrite(w, &user.User{ //nolint:gosec // test fixture
 			Kind:         "admin#directory#user",
 			Id:           "123",
 			PrimaryEmail: "test@example.com",
@@ -194,7 +194,7 @@ func TestUpdateUser(t *testing.T) {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&user.User{ //nolint:gosec // test fixture
+		if err := json.MarshalWrite(w, &user.User{ //nolint:gosec // test fixture
 			Id:           "123",
 			PrimaryEmail: "test@example.com",
 			Suspended:    true,
@@ -278,12 +278,12 @@ func TestCreateGroup(t *testing.T) {
 		}
 
 		var input group.Group
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&group.Group{
+		if err := json.MarshalWrite(w, &group.Group{
 			Kind:  "admin#directory#group",
 			Id:    "g-123",
 			Email: input.Email,
@@ -326,7 +326,7 @@ func TestGetGroup(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&group.Group{
+		if err := json.MarshalWrite(w, &group.Group{
 			Kind:  "admin#directory#group",
 			Email: "group@example.com",
 		}); err != nil {
@@ -361,7 +361,7 @@ func TestUpdateGroup(t *testing.T) {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&group.Group{
+		if err := json.MarshalWrite(w, &group.Group{
 			Email:       "group@example.com",
 			Description: "Updated",
 		}); err != nil {
@@ -441,12 +441,12 @@ func TestCreateMember(t *testing.T) {
 		}
 
 		var input member.Member
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&member.Member{
+		if err := json.MarshalWrite(w, &member.Member{
 			Kind:  "admin#directory#member",
 			Id:    "m-123",
 			Email: input.Email,
@@ -502,7 +502,7 @@ func TestGetMember(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&member.Member{
+		if err := json.MarshalWrite(w, &member.Member{
 			Email: "user@example.com",
 			Role:  "OWNER",
 		}); err != nil {
@@ -547,7 +547,7 @@ func TestUpdateMember(t *testing.T) {
 			t.Errorf("expected PUT, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&member.Member{
+		if err := json.MarshalWrite(w, &member.Member{
 			Email: "user@example.com",
 			Role:  "MANAGER",
 		}); err != nil {
@@ -649,7 +649,7 @@ func TestMakeUserAdmin(t *testing.T) {
 		var input struct {
 			Status bool `json:"status"`
 		}
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 		if !input.Status {
@@ -747,12 +747,12 @@ func TestCreateOrgUnit(t *testing.T) {
 		}
 
 		var input org_unit.OrgUnit
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&org_unit.OrgUnit{
+		if err := json.MarshalWrite(w, &org_unit.OrgUnit{
 			Kind:              "admin#directory#orgUnit",
 			OrgUnitId:         "id:123",
 			Name:              input.Name,
@@ -812,7 +812,7 @@ func TestGetOrgUnit(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&org_unit.OrgUnit{
+		if err := json.MarshalWrite(w, &org_unit.OrgUnit{
 			Kind:        "admin#directory#orgUnit",
 			Name:        "Frontend",
 			OrgUnitPath: "/Engineering/Frontend",
@@ -910,7 +910,7 @@ func TestListOrgUnits(t *testing.T) {
 			t.Errorf("expected type 'all', got %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"organizationUnits": []*org_unit.OrgUnit{
 				{Name: "Engineering", OrgUnitPath: "/Engineering"},
 				{Name: "Frontend", OrgUnitPath: "/Engineering/Frontend"},
@@ -942,14 +942,14 @@ func TestListRoles_Pagination(t *testing.T) {
 		requestCount++
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Query().Get("pageToken") == "" {
-			if err := json.NewEncoder(w).Encode(map[string]any{
+			if err := json.MarshalWrite(w, map[string]any{
 				"items":         []*role.Role{{RoleId: "1", RoleName: "_SEED_ADMIN_ROLE"}},
 				"nextPageToken": "next",
 			}); err != nil {
 				t.Errorf("encode: %v", err)
 			}
 		} else {
-			if err := json.NewEncoder(w).Encode(map[string]any{
+			if err := json.MarshalWrite(w, map[string]any{
 				"items": []*role.Role{{RoleId: "2", RoleName: "_GROUPS_ADMIN_ROLE"}},
 			}); err != nil {
 				t.Errorf("encode: %v", err)
@@ -984,7 +984,7 @@ func TestCreateRole(t *testing.T) {
 		}
 
 		var input role.Role
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 		if len(input.RolePrivileges) != 1 || input.RolePrivileges[0].PrivilegeName != "USERS_RETRIEVE" {
@@ -993,7 +993,7 @@ func TestCreateRole(t *testing.T) {
 
 		input.RoleId = "123"
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&input); err != nil {
+		if err := json.MarshalWrite(w, &input); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -1101,7 +1101,7 @@ func TestListPrivileges(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"items": []*privilege.Privilege{
 				{
 					PrivilegeName: "USERS_ALL",
@@ -1145,7 +1145,7 @@ func TestListRoleAssignments(t *testing.T) {
 			t.Errorf("expected user key 'test@example.com', got %q", got)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"items": []*role_assignment.RoleAssignment{
 				{RoleAssignmentId: "1", RoleId: "123", AssignedTo: "user-id", ScopeType: "CUSTOMER"},
 			},
@@ -1182,7 +1182,7 @@ func TestCreateRoleAssignment(t *testing.T) {
 		}
 
 		var input role_assignment.RoleAssignment
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 		if input.Condition == "" {
@@ -1191,7 +1191,7 @@ func TestCreateRoleAssignment(t *testing.T) {
 
 		input.RoleAssignmentId = "1"
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&input); err != nil {
+		if err := json.MarshalWrite(w, &input); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -1235,7 +1235,7 @@ func TestGetRoleAssignment(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&role_assignment.RoleAssignment{
+		if err := json.MarshalWrite(w, &role_assignment.RoleAssignment{
 			RoleAssignmentId: "1",
 			RoleId:           "123",
 			ScopeType:        "ORG_UNIT",
@@ -1296,7 +1296,7 @@ func TestListTokens(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"items": []*token.Token{
 				{ClientId: "abc.apps.googleusercontent.com", DisplayText: "Some App", Scopes: []string{"https://mail.google.com/"}},
 			},
@@ -1338,7 +1338,7 @@ func TestGetToken(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&token.Token{
+		if err := json.MarshalWrite(w, &token.Token{
 			ClientId:    "abc.apps.googleusercontent.com",
 			DisplayText: "Some App",
 			NativeApp:   true,
@@ -1398,7 +1398,7 @@ func TestListAsps(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"items": []*asp.Asp{
 				{CodeId: 1, Name: "Mail on old phone"},
 			},

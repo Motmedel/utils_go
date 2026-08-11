@@ -1,7 +1,7 @@
 package problem_detail
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"encoding/xml"
 	"errors"
 	"fmt"

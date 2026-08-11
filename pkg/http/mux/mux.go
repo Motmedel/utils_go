@@ -2,7 +2,7 @@ package mux
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/jsontext"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -656,7 +656,7 @@ func handleRequestBody(
 	// Basic check to see if the request body conforms to the expected content type.
 	switch expectedContentType {
 	case "application/json":
-		if !json.Valid(requestBody) {
+		if !jsontext.Value(requestBody).IsValid() {
 			return request, nil, &muxTypesResponseError.ResponseError{
 				ProblemDetail: problem_detail.New(
 					http.StatusBadRequest,

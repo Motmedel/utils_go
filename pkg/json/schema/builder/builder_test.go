@@ -1,7 +1,7 @@
 package builder_test
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"reflect"
 	"testing"
 	"time"

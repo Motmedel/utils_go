@@ -1,7 +1,8 @@
 package problem_detail
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"encoding/xml"
 	"fmt"
 	"maps"
@@ -70,7 +71,7 @@ func (d *Detail) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	b, err := json.Marshal(m)
+	b, err := json.Marshal(m, json.Deterministic(true))
 	if err != nil {
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (detail): %w", err), m)
 	}
@@ -91,7 +92,7 @@ func (d *Detail) UnmarshalJSON(data []byte) error {
 	}
 
 	// Decode into raw map first to separate known vs extension fields.
-	var raw map[string]json.RawMessage
+	var raw map[string]jsontext.Value
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return motmedelErrors.NewWithTrace(
 			fmt.Errorf("json unmarshal (detail map): %w", err),

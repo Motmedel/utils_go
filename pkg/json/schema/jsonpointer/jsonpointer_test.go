@@ -1,7 +1,7 @@
 package jsonpointer_test
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"testing"
 
 	"github.com/Motmedel/utils_go/pkg/json/schema/draft202012"

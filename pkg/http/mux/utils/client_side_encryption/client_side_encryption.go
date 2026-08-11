@@ -2,7 +2,7 @@ package client_side_encryption
 
 import (
 	"crypto/ecdsa"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"net/http"

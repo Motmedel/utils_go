@@ -1,9 +1,8 @@
 package claim_strings
 
 import (
-	"encoding/json"
 	"encoding/json/jsontext"
-	jsonv2 "encoding/json/v2"
+	"encoding/json/v2"
 	"fmt"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
@@ -58,11 +57,11 @@ func (s ClaimStrings) MarshalJSON() ([]byte, error) {
 // instead of a one-element array (e.g. "aud":"x" rather than "aud":["x"]).
 // Empty and multi-element values are unaffected. Pass it to a marshal call:
 //
-//	data, err := jsonv2.Marshal(claims, claim_strings.SingleAsString())
+//	data, err := json.Marshal(claims, claim_strings.SingleAsString())
 //
 // Being a per-call option rather than a global, it is safe for concurrent use.
-func SingleAsString() jsonv2.Options {
-	return jsonv2.WithMarshalers(jsonv2.MarshalToFunc(marshalSingleClaimStringAsString))
+func SingleAsString() json.Options {
+	return json.WithMarshalers(json.MarshalToFunc(marshalSingleClaimStringAsString))
 }
 
 // marshalSingleClaimStringAsString emits a single-element value as a bare string
@@ -71,9 +70,9 @@ func SingleAsString() jsonv2.Options {
 // own MarshalJSON, so this applies wherever ClaimStrings appears in the value.
 func marshalSingleClaimStringAsString(encoder *jsontext.Encoder, claimStrings ClaimStrings) error {
 	if len(claimStrings) != 1 {
-		return jsonv2.SkipFunc
+		return json.SkipFunc
 	}
-	return jsonv2.MarshalEncode(encoder, claimStrings[0])
+	return json.MarshalEncode(encoder, claimStrings[0])
 }
 
 func Convert(value any) (ClaimStrings, error) {

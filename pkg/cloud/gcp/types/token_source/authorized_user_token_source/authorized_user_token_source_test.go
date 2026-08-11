@@ -2,7 +2,7 @@ package authorized_user_token_source
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -124,7 +124,7 @@ func TestToken(t *testing.T) {
 			t.Errorf("refresh_token = %q, want %q", got, credFile.RefreshToken)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&token_response.Response{ //nolint:gosec // G117: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, &token_response.Response{ //nolint:gosec // G117: fake OAuth token in test fixture
 			AccessToken: "access-token",
 			TokenType:   "Bearer",
 			ExpiresIn:   3600,

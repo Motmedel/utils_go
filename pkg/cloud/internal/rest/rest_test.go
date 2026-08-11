@@ -2,7 +2,7 @@ package rest
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,7 +34,7 @@ func TestGetJson(t *testing.T) {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&testValue{Name: "value"}); err != nil {
+		if err := json.MarshalWrite(w, &testValue{Name: "value"}); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -68,12 +68,12 @@ func TestSendJson(t *testing.T) {
 		}
 
 		var input testValue
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&testValue{Name: input.Name + "-updated"}); err != nil {
+		if err := json.MarshalWrite(w, &testValue{Name: input.Name + "-updated"}); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -118,7 +118,7 @@ func TestDoWithBody(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if err := json.NewDecoder(r.Body).Decode(&seenBody); err != nil {
+		if err := json.UnmarshalRead(r.Body, &seenBody); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -147,7 +147,7 @@ func TestListPaginated(t *testing.T) {
 			page = &testPage{Items: []string{"c"}}
 		}
 
-		if err := json.NewEncoder(w).Encode(page); err != nil {
+		if err := json.MarshalWrite(w, page); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})

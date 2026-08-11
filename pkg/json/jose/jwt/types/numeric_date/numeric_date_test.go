@@ -1,7 +1,7 @@
 package numeric_date
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"testing"
 	"time"
@@ -204,16 +204,6 @@ func TestConvert(t *testing.T) {
 			name:     "float64 zero returns nil",
 			input:    float64(0),
 			expected: nil,
-		},
-		{
-			name:     "json.Number input",
-			input:    json.Number("1609459200"),
-			expected: New(time.Unix(1609459200, 0)),
-		},
-		{
-			name:        "json.Number invalid",
-			input:       json.Number("not-a-number"),
-			expectError: true,
 		},
 		{
 			name:        "unsupported type",

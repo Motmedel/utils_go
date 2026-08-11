@@ -2,7 +2,7 @@ package cloud_asset_inventory
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -43,7 +43,7 @@ func TestListAssets(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&asset_list.AssetList{
+		if err := json.MarshalWrite(w, &asset_list.AssetList{
 			ReadTime: "2024-01-01T00:00:00Z",
 			Assets: []*asset.Asset{
 				{
@@ -102,7 +102,7 @@ func TestListAssets_NilQuery(t *testing.T) {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&asset_list.AssetList{ReadTime: "2024-01-01T00:00:00Z"}); err != nil {
+		if err := json.MarshalWrite(w, &asset_list.AssetList{ReadTime: "2024-01-01T00:00:00Z"}); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})
@@ -140,7 +140,7 @@ func TestSearchAllResources(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&resource_search_result_list.ResourceSearchResultList{
+		if err := json.MarshalWrite(w, &resource_search_result_list.ResourceSearchResultList{
 			Results: []*resource_search_result.ResourceSearchResult{
 				{
 					Name:        "//run.googleapis.com/projects/my-project/locations/us-central1/services/my-service",
@@ -193,7 +193,7 @@ func TestSearchAllResources_NilQuery(t *testing.T) {
 			t.Errorf("expected no query, got %q", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&resource_search_result_list.ResourceSearchResultList{}); err != nil {
+		if err := json.MarshalWrite(w, &resource_search_result_list.ResourceSearchResultList{}); err != nil {
 			t.Errorf("encode: %v", err)
 		}
 	})

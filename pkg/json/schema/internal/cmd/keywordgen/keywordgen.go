@@ -7,7 +7,8 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"flag"
 	"fmt"
@@ -163,9 +164,9 @@ func readKeywords(name string) *keywordsData {
 	defer f.Close()
 
 	var ret keywordsData
-	if err := json.NewDecoder(f).Decode(&ret); err != nil {
-		if se, ok := errors.AsType[*json.SyntaxError](err); ok {
-			fmt.Fprintf(os.Stderr, "%s: %d: %v\n", name, se.Offset, err)
+	if err := json.UnmarshalRead(f, &ret); err != nil {
+		if se, ok := errors.AsType[*jsontext.SyntacticError](err); ok {
+			fmt.Fprintf(os.Stderr, "%s: %d: %v\n", name, se.ByteOffset, err)
 		} else {
 			fmt.Fprintf(os.Stderr, "%s: %v\n", name, err)
 		}

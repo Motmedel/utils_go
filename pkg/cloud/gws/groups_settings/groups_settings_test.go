@@ -2,7 +2,7 @@ package groups_settings
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -35,7 +35,7 @@ func TestGet(t *testing.T) {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&group.Group{
+		if err := json.MarshalWrite(w, &group.Group{
 			Kind:              "groupsSettings#groups",
 			Email:             "group@example.com",
 			Name:              "Test Group",
@@ -88,12 +88,12 @@ func TestUpdate(t *testing.T) {
 		}
 
 		var input group.Group
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&group.Group{
+		if err := json.MarshalWrite(w, &group.Group{
 			Email:             "group@example.com",
 			WhoCanPostMessage: input.WhoCanPostMessage,
 			AllowWebPosting:   input.AllowWebPosting,
@@ -145,12 +145,12 @@ func TestPatch(t *testing.T) {
 		}
 
 		var input group.Group
-		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		if err := json.UnmarshalRead(r.Body, &input); err != nil {
 			t.Errorf("decode: %v", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(&group.Group{
+		if err := json.MarshalWrite(w, &group.Group{
 			Email:                  "group@example.com",
 			MessageModerationLevel: input.MessageModerationLevel,
 		}); err != nil {

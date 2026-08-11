@@ -2,7 +2,7 @@ package error_logger
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"log/slog"
 	"os"

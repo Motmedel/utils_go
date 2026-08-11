@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/json"
+	"encoding/json/v2"
 	"encoding/pem"
 	"fmt"
 	"net/http"
@@ -209,7 +209,7 @@ func TestAuthorizedUserTokenSource(t *testing.T) {
 			t.Errorf("unexpected client_id: %s", r.PostForm.Get("client_id"))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if err := json.MarshalWrite(w, map[string]any{
 			"access_token": "ya29.refreshed",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -289,7 +289,7 @@ func TestServiceAccountTokenSource(t *testing.T) {
 			t.Errorf("expected 3-part JWT, got %d parts", len(parts))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.sa-token",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -358,7 +358,7 @@ func TestMetadataTokenSource(t *testing.T) {
 			t.Errorf("missing Metadata-Flavor header")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.metadata",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -413,7 +413,7 @@ func TestMetadataTokenSource_WithScopes(t *testing.T) {
 			t.Errorf("unexpected scopes: %s", scopes)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.scoped",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -445,7 +445,7 @@ func TestCredentialsFileTokenSource_AuthorizedUser(t *testing.T) {
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.creds",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -484,7 +484,7 @@ func TestCredentialsFileTokenSource_ServiceAccount(t *testing.T) {
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.sa-creds",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -524,7 +524,7 @@ func TestCredentialsFileTokenSource_ServiceAccount_FallbackTokenUrl(t *testing.T
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.fallback",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -583,7 +583,7 @@ func TestFindDefaultCredentials_EnvVar(t *testing.T) {
 
 	server := testTokenServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.env",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
@@ -643,7 +643,7 @@ func TestFindDefaultCredentials_MetadataFallback(t *testing.T) {
 
 	_, metadataUrl := testMetadataServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
+		if err := json.MarshalWrite(w, map[string]any{ //nolint:gosec // G101: fake OAuth token in test fixture
 			"access_token": "ya29.metadata-fallback",
 			"expires_in":   3600,
 			"token_type":   "Bearer",
