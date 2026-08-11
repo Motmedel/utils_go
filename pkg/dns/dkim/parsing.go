@@ -46,21 +46,22 @@ func extractTagPath(tagName string, tagValue []byte, tagType string) (*abnf.Path
 
 	var ruleName string
 
-	if tagType == "key" {
+	switch tagType {
+	case "key":
 		switch tagName {
 		case "v", "h", "k", "n", "p", "s", "t":
 			ruleName = fmt.Sprintf("key-%s-tag-root", tagName)
 		default:
 			return nil, nil
 		}
-	} else if tagType == "signature" {
+	case "signature":
 		switch tagName {
 		case "v", "a", "b", "bh", "c", "d", "h", "i", "l", "q", "s", "t", "x", "z":
 			ruleName = fmt.Sprintf("sig-%s-tag-root", tagName)
 		default:
 			return nil, nil
 		}
-	} else {
+	default:
 		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("%w: %s", ErrUnexpectedTagType, tagType), tagType)
 	}
 

@@ -241,7 +241,7 @@ func solveElement(grammar *Grammar, element Element, input []byte, index int) []
 			low := mustParseNumVal(v.Values[0], v.Base)
 			high := mustParseNumVal(v.Values[1], v.Base)
 
-			r, size := utf8.DecodeRune(input[index:])
+			r, size := utf8.DecodeRune(input[index:]) //nolint:nilaway // A nil input []byte is valid; slicing it yields an empty slice, handled below.
 			if r == utf8.RuneError && size <= 1 {
 				// Empty or invalid UTF-8 input.
 				return nil

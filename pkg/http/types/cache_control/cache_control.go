@@ -90,7 +90,7 @@ func Parse(data []byte) (*motmedelHttpTypes.CacheControl, error) {
 			}
 		}
 
-		if deltaSecondsDirectives[directiveName] && !(directiveName == "max-stale" && directiveValue == "") {
+		if deltaSecondsDirectives[directiveName] && (directiveName != "max-stale" || directiveValue != "") {
 			if _, err := strconv.Atoi(directiveValue); err != nil {
 				return nil, motmedelErrors.NewWithTrace(
 					fmt.Errorf(

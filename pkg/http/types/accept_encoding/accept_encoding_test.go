@@ -22,7 +22,6 @@ func TestParseAcceptEncodingCorpus(t *testing.T) {
 		"zstd, br;q=0.7, gzip;q=0.3",
 	}
 	for _, c := range cases {
-		c := c
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 
@@ -44,6 +43,8 @@ func feq(a, b float32) bool { return math.Abs(float64(a-b)) < 1e-6 }
 
 // Verify parsed codings and q-values for representative headers.
 func TestParseAcceptEncodingCorrectness(t *testing.T) {
+	t.Parallel()
+
 	type exp struct {
 		coding string
 		q      float32

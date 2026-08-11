@@ -43,6 +43,8 @@ func TestRetryAfterHttpDate(t *testing.T) {
 }
 
 func TestRetryAfterDelay(t *testing.T) {
+	t.Parallel()
+
 	data := []byte("120")
 
 	retryAfter, err := Parse(data)

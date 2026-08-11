@@ -47,7 +47,7 @@ func CollectWrappedErrors(err error) []error {
 			results = append(results, poppedErr)
 		}
 
-		switch typedErr := poppedErr.(type) {
+		switch typedErr := poppedErr.(type) { //nolint:errorlint // Manual unwrap traversal; every level is visited explicitly.
 		case interface{ Unwrap() error }:
 			unwrappedErr := typedErr.Unwrap()
 			if unwrappedErr == nil {
@@ -195,7 +195,7 @@ func (err *ExtendedError) GetInput() any {
 		return nil
 	}
 
-	if inputError, ok := includedErr.(InputErrorI); ok {
+	if inputError, ok := includedErr.(InputErrorI); ok { //nolint:errorlint // Deliberate: only the immediate error is consulted.
 		return inputError.GetInput()
 	}
 
@@ -212,7 +212,7 @@ func (err *ExtendedError) GetCode() string {
 		return ""
 	}
 
-	if codeError, ok := includedErr.(CodeErrorI); ok {
+	if codeError, ok := includedErr.(CodeErrorI); ok { //nolint:errorlint // Deliberate: only the immediate error is consulted.
 		return codeError.GetCode()
 	}
 
@@ -229,7 +229,7 @@ func (err *ExtendedError) GetId() string {
 		return ""
 	}
 
-	if idError, ok := includedErr.(IdErrorI); ok {
+	if idError, ok := includedErr.(IdErrorI); ok { //nolint:errorlint // Deliberate: only the immediate error is consulted.
 		return idError.GetId()
 	}
 
@@ -246,7 +246,7 @@ func (err *ExtendedError) GetStackTrace() string {
 		return ""
 	}
 
-	if stackTraceError, ok := includedErr.(StackTraceErrorI); ok {
+	if stackTraceError, ok := includedErr.(StackTraceErrorI); ok { //nolint:errorlint // Deliberate: only the immediate error is consulted.
 		return stackTraceError.GetStackTrace()
 	}
 
@@ -263,8 +263,7 @@ func (err *ExtendedError) GetContext() *context.Context {
 		return nil
 	}
 
-	var contextError ContextErrorI
-	if errors.As(includedErr, &contextError) {
+	if contextError, ok := errors.AsType[ContextErrorI](includedErr); ok {
 		return contextError.GetContext()
 	}
 
@@ -272,7 +271,7 @@ func (err *ExtendedError) GetContext() *context.Context {
 }
 
 func (err *ExtendedError) Unwrap() []error {
-	switch typedErr := err.error.(type) {
+	switch typedErr := err.error.(type) { //nolint:errorlint // Unwrap must expose the direct error's own Unwrap, not search the chain.
 	case interface{ Unwrap() error }:
 		return []error{typedErr.Unwrap()}
 	case interface{ Unwrap() []error }:
@@ -302,11 +301,11 @@ func New(e any, input ...any) *ExtendedError {
 	case error:
 		err = typedE
 	case string:
-		err = errors.New(typedE)
+		err = errors.New(typedE) //nolint:err113 // Constructor whose purpose is making errors from arbitrary values.
 	case nil:
 		break
 	default:
-		err = errors.New(fmt.Sprintf("%v", typedE))
+		err = fmt.Errorf("%v", typedE) //nolint:err113 // Constructor whose purpose is making errors from arbitrary values.
 	}
 
 	var errInput any = input

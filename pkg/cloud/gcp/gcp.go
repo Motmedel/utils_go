@@ -26,6 +26,9 @@ const (
 	credentialTypeAuthorizedUser = "authorized_user"
 	credentialTypeServiceAccount = "service_account"
 
+	metadataFlavorHeader = "Metadata-Flavor"
+	metadataFlavorGoogle = "Google"
+
 	DefaultTokenUrl = "https://oauth2.googleapis.com/token" //nolint:gosec // G101: public OAuth token endpoint URL, not a credential
 )
 
@@ -70,7 +73,7 @@ func (c *Client) GetIdToken(ctx context.Context, audience string, options ...fet
 
 	identityUrlString := identityUrl.String()
 	options = append(
-		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{metadataFlavorHeader: metadataFlavorGoogle})),
 		options...,
 	)
 	_, responseBody, err := motmedelHttpUtils.Fetch(
@@ -98,7 +101,7 @@ func (c *Client) GetServiceAccountEmail(ctx context.Context, options ...fetch_co
 
 	urlString := requestUrl.String()
 	options = append(
-		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{metadataFlavorHeader: metadataFlavorGoogle})),
 		options...,
 	)
 	_, responseBody, err := motmedelHttpUtils.Fetch(
@@ -123,7 +126,7 @@ func (c *Client) GetProjectId(ctx context.Context, options ...fetch_config.Optio
 
 	urlString := requestUrl.String()
 	options = append(
-		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{"Metadata-Flavor": "Google"})),
+		append(c.config.FetchOptions, fetch_config.WithHeaders(map[string]string{metadataFlavorHeader: metadataFlavorGoogle})),
 		options...,
 	)
 	_, responseBody, err := motmedelHttpUtils.Fetch(

@@ -15,7 +15,7 @@ import (
 )
 
 type TokenSource struct {
-	ctx             context.Context
+	ctx             context.Context //nolint:containedctx // The TokenSource interface takes no context; the construction context is deliberately captured (same pattern as x/oauth2).
 	metadataBaseUrl *url.URL
 	scopes          []string
 	options         []fetch_config.Option

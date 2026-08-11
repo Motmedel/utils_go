@@ -8,7 +8,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/interfaces/comparer"
 )
 
-// mockComparer is a test comparer that returns a predefined result
+// mockComparer is a test comparer that returns a predefined result.
 type mockComparer[T any] struct {
 	result bool
 	err    error
@@ -214,7 +214,7 @@ func TestValidator_Validate(t *testing.T) {
 }
 
 // TestAmrConversionErrorContinues specifically tests the bug fix where
-// a conversion error for 'amr' should NOT also trigger a mismatch error
+// a conversion error for 'amr' should NOT also trigger a mismatch error.
 func TestAmrConversionErrorContinues(t *testing.T) {
 	t.Parallel()
 
@@ -248,7 +248,7 @@ func TestAmrConversionErrorContinues(t *testing.T) {
 }
 
 // TestRolesConversionErrorContinues specifically tests the bug fix where
-// a conversion error for 'roles' should NOT also trigger a mismatch error
+// a conversion error for 'roles' should NOT also trigger a mismatch error.
 func TestRolesConversionErrorContinues(t *testing.T) {
 	t.Parallel()
 

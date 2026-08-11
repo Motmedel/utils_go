@@ -1,6 +1,7 @@
 package uuid
 
 import (
+	"errors"
 	"regexp"
 	"testing"
 	"time"
@@ -180,7 +181,7 @@ func TestFromBytesInvalidLength(t *testing.T) {
 	t.Parallel()
 
 	_, err := FromBytes([]byte{1, 2, 3})
-	if err != ErrInvalidUUIDLength {
+	if !errors.Is(err, ErrInvalidUUIDLength) {
 		t.Errorf("FromBytes() with invalid length should return ErrInvalidUUIDLength, got %v", err)
 	}
 }
@@ -276,7 +277,7 @@ func TestUnmarshalBinaryInvalidLength(t *testing.T) {
 
 	var uuid UUID
 	err := uuid.UnmarshalBinary([]byte{1, 2, 3})
-	if err != ErrInvalidUUIDLength {
+	if !errors.Is(err, ErrInvalidUUIDLength) {
 		t.Errorf("UnmarshalBinary() with invalid length should return ErrInvalidUUIDLength, got %v", err)
 	}
 }

@@ -9,6 +9,36 @@ import (
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
 
+const (
+	DirectiveNameBaseUri                 = "base-uri"
+	DirectiveNameChildSrc                = "child-src"
+	DirectiveNameConnectSrc              = "connect-src"
+	DirectiveNameDefaultSrc              = "default-src"
+	DirectiveNameFontSrc                 = "font-src"
+	DirectiveNameFormAction              = "form-action"
+	DirectiveNameFrameAncestors          = "frame-ancestors"
+	DirectiveNameFrameSrc                = "frame-src"
+	DirectiveNameImgSrc                  = "img-src"
+	DirectiveNameManifestSrc             = "manifest-src"
+	DirectiveNameMediaSrc                = "media-src"
+	DirectiveNameObjectSrc               = "object-src"
+	DirectiveNameReportTo                = "report-to"
+	DirectiveNameReportUri               = "report-uri"
+	DirectiveNameRequireSriFor           = "require-sri-for"
+	DirectiveNameRequireTrustedTypesFor  = "require-trusted-types-for"
+	DirectiveNameSandbox                 = "sandbox"
+	DirectiveNameScriptSrc               = "script-src"
+	DirectiveNameScriptSrcAttr           = "script-src-attr"
+	DirectiveNameScriptSrcElem           = "script-src-elem"
+	DirectiveNameStyleSrc                = "style-src"
+	DirectiveNameStyleSrcAttr            = "style-src-attr"
+	DirectiveNameStyleSrcElem            = "style-src-elem"
+	DirectiveNameTrustedTypes            = "trusted-types"
+	DirectiveNameUpgradeInsecureRequests = "upgrade-insecure-requests"
+	DirectiveNameWebrtc                  = "webrtc"
+	DirectiveNameWorkerSrc               = "worker-src"
+)
+
 type SourceI interface {
 	GetRaw() string
 	String() string
@@ -206,7 +236,7 @@ type BaseUriDirective struct {
 }
 
 func (*BaseUriDirective) GetName() string {
-	return "base-uri"
+	return DirectiveNameBaseUri
 }
 
 func (baseUriDirective *BaseUriDirective) String() string {
@@ -221,7 +251,7 @@ type ChildSrcDirective struct {
 }
 
 func (*ChildSrcDirective) GetName() string {
-	return "child-src"
+	return DirectiveNameChildSrc
 }
 
 func (childSrcDirective *ChildSrcDirective) String() string {
@@ -236,7 +266,7 @@ type ConnectSrcDirective struct {
 }
 
 func (*ConnectSrcDirective) GetName() string {
-	return "connect-src"
+	return DirectiveNameConnectSrc
 }
 
 func (connectSrcDirective *ConnectSrcDirective) String() string {
@@ -251,7 +281,7 @@ type DefaultSrcDirective struct {
 }
 
 func (*DefaultSrcDirective) GetName() string {
-	return "default-src"
+	return DirectiveNameDefaultSrc
 }
 
 func (defaultSrcDirective *DefaultSrcDirective) String() string {
@@ -266,7 +296,7 @@ type FontSrcDirective struct {
 }
 
 func (*FontSrcDirective) GetName() string {
-	return "font-src"
+	return DirectiveNameFontSrc
 }
 
 func (fontSrcDirective *FontSrcDirective) String() string {
@@ -281,7 +311,7 @@ type FormActionDirective struct {
 }
 
 func (*FormActionDirective) GetName() string {
-	return "form-action"
+	return DirectiveNameFormAction
 }
 
 func (formActionDirective *FormActionDirective) String() string {
@@ -296,7 +326,7 @@ type FrameSrcDirective struct {
 }
 
 func (*FrameSrcDirective) GetName() string {
-	return "frame-src"
+	return DirectiveNameFrameSrc
 }
 
 func (frameSrcDirective *FrameSrcDirective) String() string {
@@ -311,7 +341,7 @@ type ImgSrcDirective struct {
 }
 
 func (*ImgSrcDirective) GetName() string {
-	return "img-src"
+	return DirectiveNameImgSrc
 }
 
 func (imgSrcDirective *ImgSrcDirective) String() string {
@@ -326,7 +356,7 @@ type ManifestSrcDirective struct {
 }
 
 func (*ManifestSrcDirective) GetName() string {
-	return "manifest-src"
+	return DirectiveNameManifestSrc
 }
 
 func (manifestSrcDirective *ManifestSrcDirective) String() string {
@@ -341,7 +371,7 @@ type MediaSrcDirective struct {
 }
 
 func (*MediaSrcDirective) GetName() string {
-	return "media-src"
+	return DirectiveNameMediaSrc
 }
 
 func (mediaSrcDirective *MediaSrcDirective) String() string {
@@ -356,7 +386,7 @@ type ObjectSrcDirective struct {
 }
 
 func (*ObjectSrcDirective) GetName() string {
-	return "object-src"
+	return DirectiveNameObjectSrc
 }
 
 func (objectSrcDirective *ObjectSrcDirective) String() string {
@@ -371,7 +401,7 @@ type ScriptSrcAttrDirective struct {
 }
 
 func (*ScriptSrcAttrDirective) GetName() string {
-	return "script-src-attr"
+	return DirectiveNameScriptSrcAttr
 }
 
 func (scriptSrcAttrDirective *ScriptSrcAttrDirective) String() string {
@@ -386,7 +416,7 @@ type ScriptSrcDirective struct {
 }
 
 func (*ScriptSrcDirective) GetName() string {
-	return "script-src"
+	return DirectiveNameScriptSrc
 }
 
 func (scriptSrcDirective *ScriptSrcDirective) String() string {
@@ -401,7 +431,7 @@ type ScriptSrcElemDirective struct {
 }
 
 func (*ScriptSrcElemDirective) GetName() string {
-	return "script-src-elem"
+	return DirectiveNameScriptSrcElem
 }
 
 func (scriptSrcElemDirective *ScriptSrcElemDirective) String() string {
@@ -416,7 +446,7 @@ type StyleSrcAttrDirective struct {
 }
 
 func (*StyleSrcAttrDirective) GetName() string {
-	return "style-src-attr"
+	return DirectiveNameStyleSrcAttr
 }
 
 func (styleSrcAttrDirective *StyleSrcAttrDirective) String() string {
@@ -431,7 +461,7 @@ type StyleSrcDirective struct {
 }
 
 func (*StyleSrcDirective) GetName() string {
-	return "style-src"
+	return DirectiveNameStyleSrc
 }
 
 func (styleSrcDirective *StyleSrcDirective) String() string {
@@ -446,7 +476,7 @@ type StyleSrcElemDirective struct {
 }
 
 func (*StyleSrcElemDirective) GetName() string {
-	return "style-src-elem"
+	return DirectiveNameStyleSrcElem
 }
 
 func (styleSrcElemDirective *StyleSrcElemDirective) String() string {
@@ -461,7 +491,7 @@ type WorkerSrcDirective struct {
 }
 
 func (*WorkerSrcDirective) GetName() string {
-	return "worker-src"
+	return DirectiveNameWorkerSrc
 }
 
 func (workerSrcDirective *WorkerSrcDirective) String() string {
@@ -477,7 +507,7 @@ type SandboxDirective struct {
 }
 
 func (*SandboxDirective) GetName() string {
-	return "sandbox"
+	return DirectiveNameSandbox
 }
 
 func (sandboxDirective *SandboxDirective) String() string {
@@ -496,7 +526,7 @@ type WebrtcDirective struct {
 }
 
 func (*WebrtcDirective) GetName() string {
-	return "webrtc"
+	return DirectiveNameWebrtc
 }
 
 func (webrtcDirective *WebrtcDirective) String() string {
@@ -514,7 +544,7 @@ type ReportUriDirective struct {
 }
 
 func (*ReportUriDirective) GetName() string {
-	return "report-uri"
+	return DirectiveNameReportUri
 }
 
 func (reportUriDirective *ReportUriDirective) String() string {
@@ -535,7 +565,7 @@ type ReportToDirective struct {
 }
 
 func (*ReportToDirective) GetName() string {
-	return "report-to"
+	return DirectiveNameReportTo
 }
 
 func (reportToDirective *ReportToDirective) String() string {
@@ -552,7 +582,7 @@ type FrameAncestorsDirective struct {
 }
 
 func (*FrameAncestorsDirective) GetName() string {
-	return "frame-ancestors"
+	return DirectiveNameFrameAncestors
 }
 
 func (frameAncestorsDirective *FrameAncestorsDirective) String() string {
@@ -567,7 +597,7 @@ type UpgradeInsecureRequestsDirective struct {
 }
 
 func (*UpgradeInsecureRequestsDirective) GetName() string {
-	return "upgrade-insecure-requests"
+	return DirectiveNameUpgradeInsecureRequests
 }
 
 func (upgradeInsecureRequestDirective *UpgradeInsecureRequestsDirective) String() string {
@@ -580,7 +610,7 @@ type RequireSriForDirective struct {
 }
 
 func (*RequireSriForDirective) GetName() string {
-	return "require-sri-for"
+	return DirectiveNameRequireSriFor
 }
 
 func (requireSriForDirective *RequireSriForDirective) String() string {
@@ -603,7 +633,7 @@ type TrustedTypesDirective struct {
 }
 
 func (*TrustedTypesDirective) GetName() string {
-	return "trusted-types"
+	return DirectiveNameTrustedTypes
 }
 
 func (trustedTypesDirective *TrustedTypesDirective) String() string {
@@ -636,7 +666,7 @@ type RequireTrustedTypesForDirective struct {
 }
 
 func (*RequireTrustedTypesForDirective) GetName() string {
-	return "require-trusted-types-for"
+	return DirectiveNameRequireTrustedTypesFor
 }
 
 func (requireTrustedTypesForDirective *RequireTrustedTypesForDirective) String() string {
@@ -680,7 +710,7 @@ func (csp *ContentSecurityPolicy) GetDirective(name string) (DirectiveI, bool) {
 }
 
 func (csp *ContentSecurityPolicy) GetDefaultSrc() *DefaultSrcDirective {
-	directive, found := csp.GetDirective("default-src")
+	directive, found := csp.GetDirective(DirectiveNameDefaultSrc)
 	if !found {
 		return nil
 	}
@@ -688,7 +718,7 @@ func (csp *ContentSecurityPolicy) GetDefaultSrc() *DefaultSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetBaseUri() *BaseUriDirective {
-	directive, found := csp.GetDirective("base-uri")
+	directive, found := csp.GetDirective(DirectiveNameBaseUri)
 	if !found {
 		return nil
 	}
@@ -696,7 +726,7 @@ func (csp *ContentSecurityPolicy) GetBaseUri() *BaseUriDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetChildSrc() *ChildSrcDirective {
-	directive, found := csp.GetDirective("child-src")
+	directive, found := csp.GetDirective(DirectiveNameChildSrc)
 	if !found {
 		return nil
 	}
@@ -704,7 +734,7 @@ func (csp *ContentSecurityPolicy) GetChildSrc() *ChildSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetConnectSrc() *ConnectSrcDirective {
-	directive, found := csp.GetDirective("connect-src")
+	directive, found := csp.GetDirective(DirectiveNameConnectSrc)
 	if !found {
 		return nil
 	}
@@ -712,7 +742,7 @@ func (csp *ContentSecurityPolicy) GetConnectSrc() *ConnectSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetFontSrc() *FontSrcDirective {
-	directive, found := csp.GetDirective("font-src")
+	directive, found := csp.GetDirective(DirectiveNameFontSrc)
 	if !found {
 		return nil
 	}
@@ -720,7 +750,7 @@ func (csp *ContentSecurityPolicy) GetFontSrc() *FontSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetFormAction() *FormActionDirective {
-	directive, found := csp.GetDirective("form-action")
+	directive, found := csp.GetDirective(DirectiveNameFormAction)
 	if !found {
 		return nil
 	}
@@ -728,7 +758,7 @@ func (csp *ContentSecurityPolicy) GetFormAction() *FormActionDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetFrameSrc() *FrameSrcDirective {
-	directive, found := csp.GetDirective("frame-src")
+	directive, found := csp.GetDirective(DirectiveNameFrameSrc)
 	if !found {
 		return nil
 	}
@@ -736,7 +766,7 @@ func (csp *ContentSecurityPolicy) GetFrameSrc() *FrameSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetImgSrc() *ImgSrcDirective {
-	directive, found := csp.GetDirective("img-src")
+	directive, found := csp.GetDirective(DirectiveNameImgSrc)
 	if !found {
 		return nil
 	}
@@ -744,7 +774,7 @@ func (csp *ContentSecurityPolicy) GetImgSrc() *ImgSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetManifestSrc() *ManifestSrcDirective {
-	directive, found := csp.GetDirective("manifest-src")
+	directive, found := csp.GetDirective(DirectiveNameManifestSrc)
 	if !found {
 		return nil
 	}
@@ -752,7 +782,7 @@ func (csp *ContentSecurityPolicy) GetManifestSrc() *ManifestSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetMediaSrc() *MediaSrcDirective {
-	directive, found := csp.GetDirective("media-src")
+	directive, found := csp.GetDirective(DirectiveNameMediaSrc)
 	if !found {
 		return nil
 	}
@@ -760,7 +790,7 @@ func (csp *ContentSecurityPolicy) GetMediaSrc() *MediaSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetObjectSrc() *ObjectSrcDirective {
-	directive, found := csp.GetDirective("object-src")
+	directive, found := csp.GetDirective(DirectiveNameObjectSrc)
 	if !found {
 		return nil
 	}
@@ -768,7 +798,7 @@ func (csp *ContentSecurityPolicy) GetObjectSrc() *ObjectSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetScriptSrcAttr() *ScriptSrcAttrDirective {
-	directive, found := csp.GetDirective("script-src-attr")
+	directive, found := csp.GetDirective(DirectiveNameScriptSrcAttr)
 	if !found {
 		return nil
 	}
@@ -776,7 +806,7 @@ func (csp *ContentSecurityPolicy) GetScriptSrcAttr() *ScriptSrcAttrDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetScriptSrc() *ScriptSrcDirective {
-	directive, found := csp.GetDirective("script-src")
+	directive, found := csp.GetDirective(DirectiveNameScriptSrc)
 	if !found {
 		return nil
 	}
@@ -784,7 +814,7 @@ func (csp *ContentSecurityPolicy) GetScriptSrc() *ScriptSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetScriptSrcElem() *ScriptSrcElemDirective {
-	directive, found := csp.GetDirective("script-src-elem")
+	directive, found := csp.GetDirective(DirectiveNameScriptSrcElem)
 	if !found {
 		return nil
 	}
@@ -792,7 +822,7 @@ func (csp *ContentSecurityPolicy) GetScriptSrcElem() *ScriptSrcElemDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetStyleSrcAttr() *StyleSrcAttrDirective {
-	directive, found := csp.GetDirective("style-src-attr")
+	directive, found := csp.GetDirective(DirectiveNameStyleSrcAttr)
 	if !found {
 		return nil
 	}
@@ -800,7 +830,7 @@ func (csp *ContentSecurityPolicy) GetStyleSrcAttr() *StyleSrcAttrDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetStyleSrc() *StyleSrcDirective {
-	directive, found := csp.GetDirective("style-src")
+	directive, found := csp.GetDirective(DirectiveNameStyleSrc)
 	if !found {
 		return nil
 	}
@@ -808,7 +838,7 @@ func (csp *ContentSecurityPolicy) GetStyleSrc() *StyleSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetStyleSrcElem() *StyleSrcElemDirective {
-	directive, found := csp.GetDirective("style-src-elem")
+	directive, found := csp.GetDirective(DirectiveNameStyleSrcElem)
 	if !found {
 		return nil
 	}
@@ -816,7 +846,7 @@ func (csp *ContentSecurityPolicy) GetStyleSrcElem() *StyleSrcElemDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetWorkerSrc() *WorkerSrcDirective {
-	directive, found := csp.GetDirective("worker-src")
+	directive, found := csp.GetDirective(DirectiveNameWorkerSrc)
 	if !found {
 		return nil
 	}
@@ -824,7 +854,7 @@ func (csp *ContentSecurityPolicy) GetWorkerSrc() *WorkerSrcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetSandbox() *SandboxDirective {
-	directive, found := csp.GetDirective("sandbox")
+	directive, found := csp.GetDirective(DirectiveNameSandbox)
 	if !found {
 		return nil
 	}
@@ -832,7 +862,7 @@ func (csp *ContentSecurityPolicy) GetSandbox() *SandboxDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetWebrtc() *WebrtcDirective {
-	directive, found := csp.GetDirective("webrtc")
+	directive, found := csp.GetDirective(DirectiveNameWebrtc)
 	if !found {
 		return nil
 	}
@@ -840,7 +870,7 @@ func (csp *ContentSecurityPolicy) GetWebrtc() *WebrtcDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetReportUri() *ReportUriDirective {
-	directive, found := csp.GetDirective("report-uri")
+	directive, found := csp.GetDirective(DirectiveNameReportUri)
 	if !found {
 		return nil
 	}
@@ -848,7 +878,7 @@ func (csp *ContentSecurityPolicy) GetReportUri() *ReportUriDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetReportTo() *ReportToDirective {
-	directive, found := csp.GetDirective("report-to")
+	directive, found := csp.GetDirective(DirectiveNameReportTo)
 	if !found {
 		return nil
 	}
@@ -856,7 +886,7 @@ func (csp *ContentSecurityPolicy) GetReportTo() *ReportToDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetFrameAncestors() *FrameAncestorsDirective {
-	directive, found := csp.GetDirective("frame-ancestors")
+	directive, found := csp.GetDirective(DirectiveNameFrameAncestors)
 	if !found {
 		return nil
 	}
@@ -864,7 +894,7 @@ func (csp *ContentSecurityPolicy) GetFrameAncestors() *FrameAncestorsDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetUpgradeInsecureRequests() *UpgradeInsecureRequestsDirective {
-	directive, found := csp.GetDirective("upgrade-insecure-requests")
+	directive, found := csp.GetDirective(DirectiveNameUpgradeInsecureRequests)
 	if !found {
 		return nil
 	}
@@ -872,7 +902,7 @@ func (csp *ContentSecurityPolicy) GetUpgradeInsecureRequests() *UpgradeInsecureR
 }
 
 func (csp *ContentSecurityPolicy) GetRequireSriFor() *RequireSriForDirective {
-	directive, found := csp.GetDirective("require-sri-for")
+	directive, found := csp.GetDirective(DirectiveNameRequireSriFor)
 	if !found {
 		return nil
 	}
@@ -880,7 +910,7 @@ func (csp *ContentSecurityPolicy) GetRequireSriFor() *RequireSriForDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetTrustedTypes() *TrustedTypesDirective {
-	directive, found := csp.GetDirective("trusted-types")
+	directive, found := csp.GetDirective(DirectiveNameTrustedTypes)
 	if !found {
 		return nil
 	}
@@ -888,7 +918,7 @@ func (csp *ContentSecurityPolicy) GetTrustedTypes() *TrustedTypesDirective {
 }
 
 func (csp *ContentSecurityPolicy) GetRequireTrustedTypesFor() *RequireTrustedTypesForDirective {
-	directive, found := csp.GetDirective("require-trusted-types-for")
+	directive, found := csp.GetDirective(DirectiveNameRequireTrustedTypesFor)
 	if !found {
 		return nil
 	}

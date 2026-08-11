@@ -51,7 +51,7 @@ func TestParseAuthorization(t *testing.T) {
 		{
 			name:  "scheme with jws token68",
 			input: []byte("Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.Q70dVMtrOQzEFmGOxPAKbNOUSQMISCLhEDfGpMG0WM4"),
-			expected: &motmedelHttpTypes.Authorization{
+			expected: &motmedelHttpTypes.Authorization{ //nolint:gosec // G101: hard-coded JWT is inert test data.
 				Scheme:  "Bearer",
 				Token68: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.Q70dVMtrOQzEFmGOxPAKbNOUSQMISCLhEDfGpMG0WM4",
 			},

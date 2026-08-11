@@ -3,6 +3,7 @@ package tar
 import (
 	"archive/tar"
 	"bytes"
+	"errors"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	motmedelTarTypes "github.com/Motmedel/utils_go/pkg/tar/types"
 	"io"
@@ -19,7 +20,7 @@ func MakeArchiveFromReader(reader io.Reader) (motmedelTarTypes.Archive, error) {
 	for {
 		header, err := tarReader.Next()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, &motmedelErrors.Error{

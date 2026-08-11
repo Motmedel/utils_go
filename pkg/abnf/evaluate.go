@@ -44,7 +44,7 @@ func evaluateGrammar(input []byte, path *Path) (*Grammar, error) {
 				definedAsPath = definedAsPath.Subpaths[1]
 			}
 
-			switch strings.TrimSpace(string(input[definedAsPath.Start:definedAsPath.End])) {
+			switch strings.TrimSpace(string(input[definedAsPath.Start:definedAsPath.End])) { //nolint:nilaway // False positive rooted in //go:embed byte slices treated as nilable; a nil grammar never reaches here.
 			case "=":
 				if rulemap[lowerName] != nil {
 					return nil, &DuplicatedRuleError{Rulename: rule.Name}

@@ -99,6 +99,7 @@ func retryWaitDuration(
 	return waitDuration, false
 }
 
+//nolint:contextcheck // The logging context is deliberately detached from the caller context (which may be cancelled) while still carrying the HTTP metadata.
 func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config.Config) (*http.Response, []byte, error) {
 	if request == nil {
 		return nil, nil, nil

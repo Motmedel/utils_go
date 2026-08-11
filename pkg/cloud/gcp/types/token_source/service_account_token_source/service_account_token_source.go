@@ -54,7 +54,7 @@ func parsePrivateKey(pemData string) (*rsa.PrivateKey, error) {
 }
 
 type TokenSource struct {
-	ctx          context.Context
+	ctx          context.Context //nolint:containedctx // The TokenSource interface takes no context; the construction context is deliberately captured (same pattern as x/oauth2).
 	clientEmail  string
 	privateKeyID string
 	privateKey   *rsa.PrivateKey

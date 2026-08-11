@@ -59,6 +59,7 @@ type baseMux struct {
 	ProblemDetailConverter  muxTypesResponseError.ProblemDetailConverter
 }
 
+//nolint:contextcheck,fatcontext // The request context is deliberately extended and reassigned via request.WithContext; contextcheck cannot track the chain, and the loop builds one derived context from the configured pairs.
 func (bm *baseMux) ServeHttpWithCallback(
 	originalResponseWriter http.ResponseWriter,
 	request *http.Request,
@@ -144,7 +145,8 @@ func (bm *baseMux) ServeHttpWithCallback(
 		verdict, firewallResponseError = firewallParser.Parse(request)
 	}
 
-	if verdict == muxTypesFirewall.Drop {
+	switch verdict {
+	case muxTypesFirewall.Drop:
 		hijacker, ok := originalResponseWriter.(http.Hijacker)
 		if ok {
 			connection, _, err := hijacker.Hijack()
@@ -177,14 +179,14 @@ func (bm *baseMux) ServeHttpWithCallback(
 
 		// Trigger a termination of the connection.
 		panic(http.ErrAbortHandler)
-	} else if verdict == muxTypesFirewall.Reject {
+	case muxTypesFirewall.Reject:
 		if firewallResponseError == nil {
 			firewallResponseError = &muxTypesResponseError.ResponseError{
 				ProblemDetail: problem_detail.New(http.StatusForbidden),
 			}
 		}
 		responseErrorHandler(motmedelHttpContext.WithHttpContextValue(request.Context(), httpContext), firewallResponseError, responseWriter)
-	} else {
+	default:
 		for _, middleware := range bm.Middleware {
 			if middleware != nil {
 				if middlewareRequest := middleware(request); middlewareRequest != nil {

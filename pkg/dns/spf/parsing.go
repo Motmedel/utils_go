@@ -99,7 +99,7 @@ func ParseSpfRecord(data []byte) (*Record, error) {
 			mechanismPath := abnfUtils.SearchPathSingleName(termPath, "mechanism", 1, false)
 			if mechanismPath != nil {
 				mechanismPair := strings.SplitN(string(abnfUtils.ExtractPathValue(data, mechanismPath)), ":", 2)
-				directive.Mechanism = &Mechanism{Label: mechanismPair[0]}
+				directive.Mechanism = &Mechanism{Label: mechanismPair[0]} //nolint:nilaway // strings.SplitN never returns nil for a non-zero count.
 				if len(mechanismPair) == 2 {
 					directive.Mechanism.Value = mechanismPair[1]
 				}

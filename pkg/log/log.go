@@ -80,7 +80,7 @@ func (extractor *ErrorContextExtractor) MakeErrorAttrs(err error) []any {
 
 	var attrs []any
 
-	switch err.(type) {
+	switch err.(type) { //nolint:errorlint // Deliberate: attrs describe this exact error; wrapped causes are handled level-by-level via CollectWrappedErrors.
 	case *motmedelErrors.Error:
 		break
 	case *motmedelErrors.ExtendedError:
@@ -94,7 +94,7 @@ func (extractor *ErrorContextExtractor) MakeErrorAttrs(err error) []any {
 		}
 	}
 
-	if inputError, ok := err.(motmedelErrors.InputErrorI); ok && !extractor.SkipInput {
+	if inputError, ok := err.(motmedelErrors.InputErrorI); ok && !extractor.SkipInput { //nolint:errorlint // Deliberate: attrs describe this exact error, not its wrapped causes.
 		if input := inputError.GetInput(); input != nil {
 			var inputSlice []any
 			var typeName string
@@ -176,25 +176,25 @@ func (extractor *ErrorContextExtractor) MakeErrorAttrs(err error) []any {
 		}
 	}
 
-	if codeError, ok := err.(motmedelErrors.CodeErrorI); ok {
+	if codeError, ok := err.(motmedelErrors.CodeErrorI); ok { //nolint:errorlint // Deliberate: attrs describe this exact error, not its wrapped causes.
 		if code := codeError.GetCode(); code != "" {
 			attrs = append(attrs, slog.String("code", code))
 		}
 	}
 
-	if idError, ok := err.(motmedelErrors.IdErrorI); ok {
+	if idError, ok := err.(motmedelErrors.IdErrorI); ok { //nolint:errorlint // Deliberate: attrs describe this exact error, not its wrapped causes.
 		if id := idError.GetId(); id != "" {
 			attrs = append(attrs, slog.String("id", id))
 		}
 	}
 
-	if stackTraceError, ok := err.(motmedelErrors.StackTraceErrorI); ok && !extractor.SkipStackTrace {
+	if stackTraceError, ok := err.(motmedelErrors.StackTraceErrorI); ok && !extractor.SkipStackTrace { //nolint:errorlint // Deliberate: attrs describe this exact error, not its wrapped causes.
 		if stackTrace := stackTraceError.GetStackTrace(); stackTrace != "" {
 			attrs = append(attrs, slog.String("stack_trace", stackTrace))
 		}
 	}
 
-	if execExitError, ok := err.(*exec.ExitError); ok {
+	if execExitError, ok := err.(*exec.ExitError); ok { //nolint:errorlint // Deliberate: attrs describe this exact error, not its wrapped causes.
 		exitCode := execExitError.ExitCode()
 		if exitCode != 0 {
 			attrs = append(attrs, slog.String("code", strconv.Itoa(exitCode)))
@@ -234,7 +234,7 @@ func (extractor *ErrorContextExtractor) Handle(ctx context.Context, record *slog
 				var metadataRecord slog.Record
 
 				for _, contextExtractor := range extractor.ContextExtractors {
-					if err := contextExtractor.Handle(contextErrCtx, &metadataRecord); err != nil {
+					if err := contextExtractor.Handle(contextErrCtx, &metadataRecord); err != nil { //nolint:contextcheck // Deliberate: the context attached to the error is the one to extract metadata from.
 						return fmt.Errorf("context extractor handle: %w", err)
 					}
 

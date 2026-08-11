@@ -18,24 +18,24 @@ import (
 var grammar []byte
 
 var sourceListDirectiveNames = map[string]struct{}{
-	"base-uri":        {},
-	"child-src":       {},
-	"connect-src":     {},
-	"default-src":     {},
-	"font-src":        {},
-	"form-action":     {},
-	"frame-src":       {},
-	"img-src":         {},
-	"manifest-src":    {},
-	"media-src":       {},
-	"object-src":      {},
-	"script-src":      {},
-	"script-src-attr": {},
-	"script-src-elem": {},
-	"style-src":       {},
-	"style-src-attr":  {},
-	"style-src-elem":  {},
-	"worker-src":      {},
+	DirectiveNameBaseUri:       {},
+	DirectiveNameChildSrc:      {},
+	DirectiveNameConnectSrc:    {},
+	DirectiveNameDefaultSrc:    {},
+	DirectiveNameFontSrc:       {},
+	DirectiveNameFormAction:    {},
+	DirectiveNameFrameSrc:      {},
+	DirectiveNameImgSrc:        {},
+	DirectiveNameManifestSrc:   {},
+	DirectiveNameMediaSrc:      {},
+	DirectiveNameObjectSrc:     {},
+	DirectiveNameScriptSrc:     {},
+	DirectiveNameScriptSrcAttr: {},
+	DirectiveNameScriptSrcElem: {},
+	DirectiveNameStyleSrc:      {},
+	DirectiveNameStyleSrcAttr:  {},
+	DirectiveNameStyleSrcElem:  {},
+	DirectiveNameWorkerSrc:     {},
 }
 
 var Grammar *abnf.Grammar
@@ -262,29 +262,29 @@ func Parse(data []byte) (*ContentSecurityPolicy, error) {
 		sourceDirective := SourceDirective{ParsedDirective: parsedDirective, Sources: sources}
 
 		switch lowercaseDirectiveName {
-		case "base-uri":
+		case DirectiveNameBaseUri:
 			directive = &BaseUriDirective{SourceDirective: sourceDirective}
-		case "child-src":
+		case DirectiveNameChildSrc:
 			directive = &ChildSrcDirective{SourceDirective: sourceDirective}
-		case "connect-src":
+		case DirectiveNameConnectSrc:
 			directive = &ConnectSrcDirective{SourceDirective: sourceDirective}
-		case "default-src":
+		case DirectiveNameDefaultSrc:
 			directive = &DefaultSrcDirective{SourceDirective: sourceDirective}
-		case "font-src":
+		case DirectiveNameFontSrc:
 			directive = &FontSrcDirective{SourceDirective: sourceDirective}
-		case "form-action":
+		case DirectiveNameFormAction:
 			directive = &FormActionDirective{SourceDirective: sourceDirective}
-		case "frame-src":
+		case DirectiveNameFrameSrc:
 			directive = &FrameSrcDirective{SourceDirective: sourceDirective}
-		case "img-src":
+		case DirectiveNameImgSrc:
 			directive = &ImgSrcDirective{SourceDirective: sourceDirective}
-		case "manifest-src":
+		case DirectiveNameManifestSrc:
 			directive = &ManifestSrcDirective{SourceDirective: sourceDirective}
-		case "media-src":
+		case DirectiveNameMediaSrc:
 			directive = &MediaSrcDirective{SourceDirective: sourceDirective}
-		case "object-src":
+		case DirectiveNameObjectSrc:
 			directive = &ObjectSrcDirective{SourceDirective: sourceDirective}
-		case "require-sri-for":
+		case DirectiveNameRequireSriFor:
 			resourceTypes := bytes.Split(directiveValue, []byte(" "))
 			var trimmedResourceTypes []string
 			for _, resourceType := range resourceTypes {
@@ -299,23 +299,23 @@ func Parse(data []byte) (*ContentSecurityPolicy, error) {
 				ParsedDirective: parsedDirective,
 				ResourceTypes:   trimmedResourceTypes,
 			}
-		case "script-src":
+		case DirectiveNameScriptSrc:
 			directive = &ScriptSrcDirective{SourceDirective: sourceDirective}
-		case "script-src-attr":
+		case DirectiveNameScriptSrcAttr:
 			directive = &ScriptSrcAttrDirective{SourceDirective: sourceDirective}
-		case "script-src-elem":
+		case DirectiveNameScriptSrcElem:
 			directive = &ScriptSrcElemDirective{SourceDirective: sourceDirective}
-		case "style-src":
+		case DirectiveNameStyleSrc:
 			directive = &StyleSrcDirective{SourceDirective: sourceDirective}
-		case "style-src-attr":
+		case DirectiveNameStyleSrcAttr:
 			directive = &StyleSrcAttrDirective{SourceDirective: sourceDirective}
-		case "style-src-elem":
+		case DirectiveNameStyleSrcElem:
 			directive = &StyleSrcElemDirective{SourceDirective: sourceDirective}
-		case "upgrade-insecure-requests":
+		case DirectiveNameUpgradeInsecureRequests:
 			directive = &UpgradeInsecureRequestsDirective{ParsedDirective: parsedDirective}
-		case "worker-src":
+		case DirectiveNameWorkerSrc:
 			directive = &WorkerSrcDirective{SourceDirective: sourceDirective}
-		case "sandbox":
+		case DirectiveNameSandbox:
 			sandboxDirective := &SandboxDirective{ParsedDirective: parsedDirective}
 
 			sandboxDirectiveValuePaths, err := abnf.Parse(
@@ -344,7 +344,7 @@ func Parse(data []byte) (*ContentSecurityPolicy, error) {
 				)
 			}
 			directive = sandboxDirective
-		case "webrtc":
+		case DirectiveNameWebrtc:
 			// Per CSP3 the value is the quoted keyword 'allow' or 'block'; directive-value retains the quotes.
 			rawValue := parsedDirective.Value
 			if rawValue != "'allow'" && rawValue != "'block'" {
@@ -358,7 +358,7 @@ func Parse(data []byte) (*ContentSecurityPolicy, error) {
 				Value:           strings.Trim(rawValue, "'"),
 			}
 			directive = webrtcDirective
-		case "report-uri":
+		case DirectiveNameReportUri:
 			reportUriDirective := &ReportUriDirective{ParsedDirective: parsedDirective}
 
 			reportUriDirectivePaths, err := abnf.Parse(directiveValue, Grammar, "report-uri-directive-value-root")
@@ -396,7 +396,7 @@ func Parse(data []byte) (*ContentSecurityPolicy, error) {
 				)
 			}
 			directive = reportUriDirective
-		case "frame-ancestors":
+		case DirectiveNameFrameAncestors:
 			frameAncestorsDirective := &FrameAncestorsDirective{SourceDirective: sourceDirective}
 			if bytes.Equal(directiveValue, []byte("'none'")) {
 				sources = []SourceI{
@@ -437,10 +437,10 @@ func Parse(data []byte) (*ContentSecurityPolicy, error) {
 
 			frameAncestorsDirective.Sources = sources
 			directive = frameAncestorsDirective
-		case "report-to":
+		case DirectiveNameReportTo:
 			reportToDirective := &ReportToDirective{ParsedDirective: parsedDirective, Token: parsedDirective.Value}
 			directive = reportToDirective
-		case "require-trusted-types-for":
+		case DirectiveNameRequireTrustedTypesFor:
 			requireTrustedTypesForDirective := &RequireTrustedTypesForDirective{
 				ParsedDirective: parsedDirective,
 			}
@@ -466,7 +466,7 @@ func Parse(data []byte) (*ContentSecurityPolicy, error) {
 				)
 			}
 			directive = requireTrustedTypesForDirective
-		case "trusted-types":
+		case DirectiveNameTrustedTypes:
 			trustedTypesDirective := &TrustedTypesDirective{ParsedDirective: parsedDirective}
 
 			trustedTypesDirectiveValuePaths, err := abnf.Parse(directiveValue, Grammar, "trusted-types-directive-value-root")

@@ -33,7 +33,7 @@ const (
 // (held by the signer) rather than a downloaded key. The signed assertion is then
 // exchanged for an access token at the OAuth token endpoint.
 type TokenSource struct {
-	ctx                  context.Context
+	ctx                  context.Context //nolint:containedctx // The TokenSource interface takes no context; the construction context is deliberately captured (same pattern as x/oauth2).
 	iamCredentialsClient *iam_credentials.Client
 	signerSource         token_source.TokenSource
 	saEmail              string

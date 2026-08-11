@@ -52,7 +52,6 @@ func TestParseAcceptCorpus(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		c := c
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 
@@ -70,7 +69,7 @@ func TestParseAcceptCorpus(t *testing.T) {
 	}
 }
 
-// Helper used by correctness tests
+// Helper used by correctness tests.
 func floatEq(a, b float32) bool {
 	return math.Abs(float64(a-b)) < 1e-6
 }

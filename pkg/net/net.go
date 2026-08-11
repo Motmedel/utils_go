@@ -52,7 +52,7 @@ func GetIpVersion(ip *net.IP) int {
 	}
 }
 
-// Calculate the last address in the network
+// Calculate the last address in the network.
 func lastAddress(network net.IPNet) net.IP {
 	ip := network.IP.To16()
 	if ip == nil {
@@ -168,7 +168,7 @@ func GetStartEndCidr(startIpAddress *net.IP, endIpAddress *net.IP, checkBoundary
 	return network.String(), nil
 }
 
-// IntToIpv4 converts IPv4 number to net.IP
+// IntToIpv4 converts IPv4 number to net.IP.
 func IntToIpv4(ipNum uint32) net.IP {
 	ip := make(net.IP, 4)
 	binary.BigEndian.PutUint32(ip, ipNum)

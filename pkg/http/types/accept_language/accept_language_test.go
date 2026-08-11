@@ -31,7 +31,6 @@ func TestParseAcceptLanguageCorpus(t *testing.T) {
 		"en ; q=1.0, fr ;q=0.5",
 	}
 	for _, c := range cases {
-		c := c
 		t.Run(c, func(t *testing.T) {
 			t.Parallel()
 
@@ -54,6 +53,8 @@ func feq(a, b float32) bool { return math.Abs(float64(a-b)) < 1e-6 }
 
 // Verify parsed language tags and q-values for representative headers.
 func TestParseAcceptLanguageCorrectness(t *testing.T) {
+	t.Parallel()
+
 	type exp struct {
 		primary string
 		subtag  string

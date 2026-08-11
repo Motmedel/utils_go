@@ -64,7 +64,7 @@ func ParseDmarcRecord(data []byte) (*Record, error) {
 
 	for _, termPath := range abnfUtils.SearchPath(paths[0], keyValueNames, 1, false) {
 		keyValuePair := strings.SplitN(string(abnfUtils.ExtractPathValue(data, termPath)), "=", 2)
-		key := strings.ToLower(strings.TrimSpace(keyValuePair[0]))
+		key := strings.ToLower(strings.TrimSpace(keyValuePair[0])) //nolint:nilaway // strings.SplitN never returns nil for a non-zero count.
 		value := strings.TrimSpace(keyValuePair[1])
 
 		field, ok := fields[key]

@@ -155,7 +155,7 @@ func (s *Schema) decodeTop(dec *jsontext.Decoder) (*Vocabulary, error) {
 		if name == SchemaKeyword.Name {
 			continue
 		}
-		valueDecoder := jsontext.NewDecoder(bytes.NewReader(raws[i]), jsontext.AllowDuplicateNames(false))
+		valueDecoder := jsontext.NewDecoder(bytes.NewReader(raws[i]), jsontext.AllowDuplicateNames(false)) //nolint:nilaway // ReadValue returns a non-nil value when err is nil, and bytes.NewReader accepts nil regardless.
 		if err := s.addKeywordFromDecoder(name, valueDecoder, vocabulary); err != nil {
 			return nil, err
 		}

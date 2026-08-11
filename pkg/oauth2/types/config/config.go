@@ -21,6 +21,8 @@ import (
 	"github.com/Motmedel/utils_go/pkg/oauth2/types/transport"
 )
 
+const paramGrantType = "grant_type"
+
 type Config struct {
 	ClientID     string
 	ClientSecret string
@@ -64,8 +66,8 @@ func (c *Config) AuthCodeURL(state string, opts ...auth_code_option.AuthCodeOpti
 
 func (c *Config) Exchange(ctx context.Context, code string, opts ...auth_code_option.AuthCodeOption) (*token.Token, error) {
 	v := url.Values{
-		"grant_type": {"authorization_code"},
-		"code":       {code},
+		paramGrantType: {"authorization_code"},
+		"code":         {code},
 	}
 	if c.RedirectURL != "" {
 		v.Set("redirect_uri", c.RedirectURL)
@@ -79,9 +81,9 @@ func (c *Config) Exchange(ctx context.Context, code string, opts ...auth_code_op
 
 func (c *Config) PasswordCredentialsToken(ctx context.Context, username, password string) (*token.Token, error) {
 	v := url.Values{
-		"grant_type": {"password"},
-		"username":   {username},
-		"password":   {password},
+		paramGrantType: {"password"},
+		"username":     {username},
+		"password":     {password},
 	}
 	if len(c.Scopes) > 0 {
 		v.Set("scope", strings.Join(c.Scopes, " "))
@@ -92,7 +94,7 @@ func (c *Config) PasswordCredentialsToken(ctx context.Context, username, passwor
 
 func (c *Config) ClientCredentialsToken(ctx context.Context) (*token.Token, error) {
 	v := url.Values{
-		"grant_type": {"client_credentials"},
+		paramGrantType: {"client_credentials"},
 	}
 	if len(c.Scopes) > 0 {
 		v.Set("scope", strings.Join(c.Scopes, " "))
@@ -159,6 +161,8 @@ func (c *Config) doRetrieveToken(ctx context.Context, v url.Values, authStyle en
 		if c.ClientSecret != "" {
 			v.Set("client_secret", c.ClientSecret)
 		}
+	default:
+		// AuthStyleAutoDetect is resolved by retrieveToken before this is called.
 	}
 
 	body := []byte(v.Encode())
@@ -248,7 +252,7 @@ func (c *Config) doRetrieveToken(ctx context.Context, v url.Values, authStyle en
 }
 
 type tokenRefresher struct {
-	ctx          context.Context
+	ctx          context.Context //nolint:containedctx // The TokenSource interface takes no context; the construction context is deliberately captured (same pattern as x/oauth2).
 	conf         *Config
 	refreshToken string
 }
@@ -259,7 +263,7 @@ func (tf *tokenRefresher) Token() (*token.Token, error) {
 	}
 
 	v := url.Values{
-		"grant_type":    {"refresh_token"},
+		paramGrantType:  {"refresh_token"},
 		"refresh_token": {tf.refreshToken},
 	}
 	if len(tf.conf.Scopes) > 0 {

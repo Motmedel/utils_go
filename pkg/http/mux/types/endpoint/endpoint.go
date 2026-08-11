@@ -331,7 +331,7 @@ func NewFromDirectory(rootPath string, addContentEncodingData bool, private bool
 				return nil
 			default:
 				errGroup.Go(
-					func() error {
+					func() error { //nolint:contextcheck // NewFromDataPath's API deliberately takes no context; errGroupCtx is only used for cancellation checks here.
 						data, err := os.ReadFile(path)
 						if err != nil {
 							return motmedelErrors.NewWithTrace(fmt.Errorf("read file: %w", err), path)

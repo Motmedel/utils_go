@@ -40,9 +40,16 @@
 package publicsuffix
 
 import (
+	"errors"
 	"fmt"
 	"net/http/cookiejar"
 	"strings"
+)
+
+var (
+	ErrEmptyLabel              = errors.New("empty label in domain")
+	ErrCannotDeriveEtldPlusOne = errors.New("cannot derive eTLD+1")
+	ErrInvalidPublicSuffix     = errors.New("invalid public suffix")
 )
 
 // List implements the cookiejar.PublicSuffixList interface by calling the
@@ -158,16 +165,16 @@ func nodeLabel(i uint32) string {
 // label. For example, the eTLD+1 for "foo.bar.golang.org" is "golang.org".
 func EffectiveTLDPlusOne(domain string) (string, error) {
 	if strings.HasPrefix(domain, ".") || strings.HasSuffix(domain, ".") || strings.Contains(domain, "..") {
-		return "", fmt.Errorf("publicsuffix: empty label in domain %q", domain)
+		return "", fmt.Errorf("%w %q", ErrEmptyLabel, domain)
 	}
 
 	suffix, _ := PublicSuffix(domain)
 	if len(domain) <= len(suffix) {
-		return "", fmt.Errorf("publicsuffix: cannot derive eTLD+1 for domain %q", domain)
+		return "", fmt.Errorf("%w for domain %q", ErrCannotDeriveEtldPlusOne, domain)
 	}
 	i := len(domain) - len(suffix) - 1
 	if domain[i] != '.' {
-		return "", fmt.Errorf("publicsuffix: invalid public suffix %q for domain %q", suffix, domain)
+		return "", fmt.Errorf("%w %q for domain %q", ErrInvalidPublicSuffix, suffix, domain)
 	}
 	return domain[1+strings.LastIndexByte(domain[:i], '.'):], nil
 }

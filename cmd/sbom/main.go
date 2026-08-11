@@ -99,7 +99,7 @@ func run() error {
 	}
 
 	if outputPath != "" {
-		if err := os.WriteFile(outputPath, output, 0644); err != nil {
+		if err := os.WriteFile(outputPath, output, 0600); err != nil { //nolint:gosec // G703: writing to the user-chosen output path is the CLI's purpose.
 			return &motmedelErrors.Error{
 				Message: "An error occurred when writing the output file.",
 				Cause:   err,

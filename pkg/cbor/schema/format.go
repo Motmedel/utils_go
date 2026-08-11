@@ -9,6 +9,10 @@ import (
 // FormatValidator validates a text value against a named format.
 type FormatValidator func(value string) error
 
+// ErrNotBareAddress reports an email value with anything besides the address
+// itself, e.g. a display name ("Name <user@example.com>").
+var ErrNotBareAddress = errors.New("not a bare address")
+
 var formatRegistry = map[string]FormatValidator{
 	"email": validateEmail,
 }
@@ -26,7 +30,7 @@ func validateEmail(value string) error {
 
 	// Reject forms with a display name ("Name <user@example.com>").
 	if address.Address != value {
-		return errors.New("not a bare address")
+		return ErrNotBareAddress
 	}
 
 	return nil

@@ -13,16 +13,16 @@ func extractDirectiveValue(effectiveDirective string, originalPolicy string) str
 		return effectiveDirective
 	}
 
-	for _, part := range strings.Split(originalPolicy, ";") {
+	for part := range strings.SplitSeq(originalPolicy, ";") {
 		trimmed := strings.TrimSpace(part)
 		if trimmed == effectiveDirective || strings.HasPrefix(trimmed, effectiveDirective+" ") {
 			return trimmed
 		}
 	}
 
-	for _, part := range strings.Split(originalPolicy, ";") {
+	for part := range strings.SplitSeq(originalPolicy, ";") {
 		trimmed := strings.TrimSpace(part)
-		if trimmed == "default-src" || strings.HasPrefix(trimmed, "default-src ") {
+		if trimmed == DirectiveNameDefaultSrc || strings.HasPrefix(trimmed, DirectiveNameDefaultSrc+" ") {
 			return trimmed
 		}
 	}
@@ -32,7 +32,7 @@ func extractDirectiveValue(effectiveDirective string, originalPolicy string) str
 
 func isStyleDirective(directive string) bool {
 	switch directive {
-	case "style-src", "style-src-elem", "style-src-attr":
+	case DirectiveNameStyleSrc, DirectiveNameStyleSrcElem, DirectiveNameStyleSrcAttr:
 		return true
 	}
 	return false
@@ -40,7 +40,7 @@ func isStyleDirective(directive string) bool {
 
 func isScriptDirective(directive string) bool {
 	switch directive {
-	case "script-src", "script-src-elem":
+	case DirectiveNameScriptSrc, DirectiveNameScriptSrcElem:
 		return true
 	}
 	return false
@@ -48,25 +48,25 @@ func isScriptDirective(directive string) bool {
 
 func cspDirectiveResourceDescription(directive string) string {
 	switch directive {
-	case "img-src":
+	case DirectiveNameImgSrc:
 		return "an image"
-	case "font-src":
+	case DirectiveNameFontSrc:
 		return "a font"
-	case "connect-src":
+	case DirectiveNameConnectSrc:
 		return "a connection"
-	case "media-src":
+	case DirectiveNameMediaSrc:
 		return "media"
-	case "object-src":
+	case DirectiveNameObjectSrc:
 		return "an object"
-	case "frame-src":
+	case DirectiveNameFrameSrc:
 		return "a frame"
-	case "child-src":
+	case DirectiveNameChildSrc:
 		return "a child resource"
-	case "manifest-src":
+	case DirectiveNameManifestSrc:
 		return "a manifest"
-	case "base-uri":
+	case DirectiveNameBaseUri:
 		return "a base URI"
-	case "form-action":
+	case DirectiveNameFormAction:
 		return "a form action"
 	default:
 		return "a resource"
@@ -88,14 +88,14 @@ func cspViolationMessage(effectiveDirective, originalPolicy, blockedURL string, 
 
 	switch {
 	// Trusted Types sink assignment (require-trusted-types-for)
-	case effectiveDirective == "require-trusted-types-for":
+	case effectiveDirective == DirectiveNameRequireTrustedTypesFor:
 		return fmt.Sprintf(
 			`%sThe page's settings %s assigning to an injection sink because it violates the following directive: "require-trusted-types-for 'script'"`,
 			prefix, blocked,
 		)
 
 	// Trusted Types policy creation
-	case effectiveDirective == "trusted-types":
+	case effectiveDirective == DirectiveNameTrustedTypes:
 		return fmt.Sprintf(
 			"%sThe page's settings %s creating a Trusted Types policy %s",
 			prefix, blocked, violates,
@@ -109,7 +109,7 @@ func cspViolationMessage(effectiveDirective, originalPolicy, blockedURL string, 
 				"%sThe page's settings %s an inline style from being applied %s",
 				prefix, blocked, violates,
 			)
-		case effectiveDirective == "script-src-attr":
+		case effectiveDirective == DirectiveNameScriptSrcAttr:
 			return fmt.Sprintf(
 				"%sThe page's settings %s an event handler from being executed %s",
 				prefix, blocked, violates,
@@ -143,12 +143,12 @@ func cspViolationMessage(effectiveDirective, originalPolicy, blockedURL string, 
 				"%sThe page's settings %s a style at %s from being applied %s",
 				prefix, blocked, blockedURL, violates,
 			)
-		case isScriptDirective(effectiveDirective) || effectiveDirective == "script-src-attr":
+		case isScriptDirective(effectiveDirective) || effectiveDirective == DirectiveNameScriptSrcAttr:
 			return fmt.Sprintf(
 				"%sThe page's settings %s a script at %s from being executed %s",
 				prefix, blocked, blockedURL, violates,
 			)
-		case effectiveDirective == "worker-src":
+		case effectiveDirective == DirectiveNameWorkerSrc:
 			return fmt.Sprintf(
 				"%sThe page's settings %s a worker script at %s from being executed %s",
 				prefix, blocked, blockedURL, violates,

@@ -11,7 +11,10 @@ import (
 )
 
 func ExtractPathValue(input []byte, path *abnf.Path) []byte {
-	return input[path.Start:path.End]
+	if path == nil {
+		return nil
+	}
+	return input[path.Start:path.End] //nolint:nilaway // A nil input only co-occurs with zero path bounds, and slicing a nil slice at zero is valid.
 }
 
 func searchPath(path *abnf.Path, names []string, maxDepth int, searchMatch bool, maxPaths int) []*abnf.Path {

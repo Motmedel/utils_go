@@ -246,7 +246,6 @@ func TestParseHeader(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestExtractTagPath(t *testing.T) {

@@ -53,7 +53,7 @@ func MakeTextualRepresentation(value any) (string, error) {
 	}
 }
 
-// quote returns a shell-escaped version of the string s
+// quote returns a shell-escaped version of the string s.
 func quote(s string) string {
 	if s == "" {
 		return "''"
@@ -66,7 +66,7 @@ func quote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'"
 }
 
-// isSafe checks if all characters in the string are safe
+// isSafe checks if all characters in the string are safe.
 func isSafe(s string) bool {
 	for _, r := range s {
 		if !unicode.IsLetter(r) && !unicode.IsDigit(r) &&
@@ -77,7 +77,7 @@ func isSafe(s string) bool {
 	return true
 }
 
-// ShellJoin constructs a shell-quoted string from a list of tokens (ported from Python)
+// ShellJoin constructs a shell-quoted string from a list of tokens (ported from Python).
 func ShellJoin(args []string) string {
 	var quotedArgs []string
 	for _, arg := range args {

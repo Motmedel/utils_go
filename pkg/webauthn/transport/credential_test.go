@@ -12,6 +12,8 @@ import (
 )
 
 // A real authentication ceremony response for rp id "alt-shift.se".
+//
+//nolint:gosec // G101: public ceremony output used as a test fixture, not a credential.
 const assertionCredentialJson = `
 	{
 	  "authenticatorAttachment": "platform",
@@ -30,6 +32,8 @@ const assertionCredentialJson = `
 
 // A real registration ceremony response for the same rp id. The publicKey and
 // publicKeyAlgorithm fields match the COSE key within the attestation object.
+//
+//nolint:gosec // G101: public ceremony output used as a test fixture, not a credential.
 const attestationCredentialJson = `
 	{
 	  "authenticatorAttachment": "platform",
