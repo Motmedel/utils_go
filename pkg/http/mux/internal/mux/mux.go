@@ -118,8 +118,10 @@ func HandleFetchMetadata(requestHeader http.Header, method string) *muxTypesResp
 		}
 	}
 
-	// NOTE: This check is opinionated; embedding is not allowed. For custom fetch metadata logic, disable this
-	// check and implement your own in the firewall configuration e.g., plus add the `Vary` header.
+	// NOTE: This check is opinionated; embedding is not allowed — cross-site iframe/frame navigations are
+	// rejected here in addition to being blocked by the default `frame-ancestors 'none'`. For custom fetch
+	// metadata logic, disable this check and implement your own in the firewall configuration e.g., plus add
+	// the `Vary` header.
 
 	fetchSite := requestHeader.Get("Sec-Fetch-Site")
 	if fetchSite == "" || fetchSite == "same-origin" || fetchSite == "same-site" || fetchSite == "none" {
@@ -128,7 +130,9 @@ func HandleFetchMetadata(requestHeader http.Header, method string) *muxTypesResp
 
 	fetchMode := requestHeader.Get("Sec-Fetch-Mode")
 	fetchDest := requestHeader.Get("Sec-Fetch-Dest")
-	if fetchMode == "navigate" && fetchDest == "document" && method == http.MethodGet {
+	// Top-level navigations only. The spec value is "document", but browsers emit "empty" in some
+	// legitimate flows (observed: Chrome on the navigation completing a Google IAP sign-in redirect).
+	if fetchMode == "navigate" && (fetchDest == "document" || fetchDest == "empty") && method == http.MethodGet {
 		return nil
 	}
 

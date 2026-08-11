@@ -58,9 +58,30 @@ func TestHandleFetchMetadata(t *testing.T) {
 			method: http.MethodGet,
 		},
 		{
+			name: "cross-site top-level navigation with empty dest",
+			header: http.Header{
+				"Sec-Fetch-Site": {"cross-site"},
+				"Sec-Fetch-Mode": {"navigate"},
+				"Sec-Fetch-Dest": {"empty"},
+			},
+			method: http.MethodGet,
+		},
+		{
 			name:       "cross-site navigation but not GET",
 			header:     http.Header{"Sec-Fetch-Site": {"cross-site"}, "Sec-Fetch-Mode": {"navigate"}, "Sec-Fetch-Dest": {"document"}},
 			method:     http.MethodPost,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "cross-site iframe navigation",
+			header:     http.Header{"Sec-Fetch-Site": {"cross-site"}, "Sec-Fetch-Mode": {"navigate"}, "Sec-Fetch-Dest": {"iframe"}},
+			method:     http.MethodGet,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "cross-site frame navigation",
+			header:     http.Header{"Sec-Fetch-Site": {"cross-site"}, "Sec-Fetch-Mode": {"navigate"}, "Sec-Fetch-Dest": {"frame"}},
+			method:     http.MethodGet,
 			wantStatus: http.StatusForbidden,
 		},
 		{
