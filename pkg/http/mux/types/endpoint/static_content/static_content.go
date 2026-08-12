@@ -14,4 +14,8 @@ type StaticContentData struct {
 type StaticContent struct {
 	StaticContentData
 	ContentEncodingToData map[string]*StaticContentData
+	// InlineScriptHashes holds Content Security Policy hash sources (e.g.
+	// "sha256-<base64>") of inline scripts occurring in HTML content, to be
+	// merged into the effective script-src directive when responding.
+	InlineScriptHashes []string
 }

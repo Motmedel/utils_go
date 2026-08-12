@@ -424,7 +424,10 @@ func ObtainStaticContentResponse(
 	}
 
 	// NOTE: It is up to the user to provide the `Vary` header.
-	response := &muxTypesResponse.Response{Headers: staticContent.Headers}
+	response := &muxTypesResponse.Response{
+		Headers:            staticContent.Headers,
+		InlineScriptHashes: staticContent.InlineScriptHashes,
+	}
 	if isCached {
 		response.StatusCode = http.StatusNotModified
 	} else {

@@ -282,6 +282,10 @@ func NewFromDataPath(
 		},
 	}
 
+	if extension == ".html" {
+		staticContent.InlineScriptHashes = makeInlineScriptHashes(data)
+	}
+
 	if addContentEncodingData && parameter.CandidateForCompression && len(data) > 1000 {
 		if err := AddContentEncodingData(staticContent); err != nil {
 			return nil, motmedelErrors.New(

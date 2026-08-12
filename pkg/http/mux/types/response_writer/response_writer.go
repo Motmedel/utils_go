@@ -245,6 +245,18 @@ func (responseWriter *ResponseWriter) WriteResponse(
 		}
 	}
 
+	// The effective policy is settled at this point, whether it came from a
+	// response header (e.g. one patched by the service) or the defaults.
+	if inlineScriptHashes := response.InlineScriptHashes; len(inlineScriptHashes) != 0 {
+		if policyString := responseWriterHeader.Get(contentSecurityPolicyHeaderName); policyString != "" {
+			mergedPolicyString, err := applyInlineScriptHashes(policyString, inlineScriptHashes)
+			if err != nil {
+				return fmt.Errorf("apply inline script hashes: %w", err)
+			}
+			responseWriterHeader.Set(contentSecurityPolicyHeaderName, mergedPolicyString)
+		}
+	}
+
 	_, noStore := cacheControlSet["no-store"]
 
 	if !noStore && len(varyValues) > 0 {
