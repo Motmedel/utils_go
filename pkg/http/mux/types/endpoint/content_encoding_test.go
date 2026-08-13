@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/andybalholm/brotli"
+	motmedelBrotli "github.com/Motmedel/utils_go/pkg/brotli"
 )
 
 func TestAddContentEncodingDataBrotli(t *testing.T) {
@@ -36,7 +36,7 @@ func TestAddContentEncodingDataBrotli(t *testing.T) {
 		t.Error("expected the brotli variant to be smaller than the original")
 	}
 
-	decompressed, err := io.ReadAll(brotli.NewReader(bytes.NewReader(brotliData.Data)))
+	decompressed, err := io.ReadAll(motmedelBrotli.NewReader(bytes.NewReader(brotliData.Data)))
 	if err != nil {
 		t.Fatalf("read all: %v", err)
 	}

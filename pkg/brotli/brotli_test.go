@@ -6,8 +6,6 @@ import (
 	"io"
 	"strings"
 	"testing"
-
-	"github.com/andybalholm/brotli"
 )
 
 func TestMakeBrotliData(t *testing.T) {
@@ -30,7 +28,7 @@ func TestMakeBrotliData(t *testing.T) {
 				t.Fatalf("make brotli data: %v", err)
 			}
 
-			decompressed, err := io.ReadAll(brotli.NewReader(bytes.NewReader(compressed)))
+			decompressed, err := io.ReadAll(NewReader(bytes.NewReader(compressed)))
 			if err != nil {
 				t.Fatalf("read all: %v", err)
 			}
