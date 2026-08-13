@@ -89,7 +89,7 @@ func TestWriteResponseInlineScriptHashes(t *testing.T) {
 				{Name: "Content-Type", Value: "text/html"},
 			},
 			expectedContains: []string{
-				"webrtc 'block'",
+				"object-src 'none'",
 				"script-src 'self' '" + testInlineScriptHash + "'",
 			},
 		},

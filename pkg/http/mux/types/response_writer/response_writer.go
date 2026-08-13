@@ -34,11 +34,12 @@ const (
 	// object-src 'none' — OWASP ASVS 5.0.0, V3.4.3 (L2): "Verify that the application's Content Security Policy
 	// includes object-src 'none' to prevent plugin-based code execution vulnerabilities."
 	//
-	// webrtc 'block' — RTCPeerConnection bypasses fetch directives (connect-src/default-src) and can be abused for
-	// data exfiltration; blocking it closes a channel no other directive covers.
-	//
 	// upgrade-insecure-requests — transparently rewrites insecure (http) subresource requests to https.
-	DefaultContentSecurityPolicyString = "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; webrtc 'block'; upgrade-insecure-requests"
+	//
+	// TODO: Consider adding back webrtc 'block' in the future — RTCPeerConnection bypasses fetch directives
+	// (connect-src/default-src) and can be abused for data exfiltration; blocking it closes a channel no other
+	// directive covers.
+	DefaultContentSecurityPolicyString = "default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests"
 )
 
 var DefaultDocumentHeaders = map[string]string{
