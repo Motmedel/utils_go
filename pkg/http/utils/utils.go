@@ -12,6 +12,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptrace"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -420,6 +421,10 @@ func FetchJsonWithBody[U any, T any](ctx context.Context, url string, bodyValue 
 	return FetchJson[U](ctx, url, options...)
 }
 
+// GetMatchingContentEncoding returns the server encoding to use for a client's
+// accepted encodings. Client quality values are authoritative between quality
+// groups; within a group of equal quality the server's preference order decides
+// (callers list their identifiers by preference, e.g. smallest variant first).
 func GetMatchingContentEncoding(
 	clientSupportedEncodings []*motmedelHttpTypes.Encoding,
 	serverSupportedEncodingIdentifiers []string,
@@ -428,43 +433,80 @@ func GetMatchingContentEncoding(
 		return AcceptContentIdentity
 	}
 
-	disallowIdentity := false
-
+	encodings := make([]*motmedelHttpTypes.Encoding, 0, len(clientSupportedEncodings))
 	for _, clientEncoding := range clientSupportedEncodings {
-		coding := strings.ToLower(clientEncoding.Coding)
-		qualityValue := clientEncoding.QualityValue
+		if clientEncoding != nil {
+			encodings = append(encodings, clientEncoding)
+		}
+	}
+	sort.SliceStable(encodings, func(i, j int) bool {
+		return encodings[i].QualityValue > encodings[j].QualityValue
+	})
 
-		if coding == "*" {
-			if qualityValue == 0 {
+	disallowIdentity := false
+	excludedCodings := make(map[string]struct{})
+	explicitCodings := make(map[string]struct{})
+	for _, clientEncoding := range encodings {
+		coding := strings.ToLower(clientEncoding.Coding)
+		if coding != "*" {
+			explicitCodings[coding] = struct{}{}
+		}
+		if clientEncoding.QualityValue == 0 {
+			switch coding {
+			case "*", AcceptContentIdentity:
 				disallowIdentity = true
+			default:
+				excludedCodings[coding] = struct{}{}
+			}
+		}
+	}
+
+	for groupStart := 0; groupStart < len(encodings); {
+		qualityValue := encodings[groupStart].QualityValue
+		groupEnd := groupStart
+		for groupEnd < len(encodings) && encodings[groupEnd].QualityValue == qualityValue {
+			groupEnd++
+		}
+
+		if qualityValue == 0 {
+			break
+		}
+
+		groupCodings := make(map[string]struct{})
+		groupWildcard := false
+		for _, clientEncoding := range encodings[groupStart:groupEnd] {
+			coding := strings.ToLower(clientEncoding.Coding)
+			if coding == "*" {
+				groupWildcard = true
 			} else {
-				if len(serverSupportedEncodingIdentifiers) != 0 {
-					return serverSupportedEncodingIdentifiers[0]
-				} else {
-					if !disallowIdentity {
-						return AcceptContentIdentity
-					}
+				groupCodings[coding] = struct{}{}
+			}
+		}
+
+		for _, supportedEncoding := range serverSupportedEncodingIdentifiers {
+			coding := strings.ToLower(supportedEncoding)
+			if _, ok := groupCodings[coding]; ok {
+				return supportedEncoding
+			}
+			if groupWildcard {
+				_, explicit := explicitCodings[coding]
+				_, excluded := excludedCodings[coding]
+				if !explicit && !excluded {
+					return supportedEncoding
 				}
 			}
 		}
 
-		if coding == AcceptContentIdentity {
-			if qualityValue == 0 {
-				disallowIdentity = true
-			} else {
+		if _, ok := groupCodings[AcceptContentIdentity]; ok {
+			return AcceptContentIdentity
+		}
+		if groupWildcard && !disallowIdentity {
+			if _, explicit := explicitCodings[AcceptContentIdentity]; !explicit {
 				return AcceptContentIdentity
 			}
 		}
 
-		if qualityValue == 0 {
-			continue
-		}
-
-		for _, supportedEncoding := range serverSupportedEncodingIdentifiers {
-			if clientEncoding.Coding == supportedEncoding {
-				return supportedEncoding
-			}
-		}
+		groupStart = groupEnd
 	}
 
 	if !disallowIdentity {

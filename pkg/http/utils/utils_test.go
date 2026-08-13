@@ -626,6 +626,44 @@ func TestGetMatchingContentEncoding(t *testing.T) {
 			server: []string{"gzip"},
 			want:   "",
 		},
+		{
+			// Browsers list gzip first with equal quality; the server's
+			// preference (smallest variant first) decides within the group.
+			name:   "equal quality defers to server preference",
+			client: []*motmedelHttpTypes.Encoding{enc("gzip", 1), enc("deflate", 1), enc("br", 1), enc("zstd", 1)},
+			server: []string{"br", "gzip"},
+			want:   "br",
+		},
+		{
+			name:   "higher client quality beats server preference",
+			client: []*motmedelHttpTypes.Encoding{enc("gzip", 1), enc("br", 0.5)},
+			server: []string{"br", "gzip"},
+			want:   "gzip",
+		},
+		{
+			name:   "zero quality excludes an encoding",
+			client: []*motmedelHttpTypes.Encoding{enc("gzip", 1), enc("br", 0)},
+			server: []string{"br", "gzip"},
+			want:   "gzip",
+		},
+		{
+			name:   "wildcard does not resurrect an excluded encoding",
+			client: []*motmedelHttpTypes.Encoding{enc("br", 0), enc("*", 1)},
+			server: []string{"br", "gzip"},
+			want:   "gzip",
+		},
+		{
+			name:   "equal quality identity loses to a supported encoding",
+			client: []*motmedelHttpTypes.Encoding{enc("identity", 1), enc("gzip", 1)},
+			server: []string{"gzip"},
+			want:   "gzip",
+		},
+		{
+			name:   "higher quality identity wins",
+			client: []*motmedelHttpTypes.Encoding{enc("identity", 1), enc("gzip", 0.5)},
+			server: []string{"gzip"},
+			want:   AcceptContentIdentity,
+		},
 	}
 
 	for _, tc := range testCases {
