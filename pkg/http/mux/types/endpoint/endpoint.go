@@ -17,6 +17,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 
+	motmedelBrotli "github.com/Motmedel/utils_go/pkg/brotli"
 	"github.com/Motmedel/utils_go/pkg/encoding/gzip"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	muxErrors "github.com/Motmedel/utils_go/pkg/http/mux/errors"
@@ -61,6 +62,8 @@ type Endpoint struct {
 
 const robotsTxtCacheControl = "public, max-age=86400"
 
+const htmlExtension = ".html"
+
 func NewRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *Endpoint {
 	if robotsTxt == nil {
 		return nil
@@ -90,7 +93,7 @@ func NewRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *Endpoint {
 	}
 }
 
-var supportedContentEncodings = []string{"gzip"}
+var supportedContentEncodings = []string{"gzip", "br"}
 
 type StaticContentParameter struct {
 	ContentType             string
@@ -125,51 +128,60 @@ loop:
 		default:
 			errGroup.Go(
 				func() error {
+					var encodedData []byte
+
 					switch contentEncoding {
 					case "gzip":
 						gzipData, err := gzip.MakeGzipData(context.Background(), data)
 						if err != nil {
 							return fmt.Errorf("make gzip data: %w", err)
 						}
-
-						if len(gzipData) >= len(data) {
-							return nil
+						encodedData = gzipData
+					case "br":
+						brotliData, err := motmedelBrotli.MakeBrotliData(context.Background(), data)
+						if err != nil {
+							return fmt.Errorf("make brotli data: %w", err)
 						}
-
-						etag := motmedelHttpUtils.MakeStrongEtag(gzipData)
-
-						headers := []*muxResponse.HeaderEntry{
-							{Name: "Content-Encoding", Value: contentEncoding},
-							{Name: "ETag", Value: etag},
-						}
-
-						for _, headerEntry := range staticContent.Headers {
-							switch strings.ToLower(headerEntry.Name) {
-							case "content-type", "cache-control", "last-modified":
-								headers = append(
-									headers,
-									&muxResponse.HeaderEntry{
-										Name:      headerEntry.Name,
-										Value:     headerEntry.Value,
-										Overwrite: headerEntry.Overwrite,
-									},
-								)
-							}
-						}
-
-						contentEncodingToDataLock.Lock()
-						defer contentEncodingToDataLock.Unlock()
-						contentEncodingToData[contentEncoding] = &static_content.StaticContentData{
-							Data:         gzipData,
-							Etag:         etag,
-							LastModified: staticContent.LastModified,
-							Headers:      headers,
-						}
+						encodedData = brotliData
 					default:
 						return motmedelErrors.NewWithTrace(
 							fmt.Errorf("%w: %s", muxErrors.ErrUnexpectedContentEncoding, contentEncoding),
 							contentEncoding,
 						)
+					}
+
+					if len(encodedData) >= len(data) {
+						return nil
+					}
+
+					etag := motmedelHttpUtils.MakeStrongEtag(encodedData)
+
+					headers := []*muxResponse.HeaderEntry{
+						{Name: "Content-Encoding", Value: contentEncoding},
+						{Name: "ETag", Value: etag},
+					}
+
+					for _, headerEntry := range staticContent.Headers {
+						switch strings.ToLower(headerEntry.Name) {
+						case "content-type", "cache-control", "last-modified":
+							headers = append(
+								headers,
+								&muxResponse.HeaderEntry{
+									Name:      headerEntry.Name,
+									Value:     headerEntry.Value,
+									Overwrite: headerEntry.Overwrite,
+								},
+							)
+						}
+					}
+
+					contentEncodingToDataLock.Lock()
+					defer contentEncodingToDataLock.Unlock()
+					contentEncodingToData[contentEncoding] = &static_content.StaticContentData{
+						Data:         encodedData,
+						Etag:         etag,
+						LastModified: staticContent.LastModified,
+						Headers:      headers,
 					}
 
 					return nil
@@ -194,18 +206,18 @@ loop:
 }
 
 var extensionToParameter = map[string]*StaticContentParameter{
-	".html":  {ContentType: "text/html", CacheControl: "no-cache", CandidateForCompression: true},
-	".css":   {ContentType: "text/css", CandidateForCompression: true},
-	".js":    {ContentType: "text/javascript", CandidateForCompression: true},
-	".mjs":   {ContentType: "text/javascript", CandidateForCompression: true},
-	".map":   {ContentType: "application/json", CandidateForCompression: true},
-	".svg":   {ContentType: "image/svg+xml", CandidateForCompression: true},
-	".webp":  {ContentType: "image/webp"},
-	".avif":  {ContentType: "image/avif"},
-	".woff2": {ContentType: "font/woff2"},
-	".txt":   {ContentType: "text/plain", CandidateForCompression: true},
-	".xml":   {ContentType: "text/xml", CandidateForCompression: true},
-	".pdf":   {ContentType: "application/pdf", CandidateForCompression: true},
+	htmlExtension: {ContentType: "text/html", CacheControl: "no-cache", CandidateForCompression: true},
+	".css":        {ContentType: "text/css", CandidateForCompression: true},
+	".js":         {ContentType: "text/javascript", CandidateForCompression: true},
+	".mjs":        {ContentType: "text/javascript", CandidateForCompression: true},
+	".map":        {ContentType: "application/json", CandidateForCompression: true},
+	".svg":        {ContentType: "image/svg+xml", CandidateForCompression: true},
+	".webp":       {ContentType: "image/webp"},
+	".avif":       {ContentType: "image/avif"},
+	".woff2":      {ContentType: "font/woff2"},
+	".txt":        {ContentType: "text/plain", CandidateForCompression: true},
+	".xml":        {ContentType: "text/xml", CandidateForCompression: true},
+	".pdf":        {ContentType: "application/pdf", CandidateForCompression: true},
 	// NOTE: Modern image formats should be used instead.
 	".png":  {ContentType: "image/png"},
 	".jpg":  {ContentType: "image/jpeg"},
@@ -245,7 +257,7 @@ func NewFromDataPath(
 		return nil, motmedelErrors.NewWithTrace(empty_error.New("content type"))
 	}
 
-	if extension == ".html" {
+	if extension == htmlExtension {
 		path = strings.TrimSuffix(path, ".html")
 	}
 
@@ -282,7 +294,7 @@ func NewFromDataPath(
 		},
 	}
 
-	if extension == ".html" {
+	if extension == htmlExtension {
 		staticContent.InlineScriptHashes = makeInlineScriptHashes(data)
 	}
 
