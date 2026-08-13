@@ -2,6 +2,7 @@ package fetch_config
 
 import (
 	"bytes"
+	"maps"
 	"net/http"
 	"testing"
 
@@ -83,5 +84,70 @@ func TestNewOptions(t *testing.T) {
 	}
 	if config.HttpClient != httpClient {
 		t.Errorf("HttpClient = %p, want %p", config.HttpClient, httpClient)
+	}
+}
+
+func TestWithHeadersMerges(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		options []Option
+		want    map[string]string
+	}{
+		{
+			name: "later options add to earlier headers",
+			options: []Option{
+				WithHeaders(map[string]string{"Authorization": "Bearer token"}),
+				WithHeaders(map[string]string{"Content-Type": "application/json"}),
+			},
+			want: map[string]string{
+				"Authorization": "Bearer token",
+				"Content-Type":  "application/json",
+			},
+		},
+		{
+			name: "later options overwrite the same name",
+			options: []Option{
+				WithHeaders(map[string]string{"Accept": "application/xml"}),
+				WithHeaders(map[string]string{"Accept": "application/json"}),
+			},
+			want: map[string]string{"Accept": "application/json"},
+		},
+		{
+			name: "empty headers leave earlier headers intact",
+			options: []Option{
+				WithHeaders(map[string]string{"Authorization": "Bearer token"}),
+				WithHeaders(nil),
+			},
+			want: map[string]string{"Authorization": "Bearer token"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			config := New(testCase.options...)
+
+			if !maps.Equal(config.Headers, testCase.want) {
+				t.Errorf("Headers = %v, want %v", config.Headers, testCase.want)
+			}
+		})
+	}
+}
+
+func TestWithHeadersDoesNotAliasInput(t *testing.T) {
+	t.Parallel()
+
+	callerHeaders := map[string]string{"Authorization": "Bearer token"}
+
+	config := New(WithHeaders(callerHeaders), WithHeaders(map[string]string{"Accept": "application/json"}))
+
+	if _, ok := callerHeaders["Accept"]; ok {
+		t.Error("the caller's header map was mutated")
+	}
+	if len(config.Headers) != 2 {
+		t.Errorf("Headers = %v, want 2 entries", config.Headers)
 	}
 }

@@ -1,6 +1,7 @@
 package fetch_config
 
 import (
+	"maps"
 	"net/http"
 
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config/retry_config"
@@ -43,9 +44,16 @@ func WithMethod(method string) Option {
 	}
 }
 
+// WithHeaders merges the entries into the configuration's headers, overwriting
+// existing values for the same names. Merging (rather than replacing the map)
+// lets header options compose: a client's own header option (e.g. a content
+// type) must not discard a caller's (e.g. an authorization).
 func WithHeaders(headers map[string]string) Option {
 	return func(configuration *Config) {
-		configuration.Headers = headers
+		if configuration.Headers == nil {
+			configuration.Headers = make(map[string]string, len(headers))
+		}
+		maps.Copy(configuration.Headers, headers)
 	}
 }
 
