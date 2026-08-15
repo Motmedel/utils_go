@@ -607,3 +607,99 @@ func TestSignedUrl_DefaultMethod(t *testing.T) {
 		t.Error("expected non-empty canonical request hash")
 	}
 }
+
+func TestInsertObjectIfAbsent(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		statusCode   int
+		wantInserted bool
+		wantObject   bool
+		wantErr      bool
+	}{
+		{name: "absent", statusCode: http.StatusOK, wantInserted: true, wantObject: true},
+		{name: "already taken", statusCode: http.StatusPreconditionFailed},
+		{name: "a real failure", statusCode: http.StatusInternalServerError, wantErr: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			var precondition string
+
+			client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+				precondition = r.URL.Query().Get("ifGenerationMatch")
+
+				if testCase.statusCode != http.StatusOK {
+					w.WriteHeader(testCase.statusCode)
+					return
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				if err := json.MarshalWrite(w, &object.Object{Name: "test.txt", Bucket: "my-bucket"}); err != nil {
+					t.Errorf("json marshal write: %v", err)
+				}
+			})
+
+			insertedObject, inserted, err := client.InsertObjectIfAbsent(
+				context.Background(),
+				"my-bucket",
+				&object.Object{Name: "test.txt"},
+				[]byte("hello world"),
+				"text/plain",
+			)
+
+			if testCase.wantErr {
+				if err == nil {
+					t.Fatal("expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("insert object if absent: %v", err)
+			}
+
+			// Only if the name is unused means a generation of zero.
+			if precondition != "0" {
+				t.Errorf("ifGenerationMatch: got %q, want \"0\"", precondition)
+			}
+			if inserted != testCase.wantInserted {
+				t.Errorf("inserted: got %v, want %v", inserted, testCase.wantInserted)
+			}
+			if (insertedObject != nil) != testCase.wantObject {
+				t.Errorf("object: got %v, want present=%v", insertedObject, testCase.wantObject)
+			}
+		})
+	}
+}
+
+// The plain insert must not carry the precondition: it replaces by design.
+func TestInsertObjectHasNoPrecondition(t *testing.T) {
+	t.Parallel()
+
+	var precondition string
+
+	client := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		precondition = r.URL.Query().Get("ifGenerationMatch")
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.MarshalWrite(w, &object.Object{Name: "test.txt"}); err != nil {
+			t.Errorf("json marshal write: %v", err)
+		}
+	})
+
+	if _, err := client.InsertObject(
+		context.Background(),
+		"my-bucket",
+		&object.Object{Name: "test.txt"},
+		[]byte("hello world"),
+		"text/plain",
+	); err != nil {
+		t.Fatalf("insert object: %v", err)
+	}
+
+	if precondition != "" {
+		t.Errorf("ifGenerationMatch: got %q, want it unset", precondition)
+	}
+}

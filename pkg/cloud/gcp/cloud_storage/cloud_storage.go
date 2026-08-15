@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -24,6 +25,7 @@ import (
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
+	motmedelHttpErrors "github.com/Motmedel/utils_go/pkg/http/errors"
 	"github.com/Motmedel/utils_go/pkg/http/types/fetch_config"
 	motmedelHttpUtils "github.com/Motmedel/utils_go/pkg/http/utils"
 )
@@ -277,24 +279,51 @@ func (c *Client) DeleteObject(ctx context.Context, bucketName string, objectName
 // The metadata should have at least its Name field set. The data parameter contains
 // the object content, and contentType specifies its MIME type.
 func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *object.Object, data []byte, contentType string, options ...fetch_config.Option) (*object.Object, error) {
+	insertedObject, _, err := c.insertObject(ctx, bucketName, metadata, data, contentType, false, options...)
+	if err != nil {
+		return nil, fmt.Errorf("insert object: %w", err)
+	}
+	// An insert without a precondition either inserts or fails.
+	if insertedObject == nil {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("inserted object"))
+	}
+
+	return insertedObject, nil
+}
+
+// InsertObjectIfAbsent uploads an object only if the name is unused, reporting
+// whether it did. It is for objects whose name determines their content — the
+// contents of a commit, say — where a replacement is not an update but the same
+// thing written again, and where writing it again is not harmless: replacing an
+// object deletes the generation readers of it may hold.
+func (c *Client) InsertObjectIfAbsent(ctx context.Context, bucketName string, metadata *object.Object, data []byte, contentType string, options ...fetch_config.Option) (*object.Object, bool, error) {
+	insertedObject, inserted, err := c.insertObject(ctx, bucketName, metadata, data, contentType, true, options...)
+	if err != nil {
+		return nil, false, fmt.Errorf("insert object: %w", err)
+	}
+
+	return insertedObject, inserted, nil
+}
+
+func (c *Client) insertObject(ctx context.Context, bucketName string, metadata *object.Object, data []byte, contentType string, onlyIfAbsent bool, options ...fetch_config.Option) (*object.Object, bool, error) {
 	if bucketName == "" {
-		return nil, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
+		return nil, false, motmedelErrors.NewWithTrace(empty_error.New("bucket name"))
 	}
 	if contentType == "" {
-		return nil, motmedelErrors.NewWithTrace(empty_error.New("content type"))
+		return nil, false, motmedelErrors.NewWithTrace(empty_error.New("content type"))
 	}
 
 	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("context err: %w", err)
+		return nil, false, fmt.Errorf("context err: %w", err)
 	}
 
 	if metadata == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("metadata"))
+		return nil, false, motmedelErrors.NewWithTrace(nil_error.New("metadata"))
 	}
 
 	metadataBytes, err := json.Marshal(metadata)
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (metadata): %w", err))
+		return nil, false, motmedelErrors.NewWithTrace(fmt.Errorf("json marshal (metadata): %w", err))
 	}
 
 	var buf bytes.Buffer
@@ -304,30 +333,34 @@ func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *
 	metadataHeader.Set("Content-Type", "application/json; charset=UTF-8")
 	metadataPart, err := writer.CreatePart(metadataHeader)
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("create part (metadata): %w", err))
+		return nil, false, motmedelErrors.NewWithTrace(fmt.Errorf("create part (metadata): %w", err))
 	}
 	if _, err = metadataPart.Write(metadataBytes); err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("write (metadata): %w", err))
+		return nil, false, motmedelErrors.NewWithTrace(fmt.Errorf("write (metadata): %w", err))
 	}
 
 	mediaHeader := textproto.MIMEHeader{}
 	mediaHeader.Set("Content-Type", contentType)
 	mediaPart, err := writer.CreatePart(mediaHeader)
 	if err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("create part (media): %w", err))
+		return nil, false, motmedelErrors.NewWithTrace(fmt.Errorf("create part (media): %w", err))
 	}
 	if _, err = mediaPart.Write(data); err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("write (media): %w", err))
+		return nil, false, motmedelErrors.NewWithTrace(fmt.Errorf("write (media): %w", err))
 	}
 
 	if err = writer.Close(); err != nil {
-		return nil, motmedelErrors.NewWithTrace(fmt.Errorf("multipart writer close: %w", err))
+		return nil, false, motmedelErrors.NewWithTrace(fmt.Errorf("multipart writer close: %w", err))
 	}
 
 	u := *c.uploadBaseUrl
 	u.RawPath = u.Path + "b/" + url.PathEscape(bucketName) + "/o"
 	u.Path += "b/" + bucketName + "/o"
-	u.RawQuery = url.Values{"uploadType": {"multipart"}}.Encode()
+	query := url.Values{"uploadType": {"multipart"}}
+	if onlyIfAbsent {
+		query.Set("ifGenerationMatch", "0")
+	}
+	u.RawQuery = query.Encode()
 	urlString := u.String()
 
 	options = append(
@@ -341,14 +374,23 @@ func (c *Client) InsertObject(ctx context.Context, bucketName string, metadata *
 
 	_, insertedObject, err := motmedelHttpUtils.FetchJson[*object.Object](ctx, urlString, options...)
 	if err != nil {
-		return nil, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
+		// The name being taken is the precondition doing its work, not a
+		// failure: what is there is what would have been written.
+		if onlyIfAbsent {
+			if non2xxError, ok := errors.AsType[*motmedelHttpErrors.Non2xxStatusCodeError](err); ok &&
+				non2xxError.StatusCode == http.StatusPreconditionFailed {
+				return nil, false, nil
+			}
+		}
+
+		return nil, false, motmedelErrors.New(fmt.Errorf("fetch json: %w", err), urlString)
 	}
 
 	if insertedObject == nil {
-		return nil, motmedelErrors.NewWithTrace(nil_error.New("insertedObject"))
+		return nil, false, motmedelErrors.NewWithTrace(nil_error.New("insertedObject"))
 	}
 
-	return insertedObject, nil
+	return insertedObject, true, nil
 }
 
 // MaxSignedUrlExpires is the upper bound on V4 signed URL lifetime enforced by GCS.
