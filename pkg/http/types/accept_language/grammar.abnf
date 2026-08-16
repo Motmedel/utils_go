@@ -1,6 +1,6 @@
 Accept-Language=[element] *(OWS "," OWS [element])
 element=language-range [weight]
-language-range=Language-Tag
+language-range=Language-Tag/"*"
 Language-Tag=Primary-subtag *("-" Subtag)
 Primary-subtag=1*8ALPHA
 Subtag=1*8(ALPHA / DIGIT)

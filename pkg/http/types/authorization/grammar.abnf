@@ -8,5 +8,6 @@ auth-param=token BWS "=" BWS (token/quoted-string)
 BWS=OWS
 OWS=*(SP/HTAB)
 quoted-string=DQUOTE *(qdtext/quoted-pair) DQUOTE
-qdtext=HTAB/SP/%x21/%x23-5B/%x5D-7E
-quoted-pair="\" (HTAB/SP/VCHAR)
+qdtext=HTAB/SP/%x21/%x23-5B/%x5D-7E/obs-text
+quoted-pair="\" (HTAB/SP/VCHAR/obs-text)
+obs-text=%x80-FF

@@ -48,11 +48,11 @@ func Parse(data []byte) (*motmedelHttpTypes.RetryAfter, error) {
 			)
 		}
 
-		httpDate, err := time.Parse(time.RFC1123, httpDateString)
+		httpDate, err := parseHttpDate(httpDateString)
 		if err != nil {
 			return nil, motmedelErrors.NewWithTrace(
 				fmt.Errorf(
-					"%w: %w: time parse rfc1123: %w",
+					"%w: %w: parse http date: %w",
 					motmedelErrors.ErrSemanticError,
 					ErrInvalidHttpDate,
 					err,
@@ -102,4 +102,24 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("goabnf parse abnf (retry after grammar): %v", err))
 	}
+}
+
+// httpDateLayouts are the three formats RFC 9110 Section 5.6.7 requires a
+// recipient to accept: the IMF-fixdate a sender has to generate, and the two
+// obs-date formats that a recipient still has to read. They correspond to
+// the IMF-fixdate, rfc850-date and asctime-date of the grammar.
+var httpDateLayouts = []string{time.RFC1123, time.RFC850, time.ANSIC}
+
+// parseHttpDate reads an HTTP-date in any of the formats RFC 9110
+// Section 5.6.7 defines. An asctime-date carries no zone, and RFC 9110 reads
+// every HTTP-date as GMT, which is what time.Parse defaults to.
+func parseHttpDate(value string) (time.Time, error) {
+	for _, layout := range httpDateLayouts {
+		parsed, err := time.Parse(layout, value)
+		if err == nil {
+			return parsed, nil
+		}
+	}
+
+	return time.Time{}, motmedelErrors.NewWithTrace(ErrInvalidHttpDate, value)
 }

@@ -1,6 +1,6 @@
 Retry-After = HTTP-date / delay-seconds
 delay-seconds  = 1*DIGIT
-HTTP-date = IMF-fixdate
+HTTP-date = IMF-fixdate / obs-date
 IMF-fixdate = day-name "," SP date1 SP time-of-day SP GMT
 day-name = %x4D.6F.6E / %x54.75.65 / %x57.65.64 / %x54.68.75 / %x46.72.69 / %x53.61.74 / %x53.75.6E
 date1 = day SP month SP year
@@ -12,3 +12,9 @@ hour = 2DIGIT
 minute = 2DIGIT
 second = 2DIGIT
 GMT = %x47.4D.54
+obs-date = rfc850-date / asctime-date
+rfc850-date = day-name-l "," SP date2 SP time-of-day SP GMT
+date2 = day "-" month "-" 2DIGIT
+day-name-l = %x4D.6F.6E.64.61.79 / %x54.75.65.73.64.61.79 / %x57.65.64.6E.65.73.64.61.79 / %x54.68.75.72.73.64.61.79 / %x46.72.69.64.61.79 / %x53.61.74.75.72.64.61.79 / %x53.75.6E.64.61.79
+asctime-date = day-name SP date3 SP time-of-day SP year
+date3 = month SP (2DIGIT / (SP DIGIT))

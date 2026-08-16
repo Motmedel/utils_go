@@ -23,6 +23,10 @@ var (
 	ErrInvalidQvalue = errors.New("invalid qvalue")
 )
 
+// wildcardLanguageRange is the language-range of RFC 4647 Section 2.1 that
+// matches every language tag.
+const wildcardLanguageRange = "*"
+
 func Parse(data []byte) (*motmedelHttpTypes.AcceptLanguage, error) {
 	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "Accept-Language")
 	if err != nil {
@@ -45,12 +49,32 @@ func Parse(data []byte) (*motmedelHttpTypes.AcceptLanguage, error) {
 			2,
 			false,
 		)
-		if primarySubtagPath == nil {
-			return nil, motmedelErrors.NewWithTrace(
-				fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("primary subtag")),
+
+		var primarySubtag []byte
+		if primarySubtagPath != nil {
+			primarySubtag = abnfUtils.ExtractPathValue(data, primarySubtagPath)
+		} else {
+			// RFC 4647 Section 2.1 lets a language-range be the wildcard
+			// "*", which carries no subtags of its own.
+			languageRangePath := abnfUtils.SearchPathSingleName(
+				interestingPath,
+				"language-range",
+				2,
+				false,
 			)
+			if languageRangePath == nil {
+				return nil, motmedelErrors.NewWithTrace(
+					fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("language range")),
+				)
+			}
+
+			primarySubtag = abnfUtils.ExtractPathValue(data, languageRangePath)
+			if string(primarySubtag) != wildcardLanguageRange {
+				return nil, motmedelErrors.NewWithTrace(
+					fmt.Errorf("%w: %w", motmedelErrors.ErrSemanticError, nil_error.New("primary subtag")),
+				)
+			}
 		}
-		primarySubtag := abnfUtils.ExtractPathValue(data, primarySubtagPath)
 
 		subtagPath := abnfUtils.SearchPathSingleName(
 			interestingPath,

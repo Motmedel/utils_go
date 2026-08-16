@@ -1,4 +1,4 @@
-Accept=media-range *(OWS "," OWS media-range)
+Accept=[media-range] *(OWS "," OWS [media-range])
 media-range=("*/*"/(type "/" "*")/(type "/" subtype)) parameters
 type=token
 subtype=token
