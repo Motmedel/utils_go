@@ -16,23 +16,23 @@ modifier=redirect/explanation/unknown-modifier
 redirect="redirect=" domain-spec
 explanation="exp=" domain-spec
 unknown-modifier=name "=" macro-string
-ip4-cidr-length="/" ("0"/%x31-39 0*1DIGIT)
-ip6-cidr-length="/" ("0"/%x31-39 0*2DIGIT)
+ip4-cidr-length="/" ("0"/%x31-39 *1DIGIT)
+ip6-cidr-length="/" ("0"/%x31-39 *2DIGIT)
 dual-cidr-length=[ip4-cidr-length] ["/" ip6-cidr-length]
 ip4-network=qnum "." qnum "." qnum "." qnum
 qnum=DIGIT/%x31-39 DIGIT/"1" 2DIGIT/"2" %x30-34 DIGIT/"25" %x30-35
 h16=1*4HEXDIG
-ls32=(h16 ":" h16)/ip4-network
+ls32=h16 ":" h16/ip4-network
 ip6-network=6(h16 ":") ls32/"::" 5(h16 ":") ls32/[h16] "::" 4(h16 ":") ls32/[*1(h16 ":") h16] "::" 3(h16 ":") ls32/[*2(h16 ":") h16] "::" 2(h16 ":") ls32/[*3(h16 ":") h16] "::" h16 ":" ls32/[*4(h16 ":") h16] "::" ls32/[*5(h16 ":") h16] "::" h16/[*6(h16 ":") h16] "::"
 domain-spec=macro-string domain-end
 macro-string=*(macro-expand/macro-literal)
-macro-expand=("%{" macro-letter transformers *delimiter "}")/"%%"/"%_"/"%-"
+macro-expand="%{" macro-letter transformers *delimiter "}"/"%%"/"%_"/"%-"
 macro-literal=%x21-24/%x26-7E
 macro-letter="s"/"l"/"o"/"d"/"i"/"p"/"h"/"c"/"r"/"t"/"v"
 transformers=*DIGIT ["r"]
 delimiter="."/"-"/"+"/","/"/"/"_"/"="
-name=ALPHA *(ALPHA/DIGIT/"-" /"_"/".")
-domain-end=("." customlabel ["."])/macro-expand
-customlabel=let-dig *62(ldh-str) let-dig
+name=ALPHA *(ALPHA/DIGIT/"-"/"_"/".")
+domain-end="." customlabel ["."]/macro-expand
+customlabel=let-dig *62ldh-str let-dig
 let-dig=ALPHA/DIGIT
 ldh-str=ALPHA/DIGIT/"-"

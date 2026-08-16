@@ -1,6 +1,6 @@
 ETag=entity-tag
 entity-tag=[weak] opaque-tag
-weak=%x57.2F
+weak=%s"W/"
 opaque-tag=DQUOTE *etagc DQUOTE
-etagc=%x21/%x23-7E/obs-text
+etagc="!"/%x23-7E/obs-text
 obs-text=%x80-FF
