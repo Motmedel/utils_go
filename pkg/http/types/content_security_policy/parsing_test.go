@@ -2,6 +2,7 @@ package content_security_policy
 
 import (
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -327,5 +328,106 @@ func TestParseContentSecurityPolicy_FullCSP_TableDriven(t *testing.T) {
 	}
 	if findDirectiveByName(csp.IneffectiveDirectives, "default-src") == nil {
 		t.Fatalf("expected duplicate default-src ineffective")
+	}
+}
+
+// TestParseList covers the Content-Security-Policy header field value, which
+// CSP Level 3 Section 3.1 defines as `1#serialized-policy`. A user agent
+// "MUST parse and enforce each serialized CSP it contains", so a value
+// holding more than one policy must not be rejected wholesale.
+func TestParseList(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		// input is the header field value, after RFC 9110 Section 5.5 has
+		// stripped its leading and trailing whitespace.
+		input string
+		// expected holds the directive names of each policy, in order.
+		expected [][]string
+		rejects  bool
+	}{
+		{
+			name:     "one policy",
+			input:    "default-src 'self'",
+			expected: [][]string{{"default-src"}},
+		},
+		{
+			name:     "two policies",
+			input:    "default-src 'self', script-src 'nonce-abc'",
+			expected: [][]string{{"default-src"}, {"script-src"}},
+		},
+		{
+			name:     "no whitespace around the separator",
+			input:    "default-src 'self',script-src 'self'",
+			expected: [][]string{{"default-src"}, {"script-src"}},
+		},
+		{
+			name:     "several directives in each policy",
+			input:    "default-src 'self'; img-src *, script-src 'self'; style-src 'unsafe-inline'",
+			expected: [][]string{{"default-src", "img-src"}, {"script-src", "style-src"}},
+		},
+		{
+			name:     "three policies",
+			input:    "default-src 'self', script-src 'self', img-src 'self'",
+			expected: [][]string{{"default-src"}, {"script-src"}, {"img-src"}},
+		},
+		{
+			name:    "empty policy between separators",
+			input:   "default-src 'self',, script-src 'self'",
+			rejects: true,
+		},
+		{name: "empty", input: "", rejects: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			policies, err := ParseList([]byte(testCase.input))
+			if testCase.rejects {
+				if err == nil {
+					t.Fatalf("expected %q to be rejected", testCase.input)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parse list: %v", err)
+			}
+
+			if len(policies) != len(testCase.expected) {
+				t.Fatalf("expected %d policies, got %d", len(testCase.expected), len(policies))
+			}
+
+			for i, policy := range policies {
+				var names []string
+				for _, directive := range policy.Directives {
+					names = append(names, directive.GetName())
+				}
+				if !slices.Equal(names, testCase.expected[i]) {
+					t.Fatalf("policy %d: expected directives %v, got %v", i, testCase.expected[i], names)
+				}
+			}
+		})
+	}
+}
+
+// TestParseListKeepsEachPolicyWhole checks that a policy's Raw is its own
+// text rather than the whole header field value.
+func TestParseListKeepsEachPolicyWhole(t *testing.T) {
+	t.Parallel()
+
+	policies, err := ParseList([]byte("default-src 'self', script-src 'self'"))
+	if err != nil {
+		t.Fatalf("parse list: %v", err)
+	}
+	if len(policies) != 2 {
+		t.Fatalf("expected two policies, got %d", len(policies))
+	}
+
+	for i, expected := range []string{"default-src 'self'", "script-src 'self'"} {
+		if policies[i].Raw != expected {
+			t.Fatalf("policy %d: expected %q, got %q", i, expected, policies[i].Raw)
+		}
 	}
 }

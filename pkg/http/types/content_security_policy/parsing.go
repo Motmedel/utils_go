@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
@@ -539,4 +540,44 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("colud not parse content security policy grammar: %v", err))
 	}
+}
+
+// ParseList parses the value of a Content-Security-Policy header field,
+// which CSP Level 3 Section 3.1 defines as `1#serialized-policy`: a
+// comma-delimited list of policies, every one of which a user agent must
+// parse and enforce. A value holding a single policy is a list of one.
+//
+// The "#" of that production is not the one RFC 9110 Section 5.6.1 defines:
+// CSP Section 2.1 replaces its OWS with optional-ascii-whitespace and gives
+// only the sender expansion, which is what serialized-policy-list writes
+// out.
+func ParseList(data []byte) ([]*ContentSecurityPolicy, error) {
+	paths, err := abnfUtils.GetParsedDataPaths(Grammar, data, "serialized-policy-list")
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("get parsed data paths: %w", err), data)
+	}
+	if len(paths) == 0 {
+		return nil, motmedelErrors.NewWithTrace(motmedelErrors.ErrSyntaxError, data)
+	}
+
+	policyPaths := abnfUtils.SearchPath(paths[0], []string{"serialized-policy"}, -1, false)
+	if len(policyPaths) == 0 {
+		return nil, motmedelErrors.NewWithTrace(nil_error.New("serialized policy paths"), paths[0])
+	}
+
+	// The first policy is a child of the list and the rest sit within its
+	// repetition, so the search reaches them at differing depths; order them
+	// as they were written.
+	slices.SortStableFunc(policyPaths, func(a *abnf.Path, b *abnf.Path) int { return a.Start - b.Start })
+
+	policies := make([]*ContentSecurityPolicy, 0, len(policyPaths))
+	for _, policyPath := range policyPaths {
+		policy, err := Parse(abnfUtils.ExtractPathValue(data, policyPath))
+		if err != nil {
+			return nil, motmedelErrors.New(fmt.Errorf("parse: %w", err), policyPath)
+		}
+		policies = append(policies, policy)
+	}
+
+	return policies, nil
 }

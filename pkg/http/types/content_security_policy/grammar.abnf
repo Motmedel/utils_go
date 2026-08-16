@@ -1,5 +1,6 @@
 optional-ascii-whitespace=*(%x09/%x0A/%x0C/%x0D/" ")
 required-ascii-whitespace=1*(%x09/%x0A/%x0C/%x0D/" ")
+serialized-policy-list=serialized-policy *(optional-ascii-whitespace "," optional-ascii-whitespace serialized-policy)
 serialized-policy=serialized-directive *(optional-ascii-whitespace ";" [optional-ascii-whitespace serialized-directive])
 serialized-directive=directive-name [required-ascii-whitespace directive-value]
 directive-name=1*(ALPHA/DIGIT/"-")
@@ -21,7 +22,7 @@ pchar=unreserved/pct-encoded/sub-delims/":"/"@"
 unreserved=ALPHA/DIGIT/"-"/"."/"_"/"~"
 pct-encoded="%" HEXDIG HEXDIG
 sub-delims="!"/"$"/"&"/"'"/"("/")"/"*"/"+"/"="
-keyword-source="'self'"/"'unsafe-inline'"/"'unsafe-eval'"/"'strict-dynamic'"/"'unsafe-hashes'"/"'report-sample'"/"'unsafe-allow-redirects'"/"'wasm-unsafe-eval'"
+keyword-source="'self'"/"'unsafe-inline'"/"'unsafe-eval'"/"'strict-dynamic'"/"'unsafe-hashes'"/"'report-sample'"/"'unsafe-allow-redirects'"/"'wasm-unsafe-eval'"/"'trusted-types-eval'"/"'report-sha256'"/"'report-sha384'"/"'report-sha512'"/"'unsafe-webtransport-hashes'"
 nonce-source="'nonce-" base64-value "'"
 base64-value=1*(ALPHA/DIGIT/"+"/"/"/"-"/"_") *2"="
 hash-source="'" hash-algorithm "-" base64-value "'"
