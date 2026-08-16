@@ -10,7 +10,7 @@ import (
 //   - every repetition has min <= max,
 //   - every num-val numeral is a valid Unicode code point in its base.
 func validateGrammar(grammar *Grammar) error {
-	for _, rule := range grammar.Rulemap {
+	for _, rule := range grammar.Rules {
 		for _, dependency := range alternationDependencies(rule.Alternation) {
 			if getRule(dependency, grammar.Rulemap) == nil {
 				return &DependencyNotFoundError{Rulename: dependency}
@@ -18,7 +18,7 @@ func validateGrammar(grammar *Grammar) error {
 		}
 	}
 
-	for _, rule := range grammar.Rulemap {
+	for _, rule := range grammar.Rules {
 		if err := validateAlternation(rule.Alternation); err != nil {
 			return err
 		}
@@ -30,14 +30,14 @@ func validateGrammar(grammar *Grammar) error {
 func validateAlternation(alternation *Alternation) error {
 	for _, concatenation := range alternation.Concatenations {
 		for _, repetition := range concatenation.Repetitions {
-			if repetition.Max != inf && repetition.Min > repetition.Max {
+			if repetition.Max != Inf && repetition.Min > repetition.Max {
 				return &InvalidRepetitionError{Repetition: repetition}
 			}
 
 			switch element := repetition.Element.(type) {
 			case *NumValElement:
 				for _, value := range element.Values {
-					if _, err := parseNumVal(value, element.Base); err != nil {
+					if _, err := ParseNumVal(value, element.Base); err != nil {
 						return err
 					}
 				}
@@ -74,6 +74,8 @@ func alternationDependencies(alternation *Alternation) []string {
 					appendDependencies(element.Alternation)
 				case *OptionElement:
 					appendDependencies(element.Alternation)
+				case *ListElement:
+					appendDependencies(element.alternation())
 				}
 			}
 		}

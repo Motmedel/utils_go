@@ -81,7 +81,7 @@ var (
 	lf = newRule(ruleNameLf, cat(one(numSeries("x", "0A"))))
 
 	// lwsp is the rule `LWSP = *(WSP / CRLF WSP)`.
-	lwsp = newRule(ruleNameLwsp, cat(rep(0, inf, grp(cat(one(ref(ruleNameWsp))), cat(one(ref(ruleNameCrlf)), one(ref(ruleNameWsp)))))))
+	lwsp = newRule(ruleNameLwsp, cat(rep(0, Inf, grp(cat(one(ref(ruleNameWsp))), cat(one(ref(ruleNameCrlf)), one(ref(ruleNameWsp)))))))
 
 	// octet is the rule `OCTET = %x00-FF`.
 	octet = newRule(ruleNameOctet, cat(one(numRange("x", "00", "FF"))))
@@ -123,10 +123,10 @@ var (
 	abnfRulelist = newRule(ruleNameRulelist, cat(
 		rep(
 			1,
-			inf,
+			Inf,
 			grp(
 				cat(one(ref(ruleNameRule))),
-				cat(one(grp(cat(rep(0, inf, ref(ruleNameWsp)), one(ref(ruleNameCNl)))))),
+				cat(one(grp(cat(rep(0, Inf, ref(ruleNameWsp)), one(ref(ruleNameCNl)))))),
 			),
 		),
 	))
@@ -142,18 +142,18 @@ var (
 	// abnfRulename is the rule `rulename = ALPHA *(ALPHA / DIGIT / "-")`.
 	abnfRulename = newRule(ruleNameRulename, cat(
 		one(ref(ruleNameAlpha)),
-		rep(0, inf, grp(cat(one(ref(ruleNameAlpha))), cat(one(ref(ruleNameDigit))), cat(one(str("-"))))),
+		rep(0, Inf, grp(cat(one(ref(ruleNameAlpha))), cat(one(ref(ruleNameDigit))), cat(one(str("-"))))),
 	))
 
 	// abnfDefinedAs is the rule `defined-as = *c-wsp ("=" / "=/") *c-wsp`.
 	abnfDefinedAs = newRule(ruleNameDefinedAs, cat(
-		rep(0, inf, ref(ruleNameCWsp)),
+		rep(0, Inf, ref(ruleNameCWsp)),
 		one(grp(cat(one(str("="))), cat(one(str("=/"))))),
-		rep(0, inf, ref(ruleNameCWsp)),
+		rep(0, Inf, ref(ruleNameCWsp)),
 	))
 
 	// abnfElements is the rule `elements = alternation *WSP`.
-	abnfElements = newRule(ruleNameElements, cat(one(ref(ruleNameAlternation)), rep(0, inf, ref(ruleNameWsp))))
+	abnfElements = newRule(ruleNameElements, cat(one(ref(ruleNameAlternation)), rep(0, Inf, ref(ruleNameWsp))))
 
 	// abnfCWsp is the rule `c-wsp = WSP / (c-nl WSP)`.
 	abnfCWsp = newRule(ruleNameCWsp, cat(one(ref(ruleNameWsp))), cat(one(grp(cat(one(ref(ruleNameCNl)), one(ref(ruleNameWsp)))))))
@@ -164,7 +164,7 @@ var (
 	// abnfComment is the rule `comment = ";" *(WSP / VCHAR) CRLF`.
 	abnfComment = newRule(ruleNameComment, cat(
 		one(str(";")),
-		rep(0, inf, grp(cat(one(ref(ruleNameWsp))), cat(one(ref(ruleNameVchar))))),
+		rep(0, Inf, grp(cat(one(ref(ruleNameWsp))), cat(one(ref(ruleNameVchar))))),
 		one(ref(ruleNameCrlf)),
 	))
 
@@ -173,12 +173,12 @@ var (
 		one(ref(ruleNameConcatenation)),
 		rep(
 			0,
-			inf,
+			Inf,
 			grp(
 				cat(
-					rep(0, inf, ref(ruleNameCWsp)),
+					rep(0, Inf, ref(ruleNameCWsp)),
 					one(str("/")),
-					rep(0, inf, ref(ruleNameCWsp)),
+					rep(0, Inf, ref(ruleNameCWsp)),
 					one(ref(ruleNameConcatenation)),
 				),
 			),
@@ -188,14 +188,24 @@ var (
 	// abnfConcatenation is the rule `concatenation = repetition *(1*c-wsp repetition)`.
 	abnfConcatenation = newRule(ruleNameConcatenation, cat(
 		one(ref(ruleNameRepetition)),
-		rep(0, inf, grp(cat(rep(1, inf, ref(ruleNameCWsp)), one(ref(ruleNameRepetition))))),
+		rep(0, Inf, grp(cat(rep(1, Inf, ref(ruleNameCWsp)), one(ref(ruleNameRepetition))))),
 	))
 
 	// abnfRepetition is the rule `repetition = [repeat] element`.
 	abnfRepetition = newRule(ruleNameRepetition, cat(one(opt(cat(one(ref(ruleNameRepeat))))), one(ref(ruleNameElement))))
 
-	// abnfRepeat is the rule `repeat = 1*DIGIT / (*DIGIT "*" *DIGIT)`.
-	abnfRepeat = newRule(ruleNameRepeat, cat(rep(1, inf, ref(ruleNameDigit))), cat(one(grp(cat(rep(0, inf, ref(ruleNameDigit)), one(str("*")), rep(0, inf, ref(ruleNameDigit)))))))
+	// abnfRepeat is the rule
+	// `repeat = 1*DIGIT / (*DIGIT "*" *DIGIT) / (*DIGIT "#" *DIGIT)`.
+	//
+	// The last alternative is the list operator of RFC 9110 Section 5.6.1,
+	// which RFC 5234 does not define; evaluateListRepeat expands it into the
+	// standard ABNF that RFC 7230 Section 7 gives for it.
+	abnfRepeat = newRule(
+		ruleNameRepeat,
+		cat(rep(1, Inf, ref(ruleNameDigit))),
+		cat(one(grp(cat(rep(0, Inf, ref(ruleNameDigit)), one(str("*")), rep(0, Inf, ref(ruleNameDigit)))))),
+		cat(one(grp(cat(rep(0, Inf, ref(ruleNameDigit)), one(str("#")), rep(0, Inf, ref(ruleNameDigit)))))),
+	)
 
 	// abnfElement is the rule `element = rulename / group / option / char-val / num-val / prose-val`.
 	abnfElement = newRule(ruleNameElement, cat(one(ref(ruleNameRulename))), cat(one(ref(ruleNameGroup))), cat(one(ref(ruleNameOption))), cat(one(ref(ruleNameCharVal))), cat(one(ref(ruleNameNumVal))), cat(one(ref(ruleNameProseVal))))
@@ -203,18 +213,18 @@ var (
 	// abnfGroup is the rule `group = "(" *c-wsp alternation *c-wsp ")"`.
 	abnfGroup = newRule(ruleNameGroup, cat(
 		one(str("(")),
-		rep(0, inf, ref(ruleNameCWsp)),
+		rep(0, Inf, ref(ruleNameCWsp)),
 		one(ref(ruleNameAlternation)),
-		rep(0, inf, ref(ruleNameCWsp)),
+		rep(0, Inf, ref(ruleNameCWsp)),
 		one(str(")")),
 	))
 
 	// abnfOption is the rule `option = "[" *c-wsp alternation *c-wsp "]"`.
 	abnfOption = newRule(ruleNameOption, cat(
 		one(str("[")),
-		rep(0, inf, ref(ruleNameCWsp)),
+		rep(0, Inf, ref(ruleNameCWsp)),
 		one(ref(ruleNameAlternation)),
-		rep(0, inf, ref(ruleNameCWsp)),
+		rep(0, Inf, ref(ruleNameCWsp)),
 		one(str("]")),
 	))
 
@@ -230,7 +240,7 @@ var (
 	// abnfQuotedString is the rule `quoted-string = DQUOTE *(%x20-21 / %x23-7E) DQUOTE`.
 	abnfQuotedString = newRule(ruleNameQuotedString, cat(
 		one(ref(ruleNameDquote)),
-		rep(0, inf, grp(cat(one(numRange("x", "20", "21"))), cat(one(numRange("x", "23", "7E"))))),
+		rep(0, Inf, grp(cat(one(numRange("x", "20", "21"))), cat(one(numRange("x", "23", "7E"))))),
 		one(ref(ruleNameDquote)),
 	))
 
@@ -243,11 +253,11 @@ var (
 	// abnfBinVal is the rule `bin-val = "b" 1*BIT [1*("." 1*BIT) / ("-" 1*BIT)]`.
 	abnfBinVal = newRule(ruleNameBinVal, cat(
 		one(str("b")),
-		rep(1, inf, ref(ruleNameBit)),
+		rep(1, Inf, ref(ruleNameBit)),
 		one(
 			opt(
-				cat(rep(1, inf, grp(cat(one(str(".")), rep(1, inf, ref(ruleNameBit)))))),
-				cat(one(grp(cat(one(str("-")), rep(1, inf, ref(ruleNameBit)))))),
+				cat(rep(1, Inf, grp(cat(one(str(".")), rep(1, Inf, ref(ruleNameBit)))))),
+				cat(one(grp(cat(one(str("-")), rep(1, Inf, ref(ruleNameBit)))))),
 			),
 		),
 	))
@@ -255,11 +265,11 @@ var (
 	// abnfDecVal is the rule `dec-val = "d" 1*DIGIT [1*("." 1*DIGIT) / ("-" 1*DIGIT)]`.
 	abnfDecVal = newRule(ruleNameDecVal, cat(
 		one(str("d")),
-		rep(1, inf, ref(ruleNameDigit)),
+		rep(1, Inf, ref(ruleNameDigit)),
 		one(
 			opt(
-				cat(rep(1, inf, grp(cat(one(str(".")), rep(1, inf, ref(ruleNameDigit)))))),
-				cat(one(grp(cat(one(str("-")), rep(1, inf, ref(ruleNameDigit)))))),
+				cat(rep(1, Inf, grp(cat(one(str(".")), rep(1, Inf, ref(ruleNameDigit)))))),
+				cat(one(grp(cat(one(str("-")), rep(1, Inf, ref(ruleNameDigit)))))),
 			),
 		),
 	))
@@ -267,11 +277,11 @@ var (
 	// abnfHexVal is the rule `hex-val = "x" 1*HEXDIG [1*("." 1*HEXDIG) / ("-" 1*HEXDIG)]`.
 	abnfHexVal = newRule(ruleNameHexVal, cat(
 		one(str("x")),
-		rep(1, inf, ref(ruleNameHexdig)),
+		rep(1, Inf, ref(ruleNameHexdig)),
 		one(
 			opt(
-				cat(rep(1, inf, grp(cat(one(str(".")), rep(1, inf, ref(ruleNameHexdig)))))),
-				cat(one(grp(cat(one(str("-")), rep(1, inf, ref(ruleNameHexdig)))))),
+				cat(rep(1, Inf, grp(cat(one(str(".")), rep(1, Inf, ref(ruleNameHexdig)))))),
+				cat(one(grp(cat(one(str("-")), rep(1, Inf, ref(ruleNameHexdig)))))),
 			),
 		),
 	))
@@ -279,35 +289,35 @@ var (
 	// abnfProseVal is the rule `prose-val = "<" *(%x20-3D / %x3F-7E) ">"`.
 	abnfProseVal = newRule(ruleNameProseVal, cat(
 		one(str("<")),
-		rep(0, inf, grp(cat(one(numRange("x", "20", "3D"))), cat(one(numRange("x", "3F", "7E"))))),
+		rep(0, Inf, grp(cat(one(numRange("x", "20", "3D"))), cat(one(numRange("x", "3F", "7E"))))),
 		one(str(">")),
 	))
 )
 
 // abnfGrammar is the grammar used to parse ABNF grammar definitions.
-var abnfGrammar = &Grammar{Rulemap: map[string]*Rule{
-	ruleNameRulelist:              abnfRulelist,
-	ruleNameRule:                  abnfRule,
-	ruleNameRulename:              abnfRulename,
-	ruleNameDefinedAs:             abnfDefinedAs,
-	ruleNameElements:              abnfElements,
-	ruleNameCWsp:                  abnfCWsp,
-	ruleNameCNl:                   abnfCNl,
-	ruleNameComment:               abnfComment,
-	ruleNameAlternation:           abnfAlternation,
-	ruleNameConcatenation:         abnfConcatenation,
-	ruleNameRepetition:            abnfRepetition,
-	ruleNameRepeat:                abnfRepeat,
-	ruleNameElement:               abnfElement,
-	ruleNameGroup:                 abnfGroup,
-	ruleNameOption:                abnfOption,
-	ruleNameCharVal:               abnfCharVal,
-	ruleNameCaseInsensitiveString: abnfCaseInsensitiveString,
-	ruleNameCaseSensitiveString:   abnfCaseSensitiveString,
-	ruleNameQuotedString:          abnfQuotedString,
-	ruleNameNumVal:                abnfNumVal,
-	ruleNameBinVal:                abnfBinVal,
-	ruleNameDecVal:                abnfDecVal,
-	ruleNameHexVal:                abnfHexVal,
-	ruleNameProseVal:              abnfProseVal,
-}}
+var abnfGrammar = newGrammar(
+	abnfRulelist,
+	abnfRule,
+	abnfRulename,
+	abnfDefinedAs,
+	abnfElements,
+	abnfCWsp,
+	abnfCNl,
+	abnfComment,
+	abnfAlternation,
+	abnfConcatenation,
+	abnfRepetition,
+	abnfRepeat,
+	abnfElement,
+	abnfGroup,
+	abnfOption,
+	abnfCharVal,
+	abnfCaseInsensitiveString,
+	abnfCaseSensitiveString,
+	abnfQuotedString,
+	abnfNumVal,
+	abnfBinVal,
+	abnfDecVal,
+	abnfHexVal,
+	abnfProseVal,
+)

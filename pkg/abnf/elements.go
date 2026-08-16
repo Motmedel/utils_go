@@ -7,8 +7,8 @@ import (
 	"unicode"
 )
 
-// inf marks an unbounded repetition maximum.
-const inf = -1
+// Inf marks an unbounded repetition maximum.
+const Inf = -1
 
 // Element is the interface implemented by all ABNF element variants:
 // *RulenameElement, *GroupElement, *OptionElement, *CharValElement,
@@ -58,7 +58,7 @@ func (concatenation *Concatenation) String() string {
 	return strings.Join(parts, " ")
 }
 
-// Repetition is an ABNF repetition of an element. Max may be inf (-1) for
+// Repetition is an ABNF repetition of an element. Max may be Inf (-1) for
 // an unbounded repetition.
 type Repetition struct {
 	Min, Max int
@@ -77,7 +77,7 @@ func (repetition *Repetition) String() string {
 		str += strconv.Itoa(repetition.Min)
 	}
 	str += "*"
-	if repetition.Max != inf {
+	if repetition.Max != Inf {
 		str += strconv.Itoa(repetition.Max)
 	}
 	return str + repetition.Element.String()
@@ -175,6 +175,48 @@ func (element *NumValElement) element() {}
 
 var _ Element = (*NumValElement)(nil)
 
+// ListElement is the "#" list operator of RFC 9110 Section 5.6.1: a list of
+// Min to Max occurrences of an element, separated by commas and optional
+// whitespace. Max may be Inf.
+//
+// RFC 5234 defines no such operator. The HTTP specifications define it in
+// terms of standard ABNF, and Expansion holds that standard ABNF, which is
+// what matching against the element uses.
+type ListElement struct {
+	Min, Max int
+	Element  Element
+	// Expansion is the standard ABNF the operator stands for, as
+	// RFC 7230 Section 7 gives it. It holds Element itself rather than a
+	// copy of it, so rewriting an element of a parsed grammar in place
+	// rewrites it here too; treat a list element as a whole.
+	Expansion *Alternation
+}
+
+func (element *ListElement) String() string {
+	str := ""
+	if element.Min != 0 {
+		str += strconv.Itoa(element.Min)
+	}
+	str += "#"
+	if element.Max != Inf {
+		str += strconv.Itoa(element.Max)
+	}
+	return str + element.Element.String()
+}
+
+func (element *ListElement) element() {}
+
+// alternation returns the standard ABNF the operator stands for, building it
+// if the element was made without it.
+func (element *ListElement) alternation() *Alternation {
+	if element.Expansion != nil {
+		return element.Expansion
+	}
+	return expandList(element.Min, element.Max, element.Element)
+}
+
+var _ Element = (*ListElement)(nil)
+
 // ProseValElement is an ABNF prose-val element: a free-form prose
 // description that cannot be matched against input.
 type ProseValElement struct {
@@ -189,10 +231,10 @@ func (element *ProseValElement) element() {}
 
 var _ Element = (*ProseValElement)(nil)
 
-// parseNumVal converts a num-val numeral in the given base into the
+// ParseNumVal converts a num-val numeral in the given base into the
 // corresponding rune. Values beyond the maximum Unicode code point are
 // rejected.
-func parseNumVal(value, base string) (rune, error) {
+func ParseNumVal(value, base string) (rune, error) {
 	var intBase int
 	switch base {
 	case "B", "b":
@@ -218,7 +260,7 @@ func parseNumVal(value, base string) (rune, error) {
 // num-vals of semantically validated grammars, for which conversion cannot
 // fail.
 func mustParseNumVal(value, base string) rune {
-	r, err := parseNumVal(value, base)
+	r, err := ParseNumVal(value, base)
 	if err != nil {
 		panic(err)
 	}

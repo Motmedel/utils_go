@@ -21,35 +21,47 @@ type Path struct {
 }
 
 // ParseABNF parses an ABNF grammar definition as specified by RFC 5234,
-// with the RFC 7405 char-val extension. The input must use CRLF line
-// endings, including on the last line. The resulting grammar is
-// semantically validated.
+// with the RFC 7405 char-val extension and the RFC 9110 Section 5.6.1 list
+// operator. The input must use CRLF line endings, including on the last
+// line. The resulting grammar is semantically validated.
 func ParseABNF(input []byte) (*Grammar, error) {
+	grammar, _, err := ParseABNFWithPath(input)
+	if err != nil {
+		return nil, err
+	}
+	return grammar, nil
+}
+
+// ParseABNFWithPath parses an ABNF grammar definition as ParseABNF does,
+// returning the rulelist path of the definition alongside the grammar. The
+// path delimits the input bytes that every construct of the definition
+// matched, which callers reporting on a definition need to locate them.
+func ParseABNFWithPath(input []byte) (*Grammar, *Path, error) {
 	paths, err := Parse(input, abnfGrammar, ruleNameRulelist)
 	if err != nil {
-		return nil, fmt.Errorf("parse: %w", err)
+		return nil, nil, fmt.Errorf("parse: %w", err)
 	}
 
 	var path *Path
 	switch len(paths) {
 	case 0:
-		return nil, ErrNoSolutionFound
+		return nil, nil, ErrNoSolutionFound
 	case 1:
 		path = paths[0]
 	default:
-		return nil, &MultipleSolutionsFoundError{Paths: paths}
+		return nil, nil, &MultipleSolutionsFoundError{Paths: paths}
 	}
 
 	grammar, err := evaluateGrammar(input, path)
 	if err != nil {
-		return nil, fmt.Errorf("evaluate grammar: %w", err)
+		return nil, nil, fmt.Errorf("evaluate grammar: %w", err)
 	}
 
 	if err := validateGrammar(grammar); err != nil {
-		return nil, fmt.Errorf("validate grammar: %w", err)
+		return nil, nil, fmt.Errorf("validate grammar: %w", err)
 	}
 
-	return grammar, nil
+	return grammar, path, nil
 }
 
 // Parse parses input using the given grammar, starting from the named root
@@ -219,6 +231,9 @@ func solveElement(grammar *Grammar, element Element, input []byte, index int) []
 	case *GroupElement:
 		return solveAlternation(grammar, v.Alternation, input, index)
 
+	case *ListElement:
+		return solveAlternation(grammar, v.alternation(), input, index)
+
 	case *CharValElement:
 		end := index + len(v.Value)
 		if end > len(input) {
@@ -284,7 +299,7 @@ func shouldContinueRepetition(repetition *Repetition, input []byte, index, itera
 	}
 
 	// An unbounded repetition is only limited by the input length.
-	if repetition.Max == inf {
+	if repetition.Max == Inf {
 		return couldMatch
 	}
 	return couldMatch && iteration < repetition.Max

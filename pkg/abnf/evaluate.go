@@ -11,6 +11,9 @@ import (
 // evaluateGrammar evaluates a rulelist path, as produced by parsing an ABNF
 // grammar definition with the ABNF grammar itself, into a Grammar.
 func evaluateGrammar(input []byte, path *Path) (*Grammar, error) {
+	// The rules are collected in definition order, and indexed by lowercase
+	// name to resolve redefinitions and incremental alternatives.
+	var rules []*Rule
 	rulemap := map[string]*Rule{}
 
 	listPath := path.Subpaths[0]
@@ -49,6 +52,7 @@ func evaluateGrammar(input []byte, path *Path) (*Grammar, error) {
 				if rulemap[lowerName] != nil {
 					return nil, &DuplicatedRuleError{Rulename: rule.Name}
 				}
+				rules = append(rules, rule)
 				rulemap[lowerName] = rule
 			case "=/":
 				existingRule := rulemap[lowerName]
@@ -67,7 +71,7 @@ func evaluateGrammar(input []byte, path *Path) (*Grammar, error) {
 		}
 	}
 
-	return &Grammar{Rulemap: rulemap}, nil
+	return &Grammar{Rules: rules, Rulemap: rulemap}, nil
 }
 
 func evaluateRule(input []byte, path *Path) (*Rule, error) {
@@ -147,6 +151,20 @@ func evaluateRepetition(input []byte, path *Path) (*Repetition, error) {
 		repeatPath := path.Subpaths[0].Subpaths[0].Subpaths[0]
 		elementPath = path.Subpaths[1]
 
+		// A "#" marks the list operator, which is an element of its own
+		// rather than a repeat.
+		for i := repeatPath.Start; i < repeatPath.End; i++ {
+			if input[i] != '#' {
+				continue
+			}
+
+			listElement, err := evaluateListRepeat(input, repeatPath, i, elementPath)
+			if err != nil {
+				return nil, fmt.Errorf("evaluate list repeat: %w", err)
+			}
+			return one(listElement), nil
+		}
+
 		// Look for "*" to determine the repeat form.
 		starIndex := -1
 		for i := repeatPath.Start; i < repeatPath.End; i++ {
@@ -184,7 +202,7 @@ func evaluateRepetition(input []byte, path *Path) (*Repetition, error) {
 
 			maxString := string(input[starIndex+1 : repeatPath.End])
 			if maxString == "" {
-				maxCount = inf
+				maxCount = Inf
 			} else {
 				count, err := strconv.Atoi(maxString)
 				if err != nil {

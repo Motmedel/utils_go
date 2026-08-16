@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -276,5 +277,204 @@ func TestBootstrapGrammarRoundTrip(t *testing.T) {
 
 	if !slices.Equal(sortedRuleStrings(abnfGrammar), sortedRuleStrings(reparsedGrammar)) {
 		t.Fatal("bootstrap grammar round trip mismatch")
+	}
+}
+
+// listGrammar is the example RFC 7230 Section 7 gives for the list operator,
+// with the OWS its expansion separates elements with.
+const listGrammar = "example-list=1#example-list-elmt\r\n" +
+	"example-list-elmt=token\r\n" +
+	"token=1*(ALPHA/DIGIT)\r\n" +
+	"OWS=*(SP/HTAB)\r\n"
+
+// TestParseListExtension checks the "#" list operator of RFC 9110
+// Section 5.6.1 against the values RFC 7230 Section 7 calls valid and
+// invalid for its own example.
+func TestParseListExtension(t *testing.T) {
+	t.Parallel()
+
+	grammar, err := ParseABNF([]byte(listGrammar))
+	if err != nil {
+		t.Fatalf("parse abnf: %v", err)
+	}
+
+	testCases := []struct {
+		name    string
+		input   string
+		matches bool
+	}{
+		{name: "two elements", input: "foo,bar", matches: true},
+		// A recipient "MUST parse and ignore" empty list elements.
+		{name: "empty element and trailing comma", input: "foo ,bar,", matches: true},
+		{name: "several empty elements", input: "foo , ,bar,charlie", matches: true},
+		{name: "leading comma", input: ",foo", matches: true},
+		// At least one non-empty element is required.
+		{name: "empty", input: "", matches: false},
+		{name: "comma alone", input: ",", matches: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			paths, err := Parse([]byte(testCase.input), grammar, "example-list")
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			if matches := len(paths) != 0; matches != testCase.matches {
+				t.Fatalf("expected matches=%t, got matches=%t", testCase.matches, matches)
+			}
+		})
+	}
+}
+
+// TestListExtensionRoundTrips checks that the list operator survives being
+// read: it is kept as written, and the standard ABNF it stands for is
+// carried alongside it.
+func TestListExtensionRoundTrips(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		rule string
+		// expansion is the standard ABNF of RFC 7230 Section 7.
+		expansion string
+	}{
+		{
+			name:      "optional list",
+			rule:      "root = #token",
+			expansion: `[("," / token) *(OWS "," [OWS token])]`,
+		},
+		{
+			name:      "one or more",
+			rule:      "root = 1#token",
+			expansion: `*("," OWS) token *(OWS "," [OWS token])`,
+		},
+		{
+			name:      "bounded",
+			rule:      "root = 2#5token",
+			expansion: `token 1*4(OWS "," OWS token)`,
+		},
+		{
+			name:      "minimum only",
+			rule:      "root = 3#token",
+			expansion: `token 2*(OWS "," OWS token)`,
+		},
+		{
+			name:      "maximum only",
+			rule:      "root = #3token",
+			expansion: `[token *2(OWS "," OWS token)]`,
+		},
+		{
+			name:      "group element",
+			rule:      "root = 1#(token token)",
+			expansion: `*("," OWS) (token token) *(OWS "," [OWS (token token)])`,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			grammar, err := ParseABNF([]byte(testCase.rule + "\r\ntoken=ALPHA\r\nOWS=*(SP/HTAB)\r\n"))
+			if err != nil {
+				t.Fatalf("parse abnf: %v", err)
+			}
+
+			rule := grammar.Rule("root")
+			if rule == nil {
+				t.Fatal("no root rule")
+			}
+
+			// The operator is kept as written, so that a definition using it
+			// stays as short as it was.
+			if written := rule.String(); written != testCase.rule {
+				t.Fatalf("expected %q, got %q", testCase.rule, written)
+			}
+
+			listElement := soleListElement(t, rule)
+			if expansion := listElement.Expansion.String(); expansion != testCase.expansion {
+				t.Fatalf("expected the expansion %q, got %q", testCase.expansion, expansion)
+			}
+		})
+	}
+}
+
+// soleListElement returns the list element a rule is made of.
+func soleListElement(t *testing.T, rule *Rule) *ListElement {
+	t.Helper()
+
+	repetitions := rule.Alternation.Concatenations[0].Repetitions
+	if len(repetitions) != 1 {
+		t.Fatalf("expected one repetition, got %d", len(repetitions))
+	}
+
+	listElement, ok := repetitions[0].Element.(*ListElement)
+	if !ok {
+		t.Fatalf("expected a list element, got %T", repetitions[0].Element)
+	}
+
+	return listElement
+}
+
+// TestListExtensionNeedsSeparator checks that the rule the expansion refers
+// to has to be defined, as any other referenced rule does.
+func TestListExtensionNeedsSeparator(t *testing.T) {
+	t.Parallel()
+
+	_, err := ParseABNF([]byte("root=1#token\r\ntoken=ALPHA\r\n"))
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+
+	notFound, ok := errors.AsType[*DependencyNotFoundError](err)
+	if !ok {
+		t.Fatalf("expected a dependency-not-found error, got: %v", err)
+	}
+	// Dependency names are reported lowercased, as rule names are
+	// case-insensitive.
+	if !strings.EqualFold(notFound.Rulename, "OWS") {
+		t.Fatalf("expected the missing dependency to be OWS, got %q", notFound.Rulename)
+	}
+}
+
+// TestListExtensionCounts checks that the counts on either side of the "#"
+// are read as RFC 7230 Section 7 gives them, with an absent minimum meaning
+// none and an absent maximum meaning unbounded.
+func TestListExtensionCounts(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		rule    string
+		minimum int
+		maximum int
+	}{
+		{name: "neither", rule: "root = #token", minimum: 0, maximum: Inf},
+		{name: "minimum", rule: "root = 1#token", minimum: 1, maximum: Inf},
+		{name: "maximum", rule: "root = #5token", minimum: 0, maximum: 5},
+		{name: "both", rule: "root = 2#5token", minimum: 2, maximum: 5},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			grammar, err := ParseABNF([]byte(testCase.rule + "\r\ntoken=ALPHA\r\nOWS=*(SP/HTAB)\r\n"))
+			if err != nil {
+				t.Fatalf("parse abnf: %v", err)
+			}
+
+			listElement := soleListElement(t, grammar.Rule("root"))
+			if listElement.Min != testCase.minimum || listElement.Max != testCase.maximum {
+				t.Fatalf(
+					"expected %d to %d, got %d to %d",
+					testCase.minimum,
+					testCase.maximum,
+					listElement.Min,
+					listElement.Max,
+				)
+			}
+		})
 	}
 }
