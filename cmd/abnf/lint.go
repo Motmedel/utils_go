@@ -29,6 +29,7 @@ type linted struct {
 func newLintCommand() *command {
 	var format string
 	var simplify bool
+	var roots []string
 	var paths []string
 
 	parser := &argumentParser.Parser{
@@ -50,25 +51,38 @@ func newLintCommand() *command {
 				false,
 				&simplify,
 			),
+			// One rule per occurrence, accumulating: the default for a
+			// strings option is greedy, which would swallow the paths that
+			// follow it.
+			option.WithNargs(
+				option.NewStringsOption(
+					'r',
+					"root",
+					"a rule the grammar is parsed from; given these, report the rules none of them reaches",
+					false,
+					&roots,
+				),
+				option.NargsOne,
+			),
 		},
 		Rest: &paths,
 	}
 
 	return &command{
 		parser: parser,
-		run:    func() (int, error) { return runLint(format, simplify, paths) },
+		run:    func() (int, error) { return runLint(format, simplify, roots, paths) },
 	}
 }
 
 // runLint reports on every definition named, or on standard input when none
 // is. It exits with exitReported when anything is reported, so that a check
 // in a pipeline fails on a definition that is not as short as it could be.
-func runLint(format string, simplify bool, paths []string) (int, error) {
+func runLint(format string, simplify bool, roots []string, paths []string) (int, error) {
 	if len(paths) == 0 {
 		paths = []string{""}
 	}
 
-	options := &lint.Options{Simplify: simplify}
+	options := &lint.Options{Simplify: simplify, Roots: roots}
 
 	results := make([]*linted, 0, len(paths))
 	for _, path := range paths {

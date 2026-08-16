@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/Motmedel/utils_go/pkg/abnf"
 	"github.com/Motmedel/utils_go/pkg/abnf/minify"
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 )
@@ -200,6 +201,84 @@ func TestLint(t *testing.T) {
 				t.Fatalf("expected %v, got %v", testCase.expected, ids)
 			}
 		})
+	}
+}
+
+// TestUnreachableRules checks the check that naming the rules a grammar is
+// parsed from makes possible: a rule nothing refers to is only suspicious,
+// but a rule no root leads to is dead.
+func TestUnreachableRules(t *testing.T) {
+	t.Parallel()
+
+	// "dead" is referred to by "also-dead", so counting references calls it
+	// used; nothing the grammar is parsed from leads to either.
+	const definition = "root=live\r\n" +
+		"live=\"a\"\r\n" +
+		"also-dead=dead\r\n" +
+		"dead=\"b\"\r\n"
+
+	testCases := []struct {
+		name     string
+		roots    []string
+		expected []RuleId
+	}{
+		{
+			name: "without roots only references are counted",
+			// "dead" goes unreported: "also-dead" refers to it.
+			expected: []RuleId{RuleIdUnreferencedRule, RuleIdUnreferencedRule},
+		},
+		{
+			name:  "with a root everything it does not reach is dead",
+			roots: []string{"root"},
+			expected: []RuleId{
+				RuleIdUnreachableRule,
+				RuleIdUnreachableRule,
+			},
+		},
+		{
+			name:     "naming every entry point leaves nothing dead",
+			roots:    []string{"root", "also-dead"},
+			expected: nil,
+		},
+		{
+			name:     "a root is matched without regard to case",
+			roots:    []string{"ROOT", "also-dead"},
+			expected: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			findings, err := Lint([]byte(definition), &Options{Roots: testCase.roots})
+			if err != nil {
+				t.Fatalf("lint: %v", err)
+			}
+
+			if ids := ruleIds(findings); !slices.Equal(ids, testCase.expected) {
+				t.Fatalf("expected %v, got %v", testCase.expected, ids)
+			}
+		})
+	}
+}
+
+// TestUnknownRootIsReported checks that naming a rule the grammar does not
+// hold is an error rather than a silent lack of findings.
+func TestUnknownRootIsReported(t *testing.T) {
+	t.Parallel()
+
+	_, err := Lint([]byte("root=\"a\"\r\n"), &Options{Roots: []string{"missing"}})
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+
+	notFound, ok := errors.AsType[*abnf.RuleNotFoundError](err)
+	if !ok {
+		t.Fatalf("expected a rule-not-found error, got: %v", err)
+	}
+	if notFound.Rulename != "missing" {
+		t.Fatalf("expected the missing rule to be named, got %q", notFound.Rulename)
 	}
 }
 

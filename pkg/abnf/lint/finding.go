@@ -57,8 +57,14 @@ const (
 	RuleIdListExtension RuleId = "list-extension"
 	// RuleIdUnreferencedRule marks a rule that no other rule refers to.
 	// That is expected of the rule a grammar is parsed from, and suspicious
-	// of any other.
+	// of any other. Naming the rules a grammar is parsed from, through
+	// Options.Roots, answers the question far better: see
+	// RuleIdUnreachableRule.
 	RuleIdUnreferencedRule RuleId = "unreferenced-rule"
+	// RuleIdUnreachableRule marks a rule that no rule a grammar is parsed
+	// from leads to, directly or through others. Such a rule is dead: no
+	// input can ever reach it.
+	RuleIdUnreachableRule RuleId = "unreachable-rule"
 )
 
 // Category groups the checks by what acting on them achieves.
@@ -170,6 +176,12 @@ var rules = []*Rule{
 		Category:    CategoryQuality,
 		Level:       sarif.LevelNote,
 		Description: "A rule that no other rule refers to, which is expected only of a root rule.",
+	},
+	{
+		Id:          RuleIdUnreachableRule,
+		Category:    CategoryQuality,
+		Level:       sarif.LevelWarning,
+		Description: "A rule that no root rule leads to, which no input can ever reach.",
 	},
 }
 

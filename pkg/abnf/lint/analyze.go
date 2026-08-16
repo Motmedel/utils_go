@@ -60,11 +60,134 @@ func (linter *linter) simplificationFindings() {
 
 // qualityFindings reports on the grammar itself rather than on how it is
 // written.
-func (linter *linter) qualityFindings(path *abnf.Path) {
+func (linter *linter) qualityFindings(path *abnf.Path, options *Options) error {
 	linter.proseValFindings(path)
-	linter.rulenameFindings(path)
 	linter.duplicateAlternativeFindings()
 	linter.listExtensionFindings(path)
+
+	var roots []string
+	if options != nil {
+		roots = options.Roots
+	}
+
+	// Naming the rules the grammar is parsed from answers what "unused"
+	// means far better than counting references does, so the two checks are
+	// alternatives rather than companions.
+	if len(roots) == 0 {
+		linter.rulenameFindings(path, true)
+		return nil
+	}
+
+	linter.rulenameFindings(path, false)
+
+	if err := linter.unreachableFindings(roots); err != nil {
+		return fmt.Errorf("unreachable findings: %w", err)
+	}
+
+	return nil
+}
+
+// unreachableFindings reports the rules that none of the rules the grammar
+// is parsed from leads to. A rule nothing refers to is only suspicious; a
+// rule no root leads to is dead, as no input can reach it.
+func (linter *linter) unreachableFindings(roots []string) error {
+	reached := map[string]bool{}
+
+	var visit func(rulename string)
+	visit = func(rulename string) {
+		key := strings.ToLower(rulename)
+		if reached[key] {
+			return
+		}
+		reached[key] = true
+
+		// A core rule leads only to other core rules, which the grammar
+		// does not hold and so cannot be reporting on.
+		rule := linter.grammar.Rulemap[key]
+		if rule == nil {
+			return
+		}
+
+		for _, dependency := range ruleDependencies(rule) {
+			visit(dependency)
+		}
+	}
+
+	for _, root := range roots {
+		if linter.grammar.Rule(root) == nil {
+			return &abnf.RuleNotFoundError{Rulename: root}
+		}
+		visit(root)
+	}
+
+	for _, rule := range linter.grammar.Rules {
+		if reached[strings.ToLower(rule.Name)] {
+			continue
+		}
+
+		paths := linter.rulePaths[strings.ToLower(rule.Name)]
+		if len(paths) == 0 {
+			continue
+		}
+
+		rulename := item(paths[0], nodeRulename)
+		if rulename == nil {
+			continue
+		}
+
+		linter.add(
+			linter.source.finding(
+				RuleIdUnreachableRule,
+				rulename.Start,
+				rulename.End,
+				fmt.Sprintf(
+					"no rule the grammar is parsed from leads to %q, so nothing can ever reach it",
+					rule.Name,
+				),
+				nil,
+			),
+		)
+	}
+
+	return nil
+}
+
+// ruleDependencies returns the names of the rules a rule refers to.
+func ruleDependencies(rule *abnf.Rule) []string {
+	var dependencies []string
+
+	var walkAlternation func(alternation *abnf.Alternation)
+	walkAlternation = func(alternation *abnf.Alternation) {
+		if alternation == nil {
+			return
+		}
+
+		for _, concatenation := range alternation.Concatenations {
+			if concatenation == nil {
+				continue
+			}
+			for _, repetition := range concatenation.Repetitions {
+				if repetition == nil {
+					continue
+				}
+				switch element := repetition.Element.(type) {
+				case *abnf.RulenameElement:
+					dependencies = append(dependencies, element.Name)
+				case *abnf.GroupElement:
+					walkAlternation(element.Alternation)
+				case *abnf.OptionElement:
+					walkAlternation(element.Alternation)
+				case *abnf.ListElement:
+					// The expansion holds the element itself, and the OWS
+					// the operator separates with.
+					walkAlternation(element.Expansion)
+				}
+			}
+		}
+	}
+	walkAlternation(rule.Alternation)
+
+	return dependencies
 }
 
 // listExtensionFindings reports the rules using the "#" list operator. It is
@@ -127,8 +250,9 @@ func (linter *linter) proseValFindings(path *abnf.Path) {
 }
 
 // rulenameFindings reports references that spell a rule name with a
-// different case than its definition, and rules that nothing refers to.
-func (linter *linter) rulenameFindings(path *abnf.Path) {
+// different case than its definition, and, when asked, the rules that
+// nothing refers to.
+func (linter *linter) rulenameFindings(path *abnf.Path, reportUnreferenced bool) {
 	referenced := map[string]bool{}
 
 	for _, rulePath := range items(path, nodeRule) {
@@ -158,6 +282,10 @@ func (linter *linter) rulenameFindings(path *abnf.Path) {
 				),
 			)
 		}
+	}
+
+	if !reportUnreferenced {
+		return
 	}
 
 	// The list expansion separates elements with OWS without the definition

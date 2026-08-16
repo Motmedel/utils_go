@@ -26,6 +26,11 @@ type Options struct {
 	// they match. They are left out by default because acting on them
 	// changes the shape of the paths that parsing produces.
 	Simplify bool
+	// Roots names the rules the grammar is parsed from. Given them, the
+	// linter reports the rules none of them leads to, which are dead;
+	// without them it can only report the rules nothing refers to, which
+	// every root rule is by definition.
+	Roots []string
 }
 
 // linter accumulates the findings of one run over one definition.
@@ -84,7 +89,9 @@ func Lint(input []byte, options *Options) ([]*Finding, error) {
 	if options != nil && options.Simplify {
 		linter.simplificationFindings()
 	}
-	linter.qualityFindings(path)
+	if err := linter.qualityFindings(path, options); err != nil {
+		return nil, fmt.Errorf("quality findings: %w", err)
+	}
 
 	return sortFindings(suppressCoveredLineEndings(linter.findings)), nil
 }
