@@ -1,9 +1,12 @@
 package internal
 
 import (
+	"bytes"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	muxTypesResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
@@ -86,4 +89,49 @@ func TestDefaultResponseErrorHandler(t *testing.T) {
 			t.Fatalf("expected the pre-written 418, got %d", recorder.Code)
 		}
 	})
+}
+
+// TestDefaultDoneCallback verifies that a response served is logged at debug level, and that a
+// logger set above it is not asked to build a record it would drop.
+//
+//nolint:paralleltest // The cases set the process-wide default logger, so they run one at a time.
+func TestDefaultDoneCallback(t *testing.T) {
+	testCases := []struct {
+		name     string
+		level    slog.Level
+		expected bool
+	}{
+		{name: "debug", level: slog.LevelDebug, expected: true},
+		{name: "info", level: slog.LevelInfo},
+		{name: "error", level: slog.LevelError},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			var buffer bytes.Buffer
+
+			previous := slog.Default()
+			t.Cleanup(func() { slog.SetDefault(previous) })
+			slog.SetDefault(
+				slog.New(slog.NewJSONHandler(&buffer, &slog.HandlerOptions{Level: testCase.level})),
+			)
+
+			DefaultDoneCallback(t.Context())
+
+			logged := strings.Contains(buffer.String(), ResponseServedMessage)
+			if logged != testCase.expected {
+				t.Errorf("logged: got %t, want %t (%q)", logged, testCase.expected, buffer.String())
+			}
+
+			if !testCase.expected {
+				return
+			}
+
+			for _, expected := range []string{`"action":"http_response_served"`, `"level":"DEBUG"`} {
+				if !strings.Contains(buffer.String(), expected) {
+					t.Errorf("the record lacks %s: %s", expected, buffer.String())
+				}
+			}
+		})
+	}
 }

@@ -923,3 +923,104 @@ func TestPatchCspSourceDirective_OtherDirectiveType(t *testing.T) {
 		t.Fatalf("expected 'self' in connect-src, got %v", sourceStrings(directive.Sources))
 	}
 }
+
+func TestPatchCspStyleSrcWithKeyword(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		policy   string
+		keywords []string
+		expected string
+	}{
+		{
+			name:     "no style-src",
+			policy:   "default-src 'self'",
+			keywords: []string{"self", "unsafe-hashes"},
+			expected: "default-src 'self'; style-src 'self' 'unsafe-hashes'",
+		},
+		{
+			name:     "an existing style-src is added to",
+			policy:   "style-src 'self'",
+			keywords: []string{"unsafe-hashes"},
+			expected: "style-src 'self' 'unsafe-hashes'",
+		},
+		{
+			name:     "what is already there is not repeated",
+			policy:   "style-src 'self' 'unsafe-hashes'",
+			keywords: []string{"self", "unsafe-hashes"},
+			expected: "style-src 'self' 'unsafe-hashes'",
+		},
+		{
+			name:     "empty keywords are skipped",
+			policy:   "style-src 'self'",
+			keywords: []string{""},
+			expected: "style-src 'self'",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			policy, err := csp.Parse([]byte(testCase.policy))
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+
+			PatchCspStyleSrcWithKeyword(policy, testCase.keywords...)
+
+			if got := policy.String(); got != testCase.expected {
+				t.Errorf("policy: got %q, want %q", got, testCase.expected)
+			}
+		})
+	}
+}
+
+func TestPatchCspTrustedTypes(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		policy   string
+		policies []string
+		expected string
+	}{
+		{
+			name:     "no trusted types",
+			policy:   "default-src 'self'",
+			policies: []string{"default", "dompurify"},
+			expected: "default-src 'self'; trusted-types default dompurify; require-trusted-types-for 'script'",
+		},
+		{
+			name:     "an existing directive is added to, and the requirement is left as it is",
+			policy:   "trusted-types default; require-trusted-types-for 'script'",
+			policies: []string{"default", "dompurify"},
+			expected: "trusted-types default dompurify; require-trusted-types-for 'script'",
+		},
+		{
+			// Naming no policy says nothing, so nothing is required either.
+			name:     "no policies",
+			policy:   "default-src 'self'",
+			policies: []string{""},
+			expected: "default-src 'self'",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			policy, err := csp.Parse([]byte(testCase.policy))
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+
+			PatchCspTrustedTypes(policy, testCase.policies...)
+
+			if got := policy.String(); got != testCase.expected {
+				t.Errorf("policy: got %q, want %q", got, testCase.expected)
+			}
+		})
+	}
+}

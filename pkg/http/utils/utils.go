@@ -33,6 +33,11 @@ import (
 
 const AcceptContentIdentity = "identity"
 
+// FetchPerformedMessage is the message a fetch is logged under. What is worth saying about one is in
+// the HTTP context rather than here -- what was requested, and what came back -- so a log handler
+// that reads that context may replace it with what it says.
+const FetchPerformedMessage = "A fetch was performed."
+
 // retryAfterHeaderDelay parses an HTTP Retry-After header into a delay. The header is
 // either a non-negative number of seconds or an HTTP-date; for the latter the response
 // Date header is used as the reference point when present. It returns nil when the
@@ -130,10 +135,10 @@ func fetch(ctx context.Context, request *http.Request, fetchConfig *fetch_config
 
 			slog.DebugContext(
 				debugCtx,
-				"A fetch was performed.",
+				FetchPerformedMessage,
 				slog.Group(
 					"event",
-					slog.String("reason", "A fetch was performed."),
+					slog.String("reason", FetchPerformedMessage),
 				),
 			)
 		}

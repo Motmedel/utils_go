@@ -322,3 +322,34 @@ func TestNetworkFromTarget(t *testing.T) {
 		})
 	}
 }
+
+func TestIsLocalhost(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		hostname string
+		expected bool
+	}{
+		{name: "localhost", hostname: "localhost", expected: true},
+		{name: "in another case", hostname: "LocalHost", expected: true},
+		// RFC 6761 reserves everything under localhost for the same purpose.
+		{name: "a subdomain", hostname: "service.localhost", expected: true},
+		{name: "a subdomain in another case", hostname: "Service.LOCALHOST", expected: true},
+		{name: "a name ending in it", hostname: "notlocalhost", expected: false},
+		{name: "a domain that merely starts with it", hostname: "localhost.example.com", expected: false},
+		{name: "another host", hostname: "example.com", expected: false},
+		{name: "the loopback address", hostname: "127.0.0.1", expected: false},
+		{name: "empty", hostname: "", expected: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := IsLocalhost(testCase.hostname); got != testCase.expected {
+				t.Errorf("is localhost: got %t, want %t", got, testCase.expected)
+			}
+		})
+	}
+}

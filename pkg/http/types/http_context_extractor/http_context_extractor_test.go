@@ -1,125 +1,1193 @@
 package http_context_extractor
 
 import (
+	"bufio"
 	"context"
+	"encoding/base64"
 	"log/slog"
+	"net/http"
+	"strings"
 	"testing"
-	"time"
 
 	motmedelHttpContext "github.com/Motmedel/utils_go/pkg/http/context"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
+	"github.com/Motmedel/utils_go/pkg/http/types/http_context_extractor/http_context_extractor_config"
+	motmedelSchemaTypes "github.com/Motmedel/utils_go/pkg/schema"
 )
 
-func newRecord() slog.Record {
-	return slog.NewRecord(time.Now(), slog.LevelInfo, "message", 0)
-}
+func TestMaskJws(t *testing.T) {
+	t.Parallel()
 
-// findAttr walks the (possibly nested-group) attributes of a record looking for
-// a leaf attribute reachable via the given dotted path.
-func findAttr(record *slog.Record, path ...string) (slog.Value, bool) {
-	attrs := make([]slog.Attr, 0, record.NumAttrs())
-	record.Attrs(func(attr slog.Attr) bool {
-		attrs = append(attrs, attr)
-		return true
-	})
-
-	return findInAttrs(attrs, path)
-}
-
-func findInAttrs(attrs []slog.Attr, path []string) (slog.Value, bool) {
-	if len(path) == 0 {
-		return slog.Value{}, false
+	testCases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "valid JWS compact serialization",
+			input: "header.payload.signature",
+			want:  "header.payload.(MASKED)",
+		},
+		{
+			name:  "valid JWS with realistic base64 parts",
+			input: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123signature",
+			want:  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.(MASKED)",
+		},
+		{
+			name:  "invalid JWS, not enough parts",
+			input: "nodelimiters",
+			want:  "(MASKED)",
+		},
+		{
+			name:  "invalid JWS, only two parts",
+			input: "header.payload",
+			want:  "(MASKED)",
+		},
+		{
+			name:  "empty string",
+			input: "",
+			want:  "(MASKED)",
+		},
+		{
+			name:  "JWS with dots in signature",
+			input: "a.b.c.d",
+			want:  "a.b.(MASKED)",
+		},
 	}
 
-	for _, attr := range attrs {
-		if attr.Key != path[0] {
-			continue
-		}
-		if len(path) == 1 {
-			return attr.Value, true
-		}
-		if attr.Value.Kind() == slog.KindGroup {
-			if value, ok := findInAttrs(attr.Value.Group(), path[1:]); ok {
-				return value, true
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := maskJws(tc.input)
+			if got != tc.want {
+				t.Errorf("maskJws(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMaskBasicAuth(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "valid basic auth credentials",
+			input: base64.StdEncoding.EncodeToString([]byte("user:password")),
+			want:  base64.StdEncoding.EncodeToString([]byte("user:")) + "(MASKED)",
+		},
+		{
+			name:  "valid basic auth with empty password",
+			input: base64.StdEncoding.EncodeToString([]byte("user:")),
+			want:  base64.StdEncoding.EncodeToString([]byte("user:")) + "(MASKED)",
+		},
+		{
+			name:  "valid basic auth with colon in password",
+			input: base64.StdEncoding.EncodeToString([]byte("user:pass:word")),
+			want:  base64.StdEncoding.EncodeToString([]byte("user:")) + "(MASKED)",
+		},
+		{
+			name:  "invalid base64",
+			input: "not-valid-base64!!!",
+			want:  "(MASKED)",
+		},
+		{
+			name:  "valid base64 but no colon separator",
+			input: base64.StdEncoding.EncodeToString([]byte("nocolon")),
+			want:  "(MASKED)",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := maskBasicAuth(tc.input)
+			if got != tc.want {
+				t.Errorf("maskBasicAuth(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMaskSetCookieHeader(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "cookie with JWS value",
+			input: "session=header.payload.signature; Path=/; HttpOnly",
+			want:  "session=header.payload.(MASKED); Path=/; HttpOnly",
+		},
+		{
+			name:  "cookie with non-JWS value",
+			input: "session=simplevalue; Path=/",
+			want:  "session=(MASKED); Path=/",
+		},
+		{
+			name:  "empty cookie value",
+			input: "session=; Path=/",
+			want:  "session=(MASKED); Path=/",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := maskSetCookieHeader(tc.input)
+			if got != tc.want {
+				t.Errorf("maskSetCookieHeader(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMaskCookieHeader(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "single cookie with JWS value",
+			input: "session=header.payload.signature",
+			want:  "session=header.payload.(MASKED)",
+		},
+		{
+			name:  "multiple cookies",
+			input: "a=x.y.z; b=p.q.r",
+			want:  "a=x.y.(MASKED); b=p.q.(MASKED)",
+		},
+		{
+			name:  "single cookie with non-JWS value",
+			input: "session=simplevalue",
+			want:  "session=(MASKED)",
+		},
+		{
+			name:  "empty cookie header",
+			input: "",
+			want:  "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := maskCookieHeader(tc.input)
+			if got != tc.want {
+				t.Errorf("maskCookieHeader(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestExtractNormalizedHeaders(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		host       string
+		header     http.Header
+		wantParts  []string // substrings that must appear
+		avoidParts []string // substrings that must NOT appear
+	}{
+		{
+			name:      "plain header",
+			header:    http.Header{"X-Custom": {"value1"}},
+			wantParts: []string{"X-Custom: value1\r\n"},
+		},
+		{
+			name:      "Set-Cookie header with JWS",
+			header:    http.Header{"Set-Cookie": {"token=a.b.c; Path=/; HttpOnly"}},
+			wantParts: []string{"Set-Cookie: token=a.b.(MASKED); Path=/; HttpOnly\r\n"},
+		},
+		{
+			name:      "Cookie header with JWS",
+			header:    http.Header{"Cookie": {"sess=x.y.z"}},
+			wantParts: []string{"Cookie: sess=x.y.(MASKED)\r\n"},
+		},
+		{
+			name:       "X-Goog-Iap-Jwt-Assertion masked",
+			header:     http.Header{"X-Goog-Iap-Jwt-Assertion": {"header.payload.signature"}},
+			wantParts:  []string{"X-Goog-Iap-Jwt-Assertion: header.payload.(MASKED)\r\n"},
+			avoidParts: []string{"signature"},
+		},
+		{
+			name: "Authorization Bearer with JWS",
+			header: http.Header{
+				"Authorization": {"Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.Q70dVMtrOQzEFmGOxPAKbNOUSQMISCLhEDfGpMG0WM4"},
+			},
+			wantParts:  []string{"Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.(MASKED)\r\n"},
+			avoidParts: []string{"Q70dVMtrOQzEFmGOxPAKbNOUSQMISCLhEDfGpMG0WM4"},
+		},
+		{
+			name: "Authorization Basic",
+			header: http.Header{
+				"Authorization": {"Basic " + base64.StdEncoding.EncodeToString([]byte("user:pass"))},
+			},
+			wantParts:  []string{"Authorization:"},
+			avoidParts: []string{"pass"},
+		},
+		{
+			name:      "empty header",
+			header:    http.Header{},
+			wantParts: nil,
+		},
+		{
+			name:      "host prepended",
+			host:      "example.com",
+			header:    http.Header{"X-Custom": {"value1"}},
+			wantParts: []string{"Host: example.com\r\n", "X-Custom: value1\r\n"},
+		},
+		{
+			name:       "empty host is omitted",
+			host:       "",
+			header:     http.Header{"X-Custom": {"value1"}},
+			wantParts:  []string{"X-Custom: value1\r\n"},
+			avoidParts: []string{"Host:"},
+		},
+		{
+			name:      "host with empty header",
+			host:      "example.com",
+			header:    http.Header{},
+			wantParts: []string{"Host: example.com\r\n"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := extractNormalizedHeaders(tc.host, tc.header, nil)
+
+			for _, part := range tc.wantParts {
+				if !strings.Contains(got, part) {
+					t.Errorf("extractNormalizedHeaders() = %q, want substring %q", got, part)
+				}
+			}
+
+			for _, avoid := range tc.avoidParts {
+				if strings.Contains(got, avoid) {
+					t.Errorf("extractNormalizedHeaders() = %q, should not contain %q", got, avoid)
+				}
+			}
+		})
+	}
+}
+
+func TestExtractor_Handle_NilRecord(t *testing.T) {
+	t.Parallel()
+	e := &Extractor{}
+	err := e.Handle(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("expected nil error for nil record, got %v", err)
+	}
+}
+
+func TestExtractor_Handle_RequestId(t *testing.T) {
+	t.Parallel()
+	e := &Extractor{}
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.RequestIdContextKey, "test-request-id")
+	record := &slog.Record{}
+
+	err := e.Handle(ctx, record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify the record has the request id attribute.
+	found := false
+	record.Attrs(func(a slog.Attr) bool {
+		if a.Key == "http" {
+			a.Value.Resolve()
+			for _, inner := range a.Value.Group() {
+				if inner.Key == "request" {
+					for _, attr := range inner.Value.Group() {
+						if attr.Key == "id" && attr.Value.String() == "test-request-id" {
+							found = true
+							return false
+						}
+					}
+				}
 			}
 		}
+		return true
+	})
+	if !found {
+		t.Error("expected http.request.id attribute in record")
+	}
+}
+
+func TestExtractor_Handle_NoContext(t *testing.T) {
+	t.Parallel()
+	e := &Extractor{}
+	record := &slog.Record{}
+
+	err := e.Handle(context.Background(), record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExtractor_Handle_HttpContext(t *testing.T) {
+	t.Parallel()
+
+	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(
+		"GET /test HTTP/1.1\r\nHost: example.com\r\nX-Custom: value\r\n\r\n",
+	)))
+	if err != nil {
+		t.Fatalf("read request: %v", err)
 	}
 
-	return slog.Value{}, false
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     http.Header{"Content-Type": {"text/plain"}},
+	}
+
+	httpContext := &motmedelHttpTypes.HttpContext{
+		Request:  req,
+		Response: resp,
+	}
+
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.HttpContextContextKey, httpContext)
+	record := &slog.Record{}
+
+	e := &Extractor{}
+	err = e.Handle(ctx, record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify the record has attributes added from the HTTP context.
+	hasAttrs := false
+	record.Attrs(func(a slog.Attr) bool {
+		hasAttrs = true
+		return true
+	})
+	if !hasAttrs {
+		t.Error("expected attributes to be added from HTTP context")
+	}
+}
+
+func TestExtractor_Handle_HttpContextWithHeaders(t *testing.T) {
+	t.Parallel()
+
+	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(
+		"GET /test HTTP/1.1\r\nHost: example.com\r\nCookie: sess=a.b.c\r\n\r\n",
+	)))
+	if err != nil {
+		t.Fatalf("read request: %v", err)
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     http.Header{"Set-Cookie": {"token=x.y.z; Path=/"}},
+	}
+
+	httpContext := &motmedelHttpTypes.HttpContext{
+		Request:  req,
+		Response: resp,
+	}
+
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.HttpContextContextKey, httpContext)
+	record := &slog.Record{}
+
+	e := &Extractor{}
+	err = e.Handle(ctx, record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExtractor_Handle_HttpContextNilRequest(t *testing.T) {
+	t.Parallel()
+
+	httpContext := &motmedelHttpTypes.HttpContext{
+		Request:  nil,
+		Response: nil,
+	}
+
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.HttpContextContextKey, httpContext)
+	record := &slog.Record{}
+
+	e := &Extractor{}
+	err := e.Handle(ctx, record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExtractor_Handle_HttpContextRequestNoHeaders(t *testing.T) {
+	t.Parallel()
+
+	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(
+		"GET /test HTTP/1.1\r\nHost: example.com\r\n\r\n",
+	)))
+	if err != nil {
+		t.Fatalf("read request: %v", err)
+	}
+
+	httpContext := &motmedelHttpTypes.HttpContext{
+		Request: req,
+	}
+
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.HttpContextContextKey, httpContext)
+	record := &slog.Record{}
+
+	e := &Extractor{}
+	err = e.Handle(ctx, record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExtractor_Handle_MessageNotOverwrittenWithoutRequest(t *testing.T) {
+	t.Parallel()
+
+	e := &Extractor{}
+	record := &slog.Record{}
+	record.Message = "original message"
+
+	err := e.Handle(context.Background(), record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if record.Message != "original message" {
+		t.Errorf("record.Message = %q, want %q", record.Message, "original message")
+	}
+}
+
+func TestExtractUnverifiedUser_AuthorizationBearer_SessionToken(t *testing.T) {
+	t.Parallel()
+
+	// JWT with sub="user123:user@example.com", azp="tenant1:MyTenant", roles=["admin"]
+	serialization := "eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAidXNlcjEyMzp1c2VyQGV4YW1wbGUuY29tIiwgImF6cCI6ICJ0ZW5hbnQxOk15VGVuYW50IiwgInJvbGVzIjogWyJhZG1pbiJdLCAiaXNzIjogInRlc3QiLCAiYXVkIjogInRlc3QifQ.fakesig"
+	header := http.Header{"Authorization": {"Bearer " + serialization}}
+
+	user := extractUnverifiedUser(header)
+	if user == nil {
+		t.Fatal("expected non-nil user")
+	}
+	if !user.Unverified {
+		t.Error("expected Unverified to be true")
+	}
+	if user.Id != "user123" {
+		t.Errorf("user.Id = %q, want %q", user.Id, "user123")
+	}
+	if user.Email != "user@example.com" {
+		t.Errorf("user.Email = %q, want %q", user.Email, "user@example.com")
+	}
+	if user.Group == nil || user.Group.Id != "tenant1" || user.Group.Name != "MyTenant" {
+		t.Errorf("user.Group = %+v, want {Id: tenant1, Name: MyTenant}", user.Group)
+	}
+	if len(user.Roles) != 1 || user.Roles[0] != "admin" {
+		t.Errorf("user.Roles = %v, want [admin]", user.Roles)
+	}
+}
+
+func TestExtractUnverifiedUser_Cookie_EmailSub(t *testing.T) {
+	t.Parallel()
+
+	// JWT with sub="user@example.com" (no colon, so falls back to sub claim)
+	serialization := "eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAidXNlckBleGFtcGxlLmNvbSJ9.fakesig"
+	header := http.Header{"Cookie": {"session=" + serialization}}
+
+	user := extractUnverifiedUser(header)
+	if user == nil {
+		t.Fatal("expected non-nil user")
+	}
+	if !user.Unverified {
+		t.Error("expected Unverified to be true")
+	}
+	if user.Email != "user@example.com" {
+		t.Errorf("user.Email = %q, want %q", user.Email, "user@example.com")
+	}
+	if user.Name != "" {
+		t.Errorf("user.Name = %q, want empty", user.Name)
+	}
+}
+
+func TestExtractUnverifiedUser_Cookie_NameSub(t *testing.T) {
+	t.Parallel()
+
+	// JWT with sub="johndoe"
+	serialization := "eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAiam9obmRvZSJ9.fakesig"
+	header := http.Header{"Cookie": {"session=" + serialization}}
+
+	user := extractUnverifiedUser(header)
+	if user == nil {
+		t.Fatal("expected non-nil user")
+	}
+	if !user.Unverified {
+		t.Error("expected Unverified to be true")
+	}
+	if user.Name != "johndoe" {
+		t.Errorf("user.Name = %q, want %q", user.Name, "johndoe")
+	}
+	if user.Email != "" {
+		t.Errorf("user.Email = %q, want empty", user.Email)
+	}
+}
+
+func TestExtractUnverifiedUser_BasicAuth_Email(t *testing.T) {
+	t.Parallel()
+
+	credentials := base64.StdEncoding.EncodeToString([]byte("user@example.com:password"))
+	header := http.Header{"Authorization": {"Basic " + credentials}}
+
+	user := extractUnverifiedUser(header)
+	if user == nil {
+		t.Fatal("expected non-nil user")
+	}
+	if !user.Unverified {
+		t.Error("expected Unverified to be true")
+	}
+	if user.Email != "user@example.com" {
+		t.Errorf("user.Email = %q, want %q", user.Email, "user@example.com")
+	}
+	if user.Name != "" {
+		t.Errorf("user.Name = %q, want empty", user.Name)
+	}
+}
+
+func TestExtractUnverifiedUser_BasicAuth_Username(t *testing.T) {
+	t.Parallel()
+
+	credentials := base64.StdEncoding.EncodeToString([]byte("johndoe:password"))
+	header := http.Header{"Authorization": {"Basic " + credentials}}
+
+	user := extractUnverifiedUser(header)
+	if user == nil {
+		t.Fatal("expected non-nil user")
+	}
+	if !user.Unverified {
+		t.Error("expected Unverified to be true")
+	}
+	if user.Name != "johndoe" {
+		t.Errorf("user.Name = %q, want %q", user.Name, "johndoe")
+	}
+	if user.Email != "" {
+		t.Errorf("user.Email = %q, want empty", user.Email)
+	}
+}
+
+func TestExtractUnverifiedUser_NoJwt(t *testing.T) {
+	t.Parallel()
+
+	header := http.Header{"X-Custom": {"value"}}
+	user := extractUnverifiedUser(header)
+	if user != nil {
+		t.Errorf("expected nil user, got %+v", user)
+	}
+}
+
+func TestExtractUnverifiedUser_InvalidJwt(t *testing.T) {
+	t.Parallel()
+
+	header := http.Header{"Authorization": {"Bearer not-a-jwt"}}
+	user := extractUnverifiedUser(header)
+	if user != nil {
+		t.Errorf("expected nil user, got %+v", user)
+	}
+}
+
+func TestExtractor_Handle_UserNotOverwritten(t *testing.T) {
+	t.Parallel()
+
+	serialization := "eyJhbGciOiAiSFMyNTYifQ.eyJzdWIiOiAiam9obmRvZSJ9.fakesig"
+	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(
+		"GET /test HTTP/1.1\r\nHost: example.com\r\nAuthorization: Bearer " + serialization + "\r\n\r\n",
+	)))
+	if err != nil {
+		t.Fatalf("read request: %v", err)
+	}
+
+	existingUser := &motmedelSchemaTypes.User{Name: "existing"}
+	httpContext := &motmedelHttpTypes.HttpContext{
+		Request: req,
+		User:    existingUser,
+	}
+
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.HttpContextContextKey, httpContext)
+	record := &slog.Record{}
+
+	e := &Extractor{}
+	if err := e.Handle(ctx, record); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if httpContext.User != existingUser {
+		t.Error("expected existing user to not be overwritten")
+	}
+}
+
+func TestExtractor_Handle_HttpContextResponseNoHeaders(t *testing.T) {
+	t.Parallel()
+
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     nil,
+	}
+
+	httpContext := &motmedelHttpTypes.HttpContext{
+		Response: resp,
+	}
+
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.HttpContextContextKey, httpContext)
+	record := &slog.Record{}
+
+	e := &Extractor{}
+	err := e.Handle(ctx, record)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExtractor_MaskUrl(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		maskedUrlParams []*motmedelSchemaTypes.Url
+		inputUrl        *motmedelSchemaTypes.Url
+		expectedUrl     *motmedelSchemaTypes.Url
+	}{
+		{
+			name:            "mask single query parameter, query-only pattern",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Query: "apikey"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?apikey=secret123&user=john",
+				Original: "https://example.com/api?apikey=secret123&user=john",
+				Query:    "apikey=secret123&user=john",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?apikey=%28MASKED%29&user=john",
+				Original: "https://example.com/api?apikey=%28MASKED%29&user=john",
+				Query:    "apikey=%28MASKED%29&user=john",
+			},
+		},
+		{
+			name:            "mask multiple query parameters from one pattern",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Query: "apikey&token&password"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?apikey=secret123&token=abc456&user=john&password=pass123",
+				Original: "https://example.com/api?apikey=secret123&token=abc456&user=john&password=pass123",
+				Query:    "apikey=secret123&token=abc456&user=john&password=pass123",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?apikey=%28MASKED%29&password=%28MASKED%29&token=%28MASKED%29&user=john",
+				Original: "https://example.com/api?apikey=%28MASKED%29&password=%28MASKED%29&token=%28MASKED%29&user=john",
+				Query:    "apikey=%28MASKED%29&password=%28MASKED%29&token=%28MASKED%29&user=john",
+			},
+		},
+		{
+			name:            "no parameters to mask, param not in incoming URL",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Query: "notfound"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?user=john&page=1",
+				Original: "https://example.com/api?user=john&page=1",
+				Query:    "user=john&page=1",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?user=john&page=1",
+				Original: "https://example.com/api?user=john&page=1",
+				Query:    "user=john&page=1",
+			},
+		},
+		{
+			name:            "empty URL fields",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Query: "apikey"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Full:     "",
+				Original: "",
+				Query:    "",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Full:     "",
+				Original: "",
+				Query:    "",
+			},
+		},
+		{
+			name:            "nil maskedUrlParams",
+			maskedUrlParams: nil,
+			inputUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?apikey=secret123",
+				Original: "https://example.com/api?apikey=secret123",
+				Query:    "apikey=secret123",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Full:     "https://example.com/api?apikey=secret123",
+				Original: "https://example.com/api?apikey=secret123",
+				Query:    "apikey=secret123",
+			},
+		},
+		{
+			name:            "invalid URL format",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Query: "apikey"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Full:     "not-a-valid-url",
+				Original: "not-a-valid-url",
+				Query:    "apikey=secret123",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Full:     "not-a-valid-url",
+				Original: "not-a-valid-url",
+				Query:    "apikey=%28MASKED%29",
+			},
+		},
+		{
+			name:            "query string only",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Query: "token&auth"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Full:     "",
+				Original: "",
+				Query:    "token=abc123&auth=xyz789&public=data",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Full:     "",
+				Original: "",
+				Query:    "auth=%28MASKED%29&public=data&token=%28MASKED%29",
+			},
+		},
+		{
+			name:            "pattern with path match",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Path: "/api", Query: "apikey"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret123&user=john",
+				Original: "/api?apikey=secret123&user=john",
+				Query:    "apikey=secret123&user=john",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=%28MASKED%29&user=john",
+				Original: "/api?apikey=%28MASKED%29&user=john",
+				Query:    "apikey=%28MASKED%29&user=john",
+			},
+		},
+		{
+			name:            "pattern with path mismatch",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Path: "/other", Query: "apikey"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret123&user=john",
+				Original: "/api?apikey=secret123&user=john",
+				Query:    "apikey=secret123&user=john",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret123&user=john",
+				Original: "/api?apikey=secret123&user=john",
+				Query:    "apikey=secret123&user=john",
+			},
+		},
+		{
+			name:            "pattern with domain match",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Domain: "example.com", Query: "token"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Domain:   "example.com",
+				Full:     "https://example.com/api?token=secret",
+				Original: "/api?token=secret",
+				Query:    "token=secret",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Domain:   "example.com",
+				Full:     "https://example.com/api?token=%28MASKED%29",
+				Original: "/api?token=%28MASKED%29",
+				Query:    "token=%28MASKED%29",
+			},
+		},
+		{
+			name:            "pattern with domain mismatch",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Domain: "other.com", Query: "token"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Domain:   "example.com",
+				Full:     "https://example.com/api?token=secret",
+				Original: "/api?token=secret",
+				Query:    "token=secret",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Domain:   "example.com",
+				Full:     "https://example.com/api?token=secret",
+				Original: "/api?token=secret",
+				Query:    "token=secret",
+			},
+		},
+		{
+			name: "multiple patterns, both matching",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{
+				{Query: "apikey"},
+				{Path: "/api", Query: "token"},
+			},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret&token=abc",
+				Original: "/api?apikey=secret&token=abc",
+				Query:    "apikey=secret&token=abc",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=%28MASKED%29&token=%28MASKED%29",
+				Original: "/api?apikey=%28MASKED%29&token=%28MASKED%29",
+				Query:    "apikey=%28MASKED%29&token=%28MASKED%29",
+			},
+		},
+		{
+			name: "multiple patterns, only one matching",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{
+				{Path: "/other", Query: "apikey"},
+				{Query: "token"},
+			},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret&token=abc",
+				Original: "/api?apikey=secret&token=abc",
+				Query:    "apikey=secret&token=abc",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret&token=%28MASKED%29",
+				Original: "/api?apikey=secret&token=%28MASKED%29",
+				Query:    "apikey=secret&token=%28MASKED%29",
+			},
+		},
+		{
+			name:            "pattern with scheme and port match",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Scheme: "https", Port: 443, Query: "secret"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Scheme:   "https",
+				Port:     443,
+				Full:     "https://example.com:443/api?secret=val",
+				Original: "/api?secret=val",
+				Query:    "secret=val",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Scheme:   "https",
+				Port:     443,
+				Full:     "https://example.com:443/api?secret=%28MASKED%29",
+				Original: "/api?secret=%28MASKED%29",
+				Query:    "secret=%28MASKED%29",
+			},
+		},
+		{
+			name:            "pattern with no query is a no-op",
+			maskedUrlParams: []*motmedelSchemaTypes.Url{{Path: "/api"}},
+			inputUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret",
+				Original: "/api?apikey=secret",
+				Query:    "apikey=secret",
+			},
+			expectedUrl: &motmedelSchemaTypes.Url{
+				Path:     "/api",
+				Full:     "https://example.com/api?apikey=secret",
+				Original: "/api?apikey=secret",
+				Query:    "apikey=secret",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			e := &Extractor{
+				MaskedUrlParams: tc.maskedUrlParams,
+			}
+
+			urlCopy := *tc.inputUrl
+
+			e.maskUrl(&urlCopy)
+
+			if urlCopy.Full != tc.expectedUrl.Full {
+				t.Errorf("Full URL mismatch:\ngot:  %q\nwant: %q", urlCopy.Full, tc.expectedUrl.Full)
+			}
+			if urlCopy.Original != tc.expectedUrl.Original {
+				t.Errorf("Original URL mismatch:\ngot:  %q\nwant: %q", urlCopy.Original, tc.expectedUrl.Original)
+			}
+			if urlCopy.Query != tc.expectedUrl.Query {
+				t.Errorf("Query string mismatch:\ngot:  %q\nwant: %q", urlCopy.Query, tc.expectedUrl.Query)
+			}
+		})
+	}
+}
+
+func TestExtractor_MaskUrl_NilUrl(t *testing.T) {
+	t.Parallel()
+
+	e := &Extractor{
+		MaskedUrlParams: []*motmedelSchemaTypes.Url{{Query: "apikey"}},
+	}
+
+	// Should not panic with nil URL
+	e.maskUrl(nil)
+}
+
+func TestPathMatches(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		pattern  string
+		incoming string
+		want     bool
+	}{
+		{name: "empty pattern matches anything", pattern: "", incoming: "/a/b", want: true},
+		{name: "exact match", pattern: "/a/b", incoming: "/a/b", want: true},
+		{name: "exact mismatch", pattern: "/a/b", incoming: "/a/c", want: false},
+		{name: "exact pattern rejects child", pattern: "/a/b", incoming: "/a/b/c", want: false},
+		{name: "prefix matches child", pattern: "/a/b/*", incoming: "/a/b/c", want: true},
+		{name: "prefix matches grandchild", pattern: "/a/b/*", incoming: "/a/b/c/d", want: true},
+		{name: "prefix does not match exact prefix without slash", pattern: "/a/b/*", incoming: "/a/b", want: false},
+		{name: "prefix does not match sibling", pattern: "/a/b/*", incoming: "/a/bc/d", want: false},
+		{name: "prefix root /*", pattern: "/*", incoming: "/anything", want: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := pathMatches(tc.pattern, tc.incoming); got != tc.want {
+				t.Errorf("pathMatches(%q, %q) = %v, want %v", tc.pattern, tc.incoming, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestUrlMatchesPattern_PathPrefix(t *testing.T) {
+	t.Parallel()
+
+	// A pattern with /* matches incoming requests under that segment prefix
+	// and surfaces the masked query parameters as usual.
+	pattern := &motmedelSchemaTypes.Url{
+		Domain: "example.com",
+		Path:   "/api/v1/profiles/*",
+		Query:  "secret",
+	}
+
+	cases := []struct {
+		name         string
+		incoming     *motmedelSchemaTypes.Url
+		wantMatch    bool
+		wantParamLen int
+	}{
+		{
+			name: "child path with query",
+			incoming: &motmedelSchemaTypes.Url{
+				Domain: "example.com",
+				Path:   "/api/v1/profiles/123",
+				Query:  "secret=abc&other=ok",
+			},
+			wantMatch:    true,
+			wantParamLen: 1,
+		},
+		{
+			name: "exact prefix without slash does not match",
+			incoming: &motmedelSchemaTypes.Url{
+				Domain: "example.com",
+				Path:   "/api/v1/profiles",
+				Query:  "secret=abc",
+			},
+			wantMatch:    false,
+			wantParamLen: 0,
+		},
+		{
+			name: "sibling path does not match",
+			incoming: &motmedelSchemaTypes.Url{
+				Domain: "example.com",
+				Path:   "/api/v1/profiles-v2/123",
+				Query:  "secret=abc",
+			},
+			wantMatch:    false,
+			wantParamLen: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			gotMatch, gotParams := urlMatchesPattern(pattern, tc.incoming)
+			if gotMatch != tc.wantMatch {
+				t.Errorf("match: got %v, want %v", gotMatch, tc.wantMatch)
+			}
+			if len(gotParams) != tc.wantParamLen {
+				t.Errorf("param count: got %d, want %d (params=%v)", len(gotParams), tc.wantParamLen, gotParams)
+			}
+		})
+	}
+}
+
+// requestBodyContent walks a record's attributes for http.request.body.content.
+func requestBodyContent(t *testing.T, record *slog.Record) (string, bool) {
+	t.Helper()
+	var (
+		content string
+		found   bool
+	)
+	record.Attrs(func(a slog.Attr) bool {
+		if a.Key != "http" {
+			return true
+		}
+		a.Value.Resolve()
+		for _, request := range a.Value.Group() {
+			if request.Key != "request" {
+				continue
+			}
+			for _, body := range request.Value.Group() {
+				if body.Key != "body" {
+					continue
+				}
+				for _, field := range body.Value.Group() {
+					if field.Key == "content" {
+						content = field.Value.String()
+						found = true
+						return false
+					}
+				}
+			}
+		}
+		return true
+	})
+	return content, found
+}
+
+func TestExtractor_Handle_MaskedRequestBody(t *testing.T) {
+	t.Parallel()
+
+	const secret = "client_secret=GOCSPX-supersecret&grant_type=refresh_token&refresh_token=1//0verysecret"
+
+	newContext := func() context.Context {
+		req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(
+			"POST /token HTTP/1.1\r\nHost: oauth2.example.com\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n",
+		)))
+		if err != nil {
+			t.Fatalf("read request: %v", err)
+		}
+		httpContext := &motmedelHttpTypes.HttpContext{
+			Request:     req,
+			RequestBody: []byte(secret),
+		}
+		return context.WithValue(context.Background(), motmedelHttpContext.HttpContextContextKey, httpContext)
+	}
+
+	testCases := []struct {
+		name     string
+		patterns []*motmedelSchemaTypes.Url
+		want     string
+	}{
+		{
+			name:     "masked when path matches",
+			patterns: []*motmedelSchemaTypes.Url{{Path: "/token"}},
+			want:     maskedValue,
+		},
+		{
+			name:     "masked when domain and path match",
+			patterns: []*motmedelSchemaTypes.Url{{Domain: "oauth2.example.com", Path: "/token"}},
+			want:     maskedValue,
+		},
+		{
+			name:     "unmasked when no patterns",
+			patterns: nil,
+			want:     secret,
+		},
+		{
+			name:     "unmasked when path does not match",
+			patterns: []*motmedelSchemaTypes.Url{{Path: "/other"}},
+			want:     secret,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := &Extractor{MaskedRequestBodyUrls: tc.patterns}
+			record := &slog.Record{}
+			if err := e.Handle(newContext(), record); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			got, found := requestBodyContent(t, record)
+			if !found {
+				t.Fatal("http.request.body.content attribute not found in record")
+			}
+			if got != tc.want {
+				t.Errorf("request body content: got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestExtractor_Handle_RequestIdWrongType verifies that a request id that is not a string is left
+// alone rather than added as one.
+func TestExtractor_Handle_RequestIdWrongType(t *testing.T) {
+	t.Parallel()
+
+	e := &Extractor{}
+	ctx := context.WithValue(context.Background(), motmedelHttpContext.RequestIdContextKey, 42)
+	record := &slog.Record{}
+
+	if err := e.Handle(ctx, record); err != nil {
+		t.Fatalf("handle: %v", err)
+	}
+
+	record.Attrs(func(attr slog.Attr) bool {
+		if attr.Key == "http" {
+			t.Errorf("an http attribute was added for a request id that is not a string: %v", attr)
+		}
+		return true
+	})
 }
 
 func TestNew(t *testing.T) {
 	t.Parallel()
 
-	if New() == nil {
-		t.Error("New() returned nil")
-	}
-}
+	t.Run("without options", func(t *testing.T) {
+		t.Parallel()
 
-func TestHandleNilRecord(t *testing.T) {
-	t.Parallel()
+		extractor := New()
+		if extractor == nil {
+			t.Fatal("nil extractor")
+		}
 
-	if err := New().Handle(context.Background(), nil); err != nil {
-		t.Errorf("Handle(ctx, nil) = %v, want nil", err)
-	}
-}
+		// Nothing is masked and no message is replaced unless it is asked for.
+		if extractor.ReplaceableMessages != nil {
+			t.Errorf("replaceable messages: got %v, want none", extractor.ReplaceableMessages)
+		}
+		if extractor.MaskedUrlParams != nil || extractor.MaskedHeaders != nil {
+			t.Errorf("masking: got %+v, %+v, want none", extractor.MaskedUrlParams, extractor.MaskedHeaders)
+		}
+	})
 
-func TestHandleEmptyContext(t *testing.T) {
-	t.Parallel()
+	t.Run("with replaceable messages", func(t *testing.T) {
+		t.Parallel()
 
-	record := newRecord()
-	if err := New().Handle(context.Background(), &record); err != nil {
-		t.Fatalf("Handle: %v", err)
-	}
-	if record.NumAttrs() != 0 {
-		t.Errorf("NumAttrs = %d, want 0 for an empty context", record.NumAttrs())
-	}
-}
+		extractor := New(http_context_extractor_config.WithReplaceableMessages("a message", "another"))
+		if extractor == nil {
+			t.Fatal("nil extractor")
+		}
 
-func TestHandleRequestId(t *testing.T) {
-	t.Parallel()
-
-	ctx := context.WithValue(context.Background(), motmedelHttpContext.RequestIdContextKey, "req-123")
-
-	record := newRecord()
-	if err := New().Handle(ctx, &record); err != nil {
-		t.Fatalf("Handle: %v", err)
-	}
-
-	value, ok := findAttr(&record, "http", "request", "id")
-	if !ok {
-		t.Fatal("http.request.id attribute not found")
-	}
-	if value.String() != "req-123" {
-		t.Errorf("http.request.id = %q, want %q", value.String(), "req-123")
-	}
-}
-
-func TestHandleRequestIdWrongType(t *testing.T) {
-	t.Parallel()
-
-	// A non-string value must be ignored rather than added.
-	ctx := context.WithValue(context.Background(), motmedelHttpContext.RequestIdContextKey, 42)
-
-	record := newRecord()
-	if err := New().Handle(ctx, &record); err != nil {
-		t.Fatalf("Handle: %v", err)
-	}
-	if _, ok := findAttr(&record, "http"); ok {
-		t.Error("http attribute added for non-string request id, want none")
-	}
-}
-
-func TestHandleHttpContext(t *testing.T) {
-	t.Parallel()
-
-	ctx := motmedelHttpContext.WithHttpContextValue(
-		context.Background(),
-		&motmedelHttpTypes.HttpContext{},
-	)
-
-	record := newRecord()
-	if err := New().Handle(ctx, &record); err != nil {
-		t.Fatalf("Handle: %v", err)
-	}
+		// The messages are held as a set, being matched against one record message at a time.
+		if len(extractor.ReplaceableMessages) != 2 {
+			t.Fatalf("replaceable messages: got %v, want two", extractor.ReplaceableMessages)
+		}
+		if _, found := extractor.ReplaceableMessages["a message"]; !found {
+			t.Errorf("replaceable messages: got %v", extractor.ReplaceableMessages)
+		}
+	})
 }

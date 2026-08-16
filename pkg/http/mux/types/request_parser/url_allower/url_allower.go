@@ -16,6 +16,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail"
 	"github.com/Motmedel/utils_go/pkg/http/types/problem_detail/problem_detail_config"
 	"github.com/Motmedel/utils_go/pkg/interfaces/urler"
+	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
 	"github.com/Motmedel/utils_go/pkg/net/types/domain_parts"
 	"github.com/Motmedel/utils_go/pkg/utils"
 )
@@ -66,8 +67,7 @@ func (p *Parser[T]) Parse(request *http.Request) (*url.URL, *response_error.Resp
 
 	// localhost and any *.localhost subdomain (RFC 6761) resolve to loopback; when
 	// configured to allow localhost, let them through without domain validation.
-	isAllowedLocalhost := config.AllowLocalhost &&
-		(parsedUrlHostname == "localhost" || strings.HasSuffix(parsedUrlHostname, ".localhost"))
+	isAllowedLocalhost := config.AllowLocalhost && motmedelNet.IsLocalhost(parsedUrlHostname)
 
 	if !isAllowedLocalhost {
 		domainParts := domain_parts.New(parsedUrlHostname)

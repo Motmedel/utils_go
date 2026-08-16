@@ -43,6 +43,15 @@ const (
 	contentSecurityPolicyHeaderName = "Content-Security-Policy"
 )
 
+// The messages the mux logs an error response under, for a log handler that reads the HTTP context
+// to match against rather than write out a second time; see the internal package for what they are
+// for.
+const (
+	ClientErrorMessage    = muxInternal.ClientErrorMessage
+	ServerErrorMessage    = muxInternal.ServerErrorMessage
+	ResponseServedMessage = muxInternal.ResponseServedMessage
+)
+
 type muxHttpContextContextType struct{}
 
 var MuxHttpContextContextKey muxHttpContextContextType
@@ -939,6 +948,10 @@ func New(endpoints ...*endpointPkg.Endpoint) *Mux {
 	var mux Mux
 	mux.DefaultHeaders = maps.Clone(muxTypesResponseWriter.DefaultHeaders)
 	mux.DefaultDocumentHeaders = maps.Clone(muxTypesResponseWriter.DefaultDocumentHeaders)
+	// Set on the mux alone, not on a vhost mux that fronts it: both call the callback, and a
+	// request served through the two would otherwise be logged by each of them. Assigning the field
+	// replaces it; assigning nil silences it.
+	mux.DoneCallback = muxInternal.DefaultDoneCallback
 	mux.Add(endpoints...)
 	return &mux
 }

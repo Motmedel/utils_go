@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 
@@ -19,6 +20,15 @@ const (
 	ProtocolUdp   = 17
 	ProtocolIcmp6 = 58
 )
+
+const Localhost = "localhost"
+
+// IsLocalhost reports whether the hostname names the machine it is resolved on. RFC 6761 reserves
+// "localhost" and everything under it for the purpose, so the subdomains count too.
+func IsLocalhost(hostname string) bool {
+	return strings.EqualFold(hostname, Localhost) ||
+		strings.HasSuffix(strings.ToLower(hostname), "."+Localhost)
+}
 
 func SplitAddress(address string) (string, int, error) {
 	ip, portString, err := net.SplitHostPort(address)

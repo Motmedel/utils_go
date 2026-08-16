@@ -9,6 +9,26 @@ import (
 	csp "github.com/Motmedel/utils_go/pkg/http/types/content_security_policy"
 )
 
+// trustedTypePolicyNameKind is the kind of trusted-types expression that names a policy, as opposed
+// to the keywords ('none', 'allow-duplicates') the directive also takes.
+const trustedTypePolicyNameKind = "policy-name"
+
+// ChromeXmlViewerStyleHashes are the styles Chrome's XML viewer applies to the document tree it
+// renders an XML response as. They are the bodies of style elements, which a hash source matches as
+// it is.
+var ChromeXmlViewerStyleHashes = []string{
+	"sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+	"sha256-p08VBe6m5i8+qtXWjnH/AN3klt1l4uoOLsjNn8BjdQo=",
+}
+
+// EdgePdfViewerStyleHashes are the styles Edge's PDF viewer applies to the document it renders a
+// PDF response in. They are style attributes, which a hash source matches only where
+// 'unsafe-hashes' is permitted with it.
+var EdgePdfViewerStyleHashes = []string{
+	"sha256-YBgjA+VjFtAXSIPo7m2n1vE7Z2+4KoNTMJRNxrNV1iE=",
+	"sha256-tbWZ4NP1341cpcrZVDn7B3o9bt/muXgduILAnC0Zbaw=",
+}
+
 // sourceDirectivePointer is any concrete source-directive pointer (e.g. *csp.WorkerSrcDirective)
 // whose source list can be read and replaced.
 type sourceDirectivePointer[T any] interface {
@@ -296,4 +316,75 @@ func PatchCspStyleSrcWithHash(contentSecurityPolicy *csp.ContentSecurityPolicy, 
 	}
 
 	return nil
+}
+
+// PatchCspStyleSrcWithKeyword merges the keyword sources into style-src, deduplicating by
+// serialized value.
+func PatchCspStyleSrcWithKeyword(contentSecurityPolicy *csp.ContentSecurityPolicy, keywords ...string) {
+	if contentSecurityPolicy == nil {
+		return
+	}
+
+	var keywordSources []csp.SourceI
+	for _, keyword := range keywords {
+		if keyword == "" {
+			continue
+		}
+
+		keywordSources = append(keywordSources, &csp.KeywordSource{Keyword: keyword})
+	}
+
+	PatchCspSourceDirective[csp.StyleSrcDirective](contentSecurityPolicy, keywordSources...)
+}
+
+// PatchCspTrustedTypes requires the named trusted types policies of the scripts the document runs:
+// the policies are merged into trusted-types, and require-trusted-types-for is ensured for the
+// script sink group, which is what makes the requirement take effect rather than merely be stated.
+func PatchCspTrustedTypes(contentSecurityPolicy *csp.ContentSecurityPolicy, policies ...string) {
+	if contentSecurityPolicy == nil {
+		return
+	}
+
+	var expressions []csp.TrustedTypeExpression
+	for _, policy := range policies {
+		if policy == "" {
+			continue
+		}
+
+		expressions = append(
+			expressions,
+			csp.TrustedTypeExpression{Kind: trustedTypePolicyNameKind, Value: policy},
+		)
+	}
+
+	if len(expressions) == 0 {
+		return
+	}
+
+	if existingDirective := contentSecurityPolicy.GetTrustedTypes(); existingDirective != nil {
+		existingValues := make(map[string]struct{})
+		for _, expression := range existingDirective.Expressions {
+			if expression.Kind == trustedTypePolicyNameKind {
+				existingValues[expression.Value] = struct{}{}
+			}
+		}
+
+		for _, expression := range expressions {
+			if _, found := existingValues[expression.Value]; !found {
+				existingDirective.Expressions = append(existingDirective.Expressions, expression)
+			}
+		}
+	} else {
+		contentSecurityPolicy.Directives = append(
+			contentSecurityPolicy.Directives,
+			&csp.TrustedTypesDirective{Expressions: expressions},
+		)
+	}
+
+	if _, found := contentSecurityPolicy.GetDirective(csp.DirectiveNameRequireTrustedTypesFor); !found {
+		contentSecurityPolicy.Directives = append(
+			contentSecurityPolicy.Directives,
+			&csp.RequireTrustedTypesForDirective{SinkGroups: []string{"script"}},
+		)
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	motmedelErrors "github.com/Motmedel/utils_go/pkg/errors"
 	"github.com/Motmedel/utils_go/pkg/schema"
@@ -390,7 +391,77 @@ func (robotsTxtGroup *RobotsTxtGroup) String() string {
 	return strings.Join(parts, "\n")
 }
 
+// SecurityTxt is what a host says about how a vulnerability in it is reported, served at
+// /.well-known/security.txt (RFC 9116).
 type SecurityTxt struct {
+	// Contacts are where a vulnerability is reported, most preferred first, each as a URI:
+	// "mailto:security@example.com", "https://example.com/vulnerability", "tel:+46-...". RFC 9116
+	// requires at least one; a security.txt without one says nothing and renders as empty.
+	Contacts []string
+	// Expires is when the information stops being considered valid. RFC 9116 requires it, and a
+	// reporter is to disregard the file once it has passed.
+	Expires time.Time
+	// Encryption are keys a report may be encrypted with, each as a URI. RFC 9116 forbids naming a
+	// key by its fingerprint here; it is to be fetched from where this points.
+	Encryption []string
+	// Acknowledgments are where those who have reported are credited.
+	Acknowledgments []string
+	// PreferredLanguages are the languages a report is preferably written in, as RFC 5646 tags. The
+	// order carries no preference, RFC 9116 notwithstanding the field's name.
+	PreferredLanguages []string
+	// Canonical are the URIs this security.txt is expected to be found at, so that a copy found
+	// elsewhere can be told from the genuine one.
+	Canonical []string
+	// Policy are where the host's vulnerability disclosure policy is stated.
+	Policy []string
+	// Hiring are where the host advertises security-related work.
+	Hiring []string
+	// Csaf are where the host's CSAF provider metadata is served.
+	Csaf []string
+}
+
+// String renders the security.txt. It renders as empty unless a contact is named, there being
+// nothing to say to a reporter without one.
+func (securityTxt *SecurityTxt) String() string {
+	if securityTxt == nil {
+		return ""
+	}
+
+	var lines []string
+
+	appendLines := func(label string, values []string) {
+		for _, value := range values {
+			if line := makeLine(label, value, false); line != "" {
+				lines = append(lines, line)
+			}
+		}
+	}
+
+	appendLines("Contact", securityTxt.Contacts)
+	if len(lines) == 0 {
+		return ""
+	}
+
+	if expires := securityTxt.Expires; !expires.IsZero() {
+		lines = append(lines, makeLine("Expires", expires.UTC().Format(time.RFC3339), false))
+	}
+
+	appendLines("Encryption", securityTxt.Encryption)
+	appendLines("Acknowledgments", securityTxt.Acknowledgments)
+
+	// Preferred-Languages is a single line listing the languages, unlike the repeatable fields.
+	if languages := securityTxt.PreferredLanguages; len(languages) != 0 {
+		if line := makeLine("Preferred-Languages", strings.Join(languages, ", "), false); line != "" {
+			lines = append(lines, line)
+		}
+	}
+
+	appendLines("Canonical", securityTxt.Canonical)
+	appendLines("Policy", securityTxt.Policy)
+	appendLines("Hiring", securityTxt.Hiring)
+	appendLines("CSAF", securityTxt.Csaf)
+
+	return strings.Join(lines, "\n") + "\n"
 }
 
 type CorsConfiguration struct {

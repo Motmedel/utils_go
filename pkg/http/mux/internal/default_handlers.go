@@ -18,6 +18,42 @@ import (
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 )
 
+// The messages the mux logs an error response under. What is worth saying about one is in the HTTP
+// context rather than here -- what was requested, and what came back -- so a log handler that reads
+// that context may replace them with what it says. They are re-exported by the mux package, for a
+// handler to match against by name rather than by a string written out a second time.
+const (
+	ClientErrorMessage    = "A client error occurred."
+	ServerErrorMessage    = "A server error occurred."
+	ResponseServedMessage = "An HTTP response was served."
+)
+
+// DefaultDoneCallback logs the response a mux has finished serving. It is logged at debug level,
+// there being nothing wrong with a response that was served: what it is worth reading is the record
+// of what was asked for and what came back, which a log handler reading the HTTP context adds.
+//
+// Whether anything comes of it is left to the level the logger is set to, rather than to a check of
+// its own: a service whose logger is set to debug says so by being set to debug.
+//
+// The level is asked before the record is built rather than left to the logging call, which would
+// build the attributes it is given and only then drop them. A service not logging at debug pays a
+// level check per response and nothing else.
+func DefaultDoneCallback(ctx context.Context) {
+	if !slog.Default().Enabled(ctx, slog.LevelDebug) {
+		return
+	}
+
+	slog.DebugContext(
+		ctx,
+		ResponseServedMessage,
+		slog.Group(
+			"event",
+			slog.String("action", "http_response_served"),
+			slog.String("reason", ResponseServedMessage),
+		),
+	)
+}
+
 func DefaultResponseErrorHandler(
 	ctx context.Context,
 	responseError *muxTypesResponseError.ResponseError,
@@ -47,10 +83,10 @@ func DefaultResponseErrorHandler(
 			clientError.Id = errorId
 			slog.WarnContext(
 				motmedelContext.WithError(ctx, clientError),
-				"A client error occurred.",
+				ClientErrorMessage,
 				slog.Group(
 					"event",
-					slog.String("reason", "A client error occurred."),
+					slog.String("reason", ClientErrorMessage),
 					slog.String("action", "log_http_client_error"),
 				),
 			)
@@ -61,10 +97,10 @@ func DefaultResponseErrorHandler(
 			serverError.Id = errorId
 			slog.ErrorContext(
 				motmedelContext.WithError(ctx, serverError),
-				"A server error occurred.",
+				ServerErrorMessage,
 				slog.Group(
 					"event",
-					slog.String("reason", "A server error occurred."),
+					slog.String("reason", ServerErrorMessage),
 					slog.String("action", "log_http_server_error"),
 				),
 			)

@@ -96,7 +96,7 @@ func HandleRateLimiting(
 			Headers: []*muxTypesResponse.HeaderEntry{
 				{
 					Name:  "Retry-After",
-					Value: expirationTime.UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT",
+					Value: expirationTime.UTC().Format(http.TimeFormat),
 				},
 			},
 		}

@@ -76,7 +76,7 @@ func NewRobotsTxt(robotsTxt *motmedelHttpTypes.RobotsTxt) *Endpoint {
 
 	data := []byte(robotsTxtString)
 	etag := motmedelHttpUtils.MakeStrongEtag(data)
-	lastModified := time.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT"
+	lastModified := time.Now().UTC().Format(http.TimeFormat)
 
 	return &Endpoint{
 		Path:   "/robots.txt",
@@ -354,7 +354,7 @@ func NewFromDirectory(rootPath string, addContentEncodingData bool, private bool
 						}
 
 						suggestedEndpointPath := "/" + strings.TrimPrefix(path, rootPath)
-						lastModified := fileInfo.ModTime().UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT"
+						lastModified := fileInfo.ModTime().UTC().Format(http.TimeFormat)
 
 						specification, err := NewFromDataPath(
 							suggestedEndpointPath,
@@ -434,7 +434,7 @@ fileLoop:
 					}
 
 					path := file.Name
-					lastModified := file.FileInfo().ModTime().UTC().Format("Mon, 02 Jan 2006 15:04:05") + " GMT"
+					lastModified := file.FileInfo().ModTime().UTC().Format(http.TimeFormat)
 
 					specification, err := NewFromDataPath(
 						path,
