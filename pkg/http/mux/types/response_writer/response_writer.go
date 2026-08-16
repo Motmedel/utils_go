@@ -238,10 +238,18 @@ func (responseWriter *ResponseWriter) WriteResponse(
 
 		if useDocumentHeaders {
 			for headerName, headerValue := range defaultDocumentHeaders {
-				if _, ok := skippedDefaultHeadersSet[headerName]; ok {
+				canonicalHeaderName := http.CanonicalHeaderKey(headerName)
+
+				if _, ok := skippedDefaultHeadersSet[canonicalHeaderName]; ok {
 					continue
 				}
-				responseWriterHeader.Add(headerName, headerValue)
+
+				// What is said about a document replaces what is said about a response in general,
+				// rather than being said alongside it. A content security policy is the case that
+				// matters: a browser enforces every policy it is sent, so a document carrying both
+				// would be held to what the two permit between them -- which, where the general one
+				// permits nothing, is nothing.
+				responseWriterHeader.Set(canonicalHeaderName, headerValue)
 			}
 		}
 	}

@@ -25,24 +25,10 @@ const contentSecurityPolicyHeaderName = "Content-Security-Policy"
 const ApiContentSecurityPolicy = "default-src 'none'; base-uri 'none'; form-action 'none'; " +
 	"frame-ancestors 'none'; sandbox"
 
-// contentSecurityPolicyHeaders are the headers the service's policy is answered in: the ones every
-// response carries, where the service answers with the policy for one that serves no documents, and
-// the ones only a document carries otherwise. Which it is settles before anything patches the
-// policy, so that what is patched is the policy that is actually answered with.
-func contentSecurityPolicyHeaders(mux *motmedelMux.Mux) map[string]string {
-	if mux == nil {
-		return nil
-	}
-
-	if _, found := mux.DefaultHeaders[contentSecurityPolicyHeaderName]; found {
-		return mux.DefaultHeaders
-	}
-
-	return mux.DefaultDocumentHeaders
-}
-
-// patchContentSecurityPolicy hands the policy the service answers with to patch, and writes back
-// what it made of it.
+// patchContentSecurityPolicy hands the policy a document is answered with to patch, and writes back
+// what it made of it. What a policy is worth saying about -- what a viewer may style, what a script
+// must go through, what the browser reports -- is worth saying about a document, and a document is
+// what carries it.
 func patchContentSecurityPolicy(
 	mux *motmedelMux.Mux,
 	patch func(*csp.ContentSecurityPolicy) error,
@@ -55,9 +41,9 @@ func patchContentSecurityPolicy(
 		return motmedelErrors.NewWithTrace(nil_error.New("patch"))
 	}
 
-	headers := contentSecurityPolicyHeaders(mux)
+	headers := mux.DefaultDocumentHeaders
 	if headers == nil {
-		return motmedelErrors.NewWithTrace(nil_error.NewWithInstance("map", "content security policy headers"))
+		return motmedelErrors.NewWithTrace(nil_error.NewWithInstance("map", "default document headers"))
 	}
 
 	contentSecurityPolicyString := headers[contentSecurityPolicyHeaderName]
@@ -91,7 +77,8 @@ func patchContentSecurityPolicy(
 //
 // This is not a matter for the services that serve documents alone: a service that serves none
 // still answers a request it will not serve with a problem detail, which a browser asks for as XML
-// and renders through the same viewer.
+// and renders through the same viewer. It goes in the policy for documents either way, that being
+// what such a response carries -- and what a response that is not a document has no use for.
 //
 // What the two viewers take differs. Chrome's styles the document tree through style elements,
 // whose bodies a hash source matches as it is. Edge's styles through style attributes, which a hash
@@ -163,10 +150,12 @@ func patchTrustedTypes(mux *motmedelMux.Mux, policies ...string) error {
 }
 
 // patchApiContentSecurityPolicy answers every response with the policy for a service that serves no
-// documents, rather than answering the documents it does not serve with the policy for one.
+// documents, rather than leaving the responses it does serve with no policy at all -- the policy
+// for a document being carried by documents alone.
 //
-// It settles which policy the service answers with, so it runs before anything that patches one:
-// what follows patches this policy rather than the one for documents, which is dropped here.
+// The policy for documents is left as it is, and replaces this one on a response that is one: a
+// service answering a request it will not serve answers with a problem detail, which a browser asks
+// for as XML and renders, and what a rendered document is answered with is said there.
 func patchApiContentSecurityPolicy(mux *motmedelMux.Mux) error {
 	if mux == nil {
 		return motmedelErrors.NewWithTrace(nil_error.New("mux"))
@@ -178,11 +167,6 @@ func patchApiContentSecurityPolicy(mux *motmedelMux.Mux) error {
 	}
 
 	defaultHeaders[contentSecurityPolicyHeaderName] = ApiContentSecurityPolicy
-
-	// The document policy is dropped rather than left. Both header sets are written to a response
-	// that is a document, so a policy in each would be two Content-Security-Policy headers, and a
-	// browser enforces every policy it is sent -- the two together permitting only what both do.
-	delete(mux.DefaultDocumentHeaders, contentSecurityPolicyHeaderName)
 
 	return nil
 }

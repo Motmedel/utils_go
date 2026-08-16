@@ -12,6 +12,8 @@ import (
 	motmedelMux "github.com/Motmedel/utils_go/pkg/http/mux"
 	endpointPkg "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
 	"github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint/static_content"
+	muxResponse "github.com/Motmedel/utils_go/pkg/http/mux/types/response"
+	muxResponseError "github.com/Motmedel/utils_go/pkg/http/mux/types/response_error"
 	muxUtils "github.com/Motmedel/utils_go/pkg/http/mux/utils"
 	"github.com/Motmedel/utils_go/pkg/http/service/service_config"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
@@ -147,12 +149,10 @@ func TestNewWithProfile(t *testing.T) {
 				)
 			}
 
-			documentContentSecurityPolicy := mux.DefaultDocumentHeaders[contentSecurityPolicyHeaderName]
-			if (documentContentSecurityPolicy != "") == testCase.expectedApiContentSecurityPolicy {
-				t.Errorf(
-					"document content security policy: got %q alongside the one for an api",
-					documentContentSecurityPolicy,
-				)
+			// The policy for documents is answered with by documents whatever the service is,
+			// and replaces the one above on a response that is one.
+			if documentContentSecurityPolicy := mux.DefaultDocumentHeaders[contentSecurityPolicyHeaderName]; documentContentSecurityPolicy == "" {
+				t.Error("no document content security policy")
 			}
 
 			_, hasReportingEndpoints := mux.DefaultDocumentHeaders[reportingEndpointsHeaderName]
@@ -206,8 +206,6 @@ func TestApiContentSecurityPolicy(t *testing.T) {
 	service, err := New(
 		service_config.WithHost("example.com"),
 		service_config.WithApiContentSecurityPolicy(true),
-		// The viewer styling is what the policy otherwise permits on top; see TestViewerStyleHashes.
-		service_config.WithChromeXmlViewer(false),
 	)
 	if err != nil {
 		t.Fatalf("new: %v", err)
@@ -215,12 +213,16 @@ func TestApiContentSecurityPolicy(t *testing.T) {
 
 	mux := service.Mux
 
+	// Every response carries it, and it says nothing about what a document may do: what a viewer
+	// styles is said in the policy for documents, which a response that is not one has no use for.
 	if got := mux.DefaultHeaders[contentSecurityPolicyHeaderName]; got != ApiContentSecurityPolicy {
 		t.Errorf("content security policy: got %q, want %q", got, ApiContentSecurityPolicy)
 	}
 
-	if got, found := mux.DefaultDocumentHeaders[contentSecurityPolicyHeaderName]; found {
-		t.Errorf("document content security policy: got %q, want none", got)
+	for _, hash := range cspUtils.ChromeXmlViewerStyleHashes {
+		if strings.Contains(mux.DefaultHeaders[contentSecurityPolicyHeaderName], hash) {
+			t.Errorf("the policy every response carries permits a viewer style: %q", hash)
+		}
 	}
 }
 
@@ -277,11 +279,9 @@ func TestViewerStyleHashes(t *testing.T) {
 				t.Fatalf("new: %v", err)
 			}
 
-			// The policy is read where the response carries it, which is what the service decided.
-			policy := service.Mux.DefaultHeaders[contentSecurityPolicyHeaderName]
-			if policy == "" {
-				policy = service.Mux.DefaultDocumentHeaders[contentSecurityPolicyHeaderName]
-			}
+			// A viewer styles what it renders, so what it may style is said in the policy a
+			// rendered document carries.
+			policy := service.Mux.DefaultDocumentHeaders[contentSecurityPolicyHeaderName]
 
 			for _, hash := range cspUtils.ChromeXmlViewerStyleHashes {
 				if strings.Contains(policy, hash) != testCase.expectedChrome {
@@ -927,5 +927,80 @@ func TestDuplicatedEndpointsWithNothingToDuplicate(t *testing.T) {
 	)
 	if err == nil {
 		t.Error("new: got no error, want one")
+	}
+}
+
+// TestApiContentSecurityPolicyIsReplacedOnADocument verifies which policy each kind of response
+// carries: the one that permits nothing for a response a browser does not render, and the one for
+// documents -- viewer styles and all -- for one it does. A browser enforces every policy it is
+// sent, so a document carrying both would be held to nothing.
+func TestApiContentSecurityPolicyIsReplacedOnADocument(t *testing.T) {
+	t.Parallel()
+
+	service, err := New(
+		service_config.WithHost("example.com"),
+		service_config.WithProfile(service_config.ProfilePublicApi),
+		service_config.WithEndpoints(
+			&endpointPkg.Endpoint{
+				Path:   "/json",
+				Method: http.MethodGet,
+				Public: true,
+				Handler: func(_ *http.Request, _ []byte) (*muxResponse.Response, *muxResponseError.ResponseError) {
+					return &muxResponse.Response{
+						StatusCode: http.StatusOK,
+						Headers:    []*muxResponse.HeaderEntry{{Name: "Content-Type", Value: "application/json"}},
+						Body:       []byte(`{}`),
+					}, nil
+				},
+			},
+			staticContentEndpoint("/document.xml", "application/xml"),
+		),
+	)
+	if err != nil {
+		t.Fatalf("new: %v", err)
+	}
+
+	address := serveListener(t, service)
+	client := &http.Client{Transport: &http.Transport{}}
+
+	testCases := []struct {
+		name                 string
+		path                 string
+		expectedPolicy       string
+		expectedViewerStyles bool
+	}{
+		{
+			name:           "a response a browser does not render",
+			path:           "/json",
+			expectedPolicy: ApiContentSecurityPolicy,
+		},
+		{
+			name:                 "a document",
+			path:                 "/document.xml",
+			expectedViewerStyles: true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			response := doRequest(t, client, "http://"+address+testCase.path, "example.com")
+
+			policies := response.headers.Values(contentSecurityPolicyHeaderName)
+			if len(policies) != 1 {
+				t.Fatalf("content security policy: got %d of them, want one: %v", len(policies), policies)
+			}
+
+			if expected := testCase.expectedPolicy; expected != "" && policies[0] != expected {
+				t.Errorf("content security policy: got %q, want %q", policies[0], expected)
+			}
+
+			for _, hash := range cspUtils.ChromeXmlViewerStyleHashes {
+				if strings.Contains(policies[0], hash) != testCase.expectedViewerStyles {
+					t.Errorf("viewer style %q: want %t\n%s", hash, testCase.expectedViewerStyles, policies[0])
+				}
+			}
+		})
 	}
 }

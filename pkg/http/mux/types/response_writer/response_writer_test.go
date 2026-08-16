@@ -189,3 +189,58 @@ func TestWriteResponse_Streaming(t *testing.T) {
 		}
 	})
 }
+
+// TestWriteResponse_DocumentHeadersReplace verifies that what is said about a document replaces
+// what is said about a response in general, rather than being said alongside it. A browser enforces
+// every content security policy it is sent, so a document carrying two would be held to what the
+// two permit between them.
+func TestWriteResponse_DocumentHeadersReplace(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name           string
+		contentType    string
+		expectedPolicy string
+	}{
+		{
+			name:           "a response a browser does not render",
+			contentType:    "application/json",
+			expectedPolicy: "default-src 'none'",
+		},
+		{
+			name:           "a document",
+			contentType:    "text/html",
+			expectedPolicy: "default-src 'self'",
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			recorder := httptest.NewRecorder()
+			writer := &ResponseWriter{
+				ResponseWriter:         recorder,
+				DefaultHeaders:         map[string]string{contentSecurityPolicyHeaderName: "default-src 'none'"},
+				DefaultDocumentHeaders: map[string]string{contentSecurityPolicyHeaderName: "default-src 'self'"},
+			}
+
+			response := &muxTypesResponse.Response{
+				Body:    []byte("body"),
+				Headers: []*muxTypesResponse.HeaderEntry{{Name: "Content-Type", Value: testCase.contentType}},
+			}
+
+			if err := writer.WriteResponse(t.Context(), response, nil); err != nil {
+				t.Fatalf("write response: %v", err)
+			}
+
+			policies := recorder.Header().Values(contentSecurityPolicyHeaderName)
+			if len(policies) != 1 {
+				t.Fatalf("content security policy: got %d of them, want one: %v", len(policies), policies)
+			}
+			if policies[0] != testCase.expectedPolicy {
+				t.Errorf("content security policy: got %q, want %q", policies[0], testCase.expectedPolicy)
+			}
+		})
+	}
+}
