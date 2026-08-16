@@ -463,13 +463,14 @@ func TestRobotsTxt(t *testing.T) {
 				service_config.WithSitemap(true),
 				service_config.WithEndpoints(staticContentEndpoint("/", "text/html")),
 			},
+			// One group, for every crawler: naming the ones that may crawl would leave out every
+			// crawler that appears after the naming.
 			expectedToContain: []string{
 				"User-Agent: *",
-				"Disallow: /",
-				"Googlebot",
 				"Disallow: /api/",
 				"Sitemap: https://example.com/sitemap.xml",
 			},
+			expectedToLack: []string{"Googlebot", "Disallow: /\n"},
 		},
 		{
 			name: "with a sitemap of nothing",
@@ -478,7 +479,7 @@ func TestRobotsTxt(t *testing.T) {
 				service_config.WithSitemap(true),
 			},
 			expectedToContain: []string{"User-Agent: *", "Disallow: /"},
-			// Nothing is served that a crawler would index, so none is invited.
+			// Nothing is served that a crawler would index, so none is invited in.
 			expectedToLack: []string{"Sitemap:", "Googlebot"},
 		},
 	}

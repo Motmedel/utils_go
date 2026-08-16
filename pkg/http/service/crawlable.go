@@ -30,11 +30,7 @@ var sitemapContentTypes = map[string]struct{}{
 	"application/pdf":       {},
 }
 
-// sitemapCrawlers are the crawlers invited to what a service with a sitemap serves. They are the
-// ones that both honour a sitemap and identify themselves, so that naming them is worth anything.
-var sitemapCrawlers = []string{"Googlebot", "Bingbot", "Applebot", "DuckDuckBot", "archive.org_bot"}
-
-// apiPathPrefix is what the crawlers invited by a sitemap are still kept out of: the endpoints a
+// apiPathPrefix is what a crawler invited by a sitemap is still kept out of: the endpoints a
 // service answers programs with, including the ones browsers post their reports to, none of which
 // is a document worth indexing.
 const apiPathPrefix = "/api/"
@@ -189,30 +185,28 @@ func patchSitemap(mux *motmedelMux.Mux, baseUrl *url.URL) (string, error) {
 	return sitemapUrl.String(), nil
 }
 
-// patchRobotsTxt adds a robots.txt. Where sitemapUrl names a sitemap, the crawlers that honour one
-// are invited to everything but the API paths and pointed at it; otherwise every crawler is told to
-// keep out, there being nothing meant for one to index.
+// patchRobotsTxt adds a robots.txt. Where sitemapUrl names a sitemap, every crawler is invited to
+// everything but the API paths and pointed at it; otherwise every crawler is told to keep out,
+// there being nothing meant for one to index.
 func patchRobotsTxt(mux *motmedelMux.Mux, sitemapUrl string) error {
 	if mux == nil {
 		return motmedelErrors.NewWithTrace(nil_error.New("mux"))
 	}
 
-	groups := []*motmedelHttpTypes.RobotsTxtGroup{
-		{UserAgents: []string{"*"}, Disallowed: []string{"/"}},
-	}
+	// One group, for every crawler there is. Naming the ones that may crawl would leave out every
+	// crawler that appears after the naming, which is a list that only ever grows stale.
+	group := &motmedelHttpTypes.RobotsTxtGroup{UserAgents: []string{"*"}}
 
 	if sitemapUrl != "" {
-		groups = append(
-			groups,
-			&motmedelHttpTypes.RobotsTxtGroup{
-				UserAgents:   sitemapCrawlers,
-				Disallowed:   []string{apiPathPrefix},
-				OtherRecords: [][2]string{{"Sitemap", sitemapUrl}},
-			},
-		)
+		group.Disallowed = []string{apiPathPrefix}
+		group.OtherRecords = [][2]string{{"Sitemap", sitemapUrl}}
+	} else {
+		group.Disallowed = []string{"/"}
 	}
 
-	robotsTxtEndpoint := endpointPkg.NewRobotsTxt(&motmedelHttpTypes.RobotsTxt{Groups: groups})
+	robotsTxtEndpoint := endpointPkg.NewRobotsTxt(
+		&motmedelHttpTypes.RobotsTxt{Groups: []*motmedelHttpTypes.RobotsTxtGroup{group}},
+	)
 	if robotsTxtEndpoint == nil {
 		return motmedelErrors.NewWithTrace(nil_error.New("robots txt endpoint"))
 	}
