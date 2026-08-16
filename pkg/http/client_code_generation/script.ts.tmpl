@@ -1,0 +1,239 @@
+{{- /*
+    The imports below name "@altshiftab/utils" as the runtime this generated code calls: the
+    functions that perform the request, encode a body and raise an error from a status. That
+    package belongs to one organisation, and this library does not, so what is generated only
+    builds for whoever can install it. See the package documentation.
+*/ -}}
+{{- $useEncryption := .Globals.UseEncryption -}}
+{{- if $useEncryption }}
+import type {JWK} from "jose";
+import {compactDecrypt, CompactEncrypt, exportJWK, generateKeyPair, importJWK} from "jose";
+{{- end }}
+{{- if .Globals.UseCose }}
+import {encode as cborEncode} from "@altshiftab/utils/cbor";
+import {encrypt as coseEncrypt} from "@altshiftab/utils/cose";
+{{- end }}
+{{- if .Globals.HasBinaryOutput }}
+import {BadStatusCodeError} from "@altshiftab/utils/http/errors";
+import {fetchEx, fetchWithRequest} from "@altshiftab/utils/http/utils";
+{{- else }}
+import {fetchEx} from "@altshiftab/utils/http/utils";
+{{- end }}
+{{ define "function" -}}
+{{- $noRequestBody := eq .Endpoint.InputType "void" -}}
+{{- $hasUrlInput := ne .Endpoint.UrlInputType "void" -}}
+{{- $isNoBodyMethod := or (eq .Endpoint.Method "GET") (or (eq .Endpoint.Method "HEAD") (eq .Endpoint.Method "DELETE")) -}}
+{{- $encryptedInput := eq .Endpoint.ContentType "application/jose" -}}
+{{- $coseInput := eq .Endpoint.ContentType "application/cose" -}}
+{{- $needsServerKey := or $encryptedInput $coseInput -}}
+{{- $formInput := or (hasPrefix .Endpoint.ContentType "multipart/form-data") (hasPrefix .Endpoint.ContentType "application/x-www-form-urlencoded") -}}
+{{- $encryptedOutput := eq .Endpoint.ExpectedOutputContentType "application/jose" -}}
+{{- $authBearer := and .Endpoint.UseAuthentication (eq .Globals.AuthenticationMode "bearer") -}}
+{{- $hasAnyParam := or (not $noRequestBody) (or $hasUrlInput (or $needsServerKey $authBearer)) -}}
+export async function {{ .Endpoint.Name }}(
+{{- if .Globals.AcceptBaseUrlArgument -}}baseUrl: string{{- if $hasAnyParam }}, {{ end }}{{- end -}}
+{{- if not $noRequestBody -}}input: {{ .Endpoint.InputType }}{{- if or $hasUrlInput (or $authBearer $needsServerKey) }}, {{ end }}{{- end -}}
+{{- if $hasUrlInput -}}urlInput: {{ .Endpoint.UrlInputType }}{{- if or $authBearer $needsServerKey }}, {{ end }}{{- end -}}
+{{- if $encryptedInput -}}serverJwk: JWK{{- if $authBearer }}, {{ end }}{{- end -}}
+{{- if $coseInput -}}serverJwk: JsonWebKey & {kid?: string}{{- if $authBearer }}, {{ end }}{{- end -}}
+{{- if $authBearer -}}token: string{{- end -}}
+): Promise<{{ .Endpoint.ReturnType }}{{ if .Endpoint.OptionalOutput }} | null{{ end }}> {
+    {{- if $authBearer }}
+    if (!token)
+        throw new Error("Empty token");
+    {{ end }}
+    {{- if $encryptedOutput }}
+    const {publicKey: clientPublicKey, privateKey: clientPrivateKey} = await generateKeyPair(
+        "{{ .Globals.CseKeyAlgorithm }}",
+        {crv: "{{ .Globals.CseKeyAlgorithmCurve }}"}
+    );
+    const clientJwk = await exportJWK(clientPublicKey);
+    clientJwk.alg = "{{ .Globals.CseKeyAlgorithm }}";
+    clientJwk.use = "enc";
+    {{- end }}
+    {{- if .Globals.AcceptBaseUrlArgument }}
+    const url = new URL("{{ .Endpoint.URL }}", baseUrl);
+    {{- else }}
+    const url = new URL("{{ .Endpoint.URL }}"{{ if hasPrefix .Endpoint.URL "/" }}, location.origin{{ end }});
+    {{- end }}
+    {{- if and (not $noRequestBody) $isNoBodyMethod }}
+    for (const [__k, __v] of Object.entries(input as any)) {
+        if (__v === undefined || __v === null)
+            continue;
+        if (Array.isArray(__v)) {
+            for (const __item of __v) {
+                url.searchParams.append(__k, String(__item));
+            }
+        } else if (typeof __v === "object") {
+            url.searchParams.append(__k, JSON.stringify(__v));
+        } else {
+            url.searchParams.append(__k, String(__v));
+        }
+    }
+    {{- end }}
+    {{- if $hasUrlInput }}
+    for (const [__k, __v] of Object.entries(urlInput as any)) {
+        if (__v === undefined || __v === null)
+            continue;
+        if (Array.isArray(__v)) {
+            for (const __item of __v) {
+                url.searchParams.append(__k, String(__item));
+            }
+        } else if (typeof __v === "object") {
+            url.searchParams.append(__k, JSON.stringify(__v));
+        } else {
+            url.searchParams.append(__k, String(__v));
+        }
+    }
+    {{- end }}
+
+    {{- if and (not $noRequestBody) (not $isNoBodyMethod) }}
+        {{- if $encryptedInput }}
+    const serverPublicKey = await importJWK(serverJwk);
+    const data = await new CompactEncrypt(new TextEncoder().encode(JSON.stringify(input)))
+        .setProtectedHeader({
+            alg: "{{ .Globals.CseKeyAlgorithm }}",
+            enc: "{{ .Globals.CseContentEncryption }}",
+            kid: serverJwk.kid,
+            cty: "application/json",
+        })
+        .encrypt(serverPublicKey)
+    ;
+        {{- else if $coseInput }}
+    const serverPublicKey = await crypto.subtle.importKey(
+        "jwk",
+        {kty: serverJwk.kty, crv: serverJwk.crv, x: serverJwk.x, y: serverJwk.y},
+        {name: "ECDH", namedCurve: serverJwk.crv ?? "P-256"},
+        false,
+        [],
+    );
+    const data = await coseEncrypt(cborEncode(input), serverPublicKey, {
+        contentType: "application/cbor",
+        {{- /* encode() applies its "" default for an undefined kid; an empty key identifier is treated as absent */}}
+        keyIdentifier: new TextEncoder().encode(serverJwk.kid),
+    });
+        {{- else }}
+    const data = {{ if or (eq .Endpoint.ContentType "application/json") (hasSuffix .Endpoint.ContentType "+json") }}JSON.stringify(input){{ else if $formInput }}input{{ else }}(input as any){{ end }};
+        {{- end }}
+    {{- end }}
+    {{- if .Endpoint.BinaryOutput }}
+    const request = new Request(
+        url.toString(),
+        {
+            method: "{{ .Endpoint.Method }}",
+            {{- if and .Endpoint.UseAuthentication (eq .Globals.AuthenticationMode "cookie") }}
+            credentials: "include",
+            {{- end }}
+            {{- $binaryHasContentType := and (and (not $noRequestBody) (not $isNoBodyMethod)) (and (ne .Endpoint.ContentType "") (not $formInput)) -}}
+            {{- $binaryHasHeaders := or $binaryHasContentType $authBearer -}}
+            {{- if $binaryHasHeaders }}
+            headers: {
+                {{- if $binaryHasContentType }}
+                "Content-Type": "{{ .Endpoint.ContentType }}",
+                {{- end }}
+                {{- if $authBearer }}
+                "Authorization": `Bearer ${token}`,
+                {{- end }}
+            },
+            {{- end }}
+            {{- if and (not $noRequestBody) (not $isNoBodyMethod) }}
+            body: data,
+            {{- end }}
+        }
+    );
+    const {response} = await fetchWithRequest(request, {skipReadResponseBody: true, skipErrorOnStatusCode: true});
+    if (!response.ok) {
+        let responseBody = "";
+        try {
+            responseBody = await response.text();
+        } catch {
+        }
+        throw new BadStatusCodeError(response.status, {request, requestBody: "", response, responseBody});
+    }
+
+    const contentType = response.headers.get("Content-Type") || "";
+
+    if (contentType != "{{ .Endpoint.ExpectedOutputContentType }}") {
+        throw new Error(`Unexpected content type: ${contentType}`);
+    }
+
+    return await response.blob();
+    {{- else }}
+    const {response, responseText} = await fetchEx(
+        url.toString(),
+        {
+            method: "{{ .Endpoint.Method }}",
+            {{- if and .Endpoint.UseAuthentication (eq .Globals.AuthenticationMode "cookie") }}
+            credentials: "include",
+            {{- end }}
+            {{- /* Form bodies get their Content-Type from the browser (multipart needs the boundary parameter) */ -}}
+            {{- $hasContentType := and (and (not $noRequestBody) (not $isNoBodyMethod)) (and (ne .Endpoint.ContentType "") (not $formInput)) -}}
+            {{- $hasAuth := $authBearer -}}
+            {{- $hasCse := $encryptedOutput -}}
+            {{- $hasHeaders := or $hasContentType (or $hasAuth $hasCse) -}}
+            {{- if $hasHeaders }}
+            headers: {
+                {{- if $hasContentType }}
+                "Content-Type": "{{ .Endpoint.ContentType }}",
+                {{- end }}
+                {{- if $hasCse }}
+                "{{ .Globals.CseClientPublicJwkHeader }}": JSON.stringify(clientJwk),
+                {{- end }}
+                {{- if $hasAuth }}
+                "Authorization": `Bearer ${token}`,
+                {{- end }}
+            },
+            {{- end }}
+            {{- if and (not $noRequestBody) (not $isNoBodyMethod) }}
+            body: data,
+            {{- end }}
+        }
+    );
+
+    {{- if eq .Endpoint.ReturnType "void" }}
+    return;
+    {{- else }}
+        {{- if $encryptedOutput }}
+    const {plaintext, protectedHeader} = await compactDecrypt(responseText, clientPrivateKey);
+    const decryptedText = new TextDecoder().decode(plaintext);
+    let output: unknown = decryptedText;
+
+    const protectedHeaderCty = protectedHeader?.cty ?? "";
+    if (protectedHeaderCty === "application/json" || protectedHeaderCty.endsWith("+json")) {
+        output = JSON.parse(decryptedText);
+    }
+
+    return output as {{ .Endpoint.ReturnType }};
+        {{- else }}
+
+    const contentType = response.headers.get("Content-Type") || "";
+
+    {{- if .Endpoint.OptionalOutput }}
+    if (responseText === "" && contentType === "")
+        return null;
+    {{- end }}
+
+    if (contentType == "{{ .Endpoint.ExpectedOutputContentType }}") {
+            {{- if or (eq .Endpoint.ExpectedOutputContentType "application/json") (hasSuffix .Endpoint.ExpectedOutputContentType "+json") }}
+        return JSON.parse(responseText) as {{ .Endpoint.ReturnType }};
+            {{- else }}
+        return responseText as unknown as {{ .Endpoint.ReturnType }};
+            {{- end }}
+    } else {
+        throw new Error(`Unexpected content type: ${contentType}`);
+    }
+        {{- end }}
+    {{- end }}
+    {{- end }}
+}
+{{ end }}
+
+{{- /* Generate for a slice of endpoints if provided */ -}}
+{{- if .Endpoints }}
+    {{- range .Endpoints }}
+{{ template "function" (dict "Endpoint" . "Globals" $.Globals) }}
+    {{- end }}
+{{- else }}
+    {{/* Otherwise treat the root as a single FunctionSpec */}}
+{{ template "function" (dict "Endpoint" . "Globals" $.Globals) }}
+{{- end }}
