@@ -3,9 +3,11 @@ package code_generation
 import (
 	"fmt"
 	"go/format"
+	"maps"
 	"math"
 	"os"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -29,8 +31,10 @@ func (importSet ImportSet) Generate() string {
 		return ""
 	}
 
-	var importEntries []string
-	for importPath := range importSet {
+	// In order, so that what is generated does not depend on how a set was walked. The formatter
+	// sorts an import block of its own accord, which is no reason to hand it an unsorted one.
+	importEntries := make([]string, 0, len(importSet))
+	for _, importPath := range slices.Sorted(maps.Keys(importSet)) {
 		importEntries = append(importEntries, fmt.Sprintf("\t\"%s\"", importPath))
 	}
 	return fmt.Sprintf("import (\n%s\n)", strings.Join(importEntries, "\n"))
@@ -262,23 +266,45 @@ func processSlice(value reflect.Value, importSet ImportSet) (string, ImportSet, 
 	return fmt.Sprintf("[]%s{%s}", elemTypeStr, strings.Join(elements, ", ")), importSet, nil
 }
 
+// mapEntry is a map key as it is written, with the value it is written against. The value is
+// generated only once the entries are in order, a value being as large as what it holds.
+type mapEntry struct {
+	keyLiteral string
+	value      reflect.Value
+}
+
 func processMap(value reflect.Value, importSet ImportSet) (string, ImportSet, error) {
 	mapKeys := value.MapKeys()
-	elements := make([]string, len(mapKeys))
-	for i, key := range mapKeys {
+
+	entries := make([]mapEntry, 0, len(mapKeys))
+	for _, key := range mapKeys {
 		var keyLiteral string
 		var err error
 		keyLiteral, importSet, err = GenerateLiteral(key, importSet)
 		if err != nil {
 			return "", nil, err
 		}
-		mapValue := value.MapIndex(key)
+
+		entries = append(entries, mapEntry{keyLiteral: keyLiteral, value: value.MapIndex(key)})
+	}
+
+	// A map gives its keys in no particular order, so they are put in the order of the literals
+	// they are written as. Generated code that differs from one run to the next is a diff that says
+	// nothing, and a build no one can reproduce.
+	slices.SortFunc(entries, func(a mapEntry, b mapEntry) int {
+		return strings.Compare(a.keyLiteral, b.keyLiteral)
+	})
+
+	elements := make([]string, 0, len(entries))
+	for _, entry := range entries {
 		var valueLiteral string
-		valueLiteral, importSet, err = GenerateLiteral(mapValue, importSet)
+		var err error
+		valueLiteral, importSet, err = GenerateLiteral(entry.value, importSet)
 		if err != nil {
 			return "", nil, err
 		}
-		elements[i] = fmt.Sprintf("%s: %s", keyLiteral, valueLiteral)
+
+		elements = append(elements, fmt.Sprintf("%s: %s", entry.keyLiteral, valueLiteral))
 	}
 
 	elemType := value.Type().Elem()

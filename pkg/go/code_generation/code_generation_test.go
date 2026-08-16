@@ -179,6 +179,11 @@ func TestImportSet_Generate(t *testing.T) {
 			importSet: ImportSet{"math": {}},
 			want:      "import (\n\t\"math\"\n)",
 		},
+		{
+			name:      "several imports, in order",
+			importSet: ImportSet{"strings": {}, "math": {}, "os": {}},
+			want:      "import (\n\t\"math\"\n\t\"os\"\n\t\"strings\"\n)",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -302,6 +307,14 @@ func Test_processMap(t *testing.T) {
 			name:  "simple map",
 			args:  args{value: reflect.ValueOf(map[string]int{"a": 1})},
 			want:  "map[string]int{\"a\": 1}",
+			want1: nil,
+		},
+		{
+			// A map gives its keys in no particular order; the literal is written in the order of
+			// the keys as they are written.
+			name:  "several keys, in order",
+			args:  args{value: reflect.ValueOf(map[string]int{"c": 3, "a": 1, "b": 2})},
+			want:  "map[string]int{\"a\": 1, \"b\": 2, \"c\": 3}",
 			want1: nil,
 		},
 	}
@@ -439,5 +452,30 @@ func Test_processStruct(t *testing.T) {
 				t.Errorf("processStruct() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
+	}
+}
+
+// Test_processMapIsDeterministic verifies that a map is written the same way every time. A map is
+// walked in no particular order, so a literal that follows the walk differs from one run to the
+// next -- which showed up as generated files that changed whenever they were regenerated.
+func Test_processMapIsDeterministic(t *testing.T) {
+	t.Parallel()
+
+	value := reflect.ValueOf(map[string][]byte{"br": {1, 2}, "gzip": {3, 4}, "zstd": {5, 6}})
+
+	first, _, err := processMap(value, nil)
+	if err != nil {
+		t.Fatalf("process map: %v", err)
+	}
+
+	for range 50 {
+		got, _, err := processMap(value, nil)
+		if err != nil {
+			t.Fatalf("process map: %v", err)
+		}
+
+		if got != first {
+			t.Fatalf("process map: got %q, want %q", got, first)
+		}
 	}
 }
