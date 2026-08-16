@@ -60,6 +60,33 @@ type Endpoint struct {
 	StaticContent             *static_content.StaticContent
 }
 
+// Duplicate returns the endpoint as it would be served at each of the paths, for a response that
+// answers for more than the path it was written at: a document that a frontend routes on its own is
+// served at each of the routes it routes, so that a request for one arrives at the document that
+// routes it rather than at a "not found".
+//
+// What the endpoint holds is shared with the duplicates rather than copied -- the static content
+// among it, which is what makes duplicating a document cost nothing.
+func Duplicate(endpoint *Endpoint, paths ...string) []*Endpoint {
+	if endpoint == nil || len(paths) == 0 {
+		return nil
+	}
+
+	duplicates := make([]*Endpoint, 0, len(paths))
+	for _, path := range paths {
+		if path == "" {
+			continue
+		}
+
+		duplicate := *endpoint
+		duplicate.Path = path
+
+		duplicates = append(duplicates, &duplicate)
+	}
+
+	return duplicates
+}
+
 const robotsTxtCacheControl = "public, max-age=86400"
 
 const htmlExtension = ".html"

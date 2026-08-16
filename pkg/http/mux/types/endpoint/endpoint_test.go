@@ -362,3 +362,60 @@ func TestCompareEndpoints(t *testing.T) {
 		})
 	}
 }
+
+func TestDuplicate(t *testing.T) {
+	t.Parallel()
+
+	original := &Endpoint{Path: "/", Method: http.MethodGet, Public: true}
+
+	testCases := []struct {
+		name          string
+		endpoint      *Endpoint
+		paths         []string
+		expectedPaths []string
+	}{
+		{
+			name:          "one path",
+			endpoint:      original,
+			paths:         []string{"/about"},
+			expectedPaths: []string{"/about"},
+		},
+		{
+			name:          "several paths",
+			endpoint:      original,
+			paths:         []string{"/about", "/contact"},
+			expectedPaths: []string{"/about", "/contact"},
+		},
+		{name: "no paths", endpoint: original},
+		{name: "an empty path is skipped", endpoint: original, paths: []string{""}},
+		{name: "no endpoint", paths: []string{"/about"}},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			duplicates := Duplicate(testCase.endpoint, testCase.paths...)
+
+			if len(duplicates) != len(testCase.expectedPaths) {
+				t.Fatalf("duplicates: got %d, want %d", len(duplicates), len(testCase.expectedPaths))
+			}
+
+			for i, expectedPath := range testCase.expectedPaths {
+				duplicate := duplicates[i]
+				if duplicate.Path != expectedPath {
+					t.Errorf("path: got %q, want %q", duplicate.Path, expectedPath)
+				}
+				// The duplicate answers as the original does, at another path.
+				if duplicate.Method != testCase.endpoint.Method || duplicate.Public != testCase.endpoint.Public {
+					t.Errorf("duplicate: got %+v, want the original but for the path", duplicate)
+				}
+			}
+
+			// The original is left as it was.
+			if testCase.endpoint != nil && testCase.endpoint.Path != "/" {
+				t.Errorf("the original was changed: %+v", testCase.endpoint)
+			}
+		})
+	}
+}

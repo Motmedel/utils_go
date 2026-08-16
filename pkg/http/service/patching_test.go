@@ -876,3 +876,56 @@ func TestDoneCallbackLogsOncePerResponse(t *testing.T) {
 		t.Errorf("response served records: got %d, want 1\n%s", got, buffer.String())
 	}
 }
+
+// TestDuplicatedEndpoints verifies that an endpoint served at more paths than the one it was given
+// at is served at each of them, and that the sitemap lists them -- the duplication happening before
+// the service makes anything of what it serves.
+func TestDuplicatedEndpoints(t *testing.T) {
+	t.Parallel()
+
+	service, err := New(
+		service_config.WithHost("example.com"),
+		service_config.WithSitemap(true),
+		service_config.WithEndpoints(staticContentEndpoint("/", "text/html")),
+		service_config.WithDuplicatedEndpoint("/", "/about", "/contact"),
+	)
+	if err != nil {
+		t.Fatalf("new: %v", err)
+	}
+
+	for _, path := range []string{"/", "/about", "/contact"} {
+		endpoint := service.Mux.Get(path, http.MethodGet)
+		if endpoint == nil {
+			t.Errorf("no endpoint at %q", path)
+			continue
+		}
+		if endpoint.StaticContent == nil {
+			t.Errorf("the endpoint at %q serves nothing", path)
+		}
+	}
+
+	sitemap := staticContentData(t, service.Mux, "/sitemap.xml")
+	for _, expected := range []string{
+		"<loc>https://example.com/</loc>",
+		"<loc>https://example.com/about</loc>",
+		"<loc>https://example.com/contact</loc>",
+	} {
+		if !strings.Contains(sitemap, expected) {
+			t.Errorf("the sitemap lacks %q:\n%s", expected, sitemap)
+		}
+	}
+}
+
+func TestDuplicatedEndpointsWithNothingToDuplicate(t *testing.T) {
+	t.Parallel()
+
+	// Serving nothing at the paths asked for is worth saying at the start rather than at a request.
+	_, err := New(
+		service_config.WithHost("example.com"),
+		service_config.WithEndpoints(staticContentEndpoint("/", "text/html")),
+		service_config.WithDuplicatedEndpoint("/elsewhere", "/about"),
+	)
+	if err == nil {
+		t.Error("new: got no error, want one")
+	}
+}

@@ -17,6 +17,7 @@ import (
 	"github.com/Motmedel/utils_go/pkg/errors/types/empty_error"
 	"github.com/Motmedel/utils_go/pkg/errors/types/nil_error"
 	motmedelMux "github.com/Motmedel/utils_go/pkg/http/mux"
+	endpointPkg "github.com/Motmedel/utils_go/pkg/http/mux/types/endpoint"
 	"github.com/Motmedel/utils_go/pkg/http/service/service_config"
 	motmedelHttpTypes "github.com/Motmedel/utils_go/pkg/http/types"
 	motmedelNet "github.com/Motmedel/utils_go/pkg/net"
@@ -149,6 +150,50 @@ func (service *Service) serve(ctx context.Context, listener net.Listener) error 
 	}
 
 	return nil
+}
+
+// withDuplicatedEndpoints returns the endpoints with each duplication's own added: what is served
+// at a path, served at the other paths as well. It is done before the mux is made, so that what the
+// service makes of what it serves -- a sitemap above all -- is made of the duplicates too.
+func withDuplicatedEndpoints(
+	endpoints []*endpointPkg.Endpoint,
+	duplicatedEndpoints []*service_config.DuplicatedEndpoint,
+) ([]*endpointPkg.Endpoint, error) {
+	if len(duplicatedEndpoints) == 0 {
+		return endpoints, nil
+	}
+
+	for _, duplicatedEndpoint := range duplicatedEndpoints {
+		if duplicatedEndpoint == nil {
+			continue
+		}
+
+		path := duplicatedEndpoint.Path
+		if path == "" {
+			return nil, motmedelErrors.NewWithTrace(empty_error.NewWithInstance("path", "duplicated endpoint"))
+		}
+
+		// Every endpoint at the path is duplicated, a path being answered by one per method.
+		var duplicates []*endpointPkg.Endpoint
+		for _, endpoint := range endpoints {
+			if endpoint != nil && endpoint.Path == path {
+				duplicates = append(duplicates, endpointPkg.Duplicate(endpoint, duplicatedEndpoint.To...)...)
+			}
+		}
+
+		if len(duplicates) == 0 {
+			// Serving nothing at the paths asked for would be found by a request arriving at a
+			// "not found"; saying so here is found by starting the service.
+			return nil, motmedelErrors.NewWithTrace(
+				fmt.Errorf("%w: no endpoint to duplicate", motmedelErrors.ErrValidationError),
+				path,
+			)
+		}
+
+		endpoints = append(endpoints, duplicates...)
+	}
+
+	return endpoints, nil
 }
 
 // makeBaseUrl is where the service is reached, derived from the host it answers for: a host that
@@ -416,7 +461,12 @@ func New(options ...service_config.Option) (*Service, error) {
 		)
 	}
 
-	serviceMux := motmedelMux.New(config.Endpoints...)
+	endpoints, err := withDuplicatedEndpoints(config.Endpoints, config.DuplicatedEndpoints)
+	if err != nil {
+		return nil, fmt.Errorf("with duplicated endpoints: %w", err)
+	}
+
+	serviceMux := motmedelMux.New(endpoints...)
 
 	if err := patchMux(serviceMux, config); err != nil {
 		return nil, fmt.Errorf("patch mux: %w", err)

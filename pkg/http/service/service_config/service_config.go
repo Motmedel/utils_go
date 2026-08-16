@@ -21,6 +21,16 @@ type Redirect struct {
 	To   string
 }
 
+// DuplicatedEndpoint is an endpoint served at paths besides the one it was given at. A document
+// that a frontend routes on its own is served at each of the routes it routes, so that a request
+// for one arrives at the document that routes it rather than at a "not found".
+type DuplicatedEndpoint struct {
+	// Path is where the endpoint being duplicated is served.
+	Path string
+	// To are the paths it is served at as well.
+	To []string
+}
+
 // DefaultSecurityTxtValidity is how long a security.txt says its information is to be considered
 // valid, where it does not say itself. RFC 9116 requires the field and recommends less than a year.
 const DefaultSecurityTxtValidity = 365 * 24 * time.Hour
@@ -44,6 +54,10 @@ var DefaultSignals = []os.Signal{syscall.SIGTERM, syscall.SIGINT}
 
 type Config struct {
 	Endpoints []*endpoint.Endpoint
+	// DuplicatedEndpoints are the endpoints served at paths besides the ones they were given at.
+	// They are duplicated before the service makes anything of what it serves, so that a sitemap
+	// lists them as it lists the rest.
+	DuplicatedEndpoints []*DuplicatedEndpoint
 	// Host is the host the service answers for. A request for any other host is answered with
 	// "421 Misdirected Request", rather than by the mux.
 	Host      string
@@ -137,6 +151,20 @@ func New(options ...Option) *Config {
 func WithEndpoints(endpoints ...*endpoint.Endpoint) Option {
 	return func(config *Config) {
 		config.Endpoints = append(config.Endpoints, endpoints...)
+	}
+}
+
+// WithDuplicatedEndpoint serves the endpoint given at path at each of the other paths as well. A
+// document that a frontend routes on its own is served at each of the routes it routes, so that a
+// request for one arrives at the document that routes it rather than at a "not found".
+//
+// The service reports a path it was given nothing at, rather than serving nothing there.
+func WithDuplicatedEndpoint(path string, to ...string) Option {
+	return func(config *Config) {
+		config.DuplicatedEndpoints = append(
+			config.DuplicatedEndpoints,
+			&DuplicatedEndpoint{Path: path, To: to},
+		)
 	}
 }
 

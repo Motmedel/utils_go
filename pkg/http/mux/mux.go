@@ -905,12 +905,7 @@ func (mux *Mux) DuplicateEndpointSpecification(endpoint *endpointPkg.Endpoint, r
 		return motmedelErrors.NewWithTrace(nil_error.New("endpoint"))
 	}
 
-	for _, route := range routes {
-		specification := *endpoint
-		specification.Path = route
-
-		mux.Add(&specification)
-	}
+	mux.Add(endpointPkg.Duplicate(endpoint, routes...)...)
 
 	return nil
 }
