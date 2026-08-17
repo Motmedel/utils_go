@@ -1005,3 +1005,84 @@ func TestApiContentSecurityPolicyIsReplacedOnADocument(t *testing.T) {
 		})
 	}
 }
+
+func TestReportingIntegrityPolicyEnforcement(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		options         []service_config.Option
+		expectedHeader  string
+		forbiddenHeader string
+	}{
+		{
+			name:            "enforced by default",
+			options:         []service_config.Option{service_config.WithReporting(true)},
+			expectedHeader:  integrityPolicyHeaderName,
+			forbiddenHeader: integrityPolicyReportOnlyHeaderName,
+		},
+		{
+			name: "report only when enforcement is turned off",
+			options: []service_config.Option{
+				service_config.WithReporting(true),
+				service_config.WithIntegrityPolicyEnforced(false),
+			},
+			expectedHeader:  integrityPolicyReportOnlyHeaderName,
+			forbiddenHeader: integrityPolicyHeaderName,
+		},
+		{
+			name: "enforced when said so",
+			options: []service_config.Option{
+				service_config.WithReporting(true),
+				service_config.WithIntegrityPolicyEnforced(true),
+			},
+			expectedHeader:  integrityPolicyHeaderName,
+			forbiddenHeader: integrityPolicyReportOnlyHeaderName,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			service, err := New(append([]service_config.Option{service_config.WithHost("example.com")}, testCase.options...)...)
+			if err != nil {
+				t.Fatalf("new: %v", err)
+			}
+
+			headers := service.Mux.DefaultDocumentHeaders
+
+			integrityPolicy := headers[testCase.expectedHeader]
+			if !strings.Contains(integrityPolicy, "blocked-destinations=(script)") {
+				t.Errorf("%s: got %q", testCase.expectedHeader, integrityPolicy)
+			}
+			if !strings.Contains(integrityPolicy, integrityEndpointName) {
+				t.Errorf("%s lacks the endpoint: %q", testCase.expectedHeader, integrityPolicy)
+			}
+
+			// Saying both would leave a browser enforcing the one and reporting the other.
+			if forbidden, ok := headers[testCase.forbiddenHeader]; ok {
+				t.Errorf("%s is also said: %q", testCase.forbiddenHeader, forbidden)
+			}
+		})
+	}
+}
+
+// Turning enforcement off is no reason to say the policy at all when nothing collects the reports.
+func TestReportingOffSaysNoIntegrityPolicy(t *testing.T) {
+	t.Parallel()
+
+	service, err := New(
+		service_config.WithHost("example.com"),
+		service_config.WithReporting(false),
+	)
+	if err != nil {
+		t.Fatalf("new: %v", err)
+	}
+
+	for _, headerName := range []string{integrityPolicyHeaderName, integrityPolicyReportOnlyHeaderName} {
+		if value, ok := service.Mux.DefaultDocumentHeaders[headerName]; ok {
+			t.Errorf("%s is said without reporting: %q", headerName, value)
+		}
+	}
+}

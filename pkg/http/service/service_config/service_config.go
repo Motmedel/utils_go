@@ -102,6 +102,14 @@ type Config struct {
 	// content security policy violations and integrity violations -- and serve the endpoints the
 	// reports go to, along with the ones a page's own JavaScript reports its errors to.
 	Reporting bool
+	// IntegrityPolicyEnforced makes the service refuse to load a script its documents do not give
+	// integrity metadata for, rather than only reporting one. It is on by default, a script whose
+	// contents nothing vouches for being what the policy exists to keep out, and is turned off for
+	// documents a browser fails to attach the metadata of: one that loses it blocks every script
+	// and renders nothing, which report-only turns back into a report. See
+	// WithIntegrityPolicyEnforced. It says nothing unless Reporting is on, the policy naming an
+	// endpoint the reports go to.
+	IntegrityPolicyEnforced bool
 	// SecurityTxt makes the service say how a vulnerability in it is reported. It is on by default,
 	// the host being enough to derive both what the file says and which of the two forms the
 	// service serves; see WithSecurityTxt.
@@ -132,6 +140,7 @@ func New(options ...Option) *Config {
 	config := &Config{
 		RenderableProblemDetails: true,
 		ChromeXmlViewer:          true,
+		IntegrityPolicyEnforced:  true,
 		SecurityTxt:              true,
 		ShutdownTimeout:          DefaultShutdownTimeout,
 		Signals:                  DefaultSignals,
@@ -266,6 +275,20 @@ func WithSitemap(sitemap bool) Option {
 func WithReporting(reporting bool) Option {
 	return func(config *Config) {
 		config.Reporting = reporting
+	}
+}
+
+// WithIntegrityPolicyEnforced says whether the service refuses to load a script its documents give
+// no integrity metadata for, which it does by default, or only reports one.
+//
+// Turn it off for documents a browser fails to attach the metadata of. Safari 26 loses the
+// metadata an import map and the preload scanner carry, so it blocks every chunk a split build
+// imports and renders a blank page; report-only says the same thing without breaking it. See
+// https://webkit.org/blog/17967/news-from-wwdc26-webkit-in-safari-27-beta/, where the preload
+// scanner part of it is fixed.
+func WithIntegrityPolicyEnforced(integrityPolicyEnforced bool) Option {
+	return func(config *Config) {
+		config.IntegrityPolicyEnforced = integrityPolicyEnforced
 	}
 }
 

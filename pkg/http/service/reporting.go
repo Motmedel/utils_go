@@ -40,8 +40,11 @@ const (
 	JsUnhandledRejectionPath     = "/api/report/unhandled-rejection"
 	reportingEndpointsHeaderName = "Reporting-Endpoints"
 	integrityPolicyHeaderName    = "Integrity-Policy"
-	cspReportToEndpointName      = "csp-report-to"
-	integrityEndpointName        = "integrity-endpoint"
+	// integrityPolicyReportOnlyHeaderName says what the enforcing header would have blocked,
+	// without blocking it.
+	integrityPolicyReportOnlyHeaderName = "Integrity-Policy-Report-Only"
+	cspReportToEndpointName             = "csp-report-to"
+	integrityEndpointName               = "integrity-endpoint"
 )
 
 // maxReportBytes bounds a report body. A report is a small object describing one thing a browser
@@ -110,7 +113,7 @@ func messageFromReports[T interface{ Message() string }](
 //
 // report-uri is deprecated, and kept: it is the only way Firefox and Safari report a violation at
 // all, neither having implemented the reporting endpoints that replaced it.
-func patchReportingHeaders(mux *motmedelMux.Mux) error {
+func patchReportingHeaders(mux *motmedelMux.Mux, integrityPolicyEnforced bool) error {
 	if mux == nil {
 		return motmedelErrors.NewWithTrace(nil_error.New("mux"))
 	}
@@ -158,7 +161,15 @@ func patchReportingHeaders(mux *motmedelMux.Mux) error {
 		return fmt.Errorf("patch content security policy: %w", err)
 	}
 
-	defaultDocumentHeaders[integrityPolicyHeaderName] = fmt.Sprintf(
+	// Enforcing the policy is a bet that every browser reaching the service attaches the integrity
+	// metadata a document gives it. A browser that loses it instead blocks the scripts and renders
+	// nothing, which is why saying so is a decision a service makes rather than one made for it.
+	integrityPolicyName := integrityPolicyReportOnlyHeaderName
+	if integrityPolicyEnforced {
+		integrityPolicyName = integrityPolicyHeaderName
+	}
+
+	defaultDocumentHeaders[integrityPolicyName] = fmt.Sprintf(
 		"blocked-destinations=(script), endpoints=(%s)",
 		integrityEndpointName,
 	)
@@ -412,12 +423,12 @@ func jsUnhandledRejectionEndpoint() (*endpointPkg.Endpoint, error) {
 
 // patchReporting asks the browser to report what it blocks, and serves the endpoints the reports go
 // to -- the browser's own, and the ones a page's JavaScript posts its errors to.
-func patchReporting(mux *motmedelMux.Mux) error {
+func patchReporting(mux *motmedelMux.Mux, integrityPolicyEnforced bool) error {
 	if mux == nil {
 		return motmedelErrors.NewWithTrace(nil_error.New("mux"))
 	}
 
-	if err := patchReportingHeaders(mux); err != nil {
+	if err := patchReportingHeaders(mux, integrityPolicyEnforced); err != nil {
 		return fmt.Errorf("patch reporting headers: %w", err)
 	}
 

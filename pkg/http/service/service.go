@@ -360,7 +360,7 @@ func patchMux(mux *motmedelMux.Mux, config *service_config.Config) error {
 	}
 
 	if config.Reporting {
-		if err := patchReporting(mux); err != nil {
+		if err := patchReporting(mux, config.IntegrityPolicyEnforced); err != nil {
 			return fmt.Errorf("patch reporting: %w", err)
 		}
 	}
