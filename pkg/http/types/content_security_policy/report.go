@@ -217,6 +217,11 @@ func (e *ReportEnvelope) Message() string {
 // CSPViolationReportBody is the report body for "csp-violation" reports sent
 // via the Reporting API (report-to directive). Defined in CSP Level 3 section 5.
 type CSPViolationReportBody struct {
+	// The body is written by the browser, which is free to say more about what it blocked than
+	// what is specified today. What it adds is not worth refusing the report over.
+	//nolint:revive // The blank field is what carries what holds for the object; it is read from the type.
+	_ struct{} `jsonschema:",additionalProperties:true"`
+
 	DocumentURL        string  `json:"documentURL,omitempty"`
 	Referrer           *string `json:"referrer,omitempty" jsonschema:"referrer,optional,minlength:0"`
 	BlockedURL         string  `json:"blockedURL,omitempty"`

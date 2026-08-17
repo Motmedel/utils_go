@@ -229,7 +229,10 @@ func (g *Context) GetOrCreateInterfaceDeclaration(structType reflect.Type) (*typ
 	uniqueInterfaceName := g.makeUniqueIdentifier(interfaceName)
 	g.usedQualifiedNames[uniqueInterfaceName] = struct{}{}
 
-	interfaceDeclaration := &type_declaration.InterfaceDeclaration{Identifier: uniqueInterfaceName}
+	interfaceDeclaration := &type_declaration.InterfaceDeclaration{
+		Identifier: uniqueInterfaceName,
+		Type:       structType,
+	}
 	g.TypeDeclarations[structType] = interfaceDeclaration
 
 	if isGenericType {

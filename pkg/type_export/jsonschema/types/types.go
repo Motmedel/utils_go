@@ -136,6 +136,36 @@ func makeNullable(propertySchema map[string]any) map[string]any {
 	return propertySchema
 }
 
+// additionalPropertiesMarkerName is the blank field a struct says through what holds for the object
+// rather than for any one property. It is no property itself, being unexported, so it is read from
+// the type rather than from the declaration's properties.
+const additionalPropertiesMarkerName = "_"
+
+// additionalPropertiesFromType reads what a struct says about members its properties do not name,
+// through the jsonschema tag of its blank field: `jsonschema:"-,additionalProperties:true"`. A
+// struct saying nothing is closed, which is what a schema derived from a Go type should be.
+func additionalPropertiesFromType(structType reflect.Type) (any, error) {
+	if structType == nil {
+		return false, nil
+	}
+
+	markerField, ok := structType.FieldByName(additionalPropertiesMarkerName)
+	if !ok {
+		return false, nil
+	}
+
+	rawMarkerTag := markerField.Tag.Get("jsonschema")
+	markerTag, err := tag.New(rawMarkerTag)
+	if err != nil {
+		return nil, motmedelErrors.New(fmt.Errorf("jsonschema tag new: %w", err), rawMarkerTag)
+	}
+	if markerTag == nil || markerTag.AdditionalProperties == nil {
+		return false, nil
+	}
+
+	return *markerTag.AdditionalProperties, nil
+}
+
 // buildInterfaceSchema builds the object schema for a given interface declaration.
 func (c *Context) buildInterfaceSchema(interfaceDeclaration *type_declaration.InterfaceDeclaration) (map[string]any, error) {
 	schemaMap := map[string]any{
@@ -144,8 +174,15 @@ func (c *Context) buildInterfaceSchema(interfaceDeclaration *type_declaration.In
 
 	properties := map[string]any{}
 	var requiredProperties []string
-	// TODO: Should this be anything other than false? Control with a `_` field?
-	var additionalProps any = false
+
+	// An object is closed to what its properties do not name, so that a member a caller misspells
+	// is refused rather than ignored. A struct says otherwise through the jsonschema tag of a
+	// blank field, which is what a body whose members someone else decides needs: a schema
+	// rejecting the batch would lose what it was sent to carry.
+	additionalProps, err := additionalPropertiesFromType(interfaceDeclaration.Type)
+	if err != nil {
+		return nil, fmt.Errorf("additional properties from type: %w", err)
+	}
 
 	for _, property := range interfaceDeclaration.Properties {
 		if property == nil {

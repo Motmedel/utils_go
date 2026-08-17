@@ -9,17 +9,22 @@ import (
 )
 
 type Tag struct {
-	Name         string
-	Skip         bool
-	Optional     bool
-	MinLength    *int
-	MaxLength    *int
-	Minimum      *float64
-	Maximum      *float64
-	MaxItems     *int
-	MinItems     *int
-	Format       string
-	OtherOptions []string
+	Name string
+	Skip bool
+	// AdditionalProperties says whether the object a tag is read for accepts members its
+	// properties do not name. It is read from the tag of a struct's blank field, the object
+	// rather than any one property being what it describes, and is nil when the tag does not
+	// say, leaving the decision to whoever asked.
+	AdditionalProperties *bool
+	Optional             bool
+	MinLength            *int
+	MaxLength            *int
+	Minimum              *float64
+	Maximum              *float64
+	MaxItems             *int
+	MinItems             *int
+	Format               string
+	OtherOptions         []string
 }
 
 func New(tagString string) (*Tag, error) {
@@ -81,6 +86,15 @@ func New(tagString string) (*Tag, error) {
 						return nil, motmedelErrors.NewWithTrace(fmt.Errorf("strconv parse float (maximum): %w", err))
 					}
 					tag.Maximum = &maximum
+					continue
+				case "additionalproperties":
+					additionalProperties, err := strconv.ParseBool(value)
+					if err != nil {
+						return nil, motmedelErrors.NewWithTrace(
+							fmt.Errorf("strconv parse bool (additionalproperties): %w", err),
+						)
+					}
+					tag.AdditionalProperties = &additionalProperties
 					continue
 				case "minitems":
 					minItems, err := strconv.Atoi(value)

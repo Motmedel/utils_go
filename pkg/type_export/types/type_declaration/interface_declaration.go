@@ -13,7 +13,11 @@ type PropertySignature struct {
 }
 
 type InterfaceDeclaration struct {
-	Identifier      string
+	Identifier string
+	// Type is the struct the declaration was made from. The properties are what an exporter
+	// usually needs, but what is said about the struct itself -- by a tag on a blank field, which
+	// is no property -- is only reachable through the type.
+	Type            reflect.Type
 	Properties      []*PropertySignature
 	GenericTypeInfo *generic_type_info.GenericTypeInfo
 }

@@ -152,3 +152,58 @@ func TestNewUnknownOptionFallsToOtherOptions(t *testing.T) {
 		}
 	}
 }
+
+func TestNewAdditionalProperties(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		tagString   string
+		expectError bool
+		expected    *bool
+	}{
+		{name: "true on a blank field", tagString: ",additionalProperties:true", expected: ptr(true)},
+		{name: "false on a blank field", tagString: ",additionalProperties:false", expected: ptr(false)},
+		{name: "named field", tagString: "fieldName,additionalProperties:true", expected: ptr(true)},
+		{name: "case insensitive", tagString: ",ADDITIONALPROPERTIES:TRUE", expected: ptr(true)},
+		{name: "unset when unsaid", tagString: "fieldName,optional", expected: nil},
+		{name: "not a bool", tagString: ",additionalProperties:perhaps", expectError: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			tag, err := New(testCase.tagString)
+			if testCase.expectError {
+				if err == nil {
+					t.Fatalf("expected an error for %q", testCase.tagString)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tag == nil {
+				t.Fatal("expected non-nil tag")
+			}
+
+			if testCase.expected == nil {
+				if tag.AdditionalProperties != nil {
+					t.Errorf("additional properties: got %t, want unset", *tag.AdditionalProperties)
+				}
+			} else {
+				if tag.AdditionalProperties == nil {
+					t.Fatalf("additional properties: got unset, want %t", *testCase.expected)
+				}
+				if *tag.AdditionalProperties != *testCase.expected {
+					t.Errorf("additional properties: got %t, want %t", *tag.AdditionalProperties, *testCase.expected)
+				}
+			}
+		})
+	}
+}
+
+func ptr[T any](value T) *T {
+	return &value
+}
